@@ -1,0 +1,294 @@
+---
+title: "Northcott Medulloblastoma: PLIER"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+**J. Taroni and C. Greene 2018**
+
+In this notebook, we'll use a method called Pathway-Level Information Extractor
+(PLIER) ([Mao, et al. _bioRxiv._ 2017.](https://doi.org/10.1101/116061)).
+
+We like PLIER for a few reasons:
+
+* It is a matrix factorization approach. 
+  That means we can get a low-dimensional representation of our data.
+  Specifically, PLIER learns correlated patterns of expression in our data
+  or latent variables (LVs).
+* It includes penalties such that _some_ of the LVs will align with gene sets 
+  that we give it, so it's excellent for biological discovery.
+* The authors demonstrated that it performs favorably wrt estimating proportion
+  of immune cells in a sample as compared to other methods.
+* Because not _all_ LVs align with the gene sets we input, some of them capture
+  unwanted technical variation. 
+  In our experience with the method, it does this quite well.
+
+## Libraries and functions
+
+```{r}
+# PLIER library
+library(PLIER)
+# heatmap 
+library(ComplexHeatmap)
+```
+
+```{r}
+# magrittr pipe
+`%>%` <- dplyr::`%>%`
+```
+
+## Directories and files
+
+```{r}
+# directory for the data
+data_dir <- file.path("data", "GSE37382")
+results_dir <- "results"
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir, recursive = TRUE)
+}
+# directory where we will save any plots
+plots_dir <- "plots"
+if (!dir.exists(plots_dir)) {
+  dir.create(plots_dir, recursive = TRUE)
+}
+# directory where we'll put the PLIER model
+model_dir <- "models"
+if (!dir.exists(model_dir)) {
+  dir.create(model_dir, recursive = TRUE)
+}
+# expression data that we prepped in the first notebook
+exprs_file <- file.path(data_dir, "GSE37382_SCAN_symbol_mean_agg.pcl")
+```
+
+**Output**
+
+```{r}
+# plier model output
+plier_file <- file.path(model_dir, "GSE37382_PLIER_model.RDS")
+# B matrix heatmap
+b_heatmap_file <- file.path(plots_dir, "GSE37382_B_heatmap_significant.pdf")
+```
+
+## Read in expression data and prep for use with PLIER
+
+```{r}
+exprs_df <- data.table::fread(exprs_file, data.table = FALSE)
+```
+
+We'll need a matrix of expression data where the `rownames` are the gene 
+symbols.
+
+```{r}
+exprs_mat <- as.matrix(tibble::column_to_rownames(exprs_df, "SYMBOL"))
+exprs_mat[1:5, 1:5]
+```
+
+## Run PLIER
+
+We'll set a seed using `set.seed`.
+This makes our results reproducible.
+
+```{r}
+seed <- 12345
+set.seed(seed)
+```
+
+### Gene sets for PLIER
+
+The PLIER package comes with gene sets. 
+We'll use the ones assocted with immune cell types (`bloodCellMarkersIRISDMAP` 
+and `svmMarkers`) and the `canonicalPathways` (e.g., KEGG, REACTOME).
+You can also use your own custom gene sets if desired.
+
+```{r}
+# load PLIER pathway and cell type data
+data(bloodCellMarkersIRISDMAP)
+data(svmMarkers)
+data(canonicalPathways)
+```
+
+We'll use PLIER built in functions to prepare the gene sets for use.
+
+```{r}
+# combine the pathway data from PLIER
+all_paths <- PLIER::combinePaths(bloodCellMarkersIRISDMAP, svmMarkers, 
+                                 canonicalPathways)
+
+# what genes are common to the pathway data and the expression matrix
+cm_genes <- PLIER::commonRows(all_paths, exprs_mat)
+```
+
+### Row normalize
+
+And a built-in function to row normalize the expression data.
+This is z-scoring the expression values for each gene.
+
+```{r}
+# row normalize -- z-scoring the genes
+exprs_norm <- PLIER::rowNorm(exprs_mat)
+```
+
+Let's compare the expression values from the first row (gene) before and after
+the normalization. 
+
+_Before_
+
+```{r}
+summary(exprs_mat[1, ])
+```
+
+```{r}
+var(exprs_mat[1, ])
+```
+
+_After_
+
+```{r}
+summary(exprs_norm[1, ])
+```
+```{r}
+var(exprs_norm[1, ])
+```
+
+
+### Set k
+
+To define the number of latent variables (`k`), we'll need to first determine
+the number of "significant principal components" using a built-in PLIER 
+function.
+
+```{r}
+# what should we set the minimum k parameter to in PLIER? estimate the number 
+# of PC for the SVD decomposition 
+set_k <- PLIER::num.pc(exprs_norm[cm_genes, ])
+```
+
+### PLIER
+
+Okay, now we're ready to run PLIER!
+The authors recommend using the number of significant PCs + 30% for the
+`k` argument.
+
+```{r}
+# PLIER main function + return results
+plier_results <- PLIER::PLIER(exprs_norm[cm_genes, ], all_paths[cm_genes, ], 
+                              k = round((set_k + set_k * 0.3), 0), trace = TRUE)
+```
+
+Let's save this to our model directory
+
+```{r}
+readr::write_rds(plier_results, path = plier_file)
+```
+
+## Exploring the PLIER model
+
+`plotU` will give us insight into what pathways or cell types were captured by
+the latent variables from the model.
+
+```{r}
+PLIER::plotU(plier_results, fontsize_col = 6, fontsize_row = 5)
+```
+
+We can save this as a PDF in our plots directory
+
+```{r}
+u_plot_file <- file.path(plots_dir, "GSE37382_U_plot.pdf")
+pdf(u_plot_file)
+PLIER::plotU(plier_results, fontsize_col = 6, fontsize_row = 5)
+dev.off()
+```
+
+### What LVs have pathways or cell types associated with them?
+
+PLIER returns a summary `data.frame` that will give us a bit more information.
+
+```{r}
+plier_summary_df <- plier_results$summary
+plier_summary_df
+```
+
+We can filter this `data.frame` based on significance of associations.
+We'll use `FDR < 0.05`.
+
+```{r}
+plier_summary_df %>%
+  dplyr::filter(FDR < 0.05)
+```
+
+We can also sort by AUC values after filtering.
+
+```{r}
+plier_summary_df %>%
+  dplyr::filter(FDR < 0.05) %>%
+  dplyr::arrange(dplyr::desc(AUC))
+```
+
+We can see very strong associations between the ribosome and LV90, for example.
+
+Let's make a heatmap of the LV expression values, which can be found in 
+`plier_results$B`
+
+```{r}
+plier_results$B[1:10, 1:5]
+```
+
+To make visualization a bit easier, let's limit our heatmap to only those 
+LVs with a significant association with a gene set using the same FDR cutoff
+as above and `AUC > 0.75`
+
+```{r}
+# first, let's subset summary to only the significant associations like above
+sig_summary_df <- plier_summary_df %>%
+  dplyr::filter(FDR < 0.05,
+                AUC > 0.75)
+# the index of the LVs we want will now be in the `LV index` column of this 
+# data.frame -- but if an LV is associated with multiple gene sets we'll get
+# duplicate values. unique helps us with that.
+sig_index <- unique(sig_summary_df$`LV index`)
+```
+
+Let's get the LV expression value matrix out of `plier_results`
+
+```{r}
+b_matrix <- plier_results$B
+sig_b_matrix <- b_matrix[as.integer(sig_index), ]
+```
+
+Let's make the heatmap itself
+
+```{r}
+pheatmap::pheatmap(sig_b_matrix, 
+                   color = colorRampPalette(c("blue", "white", "red"))(100), 
+                   scale = "row",
+                   clustering_distance_cols = "correlation",
+                   clustering_distance_rows = "correlation",
+                   clustering_method = "average",
+                   show_colnames = FALSE,
+                   fontsize_row = 6)
+```
+
+Save this plot
+
+```{r}
+pdf(b_heatmap_file)
+pheatmap::pheatmap(sig_b_matrix, 
+                   color = colorRampPalette(c("blue", "white", "red"))(100), 
+                   scale = "row",
+                   clustering_distance_cols = "correlation",
+                   clustering_distance_rows = "correlation",
+                   clustering_method = "average",
+                   show_colnames = FALSE,
+                   fontsize_row = 6)
+dev.off()
+```
+
+## Session Info
+
+Record session info for reproducibility & provenence purposes.
+
+```{r}
+sessionInfo()
+```

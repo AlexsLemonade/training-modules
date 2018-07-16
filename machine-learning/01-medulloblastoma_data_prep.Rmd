@@ -1,0 +1,272 @@
+---
+title: "Northcott Medulloblastoma: Data preparation"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+**J. Taroni and C. Greene 2018**
+
+In this notebook, we'll cover how to do conversion between different gene
+identifiers.
+Different tools use different ids.
+[`PLIER`](https://github.com/wgmao/PLIER) 
+([Mao, et al. _bioRxiv._ 2017.](https://doi.org/10.1101/116061)), 
+which we'll use shortly, 
+requires that we use gene symbols and the refine.bio processed data uses
+Ensembl gene ids.
+
+For this part of the workshop, we'll be using [`GSE37382`](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE37382),
+primary medulloblastoma sample data from 
+[Northcott, et al. _Nature._ 2012.](https://www.ncbi.nlm.nih.gov/pubmed/22832581).
+
+## Libraries and functions
+
+We'll need something that maps between different types of identifiers to
+do the conversion.
+Here, we'll use the `org.Hs.eg.db` package from [Bioconductor]().
+
+For more information about using Bioconductor annotation packages, see 
+[this vignette](http://bioconductor.org/packages/release/bioc/vignettes/AnnotationDbi/inst/doc/IntroToAnnotationPackages.pdf) about AnnotationDbi.
+
+```{r}
+library(org.Hs.eg.db)
+```
+
+```{r}
+# magrittr pipe
+`%>%` <- dplyr::`%>%` 
+```
+
+
+## Files and directories
+
+```{r}
+# the directory where the refine.bio processed data lives, it's also where we 
+# will write the output after the conversion
+data_dir <- file.path("data", "GSE37382")
+# refine.bio processed expression file
+exprs_file <- file.path(data_dir, "GSE37382_SCAN.pcl")
+# the file used for mapping between gene ids that is output
+mapping_file <- file.path(data_dir, 
+                          "genesymbol_ensembl_mappings_used_for_GSE37382.tsv")
+# the prepped expression data output fule
+output_file <- file.path(data_dir, "GSE37382_SCAN_symbol_mean_agg.pcl")
+```
+
+## Read in data
+
+We'll read in the data with a [`data.table`](https://cran.r-project.org/web/packages/data.table/index.html) function because it is much faster than base R.
+
+```{r}
+exprs_df <- data.table::fread(exprs_file, data.table = FALSE)
+```
+
+Let's take a look at the expression `data.frame`.
+
+```{r}
+exprs_df[1:5, 1:5]
+```
+
+We can see that the first column, called `Gene`, contains the Ensembl gene ids.
+Let's take a look at the dimensions of `exprs_df`.
+
+```{r}
+dim(exprs_df)
+```
+
+This means there are 21661 rows, which correspond to genes, and 285 samples
+because the first of the 286 columns contain gene identifers.
+
+## Annotation
+
+### Conversion
+
+`PLIER` uses gene symbols, but `org.Hs.eg.db` can be used for a number of 
+different conversions. 
+Let's take a look at what it contains.
+
+```{r}
+keytypes(org.Hs.eg.db)
+```
+
+If we had data that used Entrez gene ids, we could use `ENTREZID` to prep the
+data for use with `PLIER`.
+
+Now for the conversion bit! 
+We can use [`mapIds`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.34.4/topics/AnnotationDb-objects) 
+to do the conversion.
+
+Sometimes the gene id we're converting from will map to many ids of the type
+we are converting to or vice versa.
+`mapIds` will pick the first one it comes across when it's using the default
+arguments or options (setting `multiVals = "first"`).
+We don't necessarily want that behavior, so we can make a list.
+
+```{r}
+# don't replace the identifiers in exprs -- we're concerned about 1:many mappings
+mapped_list <- mapIds(org.Hs.eg.db, keys = exprs_df$Gene, column = "SYMBOL", 
+                      keytype = "ENSEMBL", multiVals = "list")
+```
+
+We can see that this 1:many mapping is the case.
+`mapped_list` is a `list` where the names are Ensembl gene ids and the elements
+are the gene symbols they map to.
+
+```{r}
+head(mapped_list)
+```
+
+Where are the 1:many mappings? 
+Let's see what one of those looks like.
+
+```{r}
+list_index <- which(lapply(mapped_list, length) > 1)[2]
+mapped_list[list_index]
+```
+
+How many of the mappings look like this?
+
+```{r}
+sum(lapply(mapped_list, length) > 1)
+```
+
+If we wanted to, we could manually resolve these by looking at other resources.
+
+Let's get the data into a `data.frame` for joining.
+
+```{r}
+mapped_df <- reshape2::melt(mapped_list)
+head(mapped_df)
+```
+
+Let's rename those columns.
+
+```{r}
+colnames(mapped_df) <- c("SYMBOL", "ENSEMBL")
+head(mapped_df)
+```
+
+What happens to those 1:many mapping cases?
+
+```{r}
+mapped_df %>%
+  dplyr::filter(ENSEMBL == "ENSG00000011454")
+```
+
+Let's write this to file for posterity.
+If we find one gene we're really interested in, we'll want to go back to this
+mapping file and make sure it's not ambiguous by using other resources.
+
+```{r}
+readr::write_tsv(mapped_df, path = mapping_file) 
+```
+
+Now we'll want to join the mappings to our expression data.
+
+```{r}
+# let's use the mappings to reannotate our data
+annot_exprs_df <- mapped_df %>%
+  # removing anything in the SYMBOL column that is NA
+  dplyr::filter(!is.na(SYMBOL)) %>%
+  # join by Ensembl gene ids, retaining only Ensembl gene ids in both
+  dplyr::inner_join(y = exprs_df, by = c("ENSEMBL" = "Gene"))
+```
+
+What does this new `data.frame` look like?
+
+```{r}
+annot_exprs_df[1:5, 1:5]
+```
+
+We'll want to drop the `ENSEMBL` column.
+
+```{r}
+annot_exprs_df <- annot_exprs_df %>%
+  dplyr::select(-ENSEMBL)
+annot_exprs_df[1:5, 1:5]
+```
+
+Note that if Ensembl gene id mapped to more than one gene symbol, 
+the expression value in that ENSG row was copied to each of the rows using
+that gene symbol.
+This should be okay for our purposes.
+
+```{r}
+annot_exprs_df %>%
+  dplyr::filter(SYMBOL %in% c("GPR21", "RABGAP1"))
+```
+
+### Summarizing to mean
+
+We'll want to check if any of the gene symbols are duplicated, because this 
+will cause issues downstream.
+
+If there are multiples of a gene symbol, let's take the average expression
+value. 
+Again, this should be okay for our particular use case.
+
+```{r}
+# how many of the symbols are duplicated?
+sum(duplicated(annot_exprs_df$SYMBOL))
+```
+
+Let's take a look at an example.
+
+```{r}
+dup_index <- which(duplicated(annot_exprs_df$SYMBOL))[1]
+dup_symbol <- annot_exprs_df$SYMBOL[dup_index]
+annot_exprs_df %>%
+  dplyr::filter(SYMBOL == dup_symbol)
+```
+
+```{r}
+# checking for missing values -- we'll want to deal with these when we summarize
+any(is.na(annot_exprs_df))
+```
+
+```{r}
+# can collapse to mean values for duplicated genes without removing NAs, then
+agg_exprs_df <- annot_exprs_df %>%
+  # group by gene identifier
+  dplyr::group_by(SYMBOL) %>%
+  # for each column -- take the mean expression value
+  dplyr::summarise_all(mean)
+```
+
+Let's take another look at the `r dup_symbol` example.
+
+```{r}
+agg_exprs_df %>%
+  dplyr::filter(SYMBOL == dup_symbol)
+```
+
+Is this consistent with what we expect?
+
+```{r}
+# GSM917011
+mean(c(-0.04392194, -0.05420797))
+```
+
+```{r}
+# GSM917014
+mean(c(0.08537644, 0.10227144))
+```
+
+Let's write our prepped data to file.
+
+```{r}
+# write to file!
+readr::write_tsv(agg_exprs_df, path = output_file)
+```
+
+## Session Info
+
+Record session info for reproducibility & provenence purposes.
+
+```{r}
+sessionInfo()
+```
+
+
