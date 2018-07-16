@@ -1,0 +1,280 @@
+---
+title: "Northcott Medulloblastoma: Clustering"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+**J. Taroni and C. Greene 2018** 
+
+In this notebook, we'll be exploring hierarchical clustering and a variant,
+consensus clustering.
+We'll often use hierarchical clustering to get a sense of what groupings and
+patterns exist in our data.
+
+## Libraries and functions
+
+```{r}
+# package for making heatmaps
+library(ComplexHeatmap)
+# package for consensus clustering
+library(ConsensusClusterPlus)
+```
+
+```{r}
+# magrittr pipe
+`%>%` <- dplyr::`%>%`
+```
+
+## Directories and files
+
+```{r}
+# directory for the data
+data_dir <- file.path("data", "GSE37382")
+# directory where we will save any kind of results
+results_dir <- "results"
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir, recursive = TRUE)
+}
+# directory where we will save any plots
+plots_dir <- "plots"
+if (!dir.exists(plots_dir)) {
+  dir.create(plots_dir, recursive = TRUE)
+}
+# expression data that we prepped in the first notebook
+exprs_file <- file.path(data_dir, "GSE37382_SCAN_symbol_mean_agg.pcl")
+# tab-delimited file of sample data that someone has already cleaned for us!
+meta_file <- file.path(data_dir, "GSE37382_cleaned_metadata.tsv")
+```
+
+**Output**
+
+```{r}
+# heatmap with annotation bars
+heatmap_file <- file.path(plots_dir, "GSE37382_sample_sample_heatmap.pdf") 
+# consensus clustering results
+cc_file <- file.path(results_dir, "GSE37382_consensus_clustering_results.RDS")
+# labels for k = 5
+cc_tsv <- file.path(results_dir, "GSE37382_k5_labels.tsv")
+```
+
+## Read in data
+
+### Expression data
+
+Read in the expression data with `data.table`.
+
+```{r}
+exprs_df <- data.table::fread(exprs_file, data.table = FALSE)
+```
+
+We'll need a matrix of expression data where the `rownames` are the gene 
+symbols to do the clustering.
+
+```{r}
+exprs_mat <- as.matrix(tibble::column_to_rownames(exprs_df, "SYMBOL"))
+```
+
+### Sample metadata
+
+Read in the metadata with `readr`.
+
+```{r}
+sample_meta_df <- readr::read_tsv(meta_file)
+```
+
+Let's see what that metadata `data.frame` contains.
+
+```{r}
+sample_meta_df
+```
+
+## Relationship between samples
+
+In this notebook, we'll look at the relationship between samples, but we can
+use hierarchical clustering for looking at the relationship between genes.
+
+First thing we'll do is calculate the Pearson correlation between samples to
+get a correlation matrix.
+This will tell us how similar in expression values the samples are to one 
+another.
+
+```{r}
+set.seed(12345)
+```
+
+
+### Correlation
+
+```{r}
+pearson_mat <- cor(exprs_mat, method = "pearson")
+```
+
+Let's see if there's some structure in the transcriptome data! 
+We'll use the `ComplexHeatmap` package we loaded up top.
+
+```{r}
+Heatmap(pearson_mat,
+        clustering_distance_rows = "pearson",
+        clustering_method_rows = "average",
+        clustering_distance_columns = "pearson",
+        clustering_method_columns = "average",
+        show_column_names = FALSE,
+        show_row_names = FALSE,
+        heatmap_legend_param = list(title = "correlation"))
+```
+
+We can see that there are at least two groups of samples.
+Does this structure correspond to subgroup or histology? 
+
+### Annotation bars
+
+We have labels for these samples in `sample_meta_df`.
+We can layer this information onto the heatmap using annotation bars, but
+first we'll have to format it for use with [`ComplexHeatmap`](http://www.bioconductor.org/packages/release/bioc/vignettes/ComplexHeatmap/inst/doc/s1.introduction.html#toc_0).
+The `rownames` of the `data.frame` used for annotation will need to correspond 
+to the sample names, which are the `colnames` of `exprs_mat`.
+
+```{r}
+annotation_df <- sample_meta_df %>%
+  # annotation_df is actually a tibble, but we'll want it to be a data.frame
+  as.data.frame() %>%
+  # selecting the three columns of interest -- the sample name, the histology
+  # group and the subgroup
+  dplyr::select(source_name, histology, subgroup) %>%
+  # we want the sample names that are in the source_name column to be the
+  # rownames rather than their own column
+  tibble::column_to_rownames(var = "source_name")
+```
+
+Is the order of samples the same?
+
+```{r}
+rownames(annotation_df) == colnames(pearson_mat)
+```
+
+No, so we should reorder the rows of `annotation_df`.
+
+```{r}
+annotation_df <- annotation_df[colnames(pearson_mat), ]
+all(rownames(annotation_df) == colnames(pearson_mat))
+```
+
+Set up the colors to be used for the annotation bar.
+We'll use greys for the histology and a colorblind friendly palette for the
+subgroups.
+
+```{r}
+histology_colors <- RColorBrewer::brewer.pal(9, "Greys")
+annotation_colors <- list(
+  histology = c("Classic" = histology_colors[1], 
+                "Desmoplastic" = histology_colors[2],
+                "LCA" = histology_colors[3],
+                "MBEN" = histology_colors[4],
+                "medulloblastoma" = histology_colors[5],
+                "N/A" = histology_colors[6]),
+  subgroup = c("SHH" = "#00BFFF", "Group 3" = "#FFC125", 
+               "Group 4" = "#00CD66")
+)
+```
+
+We'll need to make a separate annotation object with the `HeatmapAnnotation`
+function in `ComplexHeatmap`.
+(You can find a vignette about annotations [here](http://www.bioconductor.org/packages/release/bioc/vignettes/ComplexHeatmap/inst/doc/s4.heatmap_annotation.html)).
+
+```{r}
+ha_column <- HeatmapAnnotation(df = annotation_df, col = annotation_colors)
+```
+
+```{r}
+Heatmap(pearson_mat,
+        clustering_distance_rows = "pearson",
+        clustering_method_rows = "average",
+        clustering_distance_columns = "pearson",
+        clustering_method_columns = "average",
+        show_column_names = FALSE,
+        show_row_names = FALSE,
+        heatmap_legend_param = list(title = "correlation"),
+        top_annotation = ha_column)
+```
+
+It looks like SHH samples are distinct from Group 3 and Group 4, which are
+more similar.
+
+Save heatmap to file!
+
+```{r}
+pdf(heatmap_file, width = 7, height = 5)
+Heatmap(pearson_mat,
+        clustering_distance_rows = "pearson",
+        clustering_method_rows = "average",
+        clustering_distance_columns = "pearson",
+        clustering_method_columns = "average",
+        show_column_names = FALSE,
+        show_row_names = FALSE,
+        heatmap_legend_param = list(title = "correlation"),
+        top_annotation = ha_column)
+dev.off()
+```
+
+## Consensus clustering
+
+Hierarchical clustering is what we call a "weak" clustering method -- we should 
+not take the groups it finds as "law".
+We can use a method called consensus clustering to find the "consensus"
+across multiple runs of the algorithm using a resampling procedure.
+
+We'll use the package [`ConsensusClusterPlus`](https://bioconductor.org/packages/release/bioc/html/ConsensusClusterPlus.html) that we loaded up top.
+
+```{r}
+consensus_cluster_results <- ConsensusClusterPlus(d = exprs_mat, maxK = 10)
+```
+
+Looks like there are probably two groups with some outliers, let's look at 
+`k = 5`.
+
+```{r}
+# this is how we get the class labels out of the results -- note that
+# the cluster numbers are arbitrary
+head(consensus_cluster_results[[5]]$consensusClass)
+```
+```{r}
+k5_labels <- consensus_cluster_results[[5]]$consensusClass
+```
+
+```{r}
+table(annotation_df[names(k5_labels), "subgroup"], k5_labels)
+```
+
+Looks like `Group 3` and `Group 4` cluster together, separate from `SHH`.
+We'll save these results into the results directory.
+
+```{r}
+readr::write_rds(consensus_cluster_results, path = cc_file)
+```
+
+Let's also save the cluster labels in a data.frame so we can use them
+in downstream analyses.
+
+```{r}
+# get a data.frame with 1 column that has the cluster labels
+cc_df <- data.frame(Cluster = k5_labels)
+# the sample names are the rownames, we'll want them as a column
+cc_df <- tibble::rownames_to_column(cc_df, var = "Sample")
+head(cc_df)
+```
+
+Write these results to file.
+
+```{r}
+readr::write_tsv(cc_df, path = cc_tsv)
+```
+
+## Session Info
+
+Record session info for reproducibility & provenence purposes.
+
+```{r}
+sessionInfo()
+```

@@ -1,0 +1,351 @@
+---
+title: "Northcott Medulloblastoma: Group differences in LV expression"
+output: html_notebook
+---
+
+**J. Taroni and C. Greene 2018**
+
+In this notebook, we'll plot the differences in PLIER latent variable 
+expression between the three subgroups: SHH, Group 3, and Group 4.
+
+Our objective is to learn about melting wide data, wrangling data,
+and using `ggplot2` along the way.
+
+## First, a note on tidy data
+
+In order to use `ggplot2`, we'll need the data in "long" or "tidy" format.
+`PLIER` outputs what we want to plot in what we call "wide" format.
+
+Read more about tidy data [here](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html).
+
+To quote from Hadley Wickham's [R for Data Science](r4ds.had.co.nz/tidy-data.html):
+
+> There are three interrelated rules which make a dataset tidy:
+> * Each variable must have its own column.
+> * Each observation must have its own row.
+> * Each value must have its own cell.
+
+Let's look at a toy example.
+
+```{r}
+set.seed(12345)
+toy_df <- data.frame( 
+  cbind(c("GENEA", "GENEB", "GENEC"),
+        matrix(rnorm(30), ncol = 10))
+)
+colnames(toy_df) <- c("Gene", paste0("Sample", 1:10))
+```
+
+`toy_df` is now in "wide" format.
+
+```{r}
+toy_df
+```
+
+Let's get it into "long" format.
+
+```{r}
+toy_long_df <- reshape2::melt(toy_df, id.vars = "Gene", 
+                              variable.name = "Sample", 
+                              value.name = "Expression")
+toy_long_df
+```
+
+Let's remove these toy examples from the workspace.
+
+```{r}
+rm(toy_df, toy_long_df)
+```
+
+## Libraries and functions
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(ggsignif)
+```
+
+## Directories and files
+
+```{r}
+# directory for the data
+data_dir <- file.path("data", "GSE37382")
+results_dir <- "results"
+# directory where we will save any plots
+plots_dir <- "plots"
+# directory where we'll put the PLIER model
+model_dir <- "models"
+# metadata file that has been cleaned
+metadata_file <- file.path(data_dir, "GSE37382_cleaned_metadata.tsv")
+# PLIER model trained in third notebook
+plier_file <- file.path(model_dir, "GSE37382_PLIER_model.RDS")
+```
+
+**Output**
+
+```{r}
+lv_plot <- file.path(plots_dir, "LV94_boxplot.pdf")
+```
+
+## Read in data
+
+### Sample metadata
+
+We'll use the sample metadata, which contains the subgroup information, in our
+plotting.
+
+```{r}
+sample_meta_df <- readr::read_tsv(metadata_file)
+```
+
+### PLIER model
+
+```{r}
+plier_results <- readr::read_rds(plier_file)
+```
+
+We'll focus on the significant (`FDR < 0.05` and `AUC > 0.75`) latent variables
+for now.
+Let's get the indices of those LVs.
+
+```{r}
+sig_summary_df <- plier_results$summary %>%
+  dplyr::filter(FDR < 0.05,
+                AUC > 0.75)
+sig_index <- unique(sig_summary_df$`LV index`)
+```
+
+Let's get the B matrix out of `plier_results` and filter it to only the 
+significant LVs.
+
+```{r}
+b_matrix <- plier_results$B
+sig_b_matrix <- b_matrix[as.integer(sig_index), ]
+# add LV column
+sig_b_wide <- tibble::rownames_to_column(as.data.frame(sig_b_matrix), 
+                                         var = "LV")
+```
+
+### Tidy
+
+Let's look at what format this is in currently.
+
+```{r}
+sig_b_wide[1:5, 1:5]
+```
+
+We want this in long format. 
+We'll use `reshape2::melt` to do this just like in the toy example above.
+
+```{r}
+sig_b_df <- reshape2::melt(sig_b_wide, id.vars = "LV", variable.name = "Sample",
+                           value.name = "Expression_level")
+head(sig_b_df)
+```
+
+Let's add the sample metadata to this `data.frame` with `inner_join`.
+
+```{r}
+b_df <- inner_join(x = sig_b_df, y = sample_meta_df, 
+                   by = c("Sample" = "source_name"))
+head(b_df)
+```
+
+## Plotting
+
+For illustrative purposes, we'll pick an LV and go through using `ggplot2` to
+make a plot.
+
+```{r}
+lv <- "94,IRIS_Monocyte-Day7"
+```
+
+First, let's filter the `data.frame` to only observations of LV 94.
+
+```{r}
+lv94_df <- b_df %>% 
+  dplyr::filter(LV == lv) 
+```
+
+#### Boxplot
+
+Let's make a boxplot, using the subgroups as groups. 
+We'll use defaults and then tweak different things one by one, so you can see
+how different functions and arguments work.
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot()
+```
+
+Let's add individual points with `geom_jitter`.
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot(outlier.shape = NA) +  # we remove outlier points because they
+  # will be included in the jitter
+  geom_jitter()
+```
+
+Let's make the points more transparent by setting `alpha` and narrow the
+width of the jitter with `width`
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot(outlier.shape = NA) +  # we remove outlier points because they
+  # will be included in the jitter
+  geom_jitter(width = 0.175, alpha = 0.5)
+```
+
+Let's change the theme to something more suitable for publication.
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot(outlier.shape = NA) +  # we remove outlier points because they
+  # will be included in the jitter
+  geom_jitter(width = 0.175, alpha = 0.5) +
+  # add built in theme
+  theme_classic()
+```
+
+Let's add labels and a title with the `labs` function.
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot(outlier.shape = NA) +  # we remove outlier points because they
+  # will be included in the jitter
+  geom_jitter(width = 0.175, alpha = 0.5) +
+  # add built in theme
+  theme_classic() +
+  labs(x = "Subgroup", y = "LV Expression", title = "LV94 Macrophages")
+```
+
+Let's center the title and make it bold with `theme` and `element_text`.
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot(outlier.shape = NA) +  # we remove outlier points because they
+  # will be included in the jitter
+  geom_jitter(width = 0.175, alpha = 0.5) +
+  # add built in theme
+  theme_classic() +
+  labs(x = "Subgroup", y = "LV Expression", title = "LV94 Macrophages") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+Let's put the x-axis labels on a 45 degree angle with `theme`.
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot(outlier.shape = NA) +  # we remove outlier points because they
+  # will be included in the jitter
+  geom_jitter(width = 0.175, alpha = 0.5) +
+  # add built in theme
+  theme_classic() +
+  labs(x = "Subgroup", y = "LV Expression", title = "LV94 Macrophages") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(hjust = 1, angle = 45))
+```
+
+Let's get rid of the legend since it's redundant.
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot(outlier.shape = NA) +  # we remove outlier points because they
+  # will be included in the jitter
+  geom_jitter(width = 0.175, alpha = 0.5) +
+  # add built in theme
+  theme_classic() +
+  labs(x = "Subgroup", y = "LV Expression", title = "LV94 Macrophages") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(hjust = 1, angle = 45),
+        legend.position = "none")
+```
+
+Let's use colors that are consistent with our clustering notebook with
+`scale_color_manual`.
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot(outlier.shape = NA) +  # we remove outlier points because they
+  # will be included in the jitter
+  geom_jitter(width = 0.175, alpha = 0.5) +
+  # add built in theme
+  theme_classic() +
+  labs(x = "Subgroup", y = "LV Expression", title = "LV94 Macrophages") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(hjust = 1, angle = 45),
+        legend.position = "none") +
+  scale_colour_manual(values = c("#FFC125", "#00CD66", "#00BFFF"))
+```
+
+### Stats
+
+Let's do a pairwise Wilcoxon rank sum test and put that information onto the
+plot.
+
+```{r}
+pairwise.wilcox.test(x = lv94_df$Expression_level, g = lv94_df$subgroup,
+                     p.adjust.method = "bonferroni")
+```
+
+We'll use the package `ggsignif` to add this information. 
+This will automatically do the tests and add the p-values to the plot, but 
+we have more control over how the test is done if we do things manually.
+
+```{r}
+lv94_df %>%
+  ggplot(aes(x = subgroup, y = Expression_level, 
+             group = subgroup, colour = subgroup)) +
+  geom_boxplot(outlier.shape = NA) +  # we remove outlier points because they
+  # will be included in the jitter
+  geom_jitter(width = 0.175, alpha = 0.5) +
+  # add built in theme
+  theme_classic() +
+  labs(x = "Subgroup", y = "LV Expression", title = "LV94 Macrophages") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(hjust = 1, angle = 45),
+        legend.position = "none") +
+  scale_colour_manual(values = c("#FFC125", "#00CD66", "#00BFFF")) +
+  geom_signif(y_position = c(1.3, 1.6, 1.9), 
+              xmin = c("Group 3", "Group 3", "Group 4"), 
+              xmax = c("Group 4", "SHH", "SHH"),
+              annotation = c("0.00041", "3.7e-05", "0.00047"), 
+              tip_length = 0, color = "black") 
+```
+
+### Save to file
+
+`ggplot2` has a function `ggsave` that we will use to save a pdf of the last
+plot we ran.
+
+```{r}
+ggsave(lv_plot, plot = last_plot())
+```
+
+## Session Info
+
+Record session info for reproducibility & provenence purposes.
+
+```{r}
+sessionInfo()
+```
+
