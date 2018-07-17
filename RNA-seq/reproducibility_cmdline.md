@@ -46,18 +46,20 @@ This took a lot of time, and if we had typos that really confused things.
 Instead, we can write loops that work over many files.
 To perform QC over all of the fastq files in a directory we can write:
 ```bash
-mkdir QC
+mkdir <QC_DIRECTORY>
 
-for filename in fastq/*.fastq.gz
+for filename in <FASTQ_DIRECTORY>/*.fastq.gz
 do
   # remove leading path
   name=${filename##*/}
   # create directory for QC report
-  mkdir QC/${name} -p
+  mkdir <QC_DIRECTORY>/${name} -p
   # run fastqc
-  fastqc ${filename} -o QC/${name}
+  fastqc ${filename} -o <QC_DIRECTORY>/${name}
 done
 ```
+where `<QC_DIRECTORY> is the directory to hold the QC reports and <FASTQ_DIRECTORY> is the directory that contains the `fastq` files.
+
 In this code, `${filename}` gets replaced with the name of each individual file.
 This lets us run the QC process over each file without typing it's name, making it easier to avoid the risk of typos disrupting our analyses.
 
@@ -68,12 +70,13 @@ declare -a arr=("SRR585570" "SRR585574")
 for samp in "${arr[@]}"
 do
   echo "Processing sample $samp"
-  salmon quant -i index -l A \
-        -1 fastq/${samp}_1.fastq.gz \
-        -2 fastq/${samp}_2.fastq.gz \
-        -p 4 -o quant/${samp} \
+  salmon quant -i <INDEX_DIRECTORY> -l A \
+        -1 <FASTQ_DIRECTORY>/${samp}_1.fastq.gz \
+        -2 <FASTQ_DIRECTORY>/${samp}_2.fastq.gz \
+        -o <QUANT_DIRECTORY>/${samp} \
         --gcBias --seqBias --biasSpeedSamp 5
 done
 ```
+where `<INDEX_DIRECTORY>` is the directory that contains the appropriate transcriptome index files, `<FASTQ_DIRECTORY>` is the directory that contains the `fastq` files, and `<QUANT_DIRECTORY>` is the directory where salmon quant output will go.
 
 Feel free to use these techniques to improve your shell script as you write it.
