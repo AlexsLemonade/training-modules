@@ -58,7 +58,8 @@ do
   fastqc ${filename} -o <QC_DIRECTORY>/${name}
 done
 ```
-where `<QC_DIRECTORY> is the directory to hold the QC reports and <FASTQ_DIRECTORY> is the directory that contains the `fastq` files.
+where `QC_DIRECTORY is the directory to hold the QC reports and FASTQ_DIRECTORY is the directory that contains the `fastq` files.
+The `<` and `>` indicate that this is to be replaced by you, the user, rather than run as is.
 
 In this code, `${filename}` gets replaced with the name of each individual file.
 This lets us run the QC process over each file without typing it's name, making it easier to avoid the risk of typos disrupting our analyses.
@@ -77,6 +78,6 @@ do
         --gcBias --seqBias --biasSpeedSamp 5
 done
 ```
-where `<INDEX_DIRECTORY>` is the directory that contains the appropriate transcriptome index files, `<FASTQ_DIRECTORY>` is the directory that contains the `fastq` files, and `<QUANT_DIRECTORY>` is the directory where salmon quant output will go.
+where `INDEX_DIRECTORY` is the directory that contains the appropriate transcriptome index files, `FASTQ_DIRECTORY` is the directory that contains the `fastq` files, and `QUANT_DIRECTORY` is the directory where salmon quant output will go.
 
 Feel free to use these techniques to improve your shell script as you write it.
