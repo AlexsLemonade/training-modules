@@ -14,7 +14,8 @@ We'll use the [`DESeq2`](https://bioconductor.org/packages/release/bioc/html/DES
 
 `DESeq2` also has an 
 [excellent vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) 
-from Love, Anders, and Huber from which this is adapted.
+from Love, Anders, and Huber from which this is adapted 
+(see also: [Love, Anders, and Huber. _Genome Biology_. 2014.](https://doi.org/10.1186/s13059-014-0550-8)).
 
 ## Libraries and functions
 
@@ -54,7 +55,8 @@ meta_file <- file.path(meta_dir, "gastric_cancer",
 **Output**
 
 ```{r}
-
+# PCA plot
+pca_plot_file <- file.path(plots_dir, "gastric_cancer_PC_scatter.pdf")
 ```
 
 ## DESeq2
@@ -128,6 +130,13 @@ tissue source) affect our dataset and help us spot any technical effects
 DESeq2::plotPCA(vst_data, intgroup = "tissue")
 ```
 
+Save the most recent plot to file with `ggsave` from `ggplot2`
+
+```{r}
+ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
+```
+
+
 ## A note on technical effects
 
 We don't have batch information (i.e., when the samples were run) for this 
@@ -157,7 +166,7 @@ pca_data <- DESeq2::plotPCA(vst_batch, intgroup = c("tissue", "batch"),
 percent_var <- round(100 * attr(pca_data, "percentVar"))
 ggplot2::ggplot(pca_data, ggplot2::aes(PC1, PC2, color = batch, 
                                        shape = tissue)) +
-  ggplot2::geom_point(size=3) +
+  ggplot2::geom_point(size = 3) +
   ggplot2::xlab(paste0("PC1: ", percent_var[1],"% variance")) +
   ggplot2::ylab(paste0("PC2: ", percent_var[2],"% variance")) + 
   ggplot2::coord_fixed()
