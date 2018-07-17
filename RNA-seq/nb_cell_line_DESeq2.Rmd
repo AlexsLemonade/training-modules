@@ -1,0 +1,209 @@
+---
+title: "Neuroblastoma Cell Line: gene-level summarization with `tximport`"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+**CCDL 2018**
+
+In this notebook, we'll perform an analysis to identify the genes that are 
+differentially expressed in _MYCN_ amplified vs. nonamplified neuroblastoma 
+cell lines. 
+
+These RNA-seq data are from 
+[Harenza, et al. _Scientific Data._ 2017.](https://doi.org/10.1038/sdata.2017.33).
+
+More information about DESeq2 can be found in the [excellent vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) 
+from Love, Anders, and Huber from which this is adapted 
+(see also: [Love, Anders, and Huber. _Genome Biology_. 2014.](https://doi.org/10.1186/s13059-014-0550-8))
+
+DESeq2 takes unnormalized counts or estimated counts does the following:
+
+* [Estimates size factors](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/estimateSizeFactors)
+* [Estimates dispersion](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/estimateDispersions) 
+* Negative binomial generalized linear model fitting and [Wald statistics](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/nbinomWaldTest)
+
+
+## Libraries and functions
+
+```{r}
+library(DESeq2)
+```
+
+```{r}
+# magrittr pipe
+`%>%` <- dplyr::`%>%`
+```
+
+## Directories and files
+
+```{r}
+# directory with the tximport processed data
+txi_dir <- file.path("data", "tximport", "NB_cell_line")
+txi_file <- file.path(txi_dir, "NB_cell_line_tximport.RDS")
+```
+
+We'll create a results directory to hold our results.
+
+```{r}
+results_dir <- "results"
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir, recursive = TRUE)
+}
+```
+
+```{r}
+# sample metadata path and  file
+meta_dir <- file.path("data", "sample_metadata")
+meta_file <- file.path(meta_dir, "NB_cell_line",
+                       "NB_cell_line_metadata_cleaned.tsv")
+```
+
+**Output**
+
+```{r}
+# RDS for the output of DESeq function
+deseq_file <- file.path(results_dir, 
+                        "NB_cell_line_DESeq_amplified_v_nonamplified.RDS")
+# DESeq2 results data.frame
+deseq_df_file <- 
+  file.path(results_dir,
+            "NB_cell_line_DESeq_amplified_v_nonamplified_results.tsv")
+```
+
+
+## DESeq2
+
+### Creating a DESeq2 dataset from tximport object
+
+First, let's read in the data we processed with `tximport`.
+
+```{r}
+txi <- readr::read_rds(txi_file)
+```
+
+Now, the sample metadata.
+
+```{r}
+sample_meta_df <- readr::read_tsv(meta_file)
+sample_meta_df
+```
+
+We're most interested in _MYCN_ amplification, which is in the `Status` column
+of `sample_meta_df`
+
+```{r}
+head(sample_meta_df$Status)
+```
+
+Let's check that the ordering of samples is the same.
+
+```{r}
+all.equal(colnames(txi$counts), sample_meta_df$Sample_SRR_accession)
+```
+
+Let's reorder by `Sample_SRR_accession` and see if that remedies the ordering.
+
+```{r}
+sample_meta_df <- sample_meta_df %>%
+  dplyr::arrange(Sample_SRR_accession)
+```
+
+```{r}
+all.equal(colnames(txi$counts), sample_meta_df$Sample_SRR_accession)
+```
+
+It worked!
+
+#### Dataset creation
+
+```{r}
+ddset <- DESeqDataSetFromTximport(txi = txi,
+                                  colData = sample_meta_df,
+                                  design = ~ Status)
+```
+
+### Differential expression
+
+#### Preparation
+
+Let's do some [pre-filtering](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering) 
+to keep rows with 10 or more reads total.
+
+```{r}
+genes_to_keep <- rowSums(counts(ddset)) >= 10
+ddset <- ddset[genes_to_keep, ]
+```
+
+We'll want to use the "Nonamplified" samples as our _reference_.
+Let's look at the `levels` of `Status`.
+
+```{r}
+levels(ddset$Status)
+```
+
+We can see that these are in alphabetical order, so "Amplified" samples would
+be the reference. 
+We can use the `relevel` function to remedy this.
+
+```{r}
+ddset$Status <- relevel(ddset$Status, ref = "Nonamplified")
+levels(ddset$Status)
+```
+
+#### Differential expression analysis
+
+We'll use the wrapper function `DESeq` to do our differential expression 
+analysis.
+
+```{r}
+deseq_object <- DESeq(ddset)
+```
+
+Let's save this to our results file.
+
+```{r}
+readr::write_rds(deseq_object, path = deseq_file)
+```
+
+Let's take a look at the results.
+
+```{r}
+deseq_results <- results(deseq_object)
+deseq_results
+```
+
+```{r}
+# this is of class DESeqResults -- we want a data.frame
+deseq_df <- deseq_results %>%
+  # make into data.frame
+  as.data.frame() %>%
+  # the gene names are rownames -- let's make this it's own column for easy 
+  # display
+  tibble::rownames_to_column(var = "Gene")
+
+deseq_df %>%
+  # let's sort by statistic -- the highest values should be what is up in the
+  # MYCN amplified cell lines
+  dplyr::arrange(dplyr::desc(stat))
+```
+
+Let's take a look at what the two top genes are:
+
+* [`ENSG00000233718`](https://useast.ensembl.org/Homo_sapiens/Gene/Summary?g=ENSG00000233718;r=2:15921037-15942249)
+* [`ENSG00000134323`](http://useast.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000134323;r=2:15940564-15947007)
+
+How many genes were differentially expressed (FDR < 0.05)?
+
+```{r}
+summary(results(deseq_object), alpha = 0.05)
+```
+
+**Write full data.frame to file**
+
+```{r}
+readr::write_tsv(deseq_df, path = deseq_df_file)
+```
+
