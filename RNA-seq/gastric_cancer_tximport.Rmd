@@ -1,0 +1,112 @@
+---
+title: "Gastric cancer: gene-level summarization with `tximport`"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+**J. Taroni and C. Greene 2018**
+
+In this notebook, we'll import transcript level output from `salmon quant` and
+summarize it to the gene level using [`tximport`](https://bioconductor.org/packages/release/bioc/html/tximport.html).
+
+For more information about `tximport`, see [this excellent vignette](https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html) from Love, Soneson, and Robinson.
+
+We'll need the `quant.sf` files for all the samples in an experiment and a file
+that maps between Ensembl transcript ids and Ensembl gene ids.
+In refine.bio, we generate these along side the transcriptome indices for an
+organism.
+
+## Libraries and functions
+
+```{r}
+library(tximport)
+```
+
+## Directories and files
+
+```{r}
+# directory where are the quant files are located, each sample is it's own
+# directory
+quant_dir <- file.path("data", "quant", "gastric_cancer")
+# tximport directory
+txi_dir <- file.path("data", "tximport", "gastric_cancer")
+if (!dir.exists(txi_dir)) {
+  dir.create(txi_dir, recursive = TRUE)
+}
+# the quant files themselves
+sf_files <- list.files(quant_dir, recursive = TRUE, full.names = TRUE,
+                       pattern = "quant.sf")
+# file that contains the gene to transcript mapping from refine.bio
+gene2tx_file <- file.path("index", "Homo_sapiens",
+                          "genes_to_transcripts.txt")
+```
+
+**Output**
+
+```{r}
+txi_out_file <- file.path(txi_dir, "gastric_cancer_tximport.RDS")
+```
+
+### Naming
+
+```{r}
+sf_files
+```
+
+Let's extract the _sample_ names from the file paths using the `stringr` 
+package.
+
+```{r}
+sample_names <- stringr::word(sf_files, 4, sep = "/")
+sample_names
+```
+
+We'll add these names to the file paths vector, that way they are reflected in
+what we do next with `tximport`.
+
+```{r}
+names(sf_files) <- sample_names
+```
+
+## tximport
+
+### Read in tx to gene mapping
+
+There is no header in this file.
+
+```{r}
+gene2tx_df <- readr::read_tsv(gene2tx_file, col_names = FALSE)
+gene2tx_df
+```
+
+Name the columns. 
+
+```{r}
+colnames(gene2tx_df) <- c("gene", "transcript")
+```
+
+`tximport` requires the `data.frame` used for mapping 
+
+```{r}
+tx2gene_df <- gene2tx_df[, c("transcript", "gene")]
+# remove gene, transcript data.frame
+rm(gene2tx_df)
+```
+
+### tximport main function
+
+We'll summarize to the gene level.
+
+```{r}
+txi <- tximport::tximport(sf_files, type = "salmon", tx2gene = tx2gene_df,
+                          countsFromAbundance = "no")
+```
+
+Save to file -- we'll import this with the `DESeq2` package.
+
+```{r}
+readr::write_rds(txi, path = txi_out_file)
+```
+
