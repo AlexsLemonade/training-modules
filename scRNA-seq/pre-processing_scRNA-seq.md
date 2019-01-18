@@ -1,83 +1,62 @@
-### Making things more reproducible: the command line
+# Pre-processing single cell RNA-seq data
 
-> It came with all sorts of cryptic but powerful commands, which could be invoked by typing their names, and which I learned to use only gradually. (from "In the Beginning was the Command Line" by Neal Stephenson)
+In this section, we will be running through the basics of pre-processing single-cell rna-seq data. 
 
-Most of us spend our time using graphical user interfaces.
-On our computers we point and click with mice, and on tablets and phones we use our fingers to interact with apps.
-However, it is very hard to describe exactly what was done after the fact.
+Single cell RNA-seq data can be split into two major categories based on how the cells are sorted. 
+Depending on how the cells are sorted and what technology is used, the pre-processing steps are a bit different and 
+the biases to look out for in postt-processing also vary. 
 
-In contrast with GUIs, the command line interfaces that we have started to use in this set of exercises provide reproducibility.
-But each step can require extensive manual entry.
-As we get to know our command line, we can get reproducibility and efficiency.
-We can also script commands so that we can run them again anytime.
+For more information:
+ Kiselev at al have very [good tutorial for scRNA-seq processing in general](https://hemberg-lab.github.io/scRNA.seq.course/introduction-to-single-cell-rna-seq.html#experimental-methods). 
 
-#### Shell scripts
+### 1) Full-length
+Example: Smart-seq2
+Bidrectional sequencing allows you to obtain the full length sequence for your reads. 
+*Pros:* more complete coverage of transcripts, which is better for transcript discovery purposes. 
+*Cons:* It is not as efficient as tag based. 
 
-When you are running commands by typing them into a command line, they are being interpreted and run by a "shell" (think of this as the program that converts your typed commands into steps that the computer runs).
-We've been typing things one-by-one.
-We can, instead, put many of these commands together into a single file.
-This is something called a "shell script."
-This is the preferred way to interact with a command line, because it provides a record of the exact set of commands that were run.
+### 2) Tag - based 
+Example: 10X Genomics
+Individual cells are given barcodes to parse out the source of sequences
+*Pros:* Can run 1000s or millions of cells at once. Highly efficient.
+*Cons:* Sequencing is not bidirectional so data will have more intense 3' bias.
 
-Let's create our first shell script.
-In RStudio go to the file menu, select New File, Text File.
-Name the script `rnaseq.sh` and put it in the kitematic folder.
-Now, paste all of the commands that you ran to process the RNA-seq data sequentially into the `rnaseq.sh` file.
-When you want to run the commands, change directories to the kitematic folder and type `sh rnaseq.sh`.
-This will run the script, and hopefully each step will complete successfully!
+## Obtaining the data
 
-#### Advanced topics
 
-##### Discovering arguments
+## Processing scRNA-seq fastq files:
 
-Many programs provide brief instructions - akin to a quick reference booklet.
-For example, you've already run `wget` to download data.
-Try running `wget --help`.
-We can see that `wget` has many parameters.
-Look specifically at `-i`: you can use this to download many files at once!
-That could be much more convenient than typing each into the command line separately.
-
-##### Loops
-
-We wanted to process multiple samples at a time.
-In the exercise, we typed the name of each file.
-This took a lot of time, and if we had typos that really confused things.
-
-Instead, we can write loops that work over many files.
-To perform QC over all of the fastq files in a directory we can write:
-```bash
-mkdir <QC_DIRECTORY>
-
-for filename in <FASTQ_DIRECTORY>/*.fastq.gz
-do
-  # remove leading path
-  name=${filename##*/}
-  # create directory for QC report
-  mkdir <QC_DIRECTORY>/${name} -p
-  # run fastqc
-  fastqc ${filename} -o <QC_DIRECTORY>/${name}
-done
+### Step 1: Index the human transcriptome with Salmon
+Before you can quantify with salmon and alevin, we need a transcriptome to be indexed.
 ```
-where `QC_DIRECTORY is the directory to hold the QC reports and FASTQ_DIRECTORY is the directory that contains the `fastq` files.
-The `<` and `>` indicate that this is to be replaced by you, the user, rather than run as is.
-
-In this code, `${filename}` gets replaced with the name of each individual file.
-This lets us run the QC process over each file without typing it's name, making it easier to avoid the risk of typos disrupting our analyses.
-
-We can also create an array of sequential numbers and then run salmon over every instance of an array:
-```bash
-declare -a arr=("SRR585570" "SRR585574")
-
-for samp in "${arr[@]}"
-do
-  echo "Processing sample $samp"
-  salmon quant -i <INDEX_DIRECTORY> -l A \
-        -1 <FASTQ_DIRECTORY>/${samp}_1.fastq.gz \
-        -2 <FASTQ_DIRECTORY>/${samp}_2.fastq.gz \
-        -o <QUANT_DIRECTORY>/${samp} \
-        --gcBias --seqBias --biasSpeedSamp 5
-done
+salmon --threads=16 --no-version-check index \
+-t ref_files/Homo_sapiens.GRCh38.cdna.all.fa.gz \
+-i ref_files/human_index \
+-k 23
 ```
-where `INDEX_DIRECTORY` is the directory that contains the appropriate transcriptome index files, `FASTQ_DIRECTORY` is the directory that contains the `fastq` files, and `QUANT_DIRECTORY` is the directory where salmon quant output will go.
 
-Feel free to use these techniques to improve your shell script as you write it.
+### Step 2: For each sample, run Salmon with Alevin for quantification
+In this instance, files with `R1` contain the Unique Molecular Identifiers while
+`R2` files contain the full reads for that sample.  
+The file `genes_2_tx.tsv` is a gene to transcript key created based on the ensembl transcriptome. 
+
+```
+salmon alevin -l ISR \
+    -i ../ref_files/human_index \
+    -1 pbmc_1k_v2_S1_L001_R1_001.fastq.gz \
+    -2 pbmc_1k_v2_S1_L001_R2_001.fastq.gz \
+    --chromium  \
+    -p 10 \
+    -o alevin_output \
+    --tgMap ../genes_2_tx.tsv
+```
+
+### Step 3: Run QC using alevin QC
+In R, we can run initial quality checks for this mapping using [csoneson/alevinQC](https://github.com/csoneson/alevinQC) package.
+```r
+alevinQCReport(baseDir = system.file("extdata/alevin_example", package = "alevinQC"),
+               sampleId = "testSample", 
+               outputFile = "alevinReport.html", 
+               outputFormat = "html_document",
+               outputDir = tempdir(), forceOverwrite = TRUE)"
+```

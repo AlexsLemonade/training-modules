@@ -31,20 +31,28 @@ if [ ! -e ref_files/human_index ]; then
 fi
 
 #http://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_1k_v2/pbmc_1k_v2_molecule_info.h5
-#--------------------------- Download fastq data-------------------------------#
+#--------------------------- Quantify samples-------------------------------#
 # For each fastq file pair run salmon for quantfication
-  for f in `ls /*.fastq.gz | sed 's/.fastq.gz//' `
+  cd pbmc_1k_v2_fastqs
+  
+  for f in `ls *R1_001.fastq.gz | sed 's/R1_001.fastq.gz//' `
     do
     echo "Processing sample ${f}"
 
     # Run Salmon
     salmon alevin -l ISR \
-      -i ref_files/human_index \
-      -1 ${f}cb.fastq.gz \
-      -2 ${f}reads.fastq.gz \
+      -i ../ref_files/human_index \
+      -1 ${f}R1_001.fastq.gz \
+      -2 ${f}R2_001.fastq.gz\
       --chromium  \
       -p 10 \
       -o alevin_output \
-      --tgMap txp2gene.tsv
+      --tgMap ../genes_2_tx.tsv
     done
 
+# Run QC using alevin QC
+R -e "alevinQCReport(baseDir = system.file("extdata/alevin_example", package = "alevinQC"),
+                    sampleId = "testSample", 
+                    outputFile = "alevinReport.html", 
+                    outputFormat = "html_document",
+                    outputDir = tempdir(), forceOverwrite = TRUE)"
