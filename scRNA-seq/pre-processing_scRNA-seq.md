@@ -7,7 +7,7 @@ Depending on how the cells are sorted and what technology is used, the pre-proce
 the biases to look out for in postt-processing also vary. 
 
 For more information:
- Kiselev at al have very [good tutorial for scRNA-seq processing in general](https://hemberg-lab.github.io/scRNA.seq.course/introduction-to-single-cell-rna-seq.html#experimental-methods). 
+Kiselev at al have very [good tutorial for scRNA-seq processing in general](https://hemberg-lab.github.io/scRNA.seq.course/introduction-to-single-cell-rna-seq.html#experimental-methods). 
 
 ### 1) Full-length
 Example: Smart-seq2

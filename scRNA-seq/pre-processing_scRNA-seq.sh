@@ -46,8 +46,9 @@ fi
       -2 ${f}R2_001.fastq.gz\
       --chromium  \
       -p 10 \
-      -o alevin_output \
-      --tgMap ../genes_2_tx.tsv
+      -o alevin_output_${f} \
+      --tgMap ../genes_2_tx.tsv \
+      –dumpCsvCounts
     done
 
 # Run QC using alevin QC
