@@ -7,11 +7,13 @@
 # Data from: 
 
 # Make a directory to store the data you download
-mkdir 1kPBMC_data
+mkdir data
 mkdir ref_files
+mkdir results
+mkdir data/alevin_output
 
 # Download the dataset
-cd 1kPBMC_data
+cd data
 curl -O http://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_1k_v2/pbmc_1k_v2_fastqs.tar
 tar -xvf pbmc_1k_v2_fastqs.tar
 
@@ -35,25 +37,19 @@ fi
 # For each fastq file pair run salmon for quantfication
   cd pbmc_1k_v2_fastqs
   
-  for f in `ls *R1_001.fastq.gz | sed 's/R1_001.fastq.gz//' `
+  for f in `ls *_R1_001.fastq.gz | sed 's/_R1_001.fastq.gz//' `
     do
     echo "Processing sample ${f}"
 
     # Run Salmon
     salmon alevin -l ISR \
       -i ../ref_files/human_index \
-      -1 ${f}R1_001.fastq.gz \
-      -2 ${f}R2_001.fastq.gz\
+      -1 ${f}_R1_001.fastq.gz \
+      -2 ${f}_R2_001.fastq.gz\
       --chromium  \
       -p 10 \
-      -o alevin_output_${f} \
+      -o ../alevin_output/${f} \
       --tgMap ../genes_2_tx.tsv \
-      --dumpCsvCounts
+      --dumpCsvCounts \
+      --dumpFeatures
     done
-
-# Run QC using alevin QC
-R -e "alevinQCReport(baseDir = system.file("extdata/alevin_example", package = "alevinQC"),
-                    sampleId = "testSample", 
-                    outputFile = "alevinReport.html", 
-                    outputFormat = "html_document",
-                    outputDir = tempdir(), forceOverwrite = TRUE)"
