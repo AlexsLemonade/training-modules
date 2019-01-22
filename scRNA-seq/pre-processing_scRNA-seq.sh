@@ -48,7 +48,7 @@ fi
       -p 10 \
       -o alevin_output_${f} \
       --tgMap ../genes_2_tx.tsv \
-      –dumpCsvCounts
+      --dumpCsvCounts
     done
 
 # Run QC using alevin QC
