@@ -5,11 +5,13 @@ output: html_notebook
 
 **CCDL 2019**
 
-In this notebook, we'll perform normalization and quality control of scRNA-seq
-count data. 
+In this notebook, we'll perform quality control analyses and normalization of 
+scRNA-seq count data. 
 
-We'll use Seurat for post-processing of scRNA-seq Alevin processed data
-Adapted from the Seurat pbmc tutorial found [here](https://satijalab.org/seurat/pbmc3k_tutorial.html) 
+This script is adapted from [Seurat pbmc tutorial](https://satijalab.org/seurat/pbmc3k_tutorial.html) 
+and from [COMBINE lab's alevin tutorial](https://combine-lab.github.io/alevin-tutorial/2018/alevin-seurat/)
+
+For these analyses, we will need Seurat and dplyr packages. 
 ```{r Install Packages}
 # Attach library
 library(Seurat)
@@ -18,133 +20,121 @@ library(Seurat)
 `%>%` <- dplyr::`%>%`
 ```
 
-#### Perform QC checks with 'csoneson/AlevinQC'
-```{r AlevinQC}
-alevin.files <- dir(file.path("data", "alevin_output"), full.names = TRUE)
+#### Perform QC checks with 'csoneson/alevinQC'
+This will provide html output with graphs evaluating the data. Keep in mind that 
+the data we have processed in this workshop is not the full dataset, and won't 
+look as good as the full set.
+```{r AlevinQC }
+# Store the path to the alevin output files
+alevin.file <- file.path("data", "alevin_output", "pbmc_1k_v2_S1_L001_subset")
 
-lapply(alevin.files, function(file) {
-  sample.name <- stringr::word(file, sep = "/", -1)
-  alevinQC::alevinQCReport(file,
-                          sampleId = sample.name, 
-                          outputFile = paste0(sample.name, "_alevin_qc_report.html"), 
-                          outputFormat = "html_document")
-})
+# Produce a QC report
+alevinQC::alevinQCReport(alevin.file,
+                         sampleId = "pbmc_1k_v2_S1_L001_subset", 
+                         outputFile = "pbmc_1k_v2_S1_L001_qc_report.html", 
+                         outputFormat = "html_document")
 ```
 
-#### Import counts from Alevin processing
+#### Import counts from alevin output
+This chunk of code is from the [COMBINE lab's tutorial](https://combine-lab.github.io/alevin-tutorial/2018/alevin-seurat/)
 ```{r Import Data}
-# Get the paths to all the quant files
-quant.files <- list.files(getwd(), recursive = TRUE, full.names = TRUE,
-                    pattern = "quants_mat.csv")
+# Set up function from the COMBINE lab
+ReadAlevin <- function(base.path = NULL){
+  if (! dir.exists(base.path )){
+    stop("Directory provided does not exist")
+  }
+  # Obtain paths to data
+  barcode.loc <- file.path(base.path, "alevin", "quants_mat_rows.txt")
+  gene.loc <- file.path(base.path, "alevin", "quants_mat_cols.txt")
+  matrix.loc <- file.path(base.path, "alevin", "quants_mat.csv")
+    
+  if (!file.exists(barcode.loc)) {
+    stop("Barcode file missing")
+  }
+  if (!file.exists(gene.loc)) {
+    stop("Gene name file missing")
+  }
+  if (!file.exists(matrix.loc)) {
+    stop("Expression matrix file missing")
+  }
+  # Read in the data from alevin output
+  matrix <- as.matrix(read.csv(matrix.loc, header=FALSE))
+  matrix <- t(matrix[,1:ncol(matrix)-1])
+    
+  # Read in the cell and gene names from the alevin output
+  cell.names <- readLines(barcode.loc)
+  gene.names <- readLines(gene.loc)
+    
+  # Apply the colnames and rownames to the dataset
+  colnames(matrix) <- cell.names
+  rownames(matrix) <- gene.names
+    
+  # Make NA values into 0's
+  matrix[is.na(matrix)] <- 0
+  return(matrix)
+}
 
-# Read in Alevin data
-counts <- do.call("cbind", lapply(quant.files, function(file) {
-                 # Read in sample data from Alevin
-                 sample <- readr::read_csv(file, col_names = FALSE)
-                 
-                 # Read in column names from Alevin
-                 col.file <- gsub(".csv", "_cols.txt", file)
-                 colnames(sample) <- readr::read_delim(col.file, "\n", 
-                                                       col_names = FALSE)$X1
-                 
-                 # Read in row names from Alevin
-                 row.file <- gsub(".csv", "_rows.txt", file)
-                 barcodes <- readr::read_delim(row.file, "\n", 
-                                               col_names = FALSE)$X1
-                 
-                 # Make this it's own column
-                 sample <-  data.frame(t(sample))
-                 
-                 # Put the barcodes as the names 
-                 colnames(sample) <- barcodes
-                 
-                 return(sample)
-                 })
-)
-
-# Obtain list of genes in this dataset without version numbers 
-genes <- gsub("\\.[0-9]*", "", rownames(counts.df))
-```
-#### Mitochondrial genes by their ensembl IDs
-This list is from [here](http://jdblischak.github.io/singleCellSeq/analysis/qc-filter-ipsc.html)
-```{r Set up mitochondrial gene list}
-# Identify mitochondrial genes by their ensembl IDs
-mtgene <- c("ENSG00000198899", "ENSG00000198727", "ENSG00000198888", 
-            "ENSG00000198886", "ENSG00000212907", "ENSG00000198786",
-            "ENSG00000198695", "ENSG00000198712", "ENSG00000198804",
-            "ENSG00000198763","ENSG00000228253", "ENSG00000198938", 
-            "ENSG00000198840")
-
-# Get the gene symbol names for these genes add regex for exact matches
-mtgene <- paste0("^", mtgene, "$")
+# Run this function on our files
+alv.data <- ReadAlevin(alevin.file)
 ```
 
-#### Set up data in Seurat format
-```{r Set Up Data into seurat format}
-# Make our data into a Seurat Object
-seurat.data <- CreateSeuratObject(raw.data = counts, min.cells = 3,
-                                  min.genes = 200, project = "3k_pbmc")
+#### Set up the seurat object and apply a filter to the data. 
+In this example, we are applying a gene filter cutoff of at least 3 cells 
+expressing each gene. 
+For cell filtering, each cell must express at least 200 genes.
+```{r Set Up Seurat Object}
+# Set up the seurat object 
+seurat.obj <- CreateSeuratObject(raw.data = alv.data, min.cells = 3,
+                                 min.genes = 200, 
+                                 project = "1k_pbmc_subset")
 ```
 
-#### Get mitochondrial gene percentages
-```{r Calculate Mito Percentages}
-# Get those mito genes
-mito.genes <- grep(paste0(mtgene, collapse = "|"), genes)
-
-# Calculate the percentage of mitochonrial transcripts to total transcripts
-percent.mito <- Matrix::colSums(seurat.data@raw.data[mito.genes, ])/
-  Matrix::colSums(seurat.data@raw.data)
-
-# AddMetaData adds columns to object@meta.data, and is a great place to
-# stash QC stats
-seurat.data <- AddMetaData(object = seurat.data, metadata = percent.mito,
-                           col.name = "percent_mito")
+#### Normalize the data using log normalization
+```{r Normalize the Data}
+seurat.norm <- NormalizeData(object = seurat.obj, 
+                             normalization.method = "LogNormalize",
+                             scale.factor = 10000)
 ```
 
-#### Make plots of the samples' statistics 
-```{r Make Sample Set Plots}
-# Make a violin plot
-VlnPlot(object = seurat.data, features.plot = c("nGene", "nUMI", "percent_mito"),
-        nCol = 3)
+#### Identify variable genes and scale the data
+```{r Find Variable Genes}
+seurat.norm <- FindVariableGenes(object = seurat.norm, mean.function = ExpMean,
+                                x.low.cutoff = 0.0125, x.high.cutoff = 3,
+                                y.cutoff = 0.5)
 
-# Examine relationships of nUMI, percent_mito and nGene
-par(mfrow = c(1, 2))
-GenePlot(object = seurat.data, gene1 = "nUMI", gene2 = "percent_mito")
-GenePlot(object = seurat.data, gene1 = "nUMI", gene2 = "nGene")
+# Scale the data
+seurat.norm <- ScaleData(object = seurat.norm)
+```
+#### Scale data and perform PCA
+```{r Scale Data}
+# Run PCA
+seurat.norm <- RunPCA(object = seurat.norm, pc.genes = seurat.norm@var.genes,
+                     do.print = TRUE, pcs.print = 1:5, genes.print = 5)
+
+# Cluster analyses
+seurat.norm <- FindClusters(object = seurat.norm, reduction.type = "pca", 
+                           dims.use = 1:10, resolution = 0.6, print.output = 0, 
+                           save.SNN = TRUE)
 ```
 
-#### Normalize and filter data
-From seurat tutorial: we employ a global-scaling normalization method “LogNormalize” 
-that normalizes the gene expression measurements for each cell by the total expression,
-multiplies this by a scale factor (10,000 by default), and log-transforms the result.
-```{r Filter Normalize}
-# Filter out cells
-filtered.seurat <- FilterCells(object = seurat.data, 
-                              subset.names = c("nGene", "percent_mito"), 
-                              low.thresholds = c(200, -Inf), 
-                              high.thresholds = c(2500, 0.05))
+#### Run tSNE on normalized data
+```{r Run tSNE}
+# Run tSNE 
+seurat.norm <- RunTSNE(object = seurat.norm, dims.use = 1:10, do.fast = TRUE)
 
-# Normalizing the data
-filtered.seurat <- NormalizeData(object = seurat.data, 
-                                 normalization.method = "LogNormalize", 
-                                 scale.factor = 10000)
+# Plot the tSNE
+TSNEPlot(object = seurat.norm)
 ```
 
-#### Explore variance to average expression 
-```{r Plot Dispersion vs Avg Exp}
-# Make a variance to average expression plot
-filtered.seurat <- FindVariableGenes(object = filtered.seurat, 
-                                     mean.function = ExpMean, 
-                                     dispersion.function = LogVMR,
-                                     x.low.cutoff = 0.0125,
-                                     x.high.cutoff = 3,
-                                     y.cutoff = 0.5)
-```
+#### Save the normalized data to tsv file
+```{r Save Data to TSV}
+# Take out the data and make genes a column
+gene.matrix <- data.frame("genes" = rownames(seurat.norm@raw.data),
+                          seurat.norm@raw.data)
 
-#### Save the normalized data
-```{r Save Data to RDS}
 # Save this seurat object to an RDS file
-readr::write_tsv(filtered.seurat, file = file.path("data", "seurat"))
+readr::write_tsv(gene.matrix, 
+                 file.path("data", "normalized_pbmc_gene_matrix.tsv"))
 ```
 
 ```{r}
