@@ -2,13 +2,6 @@
 
 #### In this section, we will be running through the basics of pre-processing single-cell rna-seq data. 
 
-As opposed to bulk rna-seq, there are there are a few main things to look out for
-in single cell rna-seq:
-
-**Single-cell rna-seq has...**  
-- More amplification (and more of it's associated biases and error)  
-- More 0's in the gene expression data (most genes aren't expressed across cell types)  
-
 For the purposes of this tutorial, we'll summarize single-cell technologies as 
 being one of two groups, based on their capture methods and quantitative nature.
 Depending on how the cells are sorted and what technology is used, the pre-processing steps are a bit different and the biases to look out for in post-processing also vary. 
@@ -20,8 +13,7 @@ Kiselev at al have very [good tutorial for scRNA-seq](https://hemberg-lab.github
 *Examples: Smart-seq2*  
 Cells are physically separated generally into individual wells in a plate and 
 often also sorted by other means (eg. Fluorescence Activated Cell Sorting). 
-Each cell is then sequenced individual and has it's own fastq file.
-Will have two fastq files if this is paired end sequencing. 
+Each cell is then sequenced individual and has it's own fastq file (this will be two fastq files if this is paired-end sequencing.) 
 The data pre-processing steps for these types of scRNA-seq data is/can be more similar to 
 bulk rna-seq methods.
 
