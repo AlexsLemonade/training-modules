@@ -114,6 +114,3 @@ salmon alevin -l ISR \
   --dumpCsvCounts \
   --dumpFeatures
 ```
-
-
-
