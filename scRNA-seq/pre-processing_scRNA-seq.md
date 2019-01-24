@@ -9,7 +9,7 @@ Depending on how the cells are sorted and what technology is used, the pre-proce
 For a more extensive run through on single-cell technologies, 
 Kiselev at al have very [good tutorial for scRNA-seq](https://hemberg-lab.github.io/scRNA.seq.course/introduction-to-single-cell-rna-seq.html#experimental-methods). 
   
-### 1) Full-length scRNA-seq
+### 1) Non-Tag-Based scRNA-seq
 *Examples: Smart-seq2*  
 Cells are physically separated generally into individual wells in a plate and 
 often also sorted by other means (eg. Fluorescence Activated Cell Sorting). 
