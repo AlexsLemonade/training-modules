@@ -10,14 +10,57 @@ that make R use easier and more convenient.
 
 There are a lot of tutorials and free books Hadley Wickham and friends have on 
 how to use the [tidyverse packages](https://r4ds.had.co.nz/index.html). 
+[Datacamp](https://www.datacamp.com/) also has a bunch of good tutorials on this. 
 
 R packages are collections of functions. But your R as it is will not have these
 functions available unless you tell it to.  
+In our docker container, we already have tidyverse installed for you. 
+But if you needed to install it or other pacakges available on CRAN, you 
+do it using the `install.packages` function like this: `install.packages("tidyverse")`
 ```{r Load tidyverse}
 library(tidyverse)
 ```
 
-```{r }
-
+`mtcars` is a dataframe that is built into R for ready to go practicing. 
+We'll use that for some tidyverse practice. 
+First let's check out what it looks like: 
+```{r mtcars}
+mtcars
+str(mtcars)
 ```
+A nifty thing with the tidyverse is the pipes: `%>%`
+This handy thing allows you to funnel the result of one expression to the next
+making your code a little more streamlined.
+Let's say we wanted to filter this dataset into only cars that have mpg higher 
+than 18.
+In order to do this, we would use the function `filter` as well as a logic statement
+```{r}
+mtcars %>% filter(mpg > 18)
+```
+
+Let's build on to this pipe and keep only some of these variables with the 
+`select` function. 
+```{r}
+mtcars %>% filter(mpg > 18) %>% 
+           select("mpg", "cyl", "gear")
+```
+
+Let's do the same thing but also make a new column with the rownames as it's own
+column. And we'll assidn this new version of the dataframe as it's own thing
+called `special.mtcars`
+```{r}
+special.mtcars <- mtcars %>% 
+                  rownames_to_column("car_model") %>% 
+                  filter(mpg > 18) %>% 
+                  select("mpg", "cyl", "gear")
+```
+
+Let's write this data to a file using write_tsv
+```{r}
+write_tsv(special.mtcars)
+```
+
+
+
+
 
