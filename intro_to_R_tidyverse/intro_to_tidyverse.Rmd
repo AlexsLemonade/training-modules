@@ -12,6 +12,7 @@ There are a lot of tutorials and free books Hadley Wickham and friends have on
 how to use the [tidyverse packages](https://r4ds.had.co.nz/index.html). 
 [Datacamp](https://www.datacamp.com/) also has a bunch of good tutorials on this. 
 
+## Set Up
 R packages are collections of functions. But your R as it is will not have these
 functions available unless you tell it to.  
 In our docker container, we already have tidyverse installed for you. 
@@ -21,21 +22,78 @@ do it using the `install.packages` function like this: `install.packages("tidyve
 library(tidyverse)
 ```
 
-`mtcars` is a dataframe that is built into R for ready to go practicing. 
-We'll use that for some tidyverse practice. 
-First let's check out what it looks like: 
-```{r mtcars}
-mtcars
-str(mtcars)
+"GSE30074.tsv" is a file we will use for practicing the tidyverse.
+This data is from `refine.bio` and is gene expression data from medulloblastoma.
+  
+First let's read in the dataset using the tidyverse package: `readr`.
+Although base R has read-in functions, the `readr` functions are faster and more
+straight forward to use so we are going to use those here. 
+Because the file we are reading in is a .tsv file we will be using the 
+`read_tsv` function. 
+But note that there are analogous functions for `csv` files and other files types.
+```{r}
+# The file we are reading in, relative to our current directory, is in the "data"
+# folder, so we need to put that as the argument. 
+gene.data <- read_tsv("data/GSE30074.tsv")
+
+# Let's also read in the metadata for this gene expression data
+metadata <- read_tsv("data/metadata_clean.tsv")
 ```
+
+## Dplyr pipes
 A nifty thing with the tidyverse is the pipes: `%>%`
 This handy thing allows you to funnel the result of one expression to the next
 making your code a little more streamlined.
-Let's say we wanted to filter this dataset into only cars that have mpg higher 
-than 18.
-In order to do this, we would use the function `filter` as well as a logic statement
+This makes it so your code is cleaner and easier to read. 
+Let's look at an example with the built in data of `mtcars` of how the same 
+functions looks with or without pipes:
+
+*Example 1:* without pipes: 
 ```{r}
-mtcars %>% filter(mpg > 18)
+special.mtcars <- mtcars
+special.mtcars$car_model <- rownames(special.mtcars)
+special.mtcars <- arrange(special.mtcars, mpg)
+special.mtcars <- filter(special.mtcars, mpg > 18)
+special.mtcars <- select(special.mtcars, "mpg", "cyl", "gear")
+```
+UGH, we have to repeat and assign `special.mtcars` so many times here! 
+It's annoying and makes it harder for people to read. 
+
+*Example 2:* Same result as 1 but with pipes!
+```{r}
+# Example of the same modifications as above but with pipes!
+special.mtcars <- mtcars %>% 
+                  rownames_to_column("car_model") %>% 
+                  arrange(mpg) %>%
+                  filter(mpg > 18) %>% 
+                  select("mpg", "cyl", "gear")
+```
+
+Now that hopefully you are convinced that tidyverse helps your code to be neater and
+easier to use and read, let's go through some of the popular tidyverse functions
+and so we can create pipelines like this. 
+
+## Some Tidyverse Functions:
+
+Let's say we wanted to filter this gene expression dataset to particular sample
+groups.
+In order to do this, we would use the function `filter` as well as a logic statement.
+```{r}
+# Here let's filter the data to have only females
+metadata %>% filter(sex == "F")
+```
+
+We can use filter similarly for numeric statements.
+```{r}
+# Here let's filter the data to have people only older than 
+metadata %>% filter(age_mths > 100)
+```
+
+What if we wanted 
+Let's make a longer pipe.
+```{r}
+mtcars %>% filter(mpg > 18) %>%
+           arrange(mpg)
 ```
 
 Let's build on to this pipe and keep only some of these variables with the 
@@ -45,8 +103,22 @@ mtcars %>% filter(mpg > 18) %>%
            select("mpg", "cyl", "gear")
 ```
 
+Let's say we wanted to arrange this dataset so that most gas-guzzling cars
+(those with lower mpg's) are at the top of the data.frame.
+In order to do this, we would use the function `arrange` as well as the variable
+we would like to sort by (in this case `mpg`).
+```{r}
+mtcars %>% arrange(mpg)
+```
+
+What if we want the most fuel efficient cars on the top of this data set? 
+We can use the same function, but instead use the `desc` function too. 
+```{r}
+mtcars %>% arrange(desc(mpg))
+```
+
 Let's do the same thing but also make a new column with the rownames as it's own
-column. And we'll assidn this new version of the dataframe as it's own thing
+column. And we'll assign this new version of the dataframe as it's own thing
 called `special.mtcars`
 ```{r}
 special.mtcars <- mtcars %>% 
@@ -61,8 +133,4 @@ and it is what your file you are creating will be named.
 ```{r}
 write_tsv(special.mtcars, "special_mtcars.tsv")
 ```
-
-
-
-
 
