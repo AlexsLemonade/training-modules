@@ -1,5 +1,5 @@
 ---
-title: "Intro_to_R"
+title: "Intro to Tidyverse"
 author: "CCDL for ALSF"
 date: "1/28/2019"
 output: html_document
@@ -89,48 +89,78 @@ We can use filter similarly for numeric statements.
 metadata %>% filter(age_mths > 100)
 ```
 
-What if we wanted 
+What if we wanted filter this dataset to males who are younger than 100 months? 
 Let's make a longer pipe.
-```{r}
-mtcars %>% filter(mpg > 18) %>%
-           arrange(mpg)
+```{r }
+metadata %>% filter(age_mths > 100) %>%
+             filter(sex == "M")
 ```
 
 Let's build on to this pipe and keep only some of these variables with the 
 `select` function. 
 ```{r}
-mtcars %>% filter(mpg > 18) %>% 
-           select("mpg", "cyl", "gear")
+metadata %>% filter(age_mths > 100) %>%
+             filter(sex == "M") %>% 
+             select(sample_id, histology, metastasis)
 ```
 
-Let's say we wanted to arrange this dataset so that most gas-guzzling cars
-(those with lower mpg's) are at the top of the data.frame.
+Let's say we wanted to arrange this dataset so that the patients were arranged
+youngest to oldest.
 In order to do this, we would use the function `arrange` as well as the variable
-we would like to sort by (in this case `mpg`).
+we would like to sort by (in this case `age_mths`).
 ```{r}
-mtcars %>% arrange(mpg)
+metadata %>% arrange(age_mths) 
 ```
 
-What if we want the most fuel efficient cars on the top of this data set? 
+What if we want the the oldest patients at the top of this dataset instead? 
 We can use the same function, but instead use the `desc` function too. 
 ```{r}
-mtcars %>% arrange(desc(mpg))
+metadata %>% arrange(desc(age_mths))
 ```
 
-Let's do the same thing but also make a new column with the rownames as it's own
-column. And we'll assign this new version of the dataframe as it's own thing
-called `special.mtcars`
+What if we want to obtain summary statistics based on groups? 
+Conveniently named, there's a function called `group_by` that seamlessly allows
+us to do this. 
+Also note that you can group by multiple variables at a time if you want to.
 ```{r}
-special.mtcars <- mtcars %>% 
-                  rownames_to_column("car_model") %>% 
-                  filter(mpg > 18) %>% 
-                  select("mpg", "cyl", "gear")
+metadata %>% group_by(sex) %>% 
+             summarize(mean(age_mths))
+```
+What if we would like to create new variables based on other variables? 
+For that we use `mutate` function. 
+Let's convert the ages that are in months to years and make that into a new variable.
+Here we are also using the `round` function from base R to limit the number of 
+decimal points in our new variable to 2.
+```{r}
+metadata %>% mutate("age_yrs" = round(age_mths/12, 2)) %>%
+             select(sample_id, age_mths, age_yrs)
+```
+
+```{r}
+metadata %>% group_by()
+```
+
+Let's do some work with the gene dataset now. 
+First, let's rename the column that is clearly our ensembl gene ids, to a column 
+name that reflects that. 
+```{r}
+gene.data <- gene.data %>% rename("genes" = X1)
+```
+
+Let's obtain the average expression value for each sample. 
+```{r}
+gene.data %>% summarize_all(funs(mean))
+```
+Now let's obtain the average expression by gene. 
+We aren't doing this one by tidyverse, but just to show how you would get it: 
+```{r}
+gene.data$gene_mean <- apply(gene.data[, -1], 1, mean)
 ```
 
 Let's write this data to a file using write_tsv. Note that the second argument 
 needs to be a character string that ends in the appropriate file extension ".tsv"
 and it is what your file you are creating will be named. 
 ```{r}
-write_tsv(special.mtcars, "special_mtcars.tsv")
+write_tsv(gene.data, "gene_matrix_clean.tsv")
 ```
 
