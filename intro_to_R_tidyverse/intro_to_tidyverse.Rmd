@@ -136,10 +136,6 @@ metadata %>% mutate("age_yrs" = round(age_mths/12, 2)) %>%
              select(sample_id, age_mths, age_yrs)
 ```
 
-```{r}
-metadata %>% group_by()
-```
-
 Let's do some work with the gene dataset now. 
 First, let's rename the column that is clearly our ensembl gene ids, to a column 
 name that reflects that. 
@@ -147,20 +143,22 @@ name that reflects that.
 gene.data <- gene.data %>% rename("genes" = X1)
 ```
 
-Let's obtain the average expression value for each sample. 
-```{r}
-gene.data %>% summarize_all(funs(mean))
-```
 Now let's obtain the average expression by gene. 
-We aren't doing this one by tidyverse, but just to show how you would get it: 
 ```{r}
-gene.data$gene_mean <- apply(gene.data[, -1], 1, mean)
+gene.data <- gene.data %>% 
+             mutate("gene_mean" = select(., contains("GSM")) %>% apply(., 1, mean))
+```
+
+Let's obtain the standard deviation value for each gene.
+```{r}
+gene.data <- gene.data %>% 
+             mutate("gene_sd" = select(., contains("GSM")) %>% apply(., 1, sd))
 ```
 
 Let's write this data to a file using write_tsv. Note that the second argument 
 needs to be a character string that ends in the appropriate file extension ".tsv"
 and it is what your file you are creating will be named. 
 ```{r}
-write_tsv(gene.data, "gene_matrix_clean.tsv")
+write_tsv(gene.data, "gene_clean.tsv")
 ```
 

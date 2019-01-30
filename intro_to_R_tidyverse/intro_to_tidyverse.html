@@ -383,12 +383,12 @@ $(document).ready(function () {
 <p>R packages are collections of functions. But your R as it is will not have these functions available unless you tell it to.<br />
 In our docker container, we already have tidyverse installed for you. But if you needed to install it or other pacakges available on CRAN, you do it using the <code>install.packages</code> function like this: <code>install.packages(&quot;tidyverse&quot;)</code></p>
 <pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ──────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ── Attaching packages ───────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
 <pre><code>## ✔ ggplot2 3.1.0     ✔ purrr   0.2.5
 ## ✔ tibble  2.0.1     ✔ dplyr   0.7.8
 ## ✔ tidyr   0.8.2     ✔ stringr 1.3.1
 ## ✔ readr   1.3.1     ✔ forcats 0.3.0</code></pre>
-<pre><code>## ── Conflicts ─────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+<pre><code>## ── Conflicts ──────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()</code></pre>
 <p>“GSE30074.tsv” is a file we will use for practicing the tidyverse. This data is from <code>refine.bio</code> and is gene expression data from medulloblastoma.</p>
@@ -546,42 +546,16 @@ metadata %&gt;% filter(age_mths &gt; 100)</code></pre>
 ##  9 GSM744457       96    8   
 ## 10 GSM744465       13    1.08
 ## # … with 20 more rows</code></pre>
-<pre class="r"><code>metadata %&gt;% group_by()</code></pre>
-<pre><code>## # A tibble: 30 x 7
-##    sample_id age_mths follow_up_mths sex   histology   organism  metastasis
-##    &lt;chr&gt;        &lt;dbl&gt;          &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;       &lt;chr&gt;     &lt;chr&gt;     
-##  1 GSM744451       72             52 M     Classic     Homo sap… N         
-##  2 GSM744464       36             11 M     Classic     Homo sap… Y         
-##  3 GSM744460       48             47 F     Anaplastic  Homo sap… N         
-##  4 GSM744468      156             22 F     Classic     Homo sap… N         
-##  5 GSM744442       96            100 M     Classic     Homo sap… N         
-##  6 GSM744452      180             24 M     Classic     Homo sap… N         
-##  7 GSM744459       23             60 F     Desmoplast… Homo sap… N         
-##  8 GSM744449       60             79 M     Classic     Homo sap… N         
-##  9 GSM744457       96             62 M     Classic     Homo sap… N         
-## 10 GSM744465       13             31 M     Desmoplast… Homo sap… N         
-## # … with 20 more rows</code></pre>
 <p>Let’s do some work with the gene dataset now. First, let’s rename the column that is clearly our ensembl gene ids, to a column name that reflects that.</p>
 <pre class="r"><code>gene.data &lt;- gene.data %&gt;% rename(&quot;genes&quot; = X1)</code></pre>
-<p>Let’s obtain the average expression value for each sample.</p>
-<pre class="r"><code>gene.data %&gt;% summarize_all(funs(mean))</code></pre>
-<pre><code>## Warning in mean.default(genes): argument is not numeric or logical:
-## returning NA</code></pre>
-<pre><code>## # A tibble: 1 x 31
-##   genes GSM744461 GSM744454 GSM744458 GSM744441 GSM744449 GSM744440
-##   &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
-## 1    NA     0.279     0.307     0.354     0.361     0.340     0.397
-## # … with 24 more variables: GSM744445 &lt;dbl&gt;, GSM744447 &lt;dbl&gt;,
-## #   GSM744463 &lt;dbl&gt;, GSM744446 &lt;dbl&gt;, GSM744466 &lt;dbl&gt;, GSM744459 &lt;dbl&gt;,
-## #   GSM744456 &lt;dbl&gt;, GSM744439 &lt;dbl&gt;, GSM744451 &lt;dbl&gt;, GSM744455 &lt;dbl&gt;,
-## #   GSM744467 &lt;dbl&gt;, GSM744443 &lt;dbl&gt;, GSM744460 &lt;dbl&gt;, GSM744453 &lt;dbl&gt;,
-## #   GSM744464 &lt;dbl&gt;, GSM744465 &lt;dbl&gt;, GSM744450 &lt;dbl&gt;, GSM744442 &lt;dbl&gt;,
-## #   GSM744444 &lt;dbl&gt;, GSM744452 &lt;dbl&gt;, GSM744457 &lt;dbl&gt;, GSM744462 &lt;dbl&gt;,
-## #   GSM744448 &lt;dbl&gt;, GSM744468 &lt;dbl&gt;</code></pre>
-<p>Now let’s obtain the average expression by gene. We aren’t doing this one by tidyverse, but just to show how you would get it:</p>
-<pre class="r"><code>gene.data$gene_mean &lt;- apply(gene.data[, -1], 1, mean)</code></pre>
+<p>Now let’s obtain the average expression by gene.</p>
+<pre class="r"><code>gene.data &lt;- gene.data %&gt;% 
+             mutate(&quot;gene_mean&quot; = select(., contains(&quot;GSM&quot;)) %&gt;% apply(., 1, mean))</code></pre>
+<p>Let’s obtain the standard deviation value for each gene.</p>
+<pre class="r"><code>gene.data &lt;- gene.data %&gt;% 
+             mutate(&quot;gene_sd&quot; = select(., contains(&quot;GSM&quot;)) %&gt;% apply(., 1, sd))</code></pre>
 <p>Let’s write this data to a file using write_tsv. Note that the second argument needs to be a character string that ends in the appropriate file extension “.tsv” and it is what your file you are creating will be named.</p>
-<pre class="r"><code>write_tsv(gene.data, &quot;gene_matrix_clean.tsv&quot;)</code></pre>
+<pre class="r"><code>write_tsv(gene.data, &quot;gene_clean.tsv&quot;)</code></pre>
 </div>
 
 
