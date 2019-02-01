@@ -129,13 +129,13 @@ later on, including files with information on the UMI's and cell barcodes ("CB")
 Coy and paste this in your command line to run alevin quantification
 ```
 salmon alevin -l ISR \
-  -i ref_files/human_index \
-  -1 pbmc_1k_v2_S1_L001_R1_subset.fastq.gz \
-  -2 pbmc_1k_v2_S1_L001_R2_subset.fastq.gz \
+  -i data/human_index \
+  -1 data/pbmc_1k_v2_S1_L001_R1_subset.fastq.gz \
+  -2 data/pbmc_1k_v2_S1_L001_R2_subset.fastq.gz \
   --chromium  \
   -p 10 \
   -o alevin_output \
-  --tgMap genes_2_tx.tsv \
+  --tgMap data/genes_2_tx.tsv \
   --dumpCsvCounts \
   --dumpFeatures
 ```
