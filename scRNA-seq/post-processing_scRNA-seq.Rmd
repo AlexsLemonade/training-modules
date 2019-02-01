@@ -9,7 +9,7 @@ In this notebook, we'll perform quality control analyses and normalization of
 scRNA-seq count data. 
 
 As opposed to bulk rna-seq, there are there are a few main things to look out for
-in single cell rna-seq:
+in single cell RNA-seq:
 
 **Single-cell rna-seq has...**  
 - More amplification (and more of it's associated biases and error)  
@@ -18,8 +18,9 @@ in single cell rna-seq:
 This script is adapted from [Seurat pbmc tutorial](https://satijalab.org/seurat/pbmc3k_tutorial.html) 
 and from [COMBINE lab's alevin tutorial](https://combine-lab.github.io/alevin-tutorial/2018/alevin-seurat/)
 
+#### Set Up 
 For these analyses, we will need Seurat and dplyr packages. 
-```{r Install Packages}
+```{r Set Up}
 # Attach library
 library(Seurat)
 
@@ -27,62 +28,65 @@ library(Seurat)
 `%>%` <- dplyr::`%>%`
 ```
 
+We will also need to set up a function to read in our alevin output data.
+```{r Set up read function}
+# Set up function from the COMBINE lab
+ReadAlevin <- function(base_path = NULL){
+  if (! dir.exists(base_path )){
+    stop("Directory provided does not exist")
+  }
+  # Obtain paths to data
+  barcode_loc <- file.path(base_path, "alevin", "quants_mat_rows.txt")
+  gene_loc <- file.path(base_path, "alevin", "quants_mat_cols.txt")
+  data_loc <- file.path(base_path, "alevin", "quants_mat.csv")
+    
+  if (!file.exists(barcode_loc)) {
+    stop("Barcode file missing")
+  }
+  if (!file.exists(gene_loc)) {
+    stop("Gene name file missing")
+  }
+  if (!file.exists(data_loc)) {
+    stop("Expression matrix file missing")
+  }
+  # Read in the data from alevin output
+  expression_matrix <- readr::read_csv(data_loc, col_names = FALSE)
+  expression_matrix <- t(expression_matrix[,1:ncol(expression_matrix)-1])
+    
+  # Apply the colnames and rownames to the dataset
+  colnames(expression_matrix) <- readLines(barcode_loc)
+  rownames(expression_matrix) <- readLines(gene_loc)
+    
+  # Make NA values into 0's
+  expression_matrix[is.na(expression_matrix)] <- 0
+  return(expression_matrix)
+}
+```
+
+Put the path to the alevin output here:
+```{r Path to alevin output}
+# Store the path to the alevin output files
+alevin_file <- file.path("alevin_output")
+```
+
 #### Perform QC checks with 'csoneson/alevinQC'
 This will provide html output with graphs evaluating the data. Keep in mind that 
 the data we have processed in this workshop is not the full dataset, and won't 
 look as good as the full set.
 ```{r AlevinQC }
-# Store the path to the alevin output files
-alevin.file <- file.path("data", "alevin_output", "pbmc_1k_v2_S1_L001_subset")
-
 # Produce a QC report
-alevinQC::alevinQCReport(alevin.file,
+alevinQC::alevinQCReport(alevin_file,
                          sampleId = "pbmc_1k_v2_S1_L001_subset", 
                          outputFile = "pbmc_1k_v2_S1_L001_qc_report.html", 
+                         outputDir = "data",
                          outputFormat = "html_document")
 ```
 
 #### Import counts from alevin output
-This chunk of code is from the [COMBINE lab's tutorial](https://combine-lab.github.io/alevin-tutorial/2018/alevin-seurat/)
+Here we are using the function we set up in the earlier chunk. 
 ```{r Import Data}
-# Set up function from the COMBINE lab
-ReadAlevin <- function(base.path = NULL){
-  if (! dir.exists(base.path )){
-    stop("Directory provided does not exist")
-  }
-  # Obtain paths to data
-  barcode.loc <- file.path(base.path, "alevin", "quants_mat_rows.txt")
-  gene.loc <- file.path(base.path, "alevin", "quants_mat_cols.txt")
-  matrix.loc <- file.path(base.path, "alevin", "quants_mat.csv")
-    
-  if (!file.exists(barcode.loc)) {
-    stop("Barcode file missing")
-  }
-  if (!file.exists(gene.loc)) {
-    stop("Gene name file missing")
-  }
-  if (!file.exists(matrix.loc)) {
-    stop("Expression matrix file missing")
-  }
-  # Read in the data from alevin output
-  matrix <- as.matrix(read.csv(matrix.loc, header=FALSE))
-  matrix <- t(matrix[,1:ncol(matrix)-1])
-    
-  # Read in the cell and gene names from the alevin output
-  cell.names <- readLines(barcode.loc)
-  gene.names <- readLines(gene.loc)
-    
-  # Apply the colnames and rownames to the dataset
-  colnames(matrix) <- cell.names
-  rownames(matrix) <- gene.names
-    
-  # Make NA values into 0's
-  matrix[is.na(matrix)] <- 0
-  return(matrix)
-}
-
-# Run this function on our files
-alv.data <- ReadAlevin(alevin.file)
+# Read in the data
+alv_data <- ReadAlevin(alevin_file)
 ```
 
 #### Set up the Seurat object and apply a filter to the data. 
@@ -91,57 +95,62 @@ expressing each gene.
 For cell filtering, each cell must express at least 200 genes.
 ```{r Set Up Seurat Object}
 # Set up the seurat object 
-seurat.obj <- CreateSeuratObject(raw.data = alv.data, min.cells = 3,
+seurat_obj <- CreateSeuratObject(raw.data = alv_data, min.cells = 3,
                                  min.genes = 200, 
                                  project = "1k_pbmc_subset")
 ```
 
 #### Normalize the data using log normalization
+These are the default settings for normalization, but if for your own data you 
+fine the 
 ```{r Normalize the Data}
-seurat.norm <- NormalizeData(object = seurat.obj, 
+seurat_norm <- NormalizeData(object = seurat_obj, 
                              normalization.method = "LogNormalize",
                              scale.factor = 10000)
 ```
 
 #### Identify variable genes and scale the data
+In this step, we will identify genes with higher variance. 
+These are probably the genes that are of more interest to us and they are what 
+we will use for Principal Components Analysis in the upcoming step.
 ```{r Find Variable Genes}
-seurat.norm <- FindVariableGenes(object = seurat.norm, mean.function = ExpMean,
+seurat_norm <- FindVariableGenes(object = seurat_norm, mean.function = ExpMean,
                                 x.low.cutoff = 0.0125, x.high.cutoff = 3,
-                                y.cutoff = 0.5)
+                                y.cutoff = 0.5, do.plot = FALSE)
 
 # Scale the data
-seurat.norm <- ScaleData(object = seurat.norm)
+seurat_norm <- ScaleData(object = seurat_norm)
 ```
 
-#### Scale data and perform PCA
+#### Execute PCA with high variance genes
 ```{r Scale Data}
 # Run PCA
-seurat.norm <- RunPCA(object = seurat.norm, pc.genes = seurat.norm@var.genes,
-                     do.print = TRUE, pcs.print = 1:5, genes.print = 5)
+seurat_norm <- RunPCA(object = seurat_norm, pc.genes = seurat_norm@var.genes,
+                      do.print = TRUE, pcs.print = 1:5, genes.print = 5)
 
 # Cluster analyses
-seurat.norm <- FindClusters(object = seurat.norm, reduction.type = "pca", 
-                           dims.use = 1:10, resolution = 0.6, print.output = 0, 
-                           save.SNN = TRUE)
+seurat_norm <- FindClusters(object = seurat_norm, reduction.type = "pca", 
+                            dims.use = 1:10, resolution = 0.6, print.output = 0, 
+                            save.SNN = TRUE)
 ```
 
 #### Run tSNE on normalized data
 ```{r Run tSNE}
 # Run tSNE 
-seurat.norm <- RunTSNE(object = seurat.norm, dims.use = 1:10, do.fast = TRUE)
+seurat_norm <- RunTSNE(object = seurat_norm, dims.use = 1:10, do.fast = TRUE)
 
 # Plot the tSNE
-TSNEPlot(object = seurat.norm)
+TSNEPlot(object = seurat_norm, colors.use = RColorBrewer::brewer.pal(9, "Greys"))
 ```
 
 #### Save the normalized data to tsv file
 ```{r Save Data to TSV}
 # Take out the data and make genes a column
-gene.matrix <- data.frame("genes" = rownames(seurat.norm@raw.data),
-                          seurat.norm@raw.data)
+gene_matrix <- data.frame("genes" = rownames(seurat_norm@raw.data),
+                          seurat_norm@raw.data)
 
 # Save this seurat object to an RDS file
-readr::write_tsv(gene.matrix, 
+readr::write_tsv(gene_matrix, 
                  file.path("data", "normalized_pbmc_gene_matrix.tsv"))
 ```
 
