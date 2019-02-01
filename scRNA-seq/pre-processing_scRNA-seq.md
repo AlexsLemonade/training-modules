@@ -1,6 +1,8 @@
-# Pre-processing single cell RNA-seq data **CCDL 2019**
+# Pre-processing single cell RNA-seq data 
 
-#### In this section, we will be running through the basics of pre-processing 
+**CCDL 2019**
+
+#### In this section, we will be running through the basics of pre-processing
 #### single-cell RNA-seq data.
 
 For the purposes of this tutorial, we'll summarize single-cell technologies as
@@ -32,8 +34,8 @@ discovery purposes.
 *Example:* 10X Genomics [(Zheng et al, 2017)](https://www.ncbi.nlm.nih.gov/pubmed/28091601)  
 Cells are separated by emulsion/droplets, and individual cells are given barcodes.
 Everything is then sequenced.
-These types of methods, because they are newer, are more likely to have 
-[Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772) 
+These types of methods, because they are newer, are more likely to have
+[Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772)
 which allow you to better control for PCR amplification errors and biases.
 Individual samples have two fastq files: one for the cell barcodes
 and another with the individual reads.
@@ -47,15 +49,15 @@ and another with the individual reads.
 #### Cons:  
 - Sequencing is not bidirectional so data will likely have more intense 3' bias.  
 - Coverage of these technologies generally is not as deep.  
-  
+
 *More sources on the comparisons and explanations of these technologies: *   
 - [Zhang et al, 2018](https://doi.org/10.1016/j.molcel.2018.10.020)  
 - [AlJanahi et al, 2018](https://doi.org/10.1016/j.omtm.2018.07.003)  
 - [Angerer et al, 2017](http://dx.doi.org/10.1016/j.coisb.2017.07.004)  
 - [Baran-Gale et al, 2018](https://doi.org/10.1093/bfgp/elx035)  
-  
+
 ## Steps for Processing scRNA-seq Data:
-  
+
 ### Step 0: Obtaining the data
 10X Genomics has plenty of [datasets](https://support.10xgenomics.com/single-cell-gene-expression/datasets)
 available to play around with.
@@ -80,16 +82,16 @@ mkdir alevin_output
 ```
 
 ### Step 2: Index the human transcriptome with Salmon
-Before you can quantify with Salmon and 
+Before you can quantify with Salmon and
 [Alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
 to be indexed.
 You can use the same trancriptome index as was used for bulk-rna-seq, however,
 due to the smaller pieces and amounts of single cell RNA-seq as opposed to bulk,
 you may want to build the index with a smaller `-k`.
 In this instance, we used a `-k` of 23 using the ensemble transcriptome.
-  
-In the interest of time, we have already run the command below and have the index 
-built for you. 
+
+In the interest of time, we have already run the command below and have the index
+built for you.
 But for your own reference, here is how you'd do it yourself:
 ```
 salmon --threads=16 --no-version-check index \
@@ -98,35 +100,35 @@ salmon --threads=16 --no-version-check index \
   -k 23
 ```
 
-### Step 3: For each sample, run [Alevin](https://www.biorxiv.org/content/10.1101/335000v2) 
+### Step 3: For each sample, run [Alevin](https://www.biorxiv.org/content/10.1101/335000v2)
 for quantification
 From the command line, running Alevin is not too much different from running
 Salmon for bulk rna-seq. You'll recognize a lot of these options as the same.
 In this instance, files with `R1` contain the barcodes for the cells as well as
 the Unique Molecular Identifiers while `R2` files contain the full reads for that sample.  
-  
+
 #### `-l`
-The ISR library type is what is recommended for single cell data quant. 
-  
+The ISR library type is what is recommended for single cell data quant.
+
 #### `--chromium`
-Because we are using 10X chromium data, we have to use this flag. However, 
-Drop-seq data is also supported, and in this case you would use a `--dropseq` 
+Because we are using 10X chromium data, we have to use this flag. However,
+Drop-seq data is also supported, and in this case you would use a `--dropseq`
 flag instead of this.
-  
+
 #### `--tgMap`
-This is needed to supply a trasncript to gene key that Alevin will use to 
+This is needed to supply a trasncript to gene key that Alevin will use to
 quantify the genes. For our example, we've premade the file `genes_2_tx.tsv` from
-the ensembl transcriptome that we indexed above. The file has to be a .tsv file. 
-  
-#### `--dumpCsvCounts` 
+the ensembl transcriptome that we indexed above. The file has to be a .tsv file.
+
+#### `--dumpCsvCounts`
 Using this option will make the counts in a csv file and make it easier for us to
-import into R later. 
-  
-#### `--dumpFeatures` 
+import into R later.
+
+#### `--dumpFeatures`
 This option will print out information that we will need for quality checks
 later on, including files with information on the UMI's and cell barcodes ("CB").  
-  
-#### Running Salmon Alevin 
+
+#### Running Salmon Alevin
 Coy and paste this in your command line to run Alevin quantification
 ```
 salmon alevin -l ISR \
@@ -142,6 +144,6 @@ salmon alevin -l ISR \
 ```
 
 See the [Alevin documentation](https://salmon.readthedocs.io/en/latest/alevin.html)
-for a complete list of the Alevin options and see the [Alevin tutorials](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/)
+for a complete list of the Alevin options and see the
+[Alevin tutorials](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/)
 for example analyses.
-  
