@@ -10,8 +10,8 @@ Depending on how the cells are sorted and what technology is used, the pre-proce
 For a more extensive run through on single-cell technologies,
 Kiselev at al have very [good tutorial for scRNA-seq](https://hemberg-lab.github.io/scRNA.seq.course/introduction-to-single-cell-rna-seq.html#experimental-methods).
 
-### 1) Non-Tag-Based scRNA-seq
-*Example:* Smart-seq2 [Picelli et al, 2014](https://www.nature.com/articles/nprot.2014.006)  
+### 1) Non-Tag-Based scRNA-seq  
+*Example:* Smart-seq2 [(Picelli et al, 2014)](https://www.nature.com/articles/nprot.2014.006)   
 Cells are physically separated generally into individual wells in a plate and
 often also sorted by other means (eg. Fluorescence Activated Cell Sorting).
 Each cell is then sequenced individual and has it's own fastq file (this will be two fastq files if this is paired-end sequencing.)
@@ -25,11 +25,11 @@ discovery purposes.
 
 #### Cons:  
 - Is not very efficient (generally 96 cells per plate)  
-- Takes much longer to run. (days/weeks depending on sample size) 
+- Takes much longer to run (Days/weeks depending on sample size) .
 - Is a lot more expensive.  
 
-### 2) Tag-based scRNA-seq
-*Example:* 10X Genomics [Zheng et al, 2017](https://www.ncbi.nlm.nih.gov/pubmed/28091601)
+### 2) Tag-based scRNA-seq  
+*Example:* 10X Genomics [(Zheng et al, 2017)](https://www.ncbi.nlm.nih.gov/pubmed/28091601)  
 Cells are separated by emulsion/droplets, and individual cells are given barcodes.
 Everything is then sequenced.
 These types of methods, because they are newer, are more likely to have 
@@ -47,23 +47,23 @@ and another with the individual reads.
 #### Cons:  
 - Sequencing is not bidirectional so data will likely have more intense 3' bias.  
 - Coverage of these technologies generally is not as deep.  
-
-More sources on the comparisons and explanations of these technologies:  
-- [Zhang et al, 2018](https://doi.org/10.1016/j.molcel.2018.10.020)
-- [AlJanahi et al, 2018](https://doi.org/10.1016/j.omtm.2018.07.003)
-- [Angerer et al, 2017](http://dx.doi.org/10.1016/j.coisb.2017.07.004)
-- [Baran-Gale et al, 2018](https://doi.org/10.1093/bfgp/elx035)
-
-### Processing scRNA-seq data
-
-#### Step 0: Obtaining the data
+  
+*More sources on the comparisons and explanations of these technologies: *   
+- [Zhang et al, 2018](https://doi.org/10.1016/j.molcel.2018.10.020)  
+- [AlJanahi et al, 2018](https://doi.org/10.1016/j.omtm.2018.07.003)  
+- [Angerer et al, 2017](http://dx.doi.org/10.1016/j.coisb.2017.07.004)  
+- [Baran-Gale et al, 2018](https://doi.org/10.1093/bfgp/elx035)  
+  
+## Steps for Processing scRNA-seq Data:
+  
+### Step 0: Obtaining the data
 10X Genomics has plenty of [datasets](https://support.10xgenomics.com/single-cell-gene-expression/datasets)
 available to play around with.
 For this example, we will use the [1k pbmc](https://support.10xgenomics.com/single-cell-gene-expression/datasets/3.0.0/pbmc_1k_v2)
 (peripheral blood mononuclear cells).
 We will process a fastq file of this as an example.  
-For practical purposes as far as time constraints, we have subset this fastq files
-to have only the first 3 million reads.
+For practical purposes as far as time constraints, we have subset this fastq file
+and have it ready for you to process but with only the first 3 million reads.
 
 *Note*: depending on the state of the data you are working with, ie. if you have
 a `.bcl` file, you will need to use `CellRanger` with their `mkfastq` command to
@@ -72,14 +72,14 @@ However, because most publicly available data is in fastq format and any
 core you might be working with will also likely provide you with fastq files,
 we are starting from this point.  
 
-#### Step 1: Set up your output directory
-As described in a previous module, we'll make some directories from command line
-for us to store these data in.
+### Step 1: Set up your output directory
+As described in a previous module, we'll make a directory from command line
+for us to store our output data in.
 ```
 mkdir alevin_output  
 ```
 
-#### Step 2: Index the human transcriptome with Salmon
+### Step 2: Index the human transcriptome with Salmon
 Before you can quantify with Salmon and 
 [Alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
 to be indexed.
@@ -89,7 +89,8 @@ you may want to build the index with a smaller `-k`.
 In this instance, we used a `-k` of 23 using the ensemble transcriptome.
   
 In the interest of time, we have already run the command below and have the index 
-built for you.
+built for you. 
+But for your own reference, here is how you'd do it yourself:
 ```
 salmon --threads=16 --no-version-check index \
   -t Homo_sapiens.GRCh38.cdna.all.fa.gz \
@@ -97,7 +98,7 @@ salmon --threads=16 --no-version-check index \
   -k 23
 ```
 
-#### Step 3: For each sample, run [Alevin](https://www.biorxiv.org/content/10.1101/335000v2) 
+### Step 3: For each sample, run [Alevin](https://www.biorxiv.org/content/10.1101/335000v2) 
 for quantification
 From the command line, running Alevin is not too much different from running
 Salmon for bulk rna-seq. You'll recognize a lot of these options as the same.

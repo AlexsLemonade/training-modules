@@ -384,7 +384,7 @@ $(document).ready(function () {
 </div>
 <div id="non-tag-based-scrna-seq" class="section level3">
 <h3>1) Non-Tag-Based scRNA-seq</h3>
-<p><em>Example:</em> Smart-seq2 <a href="https://www.nature.com/articles/nprot.2014.006">Picelli et al, 2014</a><br />
+<p><em>Example:</em> Smart-seq2 <a href="https://www.nature.com/articles/nprot.2014.006">(Picelli et al, 2014)</a><br />
 Cells are physically separated generally into individual wells in a plate and often also sorted by other means (eg. Fluorescence Activated Cell Sorting). Each cell is then sequenced individual and has it’s own fastq file (this will be two fastq files if this is paired-end sequencing.) The data pre-processing steps for these types of scRNA-seq data is/can be more similar to bulk rna-seq methods.</p>
 <div id="pros" class="section level4">
 <h4>Pros:</h4>
@@ -399,14 +399,15 @@ Cells are physically separated generally into individual wells in a plate and of
 <ul>
 <li>Is not very efficient (generally 96 cells per plate)<br />
 </li>
-<li>Takes much longer to run. (days/weeks depending on sample size)</li>
+<li>Takes much longer to run (Days/weeks depending on sample size) .</li>
 <li>Is a lot more expensive.</li>
 </ul>
 </div>
 </div>
 <div id="tag-based-scrna-seq" class="section level3">
 <h3>2) Tag-based scRNA-seq</h3>
-<p><em>Example:</em> 10X Genomics <a href="https://www.ncbi.nlm.nih.gov/pubmed/28091601">Zheng et al, 2017</a> Cells are separated by emulsion/droplets, and individual cells are given barcodes. Everything is then sequenced. These types of methods, because they are newer, are more likely to have <a href="http://www.nature.com/doifinder/10.1038/nmeth.2772">Unique Molecular Identifiers (UMIs)</a> which allow you to better control for PCR amplification errors and biases. Individual samples have two fastq files: one for the cell barcodes and another with the individual reads.</p>
+<p><em>Example:</em> 10X Genomics <a href="https://www.ncbi.nlm.nih.gov/pubmed/28091601">(Zheng et al, 2017)</a><br />
+Cells are separated by emulsion/droplets, and individual cells are given barcodes. Everything is then sequenced. These types of methods, because they are newer, are more likely to have <a href="http://www.nature.com/doifinder/10.1038/nmeth.2772">Unique Molecular Identifiers (UMIs)</a> which allow you to better control for PCR amplification errors and biases. Individual samples have two fastq files: one for the cell barcodes and another with the individual reads.</p>
 <div id="pros-1" class="section level4">
 <h4>Pros:</h4>
 <ul>
@@ -426,36 +427,38 @@ Cells are physically separated generally into individual wells in a plate and of
 </li>
 <li>Coverage of these technologies generally is not as deep.</li>
 </ul>
-<p>More sources on the comparisons and explanations of these technologies:<br />
-- <a href="https://doi.org/10.1016/j.molcel.2018.10.020">Zhang et al, 2018</a> - <a href="https://doi.org/10.1016/j.omtm.2018.07.003">AlJanahi et al, 2018</a> - <a href="http://dx.doi.org/10.1016/j.coisb.2017.07.004">Angerer et al, 2017</a> - <a href="https://doi.org/10.1093/bfgp/elx035">Baran-Gale et al, 2018</a></p>
+<p><em>More sources on the comparisons and explanations of these technologies: </em><br />
+- <a href="https://doi.org/10.1016/j.molcel.2018.10.020">Zhang et al, 2018</a><br />
+- <a href="https://doi.org/10.1016/j.omtm.2018.07.003">AlJanahi et al, 2018</a><br />
+- <a href="http://dx.doi.org/10.1016/j.coisb.2017.07.004">Angerer et al, 2017</a><br />
+- <a href="https://doi.org/10.1093/bfgp/elx035">Baran-Gale et al, 2018</a></p>
 </div>
 </div>
-<div id="processing-scrna-seq-data" class="section level3">
-<h3>Processing scRNA-seq data</h3>
-<div id="step-0-obtaining-the-data" class="section level4">
-<h4>Step 0: Obtaining the data</h4>
+<div id="steps-for-processing-scrna-seq-data" class="section level2">
+<h2>Steps for Processing scRNA-seq Data:</h2>
+<div id="step-0-obtaining-the-data" class="section level3">
+<h3>Step 0: Obtaining the data</h3>
 <p>10X Genomics has plenty of <a href="https://support.10xgenomics.com/single-cell-gene-expression/datasets">datasets</a> available to play around with. For this example, we will use the <a href="https://support.10xgenomics.com/single-cell-gene-expression/datasets/3.0.0/pbmc_1k_v2">1k pbmc</a> (peripheral blood mononuclear cells). We will process a fastq file of this as an example.<br />
-For practical purposes as far as time constraints, we have subset this fastq files to have only the first 3 million reads.</p>
+For practical purposes as far as time constraints, we have subset this fastq file and have it ready for you to process but with only the first 3 million reads.</p>
 <p><em>Note</em>: depending on the state of the data you are working with, ie. if you have a <code>.bcl</code> file, you will need to use <code>CellRanger</code> with their <code>mkfastq</code> command to make fastq files from this. However, because most publicly available data is in fastq format and any core you might be working with will also likely provide you with fastq files, we are starting from this point.</p>
 </div>
-<div id="step-1-set-up-your-output-directory" class="section level4">
-<h4>Step 1: Set up your output directory</h4>
-<p>As described in a previous module, we’ll make some directories from command line for us to store these data in.</p>
+<div id="step-1-set-up-your-output-directory" class="section level3">
+<h3>Step 1: Set up your output directory</h3>
+<p>As described in a previous module, we’ll make a directory from command line for us to store our output data in.</p>
 <pre><code>mkdir alevin_output  </code></pre>
 </div>
-<div id="step-2-index-the-human-transcriptome-with-salmon" class="section level4">
-<h4>Step 2: Index the human transcriptome with Salmon</h4>
+<div id="step-2-index-the-human-transcriptome-with-salmon" class="section level3">
+<h3>Step 2: Index the human transcriptome with Salmon</h3>
 <p>Before you can quantify with Salmon and <a href="https://www.biorxiv.org/content/10.1101/335000v2">Alevin</a>, we need a transcriptome to be indexed. You can use the same trancriptome index as was used for bulk-rna-seq, however, due to the smaller pieces and amounts of single cell RNA-seq as opposed to bulk, you may want to build the index with a smaller <code>-k</code>. In this instance, we used a <code>-k</code> of 23 using the ensemble transcriptome.</p>
-<p>In the interest of time, we have already run the command below and have the index built for you.</p>
+<p>In the interest of time, we have already run the command below and have the index built for you. But for your own reference, here is how you’d do it yourself:</p>
 <pre><code>salmon --threads=16 --no-version-check index \
   -t Homo_sapiens.GRCh38.cdna.all.fa.gz \
   -i human_index \
   -k 23</code></pre>
 </div>
-<div id="step-3-for-each-sample-run-alevin" class="section level4">
-<h4>Step 3: For each sample, run <a href="https://www.biorxiv.org/content/10.1101/335000v2">Alevin</a></h4>
+<div id="step-3-for-each-sample-run-alevin" class="section level3">
+<h3>Step 3: For each sample, run <a href="https://www.biorxiv.org/content/10.1101/335000v2">Alevin</a></h3>
 <p>for quantification From the command line, running Alevin is not too much different from running Salmon for bulk rna-seq. You’ll recognize a lot of these options as the same. In this instance, files with <code>R1</code> contain the barcodes for the cells as well as the Unique Molecular Identifiers while <code>R2</code> files contain the full reads for that sample.</p>
-</div>
 <div id="l" class="section level4">
 <h4><code>-l</code></h4>
 <p>The ISR library type is what is recommended for single cell data quant.</p>
@@ -490,6 +493,7 @@ For practical purposes as far as time constraints, we have subset this fastq fil
   --dumpCsvCounts \
   --dumpFeatures</code></pre>
 <p>See the <a href="https://salmon.readthedocs.io/en/latest/alevin.html">Alevin documentation</a> for a complete list of the Alevin options and see the <a href="https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/">Alevin tutorials</a> for example analyses.</p>
+</div>
 </div>
 </div>
 </div>
