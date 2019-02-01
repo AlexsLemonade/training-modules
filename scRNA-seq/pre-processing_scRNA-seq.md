@@ -80,8 +80,8 @@ mkdir alevin_output
 ```
 
 #### Step 2: Index the human transcriptome with Salmon
-Before you can quantify with salmon and 
-[alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
+Before you can quantify with Salmon and 
+[Alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
 to be indexed.
 You can use the same trancriptome index as was used for bulk-rna-seq, however,
 due to the smaller pieces and amounts of single cell RNA-seq as opposed to bulk,
@@ -125,8 +125,8 @@ import into R later.
 This option will print out information that we will need for quality checks
 later on, including files with information on the UMI's and cell barcodes ("CB").  
   
-#### Running salmon alevin 
-Coy and paste this in your command line to run alevin quantification
+#### Running Salmon Alevin 
+Coy and paste this in your command line to run Alevin quantification
 ```
 salmon alevin -l ISR \
   -i data/human_index \
