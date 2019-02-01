@@ -8,25 +8,33 @@ output:
 
 **CCDL 2019**
 
-This Rmd is taking you through the basics of the tidyverse: a collection of packages
-that make R use easier and more convenient.  
+In this notebook, we will take you through the basics of the tidyverse: 
+a collection of packages that make R use easier and more convenient.  
 
 There are a lot of tutorials and free books Hadley Wickham and friends have on 
 how to use the [tidyverse packages](https://r4ds.had.co.nz/index.html). 
 [Datacamp](https://www.datacamp.com/) also has a bunch of good tutorials on this. 
 
 ## Set Up
-R packages are collections of functions. But your R as it is will not have these
-functions available unless you tell it to.  
-In our docker container, we already have tidyverse installed for you. 
-But if you needed to install it or other pacakges available on CRAN, you 
+R packages are collections of functions. 
+Installing R on your computer installs `base` functions like statistical tests 
+and some plotting functionality.
+The `tidyverse` is a collection of packages that are handy for general data 
+wrangling, analysis, and visualization. 
+Other packages that are specifically handy for different biological analyses are 
+found on [Bioconductor](https://www.bioconductor.org/).
+If we want to use a package's functions we first need to install them.
+In our Docker container, we already have `tidyverse` and other packages we will
+use in this workshop installed for you. 
+But if you needed to install it or other packages available on CRAN, you 
 do it using the `install.packages` function like this: `install.packages("tidyverse")`
 ```{r Load tidyverse}
 library(tidyverse)
 ```
 
-"GSE30074.tsv" is a file we will use for practicing the tidyverse.
-This data is from `refine.bio` and is gene expression data from medulloblastoma.
+"metadata.tsv" is a file we will use for practicing the tidyverse.
+This metadata is from GSE30074 [refine.bio](https://www.refine.bio), a gene 
+expression dataset from medulloblastoma.
   
 First let's read in the dataset using the tidyverse package: `readr`.
 Although base R has read-in functions, the `readr` functions are faster and more
@@ -35,29 +43,34 @@ Because the file we are reading in is a .tsv file we will be using the
 `read_tsv` function. 
 But note that there are analogous functions for `csv` files and other files types.
 ```{r}
-# The file we are reading in, relative to our current directory, is in the "data"
-# folder, so we need to put that as the argument. 
-gene.data <- read_tsv("data/GSE30074.tsv")
-
-# Let's also read in the metadata for this gene expression data
-metadata <- read_tsv("data/metadata_clean.tsv")
+# The file we are reading in is our argument 
+metadata <- read_tsv("metadata.tsv")
 ```
 
 ## dplyr pipes
 A nifty thing with the tidyverse is the pipes: `%>%`
 This handy thing allows you to funnel the result of one expression to the next
 making your code a little more streamlined.
+
+Let's look at an example of how this works.
+```{r}
+# This:
+filter(metadata, sex == "F")
+
+# Does the same thing as this:
+metadata %>% filter(sex == "F")
+```
+
 This makes it so your code is cleaner and easier to read. 
-Let's look at an example with the built in data of `mtcars` of how the same 
+Let's look at an example with our metadata of of how the same 
 functions looks with or without pipes:
 
 *Example 1:* without pipes: 
 ```{r}
-special.mtcars <- mtcars
-special.mtcars$car_model <- rownames(special.mtcars)
-special.mtcars <- arrange(special.mtcars, mpg)
-special.mtcars <- filter(special.mtcars, mpg > 18)
-special.mtcars <- select(special.mtcars, "mpg", "cyl", "gear")
+metadata.edit <- metadata
+metadata.edit <- arrange(metadata.edit, histology)
+metadata.edit <- filter(metadata.edit, follow_up_mths > 50)
+metadata.edit <- select(metadata.edit, sample_id, sex, organism)
 ```
 UGH, we have to repeat and assign `special.mtcars` so many times here! 
 It's annoying and makes it harder for people to read. 
@@ -65,11 +78,10 @@ It's annoying and makes it harder for people to read.
 *Example 2:* Same result as 1 but with pipes!
 ```{r}
 # Example of the same modifications as above but with pipes!
-special.mtcars <- mtcars %>% 
-                  rownames_to_column("car_model") %>% 
-                  arrange(mpg) %>%
-                  filter(mpg > 18) %>% 
-                  select("mpg", "cyl", "gear")
+metadata.edit <- metadata %>%
+                 arrange(histology) %>%
+                 filter(follow_up_mths > 50) %>%
+                 select(sample_id, sex, organism)
 ```
 
 Now that hopefully you are convinced that tidyverse helps your code to be neater and
@@ -95,8 +107,7 @@ metadata %>% filter(age_mths > 100)
 What if we wanted filter this dataset to males who are younger than 100 months? 
 Let's make a longer pipe.
 ```{r }
-metadata %>% filter(age_mths > 100) %>%
-             filter(sex == "M")
+metadata %>% filter(age_mths > 100, sex == "M")
 ```
 
 Let's build on to this pipe and keep only some of these variables with the 
@@ -135,36 +146,16 @@ Let's convert the ages that are in months to years and make that into a new vari
 Here we are also using the `round` function from base R to limit the number of 
 decimal points in our new variable to 2.
 ```{r}
-metadata %>% mutate("age_yrs" = round(age_mths/12, 2)) %>%
+metadata.edit <- metadata %>% 
+             mutate("age_yrs" = round(age_mths/12, 2)) %>%
              select(sample_id, age_mths, age_yrs)
-```
-
-## Gene data examples
-
-Let's do some work with the gene dataset now. 
-First, let's rename the column that is clearly our ensembl gene ids, to a column 
-name that reflects that. 
-```{r}
-gene.data <- gene.data %>% rename("genes" = X1)
-```
-
-Now let's obtain the average expression by gene. 
-```{r}
-gene.data <- gene.data %>% 
-             mutate("gene_mean" = select(., contains("GSM")) %>% apply(., 1, mean))
-```
-
-Let's obtain the standard deviation value for each gene.
-```{r}
-gene.data <- gene.data %>% 
-             mutate("gene_sd" = select(., contains("GSM")) %>% apply(., 1, sd))
 ```
 
 Let's write this data to a file using write_tsv. Note that the second argument 
 needs to be a character string that ends in the appropriate file extension ".tsv"
 and it is what your file you are creating will be named. 
 ```{r}
-write_tsv(gene.data, "gene_clean.tsv")
+write_tsv(metadata, "metadata_clean.tsv")
 ```
 
 Session Info: 

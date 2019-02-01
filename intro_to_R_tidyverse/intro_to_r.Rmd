@@ -20,10 +20,11 @@ R remembers what you tell it and stores assigned values in it's environment.
 You can think of an R environment as a box that you can put objects in for R to 
 store. 
 Going with this analogy then, you can only work in R with things that are in the 
-environment. 
+*environment*. 
 If you ask R about something that is not in its environment it will tell you it
 can't find it in an error message. 
-In RStudio, you will see what R has in it's environment in the "environment" panel.
+In RStudio, you will see what R has in it's *environment* in the *Environment* 
+panel.
 Here let's assign the value of `1` to `x` using the assignment operator: `<-`.
 ```{r Basic assignment}
 x <- 1
@@ -41,16 +42,21 @@ put hashtags/pound signs.
 ```
 
 Can't remember what values you have assigned to things in your environment? 
-Use the function `ls` to list everything in the current environment. 
-Just like in math, 
-*functions* are things that take input, transform or otherwise do something with
-this input, and then give you output. 
+Use the function `ls` to list everything in the current environment.  
+  
+*What are functions?*
+Just like in math, *functions* are things that take input, transform or 
+otherwise do something with this input, and then give you output. 
 In R, functions take input through *arguments* within their parentheses. 
-If the arguments don't make sense, you will get an *error* that will try to tell 
-you why R can't do what you asked. 
-Use a `?` mark before a function name to bring up the help page for that function
-so you can see how it's supposed to be used. 
-Or just search for the function by name in the *help bar* in RStudio.
+If the arguments given are inconsistent or the function built doesn't know how 
+to handle what you gave it, you will get an *error* that will try to tell you 
+why R can't do what you asked. 
+To understand what the *error* might be pointing to, you should check the 
+*function's* documentation to see how the author intended it to be used.
+Use a `?` mark before a function name to bring up the documentation for that 
+function.
+Alternatively, you can just search for the function by name in the *help bar*
+in RStudio in the lower right corner.
 ```{r Environment}
 # It will tell us that our object "x" is in the environment
 ls()
@@ -76,6 +82,13 @@ x + 5
 ```
 
 ## Data Types 
+R has to know how to treat different objects eg. it wouldn't make sense to try 
+to perform arithmetic on letters. 
+In order for R to know what to do with the things you give it, it has different 
+classifications for the data *types* and data *structures* that you can put in 
+its environment.
+Data *types* relate to the kind of data in an object: What is it made up of?
+Data *structures* refer to the sizes and dimensions of the objects. 
 
 *Why are data types important?*
 Functions are typically built to work with certain object types.
@@ -306,7 +319,7 @@ one type, which will probably be bad for you because your information will be
 distorted.   
   
 Hence the `data.frame` is probably what you will be using for a lot of your data. 
-Working with dataframes also is handy because Hadley Wickham's `tidyverse` tools 
+Working with `data.frame`s also is handy because Hadley Wickham's `tidyverse` tools 
 are mostly built around using `data.frame`s or its' closely related sibling the 
 `tibble`. The next Rmd will show you all about manipulating `data.frame`s with the 
 tidyverse tools. 
@@ -316,10 +329,10 @@ df <- data.frame(nums , words, color_vector)
 ```
 
 Note that if these vectors were not conveniently all the same length, we could 
-not put them in a dataframe together.  
+not put them in a `data.frame` together.  
 ```{r}
 str(df)
-# Also note that "obs" are rows and "variables" are the columns in a dataframe
+# Also note that "obs" are rows and "variables" are the columns in a data.frame
 ```
 
 Also note that the `data.frame` function makes strings a factor by default,
@@ -335,11 +348,11 @@ str(df)
 # a character vector as it was before. 
 ```
 
-Now that we have a nice dataframe and other objects to play with in our 
+Now that we have a nice `data.frame` and other objects to play with in our 
 environment; let's play around with it and extract pieces of it. 
 ```{r Subsetting Indices}
 # Let's say we only want to see what's in the first row and first column of this
-# dataframe. We can subset data structures by using brackets. 
+# data.frame. We can subset data structures by using brackets. 
 df[1, 1]
 
 # Note that you can do this same thing to matrices: 
@@ -350,12 +363,12 @@ one.through.ten[8]
 # Hint: Check it's structure with str() if you forgot what this object looks like. 
 ```
 
-Data frames have column and row names. You can also specially reference dataframes'
-variables by their column names. 
-```{r Special dataframe things}
-# dataframes store column names and row names 
+Data frames have column and row names. You can also specially reference 
+`data.frame`s' variables by their column names. 
+```{r Special data.frame things}
+# data.frames store column names and row names 
 df$nums
-# We'll do fancier dataframe manipulations in the next Rmd so hold tight!
+# We'll do fancier data.frame manipulations in the next Rmd so hold tight!
 ```
 
 What if we want to store all of our object in one big object? 
@@ -363,7 +376,7 @@ We can't do that with data frames because not all of these are the same length
 or dimensions. 
 This is where `lists` come in handy.
 Lists do not care about data type or data structure, but let you store whatever
-you want in one big object. 
+you want in one big object.
 ```{r}
 # Let's remind ourselves of what objects we've made so far: 
 ls()
@@ -380,39 +393,69 @@ str(variety.list)
 
 How do we extract things from this weird list? We need to use brackets again. 
 ```{r  Single bracket}
-# This will show us our dataframe in the first spot as a singular item
-variety.list[1]
+# This will show us our data.frame in the first spot as a singular item
+first.item <- variety.list[1]
+
+# Let's take a look at this, note that we've just made this a list of one now
+str(first.item)
 ```
 
-However, if you want to the thing in that position of the list, you need to use 
-the double bracket. 
+You'll find that the single bracket is probably not giving you what you want 
+here. 
+To explain this, let's look at a couple other things about how lists work. 
+The structure of lists are kind of analogous to those 
+[Russian nesting dolls](https://en.wikipedia.org/wiki/Matryoshka_doll) in that 
+you can have lists inside of lists and you can think of them as layers.
+In this analogy the single bracket is not actually extracting the `data.frame`
+that is in this list. Note that if you try to use
 ```{r Double Bracket}
 # This however will give us the data.frame in this spot in the list. 
 variety.list[[1]]
+
+# Let's look at the structure of this after we've 'extracted' the data.frame
+# from the list with the double brackets. 
+str(variety.list[[1]])
 ```
 
-Now with the double bracket we can play with our dataframe the same way as before: 
+To further clarify the difference between the double and single bracket, note 
+that with a single bracket we can't use the `data.frame` as usual.
+R tells us `NULL` if we try to reference the column `$color_vector` because it 
+doesn't recognize it as a `data.frame`, but instead thinks of it as a `list` item.
+But, with the double bracket we can play with our `data.frame` the same way as before: 
 ```{r Subset list and df}
+# Single bracket: can't use the data.frame
+variety.list[1]$color_vector
+
+# Double bracket: can use the data.frame
 variety.list[[1]]$color_vector
 ```
 
-## Some parting words of advice
+### Some last bits of advice
 *Why are data types and structures important?*
 Functions are typically built to work with certain object structures and types.
 A function's documentation should tell you what type and structure it will expect
 as input (remember you can see a function's documentation by putting a question
 mark in front `?functionName`).
+Note that the documentation will also tell you about the default *arguments*
+that the function has. 
+Knowing what the default *arguments* of a function are can also be helplful in 
+your troublshooting a problem.
 Using the `str()` function and going through the documentation of a function 
 should help you troubleshoot most problems.
   
 ## Last note on code etiquette: 
+Good code is clear and reproducible. 
+In order for code to be clear and 
 Your code is not useful to others if it isn't readable, so naming conventions, 
 code style, and consistency is important. 
-We suggest following a style guide like 
-[Google's R Style Guide](https://google.github.io/styleguide/Rguide.xml). 
-
-It's also good practice to show other people your session info so they
-know what packages you have loaded and how things were set for the code you ran. 
+We suggest following a style guide like:  
+- [Hadley Wickham's R Style Guide](http://adv-r.had.co.nz/Style.html)  
+- [Google's R Style Guide](https://google.github.io/styleguide/Rguide.xml).   
+  
+For reproducibility purposes, it's also good practice to show other people your
+session info.
+This way, when other's try to reproduce your research, they know what packages 
+you have loaded and how things were set for the code you ran. 
 ```{r }
 sessionInfo()
 ```
