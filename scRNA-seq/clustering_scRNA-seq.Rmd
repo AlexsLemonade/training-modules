@@ -11,7 +11,7 @@ output:
 In this notebook, we'll perform dimension reduction and clustering analyses of 
 single cell RNA-seq data. 
 
-#### Set Up 
+## Set Up 
 For these analyses, we will need Seurat a lot, so we will go ahead and attach it.  
 
 Put the path to the Alevin output here:
@@ -19,11 +19,16 @@ Put the path to the Alevin output here:
 # Load in seurat object
 seurat_norm <- readRDS(file.path("data", "seurat_object.RDS"))
 
-# Read in metadata
-sc_meta <- readr::read_tsv(file.path("data", "darmanis_metadata.tsv"))
+# Get list of samples after we previously filtered the data
+samples <- colnames(seurat_norm@raw.data)
+
+# Read in metadata, but filter out samples that were previously filtered out of 
+# the full dataset
+sc_meta <- readr::read_tsv(file.path("data", "darmanis_metadata.tsv")) %>% 
+           dplyr::filter(geo_accession %in% c(samples))
 ```
 
-#### Execute PCA with high variance genes
+## Execute PCA with high variance genes
 Just like we did with bulk RNA-seq, we will also run PCA with our single cell data. 
 However, because single cell data is more skewed as far as gene expression, we 
 will do our PCA based on the high variance genes, which should give us a more 
@@ -45,43 +50,76 @@ pca <- data.frame(seurat_norm@dr$pca@cell.embeddings) %>%
        tibble::rownames_to_column('geo_accession') %>%
        dplyr::inner_join(sc_meta, by = 'geo_accession')
 
-# Plot this with ggplot2
+# Plot this with ggplot2 and label the points with cell types
 ggplot(pca, aes(x = PC1, y = PC2, color = cell.type.ch1)) + 
   geom_point() +
-  colorblindr::scale_fill_OkabeIto()
+  colorblindr::scale_fill_OkabeIto() 
+  # Add this so our color palette is colorblindness friendly
 ```
 
-# tSNE experiment
+## tSNE experiment
 tsne can be a lot more wild than people like to admit. 
 It would be a good use of our time to explor tSNE parameters and how they 
 affect the outcomes.
 For more reading about tSNE parameters see 
 [this article](https://distill.pub/2016/misread-tsne/)
-```{r}
+```{r Set Up tSNE function}
 # Let's see what happens if we try this with a lot of different perplexity 
-# parameters
-perplexity_params <- c(2, 5, 10, 30, 50, 100)
+TsnePlotter <- function(perplexity_param = NULL, color_param = NA) {
+  # Purpose: run tsne with a given perplexity parameter
+  # Args: perplexity_param: a single number to use for the perplexity 
+  #       argument for tSNE
+  #       color_param: a factor vector to color the data points by (Optional)
+  # Output: a ggplot scatterplot object with the tsne coordinates plotted
 
-for (param in perplexity.params) {
   # Run tSNE 
   tsne <- RunTSNE(object = seurat_norm, dims.use = 1:10, do.fast = TRUE, 
-                  perplexity = param, k.seed = 10)
-
-  # Make a dataframe with the metdata and pca data
-  tsne <- data.frame(tsne@dr$tsne@cell.embeddings) %>% 
-          tibble::rownames_to_column('geo_accession') %>%
-          dplyr::inner_join(sc_meta, by = 'geo_accession')
+                  perplexity = perplexity_param, k.seed = 10)
 
   # Plot this with ggplot2
-  tsne_plot <- ggplot(tsne, aes(x = tSNE_1, y = tSNE_2, color = cell.type.ch1)) + 
+  tsne_plot <- ggplot(tsne, aes(x = tSNE_1, y = tSNE_2, color = color_param)) + 
                geom_point() + 
-               colorblindr::scale_fill_OkabeIto()
+               colorblindr::scale_fill_OkabeIto() +
+               ggtitle(paste0("perplexity = ", perplexity_param)) +
+               theme(axis.title.x = element_blank(),
+               axis.title.y = element_blank())
   
   # Print the plot
-  print(tsne_plot)
+  return(tsne_plot)
 }
 ```
 
+### Run the thing 
+```{r Run tSNE}
+# parameters
+perplexity_params <- c(2, 5, 10, 30, 50, 100)
+
+# Do tsne plots for each perplexity parameter
+tsne.plots <- lapply(perplexity.params, function(param) {
+                     TsnePlotter(perplexity_param = param, 
+                                 color_param = sc_meta$cell.type.ch1)
+                    })
+
+# Extract the legend
+legend <- cowplot::get_legend(tsne.plots[[1]])
+
+# Surpressing the legend in the files
+tsne.plots <- lapply(tsne.plots, function(a.plot) {
+                     a.plot + theme(legend.position = 'none')
+                    })
+
+# Put all plots and legend together
+main.plot <- cowplot::plot_grid(cowplot::plot_grid(plotlist = tsne.plots,
+                                                   ncol = 2, align = 'hv'),
+                                cowplot::plot_grid(NULL, legend, ncol = 2),
+                                rel_widths=c(1, 0.2))
+
+# Save to png
+ggplot2::ggsave(plot = main.plot, "tsne_parameter_plots.png")
+
+# Print this plot in the notebook
+main.plot
+```
 
 #### Print session info:
 ```{r}
