@@ -65,7 +65,7 @@ For more reading about tSNE parameters see
 [this article](https://distill.pub/2016/misread-tsne/)
 ```{r Set Up tSNE function}
 # Let's see what happens if we try this with a lot of different perplexity 
-TsnePlotter <- function(perplexity_param = NULL, color_param = NA) {
+TsnePlotter <- function(perplexity_param = NULL, color_param = "none") {
   # Purpose: run tsne with a given perplexity parameter
   # Args: perplexity_param: a single number to use for the perplexity 
   #       argument for tSNE
@@ -75,7 +75,10 @@ TsnePlotter <- function(perplexity_param = NULL, color_param = NA) {
   # Run tSNE 
   tsne <- RunTSNE(object = seurat_norm, dims.use = 1:10, do.fast = TRUE, 
                   perplexity = perplexity_param, k.seed = 10)
-
+  
+  # Make this a data.frame so ggplot will like it
+  tsne <- data.frame(tsne@dr$tsne@cell.embeddings)
+  
   # Plot this with ggplot2
   tsne_plot <- ggplot(tsne, aes(x = tSNE_1, y = tSNE_2, color = color_param)) + 
                geom_point() + 
@@ -83,6 +86,11 @@ TsnePlotter <- function(perplexity_param = NULL, color_param = NA) {
                ggtitle(paste0("perplexity = ", perplexity_param)) +
                theme(axis.title.x = element_blank(),
                axis.title.y = element_blank())
+  
+  # Don't add the color legend if there are no colors
+  if (color_param[1] == "none"){
+     tsne_plot <- tsne_plot + theme(legend.position = "none")
+  }
   
   # Print the plot
   return(tsne_plot)
@@ -95,11 +103,23 @@ TsnePlotter <- function(perplexity_param = NULL, color_param = NA) {
 perplexity_params <- c(2, 5, 10, 30, 50, 100)
 
 # Do tsne plots for each perplexity parameter
+tsne_plots <- lapply(perplexity.params, function(param) {
+                     TsnePlotter(perplexity_param = param)
+                    })
+
+# Plot these as a grid in this notebook
+cowplot::plot_grid(plotlist = tsne_plots, align = 'hv', ncol = 2)
+```
+
+### Run the same thing but with cell type labels this time
+```{r tSNE}
+# Do tsne plots for each perplexity parameter, but this time use color argument
 tsne.plots <- lapply(perplexity.params, function(param) {
                      TsnePlotter(perplexity_param = param, 
                                  color_param = sc_meta$cell.type.ch1)
                     })
 
+# We only need one print out of the legend so the following is to make that happen
 # Extract the legend
 legend <- cowplot::get_legend(tsne.plots[[1]])
 
