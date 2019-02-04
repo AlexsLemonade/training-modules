@@ -38,7 +38,7 @@ expression dataset from medulloblastoma.
   
 First let's read in the dataset using the tidyverse package: `readr`.
 Although base R has read-in functions, the `readr` functions are faster and more
-straight forward to use so we are going to use those here. 
+straightforward to use so we are going to use those here. 
 Because the file we are reading in is a .tsv file we will be using the 
 `read_tsv` function. 
 But note that there are analogous functions for .csv files (`read_csv`) and 
@@ -88,22 +88,30 @@ functions look with or without pipes:
 
 *Example 1:* without pipes:   
 ```{r}
-metadata_edit <- metadata
-metadata_edit <- arrange(metadata_edit, histology)
-metadata_edit <- filter(metadata_edit, follow_up_mths > 50)
-metadata_edit <- select(metadata_edit, sample_id, sex, organism)
+metadata_nopipe <- metadata
+metadata_nopipe <- arrange(metadata_nopipe, histology)
+metadata_nopipe <- filter(metadata_nopipe, follow_up_mths > 50)
+metadata_nopipe <- select(metadata_nopipe, sample_id, sex, organism)
 ```
-UGH, we have to repeat and assign `special.mtcars` so many times here! 
+UGH, we have to repeat and assign `metadata_edit` so many times here! 
 It's annoying and makes it harder for people to read. 
 
 *Example 2:* Same result as 1 but with pipes!
 ```{r}
 # Example of the same modifications as above but with pipes!
-metadata_edit <- metadata %>%
+metadata_pipe <- metadata %>%
                  arrange(histology) %>%
                  filter(follow_up_mths > 50) %>%
                  select(sample_id, sex, organism)
 ```
+
+Let's double check that these are the same by using the function, all.equal: 
+```{r}
+all.equal(metadata_edit, metadata_edit2)
+```
+`all.equal` is letting us know that these two objects are the same. 
+(You can use all.equal in other instances and adjust the parameters depending on
+how exact of a match you are looking for. )
 
 Now that hopefully you are convinced that tidyverse helps your code to be neater and
 easier to use and read, let's go through some of the popular tidyverse functions
@@ -125,8 +133,8 @@ We can use filter similarly for numeric statements.
 metadata %>% filter(age_mths > 100)
 ```
 
-What if we wanted filter this dataset to males who are younger than 100 months? 
-Let's make a longer pipe.
+What if we wanted filter this dataset to males who are older than 100 months? 
+Let's add another filtering argument to this filter.
 ```{r }
 metadata %>% filter(age_mths > 100, sex == "M")
 ```
@@ -134,8 +142,7 @@ metadata %>% filter(age_mths > 100, sex == "M")
 Let's build on to this pipe and keep only some of these variables with the 
 `select` function. 
 ```{r}
-metadata %>% filter(age_mths > 100) %>%
-             filter(sex == "M") %>% 
+metadata %>% filter(age_mths > 100, sex == "M") %>%s
              select(sample_id, histology, metastasis)
 ```
 
@@ -151,12 +158,13 @@ What if we want the the oldest patients at the top of this dataset instead?
 We can use the same function, but instead use the `desc` function too. 
 ```{r}
 metadata %>% arrange(desc(age_mths))
-```
+``` 
 
 What if we want to obtain summary statistics based on groups? 
 Conveniently named, there's a function called `group_by` that seamlessly allows
 us to do this. 
-Also note that you can group by multiple variables at a time if you want to.
+Also note that `group_by` allows us to group by multiple variables at a time if 
+you want to.
 ```{r}
 metadata %>% group_by(sex) %>% 
              summarize(mean(age_mths))
@@ -168,9 +176,13 @@ Here we are also using the `round` function from base R to limit the number of
 decimal points in our new variable to 2.
 ```{r}
 metadata_edit <- metadata %>% 
-             mutate("age_yrs" = round(age_mths/12, 2)) %>%
-             select(sample_id, age_mths, age_yrs)
+                 mutate(age_yrs = round(age_mths/12, 2)) %>%
+                 select(sample_id, age_mths, age_yrs)
+
+# Print out metadata_edit so we can look at what we made:
+metadata_edit
 ```
+
 
 Let's write this data to a file using `write_tsv`. Note that the second argument 
 needs to be a character string that ends in the appropriate file extension ".tsv"
