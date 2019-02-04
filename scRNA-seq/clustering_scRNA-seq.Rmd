@@ -8,29 +8,36 @@ output:
 
 **CCDL 2019**
 
-In this notebook, we'll perform quality control analyses and normalization of 
-scRNA-seq count data. 
+In this notebook, we'll perform dimension reduction and clustering analyses of 
+single cell RNA-seq data. 
 
-As opposed to bulk rna-seq, there are there are a few main things to look out for
-in single cell RNA-seq:
+This script is adapted from [Seurat pbmc tutorial](https://satijalab.org/seurat/pbmc3k_tutorial.html) 
+and from COMBINE lab's [Alevin tutorial](https://combine-lab.github.io/alevin-tutorial/2018/alevin-seurat/)
 
-**Single-cell rna-seq has...**  
-- More amplification (and more of it's associated biases and error)  
-- More 0's in the gene expression data (most genes aren't expressed across cell types)  
-
-This script is adapted from 
-[Seurat pbmc tutorial](https://satijalab.org/seurat/pbmc3k_tutorial.html)
-  
 #### Set Up 
 For these analyses, we will need Seurat a lot, so we will go ahead and attach it.  
-```{r Set Up}
-# Attach library
-library(Seurat)
+
+Put the path to the Alevin output here:
+```{r Path to alevin output}
+# Store the path to the Alevin output files
+alevin_file <- file.path("alevin_output")
 ```
 
-#### Import single cell RNA-seq counts matrix
-Here we are importing a counts matrix from single cell rna-seq data that has 
-already been processed using Salmon and tximport. 
+#### Perform QC checks with 'csoneson/alevinQC'
+This will provide html output with graphs evaluating the data. Keep in mind that 
+the data we have processed in this workshop is not the full dataset, and won't 
+look as good as the full set.
+```{r alevinQC}
+# Produce a QC report
+alevinQC::alevinQCReport(alevin_file,
+                         sampleId = "pbmc_1k_v2_S1_L001_subset", 
+                         outputFile = "pbmc_1k_v2_S1_L001_qc_report.html", 
+                         outputDir = "data",
+                         outputFormat = "html_document")
+```
+
+#### Import counts from Alevin output
+Here we are using the function we set up in the earlier chunk. 
 ```{r Import Data}
 # Read in the data
 alv_data <- ReadAlevin(alevin_file)
@@ -69,6 +76,31 @@ seurat_norm <- FindVariableGenes(object = seurat_norm, mean.function = ExpMean,
 seurat_norm <- ScaleData(object = seurat_norm)
 ```
 
+#### Execute PCA with high variance genes
+Just like we did with bulk RNA-seq, we will also run PCA with our single cell data. 
+However, because single cell data is more skewed as far as gene expression, we 
+will do our PCA based on the high variance genes, which should give us a more 
+informative analysis.
+```{r PCA}
+# Run PCA
+seurat_norm <- RunPCA(object = seurat_norm, pc.genes = seurat_norm@var.genes,
+                      do.print = TRUE, pcs.print = 1:5, genes.print = 5)
+
+# Cluster analyses
+seurat_norm <- FindClusters(object = seurat_norm, reduction.type = "pca", 
+                            dims.use = 1:10, resolution = 0.6, print.output = 0, 
+                            save.SNN = TRUE)
+```
+
+#### Run tSNE on normalized data
+```{r Run tSNE}
+# Run tSNE 
+seurat_norm <- RunTSNE(object = seurat_norm, dims.use = 1:10, do.fast = TRUE)
+
+# Plot the tSNE
+TSNEPlot(object = seurat_norm, colors.use = RColorBrewer::brewer.pal(9, "Greys"))
+```
+
 #### Save the normalized data to tsv file
 ```{r Save Data to TSV}
 # Take out the data and make genes a column
@@ -78,12 +110,6 @@ gene_matrix <- data.frame("genes" = rownames(seurat_norm@raw.data),
 # Save this gene matrix to a tsv file
 readr::write_tsv(gene_matrix, 
                  file.path("data", "normalized_pbmc_gene_matrix.tsv"))
-```
-
-#### Save the seurat object to RDS file
-```{r Save Seurat to RDS}
-# Save this gene matrix to a tsv file
-saveRDS(seurat_norm, file.path("data", "seurat_object.RDS"))
 ```
 
 #### Print session info:

@@ -129,7 +129,7 @@ This option will print out information that we will need for quality checks
 later on, including files with information on the UMI's and cell barcodes ("CB").  
 
 #### Running Salmon Alevin
-Coy and paste this in your command line to run Alevin quantification
+Copy and paste this in your command line to run Alevin quantification
 ```
 salmon alevin -l ISR \
   -i data/human_index \
@@ -147,3 +147,31 @@ See the [Alevin documentation](https://salmon.readthedocs.io/en/latest/alevin.ht
 for a complete list of the Alevin options and see the
 [Alevin tutorials](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/)
 for example analyses.
+
+### Step 4: Perform QC checks with alevinQC
+In order to perform quality control checks, we will need to open R.
+Alevin provides count data output for each transcript and cell. To read this 
+data into R, we will import a function from the script "ReadAlevin.R" which is 
+located in the "scripts" folder.
+```r 
+# Import the function to read alevin output data
+source(file.path("scripts", "ReadAlevin.R"))
+
+# Read in the data
+alevin_file <- ReadAlevin("alevin_output")
+```
+Now that our data is imported into the R environment, we can run quality checks
+using alevinQC package.
+This will provide html output with graphs evaluating the data. Keep in mind that 
+the data we have processed in this workshop is not the full dataset, and won't 
+look as good as the full set.
+```r 
+# Produce a QC report
+alevinQC::alevinQCReport(alevin_file,
+                         sampleId = "pbmc_1k_v2_S1_L001_subset", 
+                         outputFile = "pbmc_1k_v2_S1_L001_qc_report.html", 
+                         outputDir = "data",
+                         outputFormat = "html_document")
+```
+Now you can check out "pbmc_1k_v2_S1_L001_qc_report.html" in order to examine 
+the quality of your data and performance of Alevin. 

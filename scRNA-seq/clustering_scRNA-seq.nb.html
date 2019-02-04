@@ -2804,7 +2804,7 @@ $(document).ready(function () {
 </style>
 <script>
 $(document).ready(function () {
-  window.initializeSourceEmbed("post-processing_scRNA-seq.Rmd");
+  window.initializeSourceEmbed("clustering_scRNA-seq.Rmd");
   window.initializeCodeFolding("show" === "show");
 });
 </script>
@@ -2929,41 +2929,46 @@ div.tocify {
 
 <!-- rnb-text-begin -->
 <p><strong>CCDL 2019</strong></p>
-<p>In this notebook, we’ll perform quality control analyses and normalization of scRNA-seq count data.</p>
-<p>As opposed to bulk rna-seq, there are there are a few main things to look out for in single cell RNA-seq:</p>
-<p><strong>Single-cell rna-seq has…</strong><br />
-- More amplification (and more of it’s associated biases and error)<br />
-- More 0’s in the gene expression data (most genes aren’t expressed across cell types)</p>
-<p>This script is adapted from <a href="https://satijalab.org/seurat/pbmc3k_tutorial.html">Seurat pbmc tutorial</a></p>
+<p>In this notebook, we’ll perform dimension reduction and clustering analyses of single cell RNA-seq data.</p>
+<p>This script is adapted from <a href="https://satijalab.org/seurat/pbmc3k_tutorial.html">Seurat pbmc tutorial</a> and from COMBINE lab’s <a href="https://combine-lab.github.io/alevin-tutorial/2018/alevin-seurat/">Alevin tutorial</a></p>
 <div id="set-up" class="section level4">
 <h4>Set Up</h4>
 <p>For these analyses, we will need Seurat a lot, so we will go ahead and attach it.</p>
+<p>Put the path to the Alevin output here:</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYGBgclxuIyBBdHRhY2ggbGlicmFyeVxubGlicmFyeShTZXVyYXQpXG5gYGBcbmBgYCJ9 -->
-<p><code>r</code>r # Attach library library(Seurat)</p>
-<pre><code></code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBTdG9yZSB0aGUgcGF0aCB0byB0aGUgQWxldmluIG91dHB1dCBmaWxlc1xuYWxldmluX2ZpbGUgPC0gZmlsZS5wYXRoKFwiYWxldmluX291dHB1dFwiKVxuYGBgIn0= -->
+<pre class="r"><code># Store the path to the Alevin output files
+alevin_file &lt;- file.path(&quot;alevin_output&quot;)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
-<div id="import-single-cell-rna-seq-counts-matrix" class="section level4">
-<h4>Import single cell RNA-seq counts matrix</h4>
-<p>Here we are importing a counts matrix from single cell rna-seq data that has already been processed using Salmon and tximport.</p>
+<div id="perform-qc-checks-with-csonesonalevinqc" class="section level4">
+<h4>Perform QC checks with ‘csoneson/alevinQC’</h4>
+<p>This will provide html output with graphs evaluating the data. Keep in mind that the data we have processed in this workshop is not the full dataset, and won’t look as good as the full set.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYGBgclxuIyBSZWFkIGluIHRoZSBkYXRhXG5hbHZfZGF0YSA8LSBSZWFkQWxldmluKGFsZXZpbl9maWxlKVxuYGBgXG5gYGAifQ== -->
-<p><code>r</code>r # Read in the data alv_data &lt;- ReadAlevin(alevin_file)</p>
-<pre><code></code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBQcm9kdWNlIGEgUUMgcmVwb3J0XG5hbGV2aW5RQzo6YWxldmluUUNSZXBvcnQoYWxldmluX2ZpbGUsXG4gICAgICAgICAgICAgICAgICAgICAgICAgc2FtcGxlSWQgPSBcInBibWNfMWtfdjJfUzFfTDAwMV9zdWJzZXRcIiwgXG4gICAgICAgICAgICAgICAgICAgICAgICAgb3V0cHV0RmlsZSA9IFwicGJtY18xa192Ml9TMV9MMDAxX3FjX3JlcG9ydC5odG1sXCIsIFxuICAgICAgICAgICAgICAgICAgICAgICAgIG91dHB1dERpciA9IFwiZGF0YVwiLFxuICAgICAgICAgICAgICAgICAgICAgICAgIG91dHB1dEZvcm1hdCA9IFwiaHRtbF9kb2N1bWVudFwiKVxuYGBgIn0= -->
+<pre class="r"><code># Produce a QC report
+alevinQC::alevinQCReport(alevin_file,
+                         sampleId = &quot;pbmc_1k_v2_S1_L001_subset&quot;, 
+                         outputFile = &quot;pbmc_1k_v2_S1_L001_qc_report.html&quot;, 
+                         outputDir = &quot;data&quot;,
+                         outputFormat = &quot;html_document&quot;)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiUGFyc2VkIHdpdGggY29sdW1uIHNwZWNpZmljYXRpb246XG5jb2xzKFxuICAuZGVmYXVsdCA9IGNvbF9kb3VibGUoKSxcbiAgWDM3Nzg5ID0gXHUwMDFiWzMzbWNvbF9sb2dpY2FsKClcdTAwMWJbMzltXG4pXG5TZWUgc3BlYyguLi4pIGZvciBmdWxsIGNvbHVtbiBzcGVjaWZpY2F0aW9ucy5cbiJ9 -->
-<pre><code>Parsed with column specification:
-cols(
-  .default = col_double(),
-  X37789 = [33mcol_logical()[39m
-)
-See spec(...) for full column specifications.</code></pre>
-<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="import-counts-from-alevin-output" class="section level4">
+<h4>Import counts from Alevin output</h4>
+<p>Here we are using the function we set up in the earlier chunk.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBSZWFkIGluIHRoZSBkYXRhXG5hbHZfZGF0YSA8LSBSZWFkQWxldmluKGFsZXZpbl9maWxlKVxuYGBgIn0= -->
+<pre class="r"><code># Read in the data
+alv_data &lt;- ReadAlevin(alevin_file)</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
@@ -2972,9 +2977,11 @@ See spec(...) for full column specifications.</code></pre>
 <p>In this example, we are applying a gene filter cutoff of at least 3 cells expressing each gene. For cell filtering, each cell must express at least 200 genes.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYGBgclxuIyBTZXQgdXAgdGhlIHNldXJhdCBvYmplY3QgXG5zZXVyYXRfb2JqIDwtIENyZWF0ZVNldXJhdE9iamVjdChyYXcuZGF0YSA9IGFsdl9kYXRhLCBtaW4uY2VsbHMgPSAzLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbWluLmdlbmVzID0gMjAwLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2plY3QgPSBcXDFrX3BibWNfc3Vic2V0XFwpXG5gYGBcbmBgYCJ9 -->
-<p><code>r</code>r # Set up the seurat object seurat_obj &lt;- CreateSeuratObject(raw.data = alv_data, min.cells = 3, min.genes = 200, project = \1k_pbmc_subset)</p>
-<pre><code></code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBTZXQgdXAgdGhlIHNldXJhdCBvYmplY3QgXG5zZXVyYXRfb2JqIDwtIENyZWF0ZVNldXJhdE9iamVjdChyYXcuZGF0YSA9IGFsdl9kYXRhLCBtaW4uY2VsbHMgPSAzLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbWluLmdlbmVzID0gMjAwLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2plY3QgPSBcIjFrX3BibWNfc3Vic2V0XCIpXG5gYGAifQ== -->
+<pre class="r"><code># Set up the seurat object 
+seurat_obj &lt;- CreateSeuratObject(raw.data = alv_data, min.cells = 3,
+                                 min.genes = 200, 
+                                 project = &quot;1k_pbmc_subset&quot;)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
@@ -2984,16 +2991,11 @@ See spec(...) for full column specifications.</code></pre>
 <p>These are the default settings for normalization and should work in most instances.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYGBgclxuc2V1cmF0X25vcm0gPC0gTm9ybWFsaXplRGF0YShvYmplY3QgPSBzZXVyYXRfb2JqLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbm9ybWFsaXphdGlvbi5tZXRob2QgPSBcXExvZ05vcm1hbGl6ZVxcLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzY2FsZS5mYWN0b3IgPSAxMDAwMClcbmBgYFxuYGBgIn0= -->
-<p><code>r</code>r seurat_norm &lt;- NormalizeData(object = seurat_obj, normalization.method = , scale.factor = 10000)</p>
-<pre><code></code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V1cmF0X25vcm0gPC0gTm9ybWFsaXplRGF0YShvYmplY3QgPSBzZXVyYXRfb2JqLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbm9ybWFsaXphdGlvbi5tZXRob2QgPSBcIkxvZ05vcm1hbGl6ZVwiLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzY2FsZS5mYWN0b3IgPSAxMDAwMClcbmBgYCJ9 -->
+<pre class="r"><code>seurat_norm &lt;- NormalizeData(object = seurat_obj, 
+                             normalization.method = &quot;LogNormalize&quot;,
+                             scale.factor = 10000)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiUGVyZm9ybWluZyBsb2ctbm9ybWFsaXphdGlvblxuMCUgICAxMCAgIDIwICAgMzAgICA0MCAgIDUwICAgNjAgICA3MCAgIDgwICAgOTAgICAxMDAlXG5bLS0tLXwtLS0tfC0tLS18LS0tLXwtLS0tfC0tLS18LS0tLXwtLS0tfC0tLS18LS0tLXxcbioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqfFxuIn0= -->
-<pre><code>Performing log-normalization
-0%   10   20   30   40   50   60   70   80   90   100%
-[----|----|----|----|----|----|----|----|----|----|
-**************************************************|</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
@@ -3013,24 +3015,50 @@ seurat_norm &lt;- ScaleData(object = seurat_norm)</code></pre>
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
-<div id="save-the-normalized-data-to-tsv-file" class="section level4">
-<h4>Save the normalized data to tsv file</h4>
+<div id="execute-pca-with-high-variance-genes" class="section level4">
+<h4>Execute PCA with high variance genes</h4>
+<p>Just like we did with bulk RNA-seq, we will also run PCA with our single cell data. However, because single cell data is more skewed as far as gene expression, we will do our PCA based on the high variance genes, which should give us a more informative analysis.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYGBgclxuIyBUYWtlIG91dCB0aGUgZGF0YSBhbmQgbWFrZSBnZW5lcyBhIGNvbHVtblxuZ2VuZV9tYXRyaXggPC0gZGF0YS5mcmFtZShcXGdlbmVzXFwgPSByb3duYW1lcyhzZXVyYXRfbm9ybUByYXcuZGF0YSksXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHNldXJhdF9ub3JtQHJhdy5kYXRhKVxuIyBTYXZlIHRoaXMgZ2VuZSBtYXRyaXggdG8gYSB0c3YgZmlsZVxucmVhZHI6OndyaXRlX3RzdihnZW5lX21hdHJpeCwgXG4gICAgICAgICAgICAgICAgIGZpbGUucGF0aChcXGRhdGFcXCwgXFxub3JtYWxpemVkX3BibWNfZ2VuZV9tYXRyaXgudHN2XFwpKVxuYGBgXG5gYGAifQ== -->
-<p><code>r</code>r # Take out the data and make genes a column gene_matrix &lt;- data.frame( = rownames(<a href="mailto:seurat_norm@raw.data" class="email">seurat_norm@raw.data</a>), <a href="mailto:seurat_norm@raw.data" class="email">seurat_norm@raw.data</a>) # Save this gene matrix to a tsv file readr::write_tsv(gene_matrix, file.path(, _pbmc_gene_matrix.tsv))</p>
-<pre><code></code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBSdW4gUENBXG5zZXVyYXRfbm9ybSA8LSBSdW5QQ0Eob2JqZWN0ID0gc2V1cmF0X25vcm0sIHBjLmdlbmVzID0gc2V1cmF0X25vcm1AdmFyLmdlbmVzLFxuICAgICAgICAgICAgICAgICAgICAgIGRvLnByaW50ID0gVFJVRSwgcGNzLnByaW50ID0gMTo1LCBnZW5lcy5wcmludCA9IDUpXG5cbiMgQ2x1c3RlciBhbmFseXNlc1xuc2V1cmF0X25vcm0gPC0gRmluZENsdXN0ZXJzKG9iamVjdCA9IHNldXJhdF9ub3JtLCByZWR1Y3Rpb24udHlwZSA9IFwicGNhXCIsIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIGRpbXMudXNlID0gMToxMCwgcmVzb2x1dGlvbiA9IDAuNiwgcHJpbnQub3V0cHV0ID0gMCwgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgc2F2ZS5TTk4gPSBUUlVFKVxuYGBgIn0= -->
+<pre class="r"><code># Run PCA
+seurat_norm &lt;- RunPCA(object = seurat_norm, pc.genes = seurat_norm@var.genes,
+                      do.print = TRUE, pcs.print = 1:5, genes.print = 5)
+
+# Cluster analyses
+seurat_norm &lt;- FindClusters(object = seurat_norm, reduction.type = &quot;pca&quot;, 
+                            dims.use = 1:10, resolution = 0.6, print.output = 0, 
+                            save.SNN = TRUE)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
-<div id="save-the-seurat-object-to-rds-file" class="section level4">
-<h4>Save the seurat object to RDS file</h4>
+<div id="run-tsne-on-normalized-data" class="section level4">
+<h4>Run tSNE on normalized data</h4>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBTYXZlIHRoaXMgZ2VuZSBtYXRyaXggdG8gYSB0c3YgZmlsZVxuc2F2ZVJEUyhzZXVyYXRfbm9ybSwgZmlsZS5wYXRoKFwiZGF0YVwiLCBcInNldXJhdF9vYmplY3QuUkRTXCIpKVxuYGBgIn0= -->
-<pre class="r"><code># Save this gene matrix to a tsv file
-saveRDS(seurat_norm, file.path(&quot;data&quot;, &quot;seurat_object.RDS&quot;))</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBSdW4gdFNORSBcbnNldXJhdF9ub3JtIDwtIFJ1blRTTkUob2JqZWN0ID0gc2V1cmF0X25vcm0sIGRpbXMudXNlID0gMToxMCwgZG8uZmFzdCA9IFRSVUUpXG5cbiMgUGxvdCB0aGUgdFNORVxuVFNORVBsb3Qob2JqZWN0ID0gc2V1cmF0X25vcm0sIGNvbG9ycy51c2UgPSBSQ29sb3JCcmV3ZXI6OmJyZXdlci5wYWwoOSwgXCJHcmV5c1wiKSlcbmBgYCJ9 -->
+<pre class="r"><code># Run tSNE 
+seurat_norm &lt;- RunTSNE(object = seurat_norm, dims.use = 1:10, do.fast = TRUE)
+
+# Plot the tSNE
+TSNEPlot(object = seurat_norm, colors.use = RColorBrewer::brewer.pal(9, &quot;Greys&quot;))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="save-the-normalized-data-to-tsv-file" class="section level4">
+<h4>Save the normalized data to tsv file</h4>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBUYWtlIG91dCB0aGUgZGF0YSBhbmQgbWFrZSBnZW5lcyBhIGNvbHVtblxuZ2VuZV9tYXRyaXggPC0gZGF0YS5mcmFtZShcImdlbmVzXCIgPSByb3duYW1lcyhzZXVyYXRfbm9ybUByYXcuZGF0YSksXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHNldXJhdF9ub3JtQHJhdy5kYXRhKVxuXG4jIFNhdmUgdGhpcyBnZW5lIG1hdHJpeCB0byBhIHRzdiBmaWxlXG5yZWFkcjo6d3JpdGVfdHN2KGdlbmVfbWF0cml4LCBcbiAgICAgICAgICAgICAgICAgZmlsZS5wYXRoKFwiZGF0YVwiLCBcIm5vcm1hbGl6ZWRfcGJtY19nZW5lX21hdHJpeC50c3ZcIikpXG5gYGAifQ== -->
+<pre class="r"><code># Take out the data and make genes a column
+gene_matrix &lt;- data.frame(&quot;genes&quot; = rownames(seurat_norm@raw.data),
+                          seurat_norm@raw.data)
+
+# Save this gene matrix to a tsv file
+readr::write_tsv(gene_matrix, 
+                 file.path(&quot;data&quot;, &quot;normalized_pbmc_gene_matrix.tsv&quot;))</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
@@ -3039,57 +3067,13 @@ saveRDS(seurat_norm, file.path(&quot;data&quot;, &quot;seurat_object.RDS&quot;))
 <h4>Print session info:</h4>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYGBgclxuc2Vzc2lvbkluZm8oKVxuYGBgXG5gYGAifQ== -->
-<p><code>r</code>r sessionInfo()</p>
-<pre><code></code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2Vzc2lvbkluZm8oKVxuYGBgIn0= -->
+<pre class="r"><code>sessionInfo()</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiUiB2ZXJzaW9uIDMuNS4xICgyMDE4LTA3LTAyKVxuUGxhdGZvcm06IHg4Nl82NC1hcHBsZS1kYXJ3aW4xNy42LjAgKDY0LWJpdClcblJ1bm5pbmcgdW5kZXI6IG1hY09TICAxMC4xNFxuXG5NYXRyaXggcHJvZHVjdHM6IGRlZmF1bHRcbkJMQVM6IC9TeXN0ZW0vTGlicmFyeS9GcmFtZXdvcmtzL0FjY2VsZXJhdGUuZnJhbWV3b3JrL1ZlcnNpb25zL0EvRnJhbWV3b3Jrcy92ZWNMaWIuZnJhbWV3b3JrL1ZlcnNpb25zL0EvbGliQkxBUy5keWxpYlxuTEFQQUNLOiAvU3lzdGVtL0xpYnJhcnkvRnJhbWV3b3Jrcy9BY2NlbGVyYXRlLmZyYW1ld29yay9WZXJzaW9ucy9BL0ZyYW1ld29ya3MvdmVjTGliLmZyYW1ld29yay9WZXJzaW9ucy9BL2xpYkxBUEFDSy5keWxpYlxuXG5sb2NhbGU6XG5bMV0gZW5fVVMuVVRGLTgvZW5fVVMuVVRGLTgvZW5fVVMuVVRGLTgvQy9lbl9VUy5VVEYtOC9lbl9VUy5VVEYtOFxuXG5hdHRhY2hlZCBiYXNlIHBhY2thZ2VzOlxuWzFdIHN0YXRzICAgICBncmFwaGljcyAgZ3JEZXZpY2VzIHV0aWxzICAgICBkYXRhc2V0cyAgbWV0aG9kcyAgIGJhc2UgICAgIFxuXG5vdGhlciBhdHRhY2hlZCBwYWNrYWdlczpcblsxXSBiaW5kcmNwcF8wLjIuMiBTZXVyYXRfMi4zLjQgICBNYXRyaXhfMS4yLTE1ICBjb3dwbG90XzAuOS45OSBnZ3Bsb3QyXzMuMS4wIFxuXG5sb2FkZWQgdmlhIGEgbmFtZXNwYWNlIChhbmQgbm90IGF0dGFjaGVkKTpcbiAgWzFdIHNub3dfMC40LTMgICAgICAgICAgIGJhY2twb3J0c18xLjEuMyAgICAgIEhtaXNjXzQuMS0xICAgICAgICAgIHBseXJfMS44LjQgICAgICAgICAgIGlncmFwaF8xLjIuMiAgICAgICAgIGxhenlldmFsXzAuMi4xICAgICAgXG4gIFs3XSBzaGlueWRhc2hib2FyZF8wLjcuMSBzcGxpbmVzXzMuNS4xICAgICAgICBkaWdlc3RfMC42LjE4ICAgICAgICBmb3JlYWNoXzEuNC40ICAgICAgICBodG1sdG9vbHNfMC4zLjYgICAgICBsYXJzXzEuMiAgICAgICAgICAgIFxuIFsxM10gZ2RhdGFfMi4xOC4wICAgICAgICAgbWFncml0dHJfMS41ICAgICAgICAgY2hlY2ttYXRlXzEuOS4xICAgICAgY2x1c3Rlcl8yLjAuNy0xICAgICAgbWl4dG9vbHNfMS4xLjAgICAgICAgUk9DUl8xLjAtNyAgICAgICAgICBcbiBbMTldIHJlYWRyXzEuMy4xICAgICAgICAgIFIudXRpbHNfMi43LjAgICAgICAgIGNvbG9yc3BhY2VfMS40LTAgICAgIHhmdW5fMC40ICAgICAgICAgICAgIGRwbHlyXzAuNy44ICAgICAgICAgIGNyYXlvbl8xLjMuNCAgICAgICAgXG4gWzI1XSBqc29ubGl0ZV8xLjYgICAgICAgICB0eGltcG9ydF8xLjExLjYgICAgICBiaW5kcl8wLjEuMSAgICAgICAgICBzdXJ2aXZhbF8yLjQyLTYgICAgICB6b29fMS44LTQgICAgICAgICAgICBpdGVyYXRvcnNfMS4wLjEwICAgIFxuIFszMV0gYXBlXzUuMiAgICAgICAgICAgICAgZ2x1ZV8xLjMuMCAgICAgICAgICAgZ3RhYmxlXzAuMi4wICAgICAgICAga2VybmxhYl8wLjktMjcgICAgICAgYWxldmluUUNfMC45OS4wICAgICAgcHJhYmNsdXNfMi4yLTcgICAgICBcbiBbMzddIERFb3B0aW1SXzEuMC04ICAgICAgIHNjYWxlc18xLjAuMCAgICAgICAgIG12dG5vcm1fMS4wLTggICAgICAgIEdHYWxseV8xLjQuMCAgICAgICAgIGJpYnRleF8wLjQuMiAgICAgICAgIFJjcHBfMC4xMi4xOSAgICAgICAgXG4gWzQzXSBtZXRhcF8xLjAgICAgICAgICAgICBkdHdfMS4yMC0xICAgICAgICAgICB4dGFibGVfMS44LTMgICAgICAgICBodG1sVGFibGVfMS4xMy4xICAgICByZXRpY3VsYXRlXzEuMTAgICAgICBmb3JlaWduXzAuOC03MSAgICAgIFxuIFs0OV0gYml0XzEuMS0xNCAgICAgICAgICAgcHJveHlfMC40LTIyICAgICAgICAgbWNsdXN0XzUuNC4yICAgICAgICAgU0RNVG9vbHNfMS4xLTIyMSAgICAgRm9ybXVsYV8xLjItMyAgICAgICAgc3RhdHM0XzMuNS4xICAgICAgICBcbiBbNTVdIHRzbmVfMC4xLTMgICAgICAgICAgIERUXzAuNSAgICAgICAgICAgICAgIGh0bWx3aWRnZXRzXzEuMyAgICAgIGh0dHJfMS40LjAgICAgICAgICAgIGdwbG90c18zLjAuMSAgICAgICAgIFJDb2xvckJyZXdlcl8xLjEtMiAgXG4gWzYxXSBmcGNfMi4xLTExLjEgICAgICAgICBhY2VwYWNrXzEuNC4xICAgICAgICBtb2RlbHRvb2xzXzAuMi0yMiAgICBpY2FfMS4wLTIgICAgICAgICAgICBwa2djb25maWdfMi4wLjIgICAgICByZXNoYXBlXzAuOC44ICAgICAgIFxuIFs2N10gUi5tZXRob2RzUzNfMS43LjEgICAgZmxleG1peF8yLjMtMTQgICAgICAgbm5ldF83LjMtMTIgICAgICAgICAgbGFiZWxpbmdfMC4zICAgICAgICAgdGlkeXNlbGVjdF8wLjIuNSAgICAgcmxhbmdfMC4zLjEgICAgICAgICBcbiBbNzNdIHJlc2hhcGUyXzEuNC4zICAgICAgIGxhdGVyXzAuNy41ICAgICAgICAgIG11bnNlbGxfMC41LjAgICAgICAgIHRvb2xzXzMuNS4xICAgICAgICAgIGdncmlkZ2VzXzAuNS4xICAgICAgIGV2YWx1YXRlXzAuMTIgICAgICAgXG4gWzc5XSBzdHJpbmdyXzEuMy4xICAgICAgICB5YW1sXzIuMi4wICAgICAgICAgICBucHN1cnZfMC40LTAgICAgICAgICBrbml0cl8xLjIxICAgICAgICAgICBiaXQ2NF8wLjktNyAgICAgICAgICBmaXRkaXN0cnBsdXNfMS4wLTExIFxuIFs4NV0gcm9idXN0YmFzZV8wLjkzLTMgICAgY2FUb29sc18xLjE3LjEuMSAgICAgcHVycnJfMC4yLjUgICAgICAgICAgUkFOTl8yLjYuMSAgICAgICAgICAgcGJhcHBseV8xLjMtNCAgICAgICAgbmxtZV8zLjEtMTM3ICAgICAgICBcbiBbOTFdIG1pbWVfMC42ICAgICAgICAgICAgIFIub29fMS4yMi4wICAgICAgICAgIGhkZjVyXzEuMC4xICAgICAgICAgIGNvbXBpbGVyXzMuNS4xICAgICAgIHJzdHVkaW9hcGlfMC45LjAgICAgIHBuZ18wLjEtNyAgICAgICAgICAgXG4gWzk3XSBsc2VpXzEuMi0wICAgICAgICAgICB0aWJibGVfMi4wLjEgICAgICAgICBzdHJpbmdpXzEuMi40ICAgICAgICBoaWdocl8wLjcgICAgICAgICAgICBsYXR0aWNlXzAuMjAtMzggICAgICB0cmltY2x1c3Rlcl8wLjEtMi4xIFxuWzEwM10gcGlsbGFyXzEuMy4xICAgICAgICAgUmRwYWNrXzAuMTAtMSAgICAgICAgbG10ZXN0XzAuOS0zNiAgICAgICAgZGF0YS50YWJsZV8xLjEyLjAgICAgYml0b3BzXzEuMC02ICAgICAgICAgaXJsYmFfMi4zLjIgICAgICAgICBcblsxMDldIGdiUmRfMC40LTExICAgICAgICAgIGh0dHB1dl8xLjQuNS4xICAgICAgIFI2XzIuMy4wICAgICAgICAgICAgIGxhdHRpY2VFeHRyYV8wLjYtMjggIHByb21pc2VzXzEuMC4xICAgICAgIEtlcm5TbW9vdGhfMi4yMy0xNSAgXG5bMTE1XSBncmlkRXh0cmFfMi4zICAgICAgICBjb2RldG9vbHNfMC4yLTE2ICAgICBNQVNTXzcuMy01MS4xICAgICAgICBndG9vbHNfMy44LjEgICAgICAgICBhc3NlcnR0aGF0XzAuMi4wICAgICByanNvbl8wLjIuMjAgICAgICAgIFxuWzEyMV0gd2l0aHJfMi4xLjIgICAgICAgICAgZGlwdGVzdF8wLjc1LTcgICAgICAgcGFyYWxsZWxfMy41LjEgICAgICAgZG9TTk9XXzEuMC4xNiAgICAgICAgaG1zXzAuNC4yICAgICAgICAgICAgZ3JpZF8zLjUuMSAgICAgICAgICBcblsxMjddIHJwYXJ0XzQuMS0xMyAgICAgICAgIHRpZHlyXzAuOC4yICAgICAgICAgIGNsYXNzXzcuMy0xNSAgICAgICAgIHJtYXJrZG93bl8xLjExICAgICAgIHNlZ21lbnRlZF8wLjUtMy4wICAgIFJ0c25lXzAuMTUgICAgICAgICAgXG5bMTMzXSBzaGlueV8xLjIuMCAgICAgICAgICBiYXNlNjRlbmNfMC4xLTMgICAgIFxuIn0= -->
-<pre><code>R version 3.5.1 (2018-07-02)
-Platform: x86_64-apple-darwin17.6.0 (64-bit)
-Running under: macOS  10.14
-
-Matrix products: default
-BLAS: /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
-LAPACK: /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLAPACK.dylib
-
-locale:
-[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
-
-attached base packages:
-[1] stats     graphics  grDevices utils     datasets  methods   base     
-
-other attached packages:
-[1] bindrcpp_0.2.2 Seurat_2.3.4   Matrix_1.2-15  cowplot_0.9.99 ggplot2_3.1.0 
-
-loaded via a namespace (and not attached):
-  [1] snow_0.4-3           backports_1.1.3      Hmisc_4.1-1          plyr_1.8.4           igraph_1.2.2         lazyeval_0.2.1      
-  [7] shinydashboard_0.7.1 splines_3.5.1        digest_0.6.18        foreach_1.4.4        htmltools_0.3.6      lars_1.2            
- [13] gdata_2.18.0         magrittr_1.5         checkmate_1.9.1      cluster_2.0.7-1      mixtools_1.1.0       ROCR_1.0-7          
- [19] readr_1.3.1          R.utils_2.7.0        colorspace_1.4-0     xfun_0.4             dplyr_0.7.8          crayon_1.3.4        
- [25] jsonlite_1.6         tximport_1.11.6      bindr_0.1.1          survival_2.42-6      zoo_1.8-4            iterators_1.0.10    
- [31] ape_5.2              glue_1.3.0           gtable_0.2.0         kernlab_0.9-27       alevinQC_0.99.0      prabclus_2.2-7      
- [37] DEoptimR_1.0-8       scales_1.0.0         mvtnorm_1.0-8        GGally_1.4.0         bibtex_0.4.2         Rcpp_0.12.19        
- [43] metap_1.0            dtw_1.20-1           xtable_1.8-3         htmlTable_1.13.1     reticulate_1.10      foreign_0.8-71      
- [49] bit_1.1-14           proxy_0.4-22         mclust_5.4.2         SDMTools_1.1-221     Formula_1.2-3        stats4_3.5.1        
- [55] tsne_0.1-3           DT_0.5               htmlwidgets_1.3      httr_1.4.0           gplots_3.0.1         RColorBrewer_1.1-2  
- [61] fpc_2.1-11.1         acepack_1.4.1        modeltools_0.2-22    ica_1.0-2            pkgconfig_2.0.2      reshape_0.8.8       
- [67] R.methodsS3_1.7.1    flexmix_2.3-14       nnet_7.3-12          labeling_0.3         tidyselect_0.2.5     rlang_0.3.1         
- [73] reshape2_1.4.3       later_0.7.5          munsell_0.5.0        tools_3.5.1          ggridges_0.5.1       evaluate_0.12       
- [79] stringr_1.3.1        yaml_2.2.0           npsurv_0.4-0         knitr_1.21           bit64_0.9-7          fitdistrplus_1.0-11 
- [85] robustbase_0.93-3    caTools_1.17.1.1     purrr_0.2.5          RANN_2.6.1           pbapply_1.3-4        nlme_3.1-137        
- [91] mime_0.6             R.oo_1.22.0          hdf5r_1.0.1          compiler_3.5.1       rstudioapi_0.9.0     png_0.1-7           
- [97] lsei_1.2-0           tibble_2.0.1         stringi_1.2.4        highr_0.7            lattice_0.20-38      trimcluster_0.1-2.1 
-[103] pillar_1.3.1         Rdpack_0.10-1        lmtest_0.9-36        data.table_1.12.0    bitops_1.0-6         irlba_2.3.2         
-[109] gbRd_0.4-11          httpuv_1.4.5.1       R6_2.3.0             latticeExtra_0.6-28  promises_1.0.1       KernSmooth_2.23-15  
-[115] gridExtra_2.3        codetools_0.2-16     MASS_7.3-51.1        gtools_3.8.1         assertthat_0.2.0     rjson_0.2.20        
-[121] withr_2.1.2          diptest_0.75-7       parallel_3.5.1       doSNOW_1.0.16        hms_0.4.2            grid_3.5.1          
-[127] rpart_4.1-13         tidyr_0.8.2          class_7.3-15         rmarkdown_1.11       segmented_0.5-3.0    Rtsne_0.15          
-[133] shiny_1.2.0          base64enc_0.1-3     </code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAic2NSTkEtc2VxX3Bvc3RfcHJvY2Vzc2luZyIKb3V0cHV0OiAgIAogIGh0bWxfbm90ZWJvb2s6IAogICAgdG9jOiB0cnVlCiAgICB0b2NfZmxvYXQ6IHRydWUKLS0tCgoqKkNDREwgMjAxOSoqCgpJbiB0aGlzIG5vdGVib29rLCB3ZSdsbCBwZXJmb3JtIHF1YWxpdHkgY29udHJvbCBhbmFseXNlcyBhbmQgbm9ybWFsaXphdGlvbiBvZiAKc2NSTkEtc2VxIGNvdW50IGRhdGEuIAoKQXMgb3Bwb3NlZCB0byBidWxrIHJuYS1zZXEsIHRoZXJlIGFyZSB0aGVyZSBhcmUgYSBmZXcgbWFpbiB0aGluZ3MgdG8gbG9vayBvdXQgZm9yCmluIHNpbmdsZSBjZWxsIFJOQS1zZXE6CgoqKlNpbmdsZS1jZWxsIHJuYS1zZXEgaGFzLi4uKiogIAotIE1vcmUgYW1wbGlmaWNhdGlvbiAoYW5kIG1vcmUgb2YgaXQncyBhc3NvY2lhdGVkIGJpYXNlcyBhbmQgZXJyb3IpICAKLSBNb3JlIDAncyBpbiB0aGUgZ2VuZSBleHByZXNzaW9uIGRhdGEgKG1vc3QgZ2VuZXMgYXJlbid0IGV4cHJlc3NlZCBhY3Jvc3MgY2VsbCB0eXBlcykgIAoKVGhpcyBzY3JpcHQgaXMgYWRhcHRlZCBmcm9tIApbU2V1cmF0IHBibWMgdHV0b3JpYWxdKGh0dHBzOi8vc2F0aWphbGFiLm9yZy9zZXVyYXQvcGJtYzNrX3R1dG9yaWFsLmh0bWwpCiAgCiMjIyMgU2V0IFVwIApGb3IgdGhlc2UgYW5hbHlzZXMsIHdlIHdpbGwgbmVlZCBTZXVyYXQgYSBsb3QsIHNvIHdlIHdpbGwgZ28gYWhlYWQgYW5kIGF0dGFjaCBpdC4gIApgYGB7ciBTZXQgVXB9CiMgQXR0YWNoIGxpYnJhcnkKbGlicmFyeShTZXVyYXQpCmBgYAoKIyMjIyBJbXBvcnQgc2luZ2xlIGNlbGwgUk5BLXNlcSBjb3VudHMgbWF0cml4CkhlcmUgd2UgYXJlIGltcG9ydGluZyBhIGNvdW50cyBtYXRyaXggZnJvbSBzaW5nbGUgY2VsbCBybmEtc2VxIGRhdGEgdGhhdCBoYXMgCmFscmVhZHkgYmVlbiBwcm9jZXNzZWQgdXNpbmcgU2FsbW9uIGFuZCB0eGltcG9ydC4gCmBgYHtyIEltcG9ydCBEYXRhfQojIFJlYWQgaW4gdGhlIGRhdGEKYWx2X2RhdGEgPC0gUmVhZEFsZXZpbihhbGV2aW5fZmlsZSkKYGBgCgojIyMjIFNldCB1cCB0aGUgU2V1cmF0IG9iamVjdCBhbmQgYXBwbHkgYSBmaWx0ZXIgdG8gdGhlIGRhdGEuIApJbiB0aGlzIGV4YW1wbGUsIHdlIGFyZSBhcHBseWluZyBhIGdlbmUgZmlsdGVyIGN1dG9mZiBvZiBhdCBsZWFzdCAzIGNlbGxzIApleHByZXNzaW5nIGVhY2ggZ2VuZS4gCkZvciBjZWxsIGZpbHRlcmluZywgZWFjaCBjZWxsIG11c3QgZXhwcmVzcyBhdCBsZWFzdCAyMDAgZ2VuZXMuCmBgYHtyIFNldCBVcCBTZXVyYXQgT2JqZWN0fQojIFNldCB1cCB0aGUgc2V1cmF0IG9iamVjdCAKc2V1cmF0X29iaiA8LSBDcmVhdGVTZXVyYXRPYmplY3QocmF3LmRhdGEgPSBhbHZfZGF0YSwgbWluLmNlbGxzID0gMywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbWluLmdlbmVzID0gMjAwLCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvamVjdCA9ICIxa19wYm1jX3N1YnNldCIpCmBgYAoKIyMjIyBOb3JtYWxpemUgdGhlIGRhdGEgdXNpbmcgbG9nIG5vcm1hbGl6YXRpb24KVGhlc2UgYXJlIHRoZSBkZWZhdWx0IHNldHRpbmdzIGZvciBub3JtYWxpemF0aW9uIGFuZCBzaG91bGQgd29yayBpbiBtb3N0IAppbnN0YW5jZXMuIApgYGB7ciBOb3JtYWxpemUgdGhlIERhdGF9CnNldXJhdF9ub3JtIDwtIE5vcm1hbGl6ZURhdGEob2JqZWN0ID0gc2V1cmF0X29iaiwgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbm9ybWFsaXphdGlvbi5tZXRob2QgPSAiTG9nTm9ybWFsaXplIiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzY2FsZS5mYWN0b3IgPSAxMDAwMCkKYGBgCgojIyMjIElkZW50aWZ5IHZhcmlhYmxlIGdlbmVzIGFuZCBzY2FsZSB0aGUgZGF0YQpJbiB0aGlzIHN0ZXAsIHdlIHdpbGwgaWRlbnRpZnkgZ2VuZXMgd2l0aCBoaWdoZXIgdmFyaWFuY2UuIApUaGVzZSBhcmUgcHJvYmFibHkgdGhlIGdlbmVzIHRoYXQgYXJlIG9mIG1vcmUgaW50ZXJlc3QgdG8gdXMgYW5kIHRoZXkgYXJlIHdoYXQgCndlIHdpbGwgdXNlIGZvciBQcmluY2lwYWwgQ29tcG9uZW50cyBBbmFseXNpcyBpbiB0aGUgdXBjb21pbmcgc3RlcC4KYGBge3IgRmluZCBWYXJpYWJsZSBHZW5lc30Kc2V1cmF0X25vcm0gPC0gRmluZFZhcmlhYmxlR2VuZXMob2JqZWN0ID0gc2V1cmF0X25vcm0sIG1lYW4uZnVuY3Rpb24gPSBFeHBNZWFuLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHgubG93LmN1dG9mZiA9IDAuMDEyNSwgeC5oaWdoLmN1dG9mZiA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgeS5jdXRvZmYgPSAwLjUsIGRvLnBsb3QgPSBGQUxTRSkKCiMgU2NhbGUgdGhlIGRhdGEKc2V1cmF0X25vcm0gPC0gU2NhbGVEYXRhKG9iamVjdCA9IHNldXJhdF9ub3JtKQpgYGAKCiMjIyMgU2F2ZSB0aGUgbm9ybWFsaXplZCBkYXRhIHRvIHRzdiBmaWxlCmBgYHtyIFNhdmUgRGF0YSB0byBUU1Z9CiMgVGFrZSBvdXQgdGhlIGRhdGEgYW5kIG1ha2UgZ2VuZXMgYSBjb2x1bW4KZ2VuZV9tYXRyaXggPC0gZGF0YS5mcmFtZSgiZ2VuZXMiID0gcm93bmFtZXMoc2V1cmF0X25vcm1AcmF3LmRhdGEpLAogICAgICAgICAgICAgICAgICAgICAgICAgIHNldXJhdF9ub3JtQHJhdy5kYXRhKQoKIyBTYXZlIHRoaXMgZ2VuZSBtYXRyaXggdG8gYSB0c3YgZmlsZQpyZWFkcjo6d3JpdGVfdHN2KGdlbmVfbWF0cml4LCAKICAgICAgICAgICAgICAgICBmaWxlLnBhdGgoImRhdGEiLCAibm9ybWFsaXplZF9wYm1jX2dlbmVfbWF0cml4LnRzdiIpKQpgYGAKCiMjIyMgU2F2ZSB0aGUgc2V1cmF0IG9iamVjdCB0byBSRFMgZmlsZQpgYGB7ciBTYXZlIFNldXJhdCB0byBSRFN9CiMgU2F2ZSB0aGlzIGdlbmUgbWF0cml4IHRvIGEgdHN2IGZpbGUKc2F2ZVJEUyhzZXVyYXRfbm9ybSwgZmlsZS5wYXRoKCJkYXRhIiwgInNldXJhdF9vYmplY3QuUkRTIikpCmBgYAoKIyMjIyBQcmludCBzZXNzaW9uIGluZm86CmBgYHtyfQpzZXNzaW9uSW5mbygpCmBgYAo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAic2NSTkEtc2VxX3Bvc3RfcHJvY2Vzc2luZyIKb3V0cHV0OiAgIAogIGh0bWxfbm90ZWJvb2s6IAogICAgdG9jOiB0cnVlCiAgICB0b2NfZmxvYXQ6IHRydWUKLS0tCgoqKkNDREwgMjAxOSoqCgpJbiB0aGlzIG5vdGVib29rLCB3ZSdsbCBwZXJmb3JtIGRpbWVuc2lvbiByZWR1Y3Rpb24gYW5kIGNsdXN0ZXJpbmcgYW5hbHlzZXMgb2YgCnNpbmdsZSBjZWxsIFJOQS1zZXEgZGF0YS4gCgpUaGlzIHNjcmlwdCBpcyBhZGFwdGVkIGZyb20gW1NldXJhdCBwYm1jIHR1dG9yaWFsXShodHRwczovL3NhdGlqYWxhYi5vcmcvc2V1cmF0L3BibWMza190dXRvcmlhbC5odG1sKSAKYW5kIGZyb20gQ09NQklORSBsYWIncyBbQWxldmluIHR1dG9yaWFsXShodHRwczovL2NvbWJpbmUtbGFiLmdpdGh1Yi5pby9hbGV2aW4tdHV0b3JpYWwvMjAxOC9hbGV2aW4tc2V1cmF0LykKCiMjIyMgU2V0IFVwIApGb3IgdGhlc2UgYW5hbHlzZXMsIHdlIHdpbGwgbmVlZCBTZXVyYXQgYSBsb3QsIHNvIHdlIHdpbGwgZ28gYWhlYWQgYW5kIGF0dGFjaCBpdC4gIAoKUHV0IHRoZSBwYXRoIHRvIHRoZSBBbGV2aW4gb3V0cHV0IGhlcmU6CmBgYHtyIFBhdGggdG8gYWxldmluIG91dHB1dH0KIyBTdG9yZSB0aGUgcGF0aCB0byB0aGUgQWxldmluIG91dHB1dCBmaWxlcwphbGV2aW5fZmlsZSA8LSBmaWxlLnBhdGgoImFsZXZpbl9vdXRwdXQiKQpgYGAKCiMjIyMgUGVyZm9ybSBRQyBjaGVja3Mgd2l0aCAnY3NvbmVzb24vYWxldmluUUMnClRoaXMgd2lsbCBwcm92aWRlIGh0bWwgb3V0cHV0IHdpdGggZ3JhcGhzIGV2YWx1YXRpbmcgdGhlIGRhdGEuIEtlZXAgaW4gbWluZCB0aGF0IAp0aGUgZGF0YSB3ZSBoYXZlIHByb2Nlc3NlZCBpbiB0aGlzIHdvcmtzaG9wIGlzIG5vdCB0aGUgZnVsbCBkYXRhc2V0LCBhbmQgd29uJ3QgCmxvb2sgYXMgZ29vZCBhcyB0aGUgZnVsbCBzZXQuCmBgYHtyIGFsZXZpblFDfQojIFByb2R1Y2UgYSBRQyByZXBvcnQKYWxldmluUUM6OmFsZXZpblFDUmVwb3J0KGFsZXZpbl9maWxlLAogICAgICAgICAgICAgICAgICAgICAgICAgc2FtcGxlSWQgPSAicGJtY18xa192Ml9TMV9MMDAxX3N1YnNldCIsIAogICAgICAgICAgICAgICAgICAgICAgICAgb3V0cHV0RmlsZSA9ICJwYm1jXzFrX3YyX1MxX0wwMDFfcWNfcmVwb3J0Lmh0bWwiLCAKICAgICAgICAgICAgICAgICAgICAgICAgIG91dHB1dERpciA9ICJkYXRhIiwKICAgICAgICAgICAgICAgICAgICAgICAgIG91dHB1dEZvcm1hdCA9ICJodG1sX2RvY3VtZW50IikKYGBgCgojIyMjIEltcG9ydCBjb3VudHMgZnJvbSBBbGV2aW4gb3V0cHV0CkhlcmUgd2UgYXJlIHVzaW5nIHRoZSBmdW5jdGlvbiB3ZSBzZXQgdXAgaW4gdGhlIGVhcmxpZXIgY2h1bmsuIApgYGB7ciBJbXBvcnQgRGF0YX0KIyBSZWFkIGluIHRoZSBkYXRhCmFsdl9kYXRhIDwtIFJlYWRBbGV2aW4oYWxldmluX2ZpbGUpCmBgYAoKIyMjIyBTZXQgdXAgdGhlIFNldXJhdCBvYmplY3QgYW5kIGFwcGx5IGEgZmlsdGVyIHRvIHRoZSBkYXRhLiAKSW4gdGhpcyBleGFtcGxlLCB3ZSBhcmUgYXBwbHlpbmcgYSBnZW5lIGZpbHRlciBjdXRvZmYgb2YgYXQgbGVhc3QgMyBjZWxscyAKZXhwcmVzc2luZyBlYWNoIGdlbmUuIApGb3IgY2VsbCBmaWx0ZXJpbmcsIGVhY2ggY2VsbCBtdXN0IGV4cHJlc3MgYXQgbGVhc3QgMjAwIGdlbmVzLgpgYGB7ciBTZXQgVXAgU2V1cmF0IE9iamVjdH0KIyBTZXQgdXAgdGhlIHNldXJhdCBvYmplY3QgCnNldXJhdF9vYmogPC0gQ3JlYXRlU2V1cmF0T2JqZWN0KHJhdy5kYXRhID0gYWx2X2RhdGEsIG1pbi5jZWxscyA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIG1pbi5nZW5lcyA9IDIwMCwgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2plY3QgPSAiMWtfcGJtY19zdWJzZXQiKQpgYGAKCiMjIyMgTm9ybWFsaXplIHRoZSBkYXRhIHVzaW5nIGxvZyBub3JtYWxpemF0aW9uClRoZXNlIGFyZSB0aGUgZGVmYXVsdCBzZXR0aW5ncyBmb3Igbm9ybWFsaXphdGlvbiBhbmQgc2hvdWxkIHdvcmsgaW4gbW9zdCAKaW5zdGFuY2VzLiAKYGBge3IgTm9ybWFsaXplIHRoZSBEYXRhfQpzZXVyYXRfbm9ybSA8LSBOb3JtYWxpemVEYXRhKG9iamVjdCA9IHNldXJhdF9vYmosIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIG5vcm1hbGl6YXRpb24ubWV0aG9kID0gIkxvZ05vcm1hbGl6ZSIsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgc2NhbGUuZmFjdG9yID0gMTAwMDApCmBgYAoKIyMjIyBJZGVudGlmeSB2YXJpYWJsZSBnZW5lcyBhbmQgc2NhbGUgdGhlIGRhdGEKSW4gdGhpcyBzdGVwLCB3ZSB3aWxsIGlkZW50aWZ5IGdlbmVzIHdpdGggaGlnaGVyIHZhcmlhbmNlLiAKVGhlc2UgYXJlIHByb2JhYmx5IHRoZSBnZW5lcyB0aGF0IGFyZSBvZiBtb3JlIGludGVyZXN0IHRvIHVzIGFuZCB0aGV5IGFyZSB3aGF0IAp3ZSB3aWxsIHVzZSBmb3IgUHJpbmNpcGFsIENvbXBvbmVudHMgQW5hbHlzaXMgaW4gdGhlIHVwY29taW5nIHN0ZXAuCmBgYHtyIEZpbmQgVmFyaWFibGUgR2VuZXN9CnNldXJhdF9ub3JtIDwtIEZpbmRWYXJpYWJsZUdlbmVzKG9iamVjdCA9IHNldXJhdF9ub3JtLCBtZWFuLmZ1bmN0aW9uID0gRXhwTWVhbiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB4Lmxvdy5jdXRvZmYgPSAwLjAxMjUsIHguaGlnaC5jdXRvZmYgPSAzLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHkuY3V0b2ZmID0gMC41LCBkby5wbG90ID0gRkFMU0UpCgojIFNjYWxlIHRoZSBkYXRhCnNldXJhdF9ub3JtIDwtIFNjYWxlRGF0YShvYmplY3QgPSBzZXVyYXRfbm9ybSkKYGBgCgojIyMjIEV4ZWN1dGUgUENBIHdpdGggaGlnaCB2YXJpYW5jZSBnZW5lcwpKdXN0IGxpa2Ugd2UgZGlkIHdpdGggYnVsayBSTkEtc2VxLCB3ZSB3aWxsIGFsc28gcnVuIFBDQSB3aXRoIG91ciBzaW5nbGUgY2VsbCBkYXRhLiAKSG93ZXZlciwgYmVjYXVzZSBzaW5nbGUgY2VsbCBkYXRhIGlzIG1vcmUgc2tld2VkIGFzIGZhciBhcyBnZW5lIGV4cHJlc3Npb24sIHdlIAp3aWxsIGRvIG91ciBQQ0EgYmFzZWQgb24gdGhlIGhpZ2ggdmFyaWFuY2UgZ2VuZXMsIHdoaWNoIHNob3VsZCBnaXZlIHVzIGEgbW9yZSAKaW5mb3JtYXRpdmUgYW5hbHlzaXMuCmBgYHtyIFBDQX0KIyBSdW4gUENBCnNldXJhdF9ub3JtIDwtIFJ1blBDQShvYmplY3QgPSBzZXVyYXRfbm9ybSwgcGMuZ2VuZXMgPSBzZXVyYXRfbm9ybUB2YXIuZ2VuZXMsCiAgICAgICAgICAgICAgICAgICAgICBkby5wcmludCA9IFRSVUUsIHBjcy5wcmludCA9IDE6NSwgZ2VuZXMucHJpbnQgPSA1KQoKIyBDbHVzdGVyIGFuYWx5c2VzCnNldXJhdF9ub3JtIDwtIEZpbmRDbHVzdGVycyhvYmplY3QgPSBzZXVyYXRfbm9ybSwgcmVkdWN0aW9uLnR5cGUgPSAicGNhIiwgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBkaW1zLnVzZSA9IDE6MTAsIHJlc29sdXRpb24gPSAwLjYsIHByaW50Lm91dHB1dCA9IDAsIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgc2F2ZS5TTk4gPSBUUlVFKQpgYGAKCiMjIyMgUnVuIHRTTkUgb24gbm9ybWFsaXplZCBkYXRhCmBgYHtyIFJ1biB0U05FfQojIFJ1biB0U05FIApzZXVyYXRfbm9ybSA8LSBSdW5UU05FKG9iamVjdCA9IHNldXJhdF9ub3JtLCBkaW1zLnVzZSA9IDE6MTAsIGRvLmZhc3QgPSBUUlVFKQoKIyBQbG90IHRoZSB0U05FClRTTkVQbG90KG9iamVjdCA9IHNldXJhdF9ub3JtLCBjb2xvcnMudXNlID0gUkNvbG9yQnJld2VyOjpicmV3ZXIucGFsKDksICJHcmV5cyIpKQpgYGAKCiMjIyMgU2F2ZSB0aGUgbm9ybWFsaXplZCBkYXRhIHRvIHRzdiBmaWxlCmBgYHtyIFNhdmUgRGF0YSB0byBUU1Z9CiMgVGFrZSBvdXQgdGhlIGRhdGEgYW5kIG1ha2UgZ2VuZXMgYSBjb2x1bW4KZ2VuZV9tYXRyaXggPC0gZGF0YS5mcmFtZSgiZ2VuZXMiID0gcm93bmFtZXMoc2V1cmF0X25vcm1AcmF3LmRhdGEpLAogICAgICAgICAgICAgICAgICAgICAgICAgIHNldXJhdF9ub3JtQHJhdy5kYXRhKQoKIyBTYXZlIHRoaXMgZ2VuZSBtYXRyaXggdG8gYSB0c3YgZmlsZQpyZWFkcjo6d3JpdGVfdHN2KGdlbmVfbWF0cml4LCAKICAgICAgICAgICAgICAgICBmaWxlLnBhdGgoImRhdGEiLCAibm9ybWFsaXplZF9wYm1jX2dlbmVfbWF0cml4LnRzdiIpKQpgYGAKCiMjIyMgUHJpbnQgc2Vzc2lvbiBpbmZvOgpgYGB7cn0Kc2Vzc2lvbkluZm8oKQpgYGAK</div>
 
 
 </div>
