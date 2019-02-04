@@ -26,8 +26,8 @@ bulk rna-seq methods.
 discovery purposes.   
 
 #### Cons:  
-- Is not very efficient (generally 96 cells per plate)  
-- Takes much longer to run (Days/weeks depending on sample size) .
+- Is not very efficient (generally 96 cells per plate).  
+- Takes much longer to run (Days/weeks depending on sample size).
 - Is a lot more expensive.  
 
 ### 2) Tag-based scRNA-seq  
@@ -44,13 +44,13 @@ and another with the individual reads.
 - Can run potentially millions of cells at once.   
 - A lot quicker computing wise.  
 - Won't take up all your computer's storage.  
-- A lot cheaper  
+- A lot cheaper.  
 
 #### Cons:  
 - Sequencing is not bidirectional so data will likely have more intense 3' bias.  
 - Coverage of these technologies generally is not as deep.  
 
-*More sources on the comparisons and explanations of these technologies: *   
+*More sources on the comparisons and explanations of these technologies:*   
 - [Zhang et al, 2018](https://doi.org/10.1016/j.molcel.2018.10.020)  
 - [AlJanahi et al, 2018](https://doi.org/10.1016/j.omtm.2018.07.003)  
 - [Angerer et al, 2017](http://dx.doi.org/10.1016/j.coisb.2017.07.004)  
@@ -85,10 +85,10 @@ mkdir alevin_output
 Before you can quantify with Salmon and
 [Alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
 to be indexed.
-You can use the same trancriptome index as was used for bulk-rna-seq, however,
-due to the smaller pieces and amounts of single cell RNA-seq as opposed to bulk,
+You can use the same transcriptome index as was used for bulk-rna-seq, however,
+due to smaller read length in single cell RNA-seq as opposed to bulk,
 you may want to build the index with a smaller `-k`.
-In this instance, we used a `-k` of 23 using the ensemble transcriptome.
+In this instance, we used a `-k` of 23 using the Ensembl transcriptome.
 
 In the interest of time, we have already run the command below and have the index
 built for you.
@@ -111,7 +111,7 @@ the Unique Molecular Identifiers while `R2` files contain the full reads for tha
 The ISR library type is what is recommended for single cell data quant.
 
 #### `--chromium`
-Because we are using 10X chromium data, we have to use this flag. However,
+Because we are using 10X Chromium data, we have to use this flag. However,
 Drop-seq data is also supported, and in this case you would use a `--dropseq`
 flag instead of this.
 
@@ -129,7 +129,7 @@ This option will print out information that we will need for quality checks
 later on, including files with information on the UMI's and cell barcodes ("CB").  
 
 #### Running Salmon Alevin
-Coy and paste this in your command line to run Alevin quantification
+Copy and paste this in your command line to run Alevin quantification
 ```
 salmon alevin -l ISR \
   -i data/human_index \
