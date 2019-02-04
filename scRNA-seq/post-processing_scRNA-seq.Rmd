@@ -30,10 +30,17 @@ library(Seurat)
 
 #### Import single cell RNA-seq counts matrix
 Here we are importing a counts matrix from single cell rna-seq data that has 
-already been processed using Salmon and tximport. 
+already been processed using Salmon and tximport and saved the counts to a tsv 
+file. 
+This [data set](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465) 
+is glioblastoma data that was Fluorescent Activated Cell sorted 
+and then was processed by paired end sequencing using smart-seq2 protocol 
+[(Darmanis et al, 2017).](https://www.ncbi.nlm.nih.gov/pubmed/29091775) 
 ```{r Import Data}
 # Read in the data
-alv_data <- ReadAlevin(alevin_file)
+sc_data <- readr::read_tsv(file.path("data", "darmanis_counts.tsv")) %>% 
+           tibble::column_to_rownames("gene") %>% 
+           as.data.frame()
 ```
 
 #### Set up the Seurat object and apply a filter to the data. 
@@ -42,9 +49,9 @@ expressing each gene.
 For cell filtering, each cell must express at least 200 genes.
 ```{r Set Up Seurat Object}
 # Set up the seurat object 
-seurat_obj <- CreateSeuratObject(raw.data = alv_data, min.cells = 3,
+seurat_obj <- CreateSeuratObject(raw.data = sc_data, min.cells = 3,
                                  min.genes = 200, 
-                                 project = "1k_pbmc_subset")
+                                 project = "darmanis_gbm")
 ```
 
 #### Normalize the data using log normalization
@@ -58,8 +65,7 @@ seurat_norm <- NormalizeData(object = seurat_obj,
 
 #### Identify variable genes and scale the data
 In this step, we will identify genes with higher variance. 
-These are probably the genes that are of more interest to us and they are what 
-we will use for Principal Components Analysis in the upcoming step.
+These are probably the genes that are of more interest to us.
 ```{r Find Variable Genes}
 seurat_norm <- FindVariableGenes(object = seurat_norm, mean.function = ExpMean,
                                 x.low.cutoff = 0.0125, x.high.cutoff = 3,
@@ -77,7 +83,7 @@ gene_matrix <- data.frame("genes" = rownames(seurat_norm@raw.data),
 
 # Save this gene matrix to a tsv file
 readr::write_tsv(gene_matrix, 
-                 file.path("data", "normalized_pbmc_gene_matrix.tsv"))
+                 file.path("data", "normalized_gbm_gene_matrix.tsv"))
 ```
 
 #### Save the seurat object to RDS file

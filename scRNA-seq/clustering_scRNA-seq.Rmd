@@ -11,69 +11,16 @@ output:
 In this notebook, we'll perform dimension reduction and clustering analyses of 
 single cell RNA-seq data. 
 
-This script is adapted from [Seurat pbmc tutorial](https://satijalab.org/seurat/pbmc3k_tutorial.html) 
-and from COMBINE lab's [Alevin tutorial](https://combine-lab.github.io/alevin-tutorial/2018/alevin-seurat/)
-
 #### Set Up 
 For these analyses, we will need Seurat a lot, so we will go ahead and attach it.  
 
 Put the path to the Alevin output here:
-```{r Path to alevin output}
-# Store the path to the Alevin output files
-alevin_file <- file.path("alevin_output")
-```
+```{r Path to seurat}
+# Load in seurat object
+seurat_norm <- readRDS(file.path("data", "seurat_object.RDS"))
 
-#### Perform QC checks with 'csoneson/alevinQC'
-This will provide html output with graphs evaluating the data. Keep in mind that 
-the data we have processed in this workshop is not the full dataset, and won't 
-look as good as the full set.
-```{r alevinQC}
-# Produce a QC report
-alevinQC::alevinQCReport(alevin_file,
-                         sampleId = "pbmc_1k_v2_S1_L001_subset", 
-                         outputFile = "pbmc_1k_v2_S1_L001_qc_report.html", 
-                         outputDir = "data",
-                         outputFormat = "html_document")
-```
-
-#### Import counts from Alevin output
-Here we are using the function we set up in the earlier chunk. 
-```{r Import Data}
-# Read in the data
-alv_data <- ReadAlevin(alevin_file)
-```
-
-#### Set up the Seurat object and apply a filter to the data. 
-In this example, we are applying a gene filter cutoff of at least 3 cells 
-expressing each gene. 
-For cell filtering, each cell must express at least 200 genes.
-```{r Set Up Seurat Object}
-# Set up the seurat object 
-seurat_obj <- CreateSeuratObject(raw.data = alv_data, min.cells = 3,
-                                 min.genes = 200, 
-                                 project = "1k_pbmc_subset")
-```
-
-#### Normalize the data using log normalization
-These are the default settings for normalization and should work in most 
-instances. 
-```{r Normalize the Data}
-seurat_norm <- NormalizeData(object = seurat_obj, 
-                             normalization.method = "LogNormalize",
-                             scale.factor = 10000)
-```
-
-#### Identify variable genes and scale the data
-In this step, we will identify genes with higher variance. 
-These are probably the genes that are of more interest to us and they are what 
-we will use for Principal Components Analysis in the upcoming step.
-```{r Find Variable Genes}
-seurat_norm <- FindVariableGenes(object = seurat_norm, mean.function = ExpMean,
-                                x.low.cutoff = 0.0125, x.high.cutoff = 3,
-                                y.cutoff = 0.5, do.plot = FALSE)
-
-# Scale the data
-seurat_norm <- ScaleData(object = seurat_norm)
+# Read in metadata
+sc_meta <- readr::read_tsv(file.path("data", "darmanis_metadata.tsv"))
 ```
 
 #### Execute PCA with high variance genes
@@ -92,25 +39,49 @@ seurat_norm <- FindClusters(object = seurat_norm, reduction.type = "pca",
                             save.SNN = TRUE)
 ```
 
-#### Run tSNE on normalized data
-```{r Run tSNE}
-# Run tSNE 
-seurat_norm <- RunTSNE(object = seurat_norm, dims.use = 1:10, do.fast = TRUE)
+```{r Plot PCA}
+# Make a dataframe with the metdata and pca data
+pca <- data.frame(seurat_norm@dr$pca@cell.embeddings) %>% 
+       tibble::rownames_to_column('geo_accession') %>%
+       dplyr::inner_join(sc_meta, by = 'geo_accession')
 
-# Plot the tSNE
-TSNEPlot(object = seurat_norm, colors.use = RColorBrewer::brewer.pal(9, "Greys"))
+# Plot this with ggplot2
+ggplot(pca, aes(x = PC1, y = PC2, color = cell.type.ch1)) + 
+  geom_point() +
+  colorblindr::scale_fill_OkabeIto()
 ```
 
-#### Save the normalized data to tsv file
-```{r Save Data to TSV}
-# Take out the data and make genes a column
-gene_matrix <- data.frame("genes" = rownames(seurat_norm@raw.data),
-                          seurat_norm@raw.data)
+# tSNE experiment
+tsne can be a lot more wild than people like to admit. 
+It would be a good use of our time to explor tSNE parameters and how they 
+affect the outcomes.
+For more reading about tSNE parameters see 
+[this article](https://distill.pub/2016/misread-tsne/)
+```{r}
+# Let's see what happens if we try this with a lot of different perplexity 
+# parameters
+perplexity_params <- c(2, 5, 10, 30, 50, 100)
 
-# Save this gene matrix to a tsv file
-readr::write_tsv(gene_matrix, 
-                 file.path("data", "normalized_pbmc_gene_matrix.tsv"))
+for (param in perplexity.params) {
+  # Run tSNE 
+  tsne <- RunTSNE(object = seurat_norm, dims.use = 1:10, do.fast = TRUE, 
+                  perplexity = param, k.seed = 10)
+
+  # Make a dataframe with the metdata and pca data
+  tsne <- data.frame(tsne@dr$tsne@cell.embeddings) %>% 
+          tibble::rownames_to_column('geo_accession') %>%
+          dplyr::inner_join(sc_meta, by = 'geo_accession')
+
+  # Plot this with ggplot2
+  tsne_plot <- ggplot(tsne, aes(x = tSNE_1, y = tSNE_2, color = cell.type.ch1)) + 
+               geom_point() + 
+               colorblindr::scale_fill_OkabeIto()
+  
+  # Print the plot
+  print(tsne_plot)
+}
 ```
+
 
 #### Print session info:
 ```{r}
