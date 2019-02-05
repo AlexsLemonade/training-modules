@@ -36,7 +36,7 @@ sc_meta <- readr::read_tsv(file.path("data", "darmanis_metadata.tsv")) %>%
            dplyr::filter(geo_accession %in% c(samples))
 ```
 
-## Principal Components Analysis with high variance genes
+## Principal Components Analysis
 Just like we did with bulk RNA-seq, we will also run PCA with our single cell data. 
 However, because single-cell data is more skewed as far as gene expression
 (remember there are more genes that have 0's), we will do our PCA based on the 
@@ -47,24 +47,6 @@ each component.
 # Run PCA
 seurat_norm <- RunPCA(object = seurat_norm, pc.genes = seurat_norm@var.genes,
                       genes.print = 5)
-```
-
-Visualize the gene loadings for first two PC components.
-What this shows us is that for most PC's there's a drop off for how much genes
-are contributing
-```{r}
-VizPCA(seurat_norm, pcs.use = 1:2)
-```
-
-Let's visualize the standard deviations between PC's so we can determine which 
-appear to summarize the information most informatively. 
-```{r}
-PCElbowPlot(seurat_norm)
-```
-
-Let's look at the distributions of the top 3 genes in the first PC. 
-```{r}
-VlnPlot(seurat_norm, c("ENSG00000173391", "ENSG00000115956", "ENSG00000135077"))
 ```
 
 Let's plot our first two principal components and label our cells with what cell
@@ -163,12 +145,6 @@ data, let's see what types of clusters each type of dimension reduction makes.
 # Cluster analysis for PCA
 seurat_norm <- FindClusters(object = seurat_norm, reduction.type = "pca",
                             dims.use = 1:10, print.output = 0, save.SNN = TRUE)
-```
-
-Let's visualize these clusters by making a dendrogram!
-```{r}
-# Make a dendrogram from the clustering
-BuildClusterTree(seurat_norm)
 ```
 
 #### Print session info:
