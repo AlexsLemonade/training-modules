@@ -45,27 +45,40 @@ But note that there are analogous functions for .csv files (`read_csv`) and
 other files types.
 
 ### About directories
-Before we can import the file we need though, we should double check what
-directory R is in, aka what our current *directory* is. 
+Before we can import the file we need though, we should double check where R is 
+looking for files aka our what our *working* directory currently is. 
 We can do this by using the `getwd()` function, which will tell us what folder
 we are in. 
+```{r}
+# Let's check what directory we are in:
+getwd()
+```
+
 Then we can use the `dir()` function to have R list the files in our current 
 directory. 
+```{r}
+# Let's check what files are here
+dir()
+```
+
 What we should see is the file `metadata.tsv` show up as one of the files when 
 we run `dir()`.
 If for some reason we were not in the correct directory, we can either set our
 directory to somewhere else using `setwd()` OR we can tell R to look for the 
 file `metadata.tsv` somewhere else using a relative `file.path()`.
+* `setwd()` 
 We will discuss and practice these concepts more in other modules as we go along.
 ```{r}
-# Let's check what directory we are in:
-getwd()
-
-# Let's check what files are here
-dir()
-
-# The file we are reading in is our argument 
+# The file we are reading in is our argument for read_tsv
 metadata <- read_tsv("metadata.tsv")
+```
+
+Note that if we had not imported the tidyverse library, we would also need to 
+tell R what package to find read_tsv in (because it is not a base R function).
+To do this, we would use `::` to tell R to load in this function from the 
+`readr` package. 
+```
+R_obj_name <- readr::read_tsv("FILE_NAME")
 ```
 
 ## dplyr pipes
@@ -93,9 +106,10 @@ metadata_nopipe <- arrange(metadata_nopipe, histology)
 metadata_nopipe <- filter(metadata_nopipe, follow_up_mths > 50)
 metadata_nopipe <- select(metadata_nopipe, sample_id, sex, organism)
 ```
+  
 UGH, we have to repeat and assign `metadata_edit` so many times here! 
 It's annoying and makes it harder for people to read. 
-
+  
 *Example 2:* Same result as 1 but with pipes!
 ```{r}
 # Example of the same modifications as above but with pipes!
@@ -169,6 +183,7 @@ you want to.
 metadata %>% group_by(sex) %>% 
              summarize(mean(age_mths))
 ```
+
 What if we would like to create new variables based on other variables? 
 For that we use `mutate` function. 
 Let's convert the ages that are in months to years and make that into a new variable.
@@ -182,7 +197,6 @@ metadata_edit <- metadata %>%
 # Print out metadata_edit so we can look at what we made:
 metadata_edit
 ```
-
 
 Let's write this data to a file using `write_tsv`. Note that the second argument 
 needs to be a character string that ends in the appropriate file extension ".tsv"
