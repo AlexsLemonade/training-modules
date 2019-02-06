@@ -14,15 +14,17 @@ scRNA-seq count data.
 As opposed to bulk RNA-seq, there are there are a few main things to look out for
 in single-cell RNA-seq:
 
-**Single-cell RNA-seq has...**  
-- Requires more PCR amplification (and therefore more PCR-associated biases and error)
-- More zeroes in the gene expression data (most genes aren't expressed across cell types)  
-People sometimes refer to this as "sparsity" or "dropout."
-
-This tutorial is adapted from 
+**Single-cell RNA-seq...**  
+- Requires more PCR amplification (and therefore more PCR-associated biases and
+error)  
+- Has more zeroes in the gene expression data (most genes aren't expressed 
+across cell types)  
+People sometimes refer to this as "sparsity" or "dropout."  
+  
+This tutorial is partially adapted from 
 [Seurat PBMC tutorial](https://satijalab.org/seurat/pbmc3k_tutorial.html)
   
-#### Set Up 
+## Set Up 
 For these analyses, we will need Seurat. 
 ```{r Set Up}
 # Attach library
@@ -32,7 +34,7 @@ library(Seurat)
 `%>%` <- dplyr::`%>%`
 ```
 
-#### Import single-cell RNA-seq counts matrix
+## Import single-cell RNA-seq counts matrix
 Here we are importing a counts matrix from single-cell RNA-seq data that has 
 already been processed using Salmon and tximport and saved the counts to a tsv 
 file. 
@@ -48,35 +50,58 @@ sc_data <- readr::read_tsv(file.path("data", "darmanis_counts.tsv"),
   as.data.frame()
 ```
 
-#### Set up the Seurat object and apply a filter to the data. 
+## Set up the Seurat object and apply a filter to the data. 
 In this example, we are applying a gene filter cutoff of at least 3 cells 
 expressing each gene. 
 For cell filtering, each cell must express at least 200 genes.
 ```{r Set Up Seurat Object}
-
 # Set up the Seurat object 
 seurat_obj <- CreateSeuratObject(raw.data = sc_data, min.cells = 3,
                                  min.genes = 200, 
                                  project = "darmanis_gbm")
 ```
 
-#### Normalize the data using log normalization
+## Normalize the data using log normalization
 These are the default settings for normalization and should work in most 
 instances. 
 ```{r Normalize the Data}
 seurat_norm <- NormalizeData(object = seurat_obj, 
                              normalization.method = "LogNormalize",
                              scale.factor = 10000)
+
+# Scale the data
+seurat_norm <- ScaleData(seurat_norm)
 ```
 
-#### Identify variable genes and scale the data
+Let's check out density plots so we can see how the data has been changed by 
+normalization. 
+As you'll notice, the unnormalized, raw data has so many zeroes. 
+Actually for this dataset, 78.8% of the data points are zeroes, which is not 
+out of the ordinary for single-cell RNA-seq data. 
+```{r}
+# Get means of raw and normalized datasets
+all_means <- list("counts" = apply(seurat_norm@raw.data, 1, mean), 
+                  "log_norm" = apply(seurat_norm@scale.data, 1, mean))
+
+# Make into a dataframe so ggplot likes it
+all_means <- reshape2::melt(all_means) %>%
+  dplyr::mutate("dataset" = factor(L1, levels = c("counts", "log_norm"))) %>% 
+  dplyr::select(-L1)
+
+# Plot the density of the means 
+ggplot(all_means, aes(x = value)) +
+  geom_density(fill = "lightblue") +
+  facet_wrap(~dataset, scales = "free")
+```
+
+## Identify variable genes and scale the data
 
 As we mentioned, there are mores genes that have zeroes in single-cell RNA-seq 
 data but our filtering step has hopefully removed all of these low-to-no 
 expression genes.
 However, the rest of the transcriptome is usually overwhelmed by a few genes that 
-are highly expressed, but don't change much with different circumstances (think 
-housekeeping-like genes). 
+are highly expressed, but don't change much between different biological 
+conditions (think housekeeping-like genes). 
 These housekeeping-like genes also are unlikely to be helpful for us in looking 
 for biologically meaningful gene expression patterns. 
 To avoid our analyses being "watered down" by these low variance genes, we want to
@@ -89,11 +114,10 @@ is considered high or low variance, but you may want to adjust these depending
 on your own dataset. 
 ```{r Find Variable Genes}
 seurat_norm <- FindVariableGenes(seurat_norm, mean.function = ExpMean,
-                                 x.low.cutoff = 0.1, y.cutoff = 1,
+                                 x.low.cutoff = 0.1, y.cutoff = 1, 
                                  do.plot = FALSE)
-# Scale the data
-seurat_norm <- ScaleData(seurat_norm)
 ```
+
 Here we will plot the `log(variance/mean)` against the `log(mean)` expression 
 for each gene.
 We'll also create a variable that keeps track of whether a gene was considered
@@ -107,7 +131,7 @@ var_group <- is.na(match(rownames(seurat_norm@hvg.info), seurat_norm@var.genes))
 # Extract variance stats from Seurat object
 var_stats <- data.frame(seurat_norm@hvg.info) %>%
   dplyr::mutate(var_group = as.character(var_group)) %>%
-  dplyr::mutate(var_group  = dplyr::recode(var_group,
+  dplyr::mutate(var_group = dplyr::recode(var_group,
                                            'TRUE' = "low_var", 
                                            'FALSE' = "high_var"))
 
@@ -116,13 +140,16 @@ ggplot(var_stats, aes(x = gene.mean, y = gene.dispersion.scaled, color = var_gro
   geom_point(alpha = 0.15) +  # We are using alpha so that the points are more see-through
   xlab("Gene log(Mean)") +
   ylab("Gene log(Variance/Mean)") + 
-  geom_vline(xintercept = .1, size = .5, alpha = .2) +  # Here we are plotting our variance cutoff
-  geom_hline(yintercept = 1, size = .5, alpha = .2)  # Here we are plotting our expression cutoff
+  theme_cowplot() +
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
+  geom_vline(xintercept = .1, size = .5, alpha = .4) +  # Here we are plotting our variance cutoff
+  geom_hline(yintercept = 1, size = .5, alpha = .4)  # Here we are plotting our expression cutoff
 ```
 
-#### Save the normalized data to tsv file
+## Save the normalized data to tsv file
 In case we want to use just the gene matrix for some other purposes, we'll 
-extract the gene matrix from the Seurat object and save it to a tsv file. 
+extract the normalized gene matrix from the Seurat object and save it to a tsv 
+file. 
 ```{r Save Data to .tsv}
 # Take out the data and make genes a column
 gene_matrix <- data.frame("genes" = seurat_norm@data@Dimnames[[1]],
@@ -133,7 +160,7 @@ readr::write_tsv(gene_matrix,
                  file.path("data", "normalized_gbm_gene_matrix.tsv"))
 ```
 
-#### Save the Seurat object to RDS file
+## Save the Seurat object to RDS file
 For objects in the R environment that have special structures, like our Seurat
 object, it's often handy to save these to an RDS file. 
 This way, if you want to use the object later, you can re-load it into the R
@@ -143,7 +170,7 @@ environment and it will be exactly as you had it.
 saveRDS(seurat_norm, file.path("data", "seurat_object.RDS"))
 ```
 
-#### Print session info:
+### Print session info:
 ```{r}
 sessionInfo()
 ```
