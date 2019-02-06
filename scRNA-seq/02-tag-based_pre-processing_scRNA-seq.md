@@ -86,8 +86,8 @@ Before you can quantify with Salmon and
 [Alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
 to be indexed.
 You can use the same trancriptome index as was used for bulk-RNA-seq, however,
-due to the smaller pieces and amounts of single-cell RNA-seq as opposed to bulk,
-you may want to build the index with a smaller `-k`.
+due to the shorter read lengths as opposed to bulk, you may want to build the 
+index with a smaller `-k`.
 In this instance, we used a `-k` of 23 using the ensemble transcriptome.
 
 In the interest of time, we have already run the command below and have the index
