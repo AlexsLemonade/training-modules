@@ -15,6 +15,9 @@ single cell RNA-seq data.
 For these analyses, we will need Seurat a lot, so we will go ahead and attach it.  
 ```{r}
 library(Seurat)
+
+# Magrittr pipe
+`%>%` <- dplyr::`%>%`
 ```
 
 Put the path to the Seurat object we created previously here:
@@ -33,13 +36,13 @@ samples <- colnames(seurat_norm@raw.data)
 # Read in metadata, but filter out samples that were previously filtered out of 
 # the full dataset
 sc_meta <- readr::read_tsv(file.path("data", "darmanis_metadata.tsv")) %>% 
-           dplyr::filter(geo_accession %in% c(samples))
+  dplyr::filter(geo_accession %in% c(samples))
 ```
 
 ## Principal Components Analysis
 Just like we did with bulk RNA-seq, we will also run PCA with our single cell data. 
 However, because single-cell data is more skewed as far as gene expression
-(remember there are more genes that have 0's), we will do our PCA based on the 
+(remember there are more genes that have zeroes), we will do our PCA based on the 
 high variance genes, which should give us a more informative analysis.
 This will also print for us the top five genes contributing to the variance for 
 each component. 
@@ -62,18 +65,18 @@ ggplot(pca, aes(x = PC1, y = PC2, color = sc_meta$cell.type.ch1)) +
 # Add this so our color palette is colorblindness friendly
 ```
 
-## tSNE experiment
-tSNE is a popular dimension reduction technique that has become even more popular
-with single cell rna-seq data analysis. 
-It would be a good use of our time to explore tSNE parameters and how they 
+## t-SNE experiment
+t-SNE is a popular dimension reduction technique that has become even more popular
+with single cell RNA-seq data analysis. 
+It would be a good use of our time to explore t-SNE parameters and how they 
 affect the outcomes.
 For our experiment, let's evaluate how various parameters, like perplexity,
-affect tSNE outcomes.
+affect t-SNE outcomes.
 For us to determine a good number range to use for testing perplexity, let's 
 first look up the documentation for `Seurat::RunTSNE` and find out what the 
 default for the `perplexity` argument is. 
 Pick a good range of numbers smaller and larger than that default number and 
-run tSNE at different parameters and plot it with `ggplot2`. 
+run t-SNE at different parameters and plot it with `ggplot2`. 
 ggplot2 is another tidyverse tool and is great for making data visualizations.
 It's worth checking out [ggplot2 tutorials](https://ggplot2.tidyverse.org/index.html). 
 ```{r Run tSNE and plot it}
@@ -116,11 +119,11 @@ You should notice that although the coordinates of tSNE output for any given
 cell might change drastically, the cells are still largely grouped together by
 their cell type. 
 This probably means that you shouldn't rely too heavily on the exact values of
-tSNE's output. 
-However, using the cell-type labeling, we are finding that for this dataset tSNE
+t-SNE's output. 
+However, using the cell-type labeling, we are finding that for this dataset t-SNE
 does appear to give some biologically relevant output information. 
 Read [this](https://distill.pub/2016/misread-tsne/) to learn more about using 
-tSNE properly. 
+t-SNE properly. 
   
 However, also note that PCA, [UMAP](https://github.com/lmcinnes/umap), and 
 other single cell RNA-seq specific methods like 
@@ -129,7 +132,7 @@ and [scVI](https://scvi.readthedocs.io/en/master/readme.html) are options for
 dimension reduction techniques.
 
 #### Some 'big picture' thoughts to take from this experiment: 
-1) Different analyses (such as tSNE) have various strengths and limitations 
+1) Different analyses (such as t-SNE) have various strengths and limitations 
 2) It's important to know these strengths and limitations when you are 
    interpreting the results of an analysis.
 3) Playing with parameters so you can fine-tune them is a good way to give you more

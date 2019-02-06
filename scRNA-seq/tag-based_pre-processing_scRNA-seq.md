@@ -10,7 +10,7 @@ being one of two groups, based on their capture methods and quantitative nature.
 Depending on how the cells are sorted and what technology is used, the pre-processing steps are a bit different and the biases to look out for in post-processing also vary.
 
 For a more extensive run through on single-cell technologies,
-Kiselev at al have very [good tutorial for scRNA-seq](https://hemberg-lab.github.io/scRNA.seq.course/introduction-to-single-cell-rna-seq.html#experimental-methods).
+Kiselev et al have very [good tutorial for scRNA-seq](https://hemberg-lab.github.io/scRNA.seq.course/introduction-to-single-cell-rna-seq.html#experimental-methods).
 
 ### 1) Non-Tag-Based scRNA-seq  
 *Example:* Smart-seq2 [(Picelli et al, 2014)](https://www.nature.com/articles/nprot.2014.006)   

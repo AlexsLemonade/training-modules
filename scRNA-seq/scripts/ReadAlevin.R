@@ -6,14 +6,16 @@
 
 # Requirements: need "readr" to be installed.
 
-# This function is based on the tutorial from the COMBINE lab
+# This function is based on the tutorial from the COMBINE lab:
+# https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/
+
 ReadAlevin <- function(base_path = NULL){
   # Function: to read in alevin output data into R
   # Args: base_path : the relative path to the directory where the alevin output
   #                   is saved.
   # Output: a dataframe of the alevin counts data where genes' data are by rows 
   #         and cells' data are by columns. 
-  if (! dir.exists(base_path )){
+  if (!dir.exists(base_path)){
     stop("Directory provided does not exist")
   }
   # Obtain paths to data
@@ -35,7 +37,7 @@ ReadAlevin <- function(base_path = NULL){
                                        progress = FALSE)
   
   # Transpose the matrix so it is gene x cell
-  expression_matrix <- t(expression_matrix[,1:ncol(expression_matrix)-1])
+  expression_matrix <- t(expression_matrix[, 1:ncol(expression_matrix) - 1 ])
   
   # Apply the colnames and rownames to the dataset
   colnames(expression_matrix) <- readLines(barcode_loc)

@@ -11,36 +11,41 @@ output:
 In this notebook, we'll perform quality control analyses and normalization of 
 scRNA-seq count data. 
 
-As opposed to bulk rna-seq, there are there are a few main things to look out for
-in single cell RNA-seq:
+As opposed to bulk RNA-seq, there are there are a few main things to look out for
+in single-cell RNA-seq:
 
-**Single-cell rna-seq has...**  
-- More amplification (and more of it's associated biases and error)  
-- More 0's in the gene expression data (most genes aren't expressed across cell types)  
+**Single-cell RNA-seq has...**  
+- Requires more PCR amplification (and therefore more PCR-associated biases and error)
+- More zeroes in the gene expression data (most genes aren't expressed across cell types)  
+People sometimes refer to this as "sparsity" or "dropout."
 
-This script is adapted from 
-[Seurat pbmc tutorial](https://satijalab.org/seurat/pbmc3k_tutorial.html)
+This tutorial is adapted from 
+[Seurat PBMC tutorial](https://satijalab.org/seurat/pbmc3k_tutorial.html)
   
 #### Set Up 
 For these analyses, we will need Seurat a lot, so we will go ahead and attach it.  
 ```{r Set Up}
 # Attach library
 library(Seurat)
+
+# Magrittr pipe
+`%>%` <- dplyr::`%>%`
 ```
 
 #### Import single cell RNA-seq counts matrix
-Here we are importing a counts matrix from single cell rna-seq data that has 
+Here we are importing a counts matrix from single cell RNA-seq data that has 
 already been processed using Salmon and tximport and saved the counts to a tsv 
 file. 
 This [data set](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465) 
-is glioblastoma data that was Fluorescent Activated Cell sorted 
-and then was processed by paired end sequencing using smart-seq2 protocol 
-[(Darmanis et al, 2017).](https://www.ncbi.nlm.nih.gov/pubmed/29091775) 
+is glioblastoma data that was Fluorescence-Activated Cell sorted 
+and then was processed by paired end sequencing using Smart-seq2 protocol 
+[(Darmanis et al. *Cell Reports*. 2017.).](https://www.ncbi.nlm.nih.gov/pubmed/29091775) 
 ```{r Import Data}
 # Read in the data
-sc_data <- readr::read_tsv(file.path("data", "darmanis_counts.tsv")) %>% 
-           tibble::column_to_rownames("gene") %>% 
-           as.data.frame()
+sc_data <- readr::read_tsv(file.path("data", "darmanis_counts.tsv"), 
+                                     progress = FALSE) %>% 
+  tibble::column_to_rownames("gene") %>% 
+  as.data.frame()
 ```
 
 #### Set up the Seurat object and apply a filter to the data. 
@@ -64,19 +69,49 @@ seurat_norm <- NormalizeData(object = seurat_obj,
 ```
 
 #### Identify variable genes and scale the data
-In this step, we will identify genes with higher variance. 
-These are probably the genes that are of more interest to us.
+As we mentioned, there are mores genes that have zeroes in single-cell RNA-seq 
+data but our filtering step has hopefully removed all of these low-to-no 
+expression genes.
+However, the rest of the transcriptome is usually overwhelmed by a few genes that 
+are highly expressed, but don't change much with different circumstances (think 
+housekeeping-like genes). 
+These housekeeping-like genes also are unlikely to be helpful for us in looking 
+for biologically meaningful gene expression patterns. 
+To avoid our analyses being watered down by these low variance genes, we want to
+identify a subset of high variance genes that may be more informative about the 
+differences between cells. 
+The Seurat function `FindVariableGenes` will do this for us and print out 
+a expression by variance plot so we can get an overall picture of the genes 
+being expressed in our dataset. 
 ```{r Find Variable Genes}
-seurat_norm <- FindVariableGenes(object = seurat_norm, mean.function = ExpMean,
-                                x.low.cutoff = 0.0125, x.high.cutoff = 3,
-                                y.cutoff = 0.5, do.plot = FALSE)
-
+seurat_norm <- FindVariableGenes(seurat_norm, mean.function = ExpMean,
+                                 do.plot = FALSE)
 # Scale the data
-seurat_norm <- ScaleData(object = seurat_norm)
+seurat_norm <- ScaleData(seurat_norm)
+```
+Let's plot the variance and the expression of the genes. 
+On your own, it would probably be good practice to see how this graph changes 
+with changes of normalization parameters, as well as high variance gene cutoffs. 
+```{r Plot Variable Genes}
+# Make a variable of which genes are included as high or low variance
+var_gene <- is.na(match(rownames(seurat_norm@hvg.info), seurat_norm@var.genes))
+var_gene <- c("low_var", "high_var")[as.factor(var_gene)]
+
+# Extract variance stats from Seurat object
+var_stats <- data.frame(seurat_norm@hvg.info) %>%
+  dplyr:: mutate(as.factor(var_gene))
+
+# Let's plot this with ggplot2
+ggplot(var_stats, aes(x = gene.mean, y = gene.dispersion.scaled, color = var_gene)) +
+  geom_point() +
+  xlab("Gene Mean") +
+  ylab("Gene Variance")
 ```
 
 #### Save the normalized data to tsv file
-```{r Save Data to TSV}
+In case we want to use just the gene matrix for some other purposes, we'll 
+extract the gene matrix from the Seurat object and save it to a tsv file. 
+```{r Save Data to .tsv}
 # Take out the data and make genes a column
 gene_matrix <- data.frame("genes" = rownames(seurat_norm@raw.data),
                           seurat_norm@raw.data)
@@ -86,7 +121,11 @@ readr::write_tsv(gene_matrix,
                  file.path("data", "normalized_gbm_gene_matrix.tsv"))
 ```
 
-#### Save the seurat object to RDS file
+#### Save the Seurat object to RDS file
+For objects in the R environment that have special structures, like our Seurat
+object, it's often handy to save these to an RDS file. 
+This way, if you want to use the object later, you can re-load it into the R
+environment and it will be exactly as you had it. 
 ```{r Save Seurat to RDS}
 # Save this gene matrix to a tsv file
 saveRDS(seurat_norm, file.path("data", "seurat_object.RDS"))
