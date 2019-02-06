@@ -1,9 +1,9 @@
-# Pre-processing single cell RNA-seq data 
+# Pre-processing single-cell RNA-seq data 
 
 **CCDL 2019**
 
 #### In this section, we will be running through the basics of pre-processing
-#### single-cell RNA-seq data.
+single-cell RNA-seq data.
 
 For the purposes of this tutorial, we'll summarize single-cell technologies as
 being one of two groups, based on their capture methods and quantitative nature.
@@ -86,7 +86,7 @@ Before you can quantify with Salmon and
 [Alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
 to be indexed.
 You can use the same trancriptome index as was used for bulk-RNA-seq, however,
-due to the smaller pieces and amounts of single cell RNA-seq as opposed to bulk,
+due to the smaller pieces and amounts of single-cell RNA-seq as opposed to bulk,
 you may want to build the index with a smaller `-k`.
 In this instance, we used a `-k` of 23 using the ensemble transcriptome.
 
@@ -108,7 +108,7 @@ In this instance, files with `R1` contain the barcodes for the cells as well as
 the Unique Molecular Identifiers while `R2` files contain the full reads for that sample.  
 
 #### `-l`
-The ISR library type is what is recommended for single cell data quant.
+The ISR library type is what is recommended for single-cell data quant.
 
 #### `--chromium`
 Because we are using 10X chromium data, we have to use this flag. However,
