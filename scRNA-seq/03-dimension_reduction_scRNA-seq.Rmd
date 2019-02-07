@@ -21,7 +21,6 @@ downstream analyses.
 ## Set Up 
 
 For these analyses, we will need Seurat as well as the dplyr pipe. 
-TODO: close loop on Alevin
 
 ```{r}
 library(Seurat)
@@ -60,6 +59,9 @@ Previously, we identified the high variance genes in this dataset and now we
 will use these genes for PCA.
 
 ```{r PCA}
+# Need to scale our data to run PCA
+seurat_norm <- ScaleData(seurat_norm)
+
 # Run PCA
 seurat_norm <- RunPCA(object = seurat_norm, pc.genes = seurat_norm@var.genes,
                       do.print = FALSE)
@@ -80,6 +82,7 @@ ggplot(pca, aes(x = PC1, y = PC2, color = sc_meta$cell.type.ch1)) +
 ```
 
 ## t-SNE experiment
+
 t-SNE is a popular dimension reduction technique that has become even more 
 popular with single-cell RNA-seq data analysis. 
 It would be a good use of our time to explore t-SNE parameters and how they 
@@ -101,6 +104,7 @@ ggplot(tsne, aes(x = tSNE_1, y = tSNE_2)) +
 ```
 
 #### Apply metadata labels to our tSNE
+
 Let's re-plot this with labels using some of our metadata to see 
 how the cells are clustering (or not clustering) by different variables. 
 Remember that previously we set up `sc_meta` to have the corresponding
@@ -139,7 +143,7 @@ TsnePlotWrapper <- function(perplexity_param = 30) {
 
   # Run tSNE and plot it
   seurat_norm <- RunTSNE(object = seurat_norm, dims.use = 1:10, seed.use = 1234, 
-                       perplexity = perplexity_param, do.fast = TRUE)
+                         perplexity = perplexity_param, do.fast = TRUE)
 
   # Make this a data.frame so ggplot will like it
   tsne <- data.frame(seurat_norm@dr$tsne@cell.embeddings)
@@ -154,9 +158,10 @@ TsnePlotWrapper <- function(perplexity_param = 30) {
 Fill in the next five code chunks with the function and the perplexity argument 
 you would like to use for each. 
 Then run the chunks and compare your output graphs.
+
 ```{r Run tSNE 1}
 # Use the TsnePlotWrapper function but alter the perplexity argument
-TsnePlotWrapper(perplexity_parm = 30)
+TsnePlotWrapper(3)
 ```
 
 ```{r Run tSNE 2}
@@ -201,11 +206,12 @@ draw from it as well as having good rationale for he parameters you choose.
 Read [this article](https://distill.pub/2016/misread-tsne/) by Wattenberg et al
 to learn more about using t-SNE properly. 
   
-Although t-SNE may be okay for some things, note that PCA, [UMAP](https://github.com/lmcinnes/umap), and 
-other single-cell RNA-seq specific methods like 
-[VASC](https://www.sciencedirect.com/science/article/pii/S167202291830439X) 
-and [scVI](https://scvi.readthedocs.io/en/master/readme.html) are options for 
-dimension reduction techniques.
+t-SNE may be okay for some things, but note that the following dimension reduction 
+methods may be worth considering: 
+- [PCA](http://setosa.io/ev/principal-component-analysis/)  
+- [UMAP](https://github.com/lmcinnes/umap)  
+- [VASC](https://www.sciencedirect.com/science/article/pii/S167202291830439X)  
+- [scVI](https://scvi.readthedocs.io/en/master/readme.html)  
 
 #### Print session info:
 ```{r}
