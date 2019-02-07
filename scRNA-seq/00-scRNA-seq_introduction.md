@@ -1,8 +1,8 @@
-# Pre-processing single-cell RNA-seq data
+# Introduction to single-cell RNA-seq data methods
 
 **CCDL 2019**
 
-#### In this section, we will be running through the basics of pre-processing single-cell RNA-seq data.
+#### In this section, we will be introducing you to types of RNA-seq data.
 
 For the purposes of this tutorial, we'll summarize single-cell technologies as
 being one of two groups, based on their capture methods and quantitative nature.
