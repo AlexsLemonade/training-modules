@@ -1,26 +1,28 @@
-# Introduction to single-cell RNA-seq data methods
+# Introduction to single-cell RNA-seq
 
 **CCDL 2019**
 
-#### In this section, we will be introducing you to types of RNA-seq data.
+#### In this section, we will be introducing you to types of single-cell RNA-seq data.
 
-For the purposes of this tutorial, we'll summarize single-cell technologies as
-being one of two groups, based on their capture methods and quantitative nature.
-Depending on how the cells are sorted and what technology is used, the pre-processing steps are a bit different and the biases to look out for in post-processing also vary.
+For the purposes of this tutorial, we'll group single-cell technologies into
+two categories based on their capture methods and quantitative nature.
+The pre-processing steps and the biases to look out for in post-processing vary 
+based on technology and how the cells are sorted.
 
-For a more extensive run through on single-cell technologies,
+For more extensive background on single-cell experimental methods,
 Kiselev et al. have very [good tutorial for scRNA-seq](https://hemberg-lab.github.io/scRNA.seq.course/introduction-to-single-cell-rna-seq.html#experimental-methods).
 
-### 1) Non-Tag-Based scRNA-seq  
+### 1) Full-length scRNA-seq  
 *Example:* Smart-seq2 [(Picelli et al. _Nature Protocols._ 2014.)](https://www.nature.com/articles/nprot.2014.006)   
-Cells are physically separated generally into individual wells in a plate and
-often also sorted by other means (eg. Fluorescence Activated Cell Sorting).
-Each cell is then sequenced individual and has it's own fastq file (this will be two fastq files if this is paired-end sequencing.)
-The data pre-processing steps for these types of scRNA-seq data is/can be more similar to
+Cells are physically separated into individual wells of a plate and are
+often also sorted by other means (e.g., Fluorescence Activated Cell Sorting).
+Each cell is then sequenced individual and has its own fastq file. 
+(This will be two fastq files if this is paired-end sequencing.)
+The data preprocessing steps for these types of scRNA-seq data are similar to
 bulk RNA-seq methods.
 
 #### Pros:  
-- Can be paired end sequencing which has less risk for 3' bias.  
+- Can be paired-end sequencing which has less risk for 3' bias.  
 - More complete coverage of transcripts, which may be better for transcript
 discovery purposes.   
 
@@ -36,7 +38,7 @@ Cells are separated by emulsion/droplets, and individual cells are given barcode
 Everything is then sequenced.
 These types of methods, because they are newer, are more likely to have
 Unique Molecular Identifiers (UMIs) 
-[(Islam et al. _Nature Methods._ 2014.)](http://www.nature.com/doifinder/10.1038/nmeth.2772)
+[(Islam et al. _Nature Methods._ 2014.)](http://www.nature.com/doifinder/10.1038/nmeth.2772),
 which allow you to better control for PCR amplification errors and biases.
 Individual samples have two fastq files: one for the cell barcodes
 and another with the individual reads.
@@ -49,7 +51,7 @@ and another with the individual reads.
 
 #### Cons:  
 - Sequencing is not bidirectional so data will likely have more intense 3' bias.  
-- Coverage of these technologies generally is not as deep.  
+- Coverage of these technologies is generally not as deep.  
 
 *More sources on the comparisons and explanations of these technologies:*   
 - [Zhang et al. _Molecular Cell._ 2018.](https://doi.org/10.1016/j.molcel.2018.10.020)  
