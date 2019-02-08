@@ -14,7 +14,8 @@ scRNA-seq count data.
 As opposed to bulk RNA-seq, there are there are a few main things to look out for
 in single-cell RNA-seq:
 
-**Single-cell RNA-seq...**  
+**Single-cell RNA-seq...**
+
 - Requires more PCR amplification (and therefore more PCR-associated biases and
 error).  
 - Has more zeroes in the gene expression data (most genes aren't expressed 
@@ -43,6 +44,7 @@ library(Seurat)
 ```
 
 ## Import single-cell RNA-seq counts matrix
+
 This [data set](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465) 
 we are using is glioblastoma data that was Fluorescence-Activated Cell sorted 
 and then was processed by paired end sequencing using Smart-seq2 protocol 
@@ -133,6 +135,7 @@ ggplot(all_means, aes(x = value)) +
   geom_density(fill = "lightblue") +
   facet_wrap(~dataset, scales = "free")
 ```
+
 The log transformed data doesn't look quite as abnormal as the counts data, 
 although we can see it's still clearly skewed to the right. 
 
@@ -178,6 +181,7 @@ ggplot(var_stats, aes(x = gene.mean, y = gene.dispersion.scaled)) +
   ylab("Gene log(Variance/Mean)") + 
   theme_cowplot() 
 ```
+
 Because our x axis has the same data that we plotted in the above section, 
 you'll notice that we continue to see zero inflation that our single-cell is
 known for.
@@ -188,6 +192,7 @@ Let's add to this plot and figure out what genes we are planning to keep based
 on our cutoffs. 
 To do this, we'll create a variable that keeps track of whether a gene was 
 considered high or low variance according to the `Seurat::FindVariableGenes`.
+
 ```{r}
 # Make a variable of which genes are included as high or low variance
 var_group <- is.na(match(rownames(seurat_norm@hvg.info), seurat_norm@var.genes))
@@ -217,12 +222,14 @@ ggplot(var_stats, aes(x = gene.mean, y = gene.dispersion.scaled,
   # Here we are plotting our expression cutoff
   geom_hline(yintercept = 1, size = .5, alpha = .4) 
 ```
+
 Do the genes labeled as high variance seem reasonable to you? 
 If not, feel free to go back and try different cutoffs. 
 Keep in mind thatt you will have to change the `geom_vline` and `geom_hline`
 intercept arguments to your updated cutoffs if you want the graph to be accurate.
 
 ## Save the normalized data to tsv file
+
 In case we want to use just the gene matrix for some other purposes, we'll 
 extract the normalized gene matrix from the Seurat object and save it to a tsv 
 file. 
@@ -238,6 +245,7 @@ readr::write_tsv(gene_matrix,
 ```
 
 ## Save the Seurat object to RDS file
+
 For objects in the R environment that have special structures, like our Seurat
 object, it's often handy to save these to an RDS file. 
 This way, if you want to use the object later, you can re-load it into the R
@@ -248,7 +256,8 @@ environment and it will be exactly as you had it.
 saveRDS(seurat_norm, file.path("data", "seurat_object.RDS"))
 ```
 
-### Print session info:
+### Print session info
+
 ```{r}
 sessionInfo()
 ```
