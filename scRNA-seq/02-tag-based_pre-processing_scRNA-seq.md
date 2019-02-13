@@ -1,20 +1,19 @@
-# Pre-processing single-cell RNA-seq data 
+# Pre-processing single-cell RNA-seq data
 
 **CCDL 2019**
 
-#### In this section, we will be running through the basics of pre-processing
-single-cell RNA-seq data.
+#### In this section, we will be running through the basics of pre-processing single-cell RNA-seq data.
 
 We will be using a peripheral blood mononuclear cells (pbmc's) 10X Genomics [(Zheng et al, 2017)](https://www.ncbi.nlm.nih.gov/pubmed/28091601) dataset as an example.
-For 10X Genomics scRNA-seq data, cells are separated by emulsion/droplets, and 
+For 10X Genomics scRNA-seq data, cells are separated by emulsion/droplets, and
 individual cells are given barcodes.
 These data also have
 [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772)
 which allow us to better control for PCR amplification errors and biases.
 
-Note: Raw single-cell RNA-seq data from non-tag-based methods, like the Smart-seq2 
-dataset we were working with in the previous section, can be processed using 
-Salmon, just like was done in the bulk RNA-seq module. 
+*Note*: Raw single-cell RNA-seq data from non-tag-based methods, like the Smart-seq2
+dataset we were working with in the previous section, can be processed using
+Salmon, just like was done in the bulk RNA-seq module.
 
 ## Steps for Processing scRNA-seq Data:
 
@@ -24,15 +23,15 @@ Salmon, just like was done in the bulk RNA-seq module.
 available to play around with.
 For this example, we will use the [1k pbmc](https://support.10xgenomics.com/single-cell-gene-expression/datasets/3.0.0/pbmc_1k_v2).
 We will process a fastq file of this as an example.  
-For practical purposes as far as time constraints, we have subset this fastq file
-to the first 3 million reads.
+To limit the amount of time this takes to run in the context of this workshop,
+ we have subset this fastq file
 
 *Note*: depending on the state of the data you are working with, ie. if you have
 a `.bcl` file, you will need to use `CellRanger` with their `mkfastq` command to
 make fastq files from this.
-However, because most publicly available data is in fastq format and any
-core you might be working with will also likely provide you with fastq files,
-we are starting from this point.  
+However, most public data is available in fastq format and a core facility may
+return your data to you in this format.
+We will start from fastq files.
 
 ### Step 1: Set up your output directory
 
@@ -48,7 +47,7 @@ Before you can quantify with Salmon and
 [Alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
 to be indexed.
 You can use the same transcriptome index as bulk RNA-seq, however,
-due to the shorter read lengths as opposed to bulk, you may want to build the 
+due to the shorter read lengths as opposed to bulk, you may want to build the
 index with a smaller `-k`.
 In this instance, we used a `-k` of 23 using the ensemble transcriptome.
 
@@ -65,7 +64,7 @@ salmon --threads=16 --no-version-check index \
 ### Step 3: For each sample, run [Alevin](https://www.biorxiv.org/content/10.1101/335000v2)
 for quantification
 From the command line, running Alevin is not too much different from running
-Salmon for bulk RNA-seq. 
+Salmon for bulk RNA-seq.
 You downloaded two files:
 - `R1` contain the barcodes for cells as well as the UMIs
 - `R2` files contain the full reads for that sample.  
@@ -78,8 +77,8 @@ You'll recognize a lot of these options as the same as regular `Salmon` such as
 ### `Alevin` options summary:
 
 #### `-l`
-As mentioned, `-l` is for designating library type. For all single-cell quant, 
-you will want to use the `ISR` library type. 
+As mentioned, `-l` is for designating library type. For all single-cell quant,
+you will want to use the `ISR` library type.
 See [Salmon's documentation](https://salmon.readthedocs.io/en/latest/library_type.html)
 for more information on fragment library types.
 
@@ -123,10 +122,10 @@ for example analyses.
 
 ### Step 4: Perform QC checks with `alevinQC`
 In order to perform quality control checks, we will need to open R.
-Alevin provides count data output for each transcript and cell. To read this 
-data into R, we will import a function from the script `ReadAlevin.R` which is 
+Alevin provides count data output for each transcript and cell. To read this
+data into R, we will import a function from the script `ReadAlevin.R` which is
 located in the `scripts` folder.
-```r 
+```r
 # Import the function to read alevin output data
 source(file.path("scripts", "ReadAlevin.R"))
 
@@ -135,18 +134,18 @@ alevin_file <- ReadAlevin("alevin_output")
 ```
 Now that our data is imported into the R environment, we can run quality control
 checks using `alevinQC` package.
-This will provide html output with graphs evaluating the data. 
+This will provide html output with graphs evaluating the data.
 
-```r 
+```r
 # Produce a QC report
 alevinQC::alevinQCReport(alevin_file,
-                         sampleId = "pbmc_1k_v2_S1_L001_subset", 
-                         outputFile = "pbmc_1k_v2_S1_L001_qc_report.html", 
+                         sampleId = "pbmc_1k_v2_S1_L001_subset",
+                         outputFile = "pbmc_1k_v2_S1_L001_qc_report.html",
                          outputDir = "data",
                          outputFormat = "html_document")
 ```
-Now you can check out "pbmc_1k_v2_S1_L001_qc_report.html" in order to examine 
-the quality of your data and performance of Alevin. 
+Now you can check out "pbmc_1k_v2_S1_L001_qc_report.html" in order to examine
+the quality of your data and performance of Alevin.
 
 Here's the full pbmc dataset to compare to:
 [Full 10k pbmc dataset](https://alexslemonade.github.io/training-modules/scRNA-seq/data/pbmc_10k_v3_S1_L002_qc_report.html).
