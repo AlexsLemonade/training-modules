@@ -148,4 +148,5 @@ alevinQC::alevinQCReport(alevin_file,
 Now you can check out "pbmc_1k_v2_S1_L001_qc_report.html" in order to examine 
 the quality of your data and performance of Alevin. 
 
-TODO: Make a link to a "good" and "bad" alevinQC output "For future reference"
+Here's the full pbmc dataset to compare to:
+[Full 10k pbmc dataset](https://alexslemonade.github.io/training-modules/scRNA-seq/data/pbmc_10k_v3_S1_L002_qc_report.html).
