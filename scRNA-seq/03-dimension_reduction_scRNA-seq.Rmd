@@ -1,0 +1,220 @@
+---
+title: "scRNA-seq Dimension Reduction"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+**CCDL 2019**
+
+In this notebook, we'll use dimension reduction techniques on single-cell 
+RNA-seq data. 
+
+As compared to bulk RNA-seq data, single cell RNA-seq data generally has more 
+dimensions, (since we have data points for each individual cell level rather 
+than the tissue as a whole). 
+Because of this, its common to use dimension reduction techniques so all of the
+data is in a more easily manageable form for plotting, clustering, or other 
+downstream analyses. 
+
+## Set Up 
+
+For these analyses, we will need Seurat as well as the dplyr pipe. 
+
+```{r}
+library(Seurat)
+
+# Magrittr pipe
+`%>%` <- dplyr::`%>%`
+```
+
+We need to reload the Seurat object with the data we set up and normalized 
+previously. 
+
+```{r Path to Seurat}
+# Load in Seurat object
+seurat_norm <- readRDS(file.path("data", "seurat_object.RDS"))
+```
+
+Remember that previously, we filtered our dataset, so as we import our metadata
+we need to filter it so that it only contains the cells we are working with, 
+in the order we are working with them in the data. 
+
+```{r Filter metadata}
+# Get list of cells after we previously filtered the data
+cells <- colnames(seurat_norm@raw.data)
+
+# Read in metadata, but filter out cells that were previously filtered out of 
+# the full dataset
+sc_meta <- readr::read_tsv(file.path("data", "darmanis_metadata.tsv")) %>% 
+  dplyr::filter(geo_accession %in% cells)
+```
+
+## Principal Components Analysis
+
+Just like we did with bulk RNA-seq, we will also run PCA with our single-cell 
+data. 
+Previously, we identified the high variance genes in this dataset and now we 
+will use these genes for PCA.
+
+```{r PCA}
+# Need to scale our data to run PCA
+seurat_norm <- ScaleData(seurat_norm)
+
+# Run PCA
+seurat_norm <- RunPCA(object = seurat_norm, pc.genes = seurat_norm@var.genes,
+                      do.print = FALSE)
+```
+
+Let's plot our first two principal components and label our cells with what cell
+type they are (remember this data was FACS sorted).
+
+```{r Plot PCA}
+# Make a dataframe with the metdata and pca data
+pca <- data.frame(seurat_norm@dr$pca@cell.embeddings)
+
+# Plot this with ggplot2 and label the points with cell types
+ggplot(pca, aes(x = PC1, y = PC2, color = sc_meta$cell.type.ch1)) + 
+  geom_point() # +
+  # Add this so our color palette is colorblindness friendly
+  colorblindr::scale_color_OkabeIto()
+```
+
+## t-SNE experiment
+
+t-SNE is a popular dimension reduction technique that has become even more 
+popular with single-cell RNA-seq data analysis. 
+It would be a good use of our time to explore t-SNE parameters and how they 
+affect the outcomes.
+First, let's run our data through t-SNE on default parameters and see what our 
+data looks like with a `ggplot2` scatterplot.
+
+```{r tSNE}
+# Do tsne plots for each perplexity parameter, but this time use color argument
+seurat_norm <- RunTSNE(object = seurat_norm, dims.use = 1:10, seed.use = 1234, 
+                       perplexity = 30, do.fast = TRUE)
+
+# Make this a data.frame so ggplot will like it
+tsne <- data.frame(seurat_norm@dr$tsne@cell.embeddings)
+  
+# Plot this with ggplot2
+ggplot(tsne, aes(x = tSNE_1, y = tSNE_2)) + 
+  geom_point()
+```
+
+#### Apply metadata labels to our tSNE
+
+Let's re-plot this with labels using some of our metadata to see 
+how the cells are clustering (or not clustering) by different variables. 
+Remember that previously we set up `sc_meta` to have the corresponding
+metadata for each of our cells. 
+Below we have set up the cells to be colored by the `cell.type` variable. 
+Run this, but also feel free to look at what other information we have for these
+cells in `sc_meta` by using `str()` and change this to a different variable to 
+graph it by.
+
+```{r}
+# Plot this with ggplot2, but add the color argument
+ggplot(tsne, aes(x = tSNE_1, y = tSNE_2, color = sc_meta$cell.type.ch1)) + 
+  geom_point() +
+  colorblindr::scale_color_OkabeIto()
+```
+
+Now that we have an idea of what the default parameters look like, let's try
+experimenting with the perplexity parameter. 
+For us to determine a good number range to use for testing perplexity, let's 
+first look up the documentation for `Seurat::RunTSNE` and find out what the 
+default for the `perplexity` argument is. 
+
+In order to prepare for this experiment, we will create a *function* that allows
+use to rerun this same code chunk easily, but create an argument that allows us
+to change one variable: our perplexity variable. 
+
+```{r Make tSNE plot function}
+tSNE_plot_wrapper <- function(perplexity_param = 30) {
+  # Purpose: Run t-SNE and plot the output
+  # Args: perplexity_param: a single numeric argument that will change the 
+  #                         perplexity variable in the RunTSNE function. 
+  # Output: a ggplot scatterplot with the two t-SNE coordinates plotted and 
+  #         cell-types labeled with data point colors. 
+
+  # Run tSNE and plot it
+  seurat_norm <- RunTSNE(object = seurat_norm, dims.use = 1:10, seed.use = 1234, 
+                         perplexity = perplexity_param, do.fast = TRUE)
+
+  # Make this a data.frame so ggplot will like it
+  tsne <- data.frame(seurat_norm@dr$tsne@cell.embeddings)
+  
+  # Plot this with ggplot2
+  ggplot(tsne, aes(x = tSNE_1, y = tSNE_2, color = sc_meta$cell.type.ch1)) +
+    geom_point() +
+    colorblindr::scale_color_OkabeIto()
+}
+```
+
+Fill in the next five code chunks with the function and the perplexity argument 
+you would like to use for each. 
+Then run the chunks and compare your output graphs.
+
+```{r Run tSNE 1}
+# Use the tSNE_plot_wrapper function but alter the perplexity argument
+tSNE_plot_wrapper(perplexity = 3)
+```
+
+```{r Run tSNE 2}
+# Run tSNE_plot_wrapper function for a second time, but use a different perplexity
+# argument
+```
+
+```{r Run tSNE 3}
+# Run tSNE_plot_wrapper function for a third time, but use a different perplexity
+# argument
+```
+
+```{r Run tSNE 4}
+# Run tSNE_plot_wrapper function for a fourth time, but use a different perplexity
+# argument
+```
+
+```{r Run tSNE 5}
+# Run tSNE_plot_wrapper function for a fifth time, but use a different perplexity
+# argument
+```
+
+You'll notice that for some settings of tSNE parameters, it's hard to distinguish
+distinct clusters of cells.
+
+#### Some 'big picture' thoughts to take from this experiment: 
+
+1) Different analyses (such as t-SNE) have various limitations for interpretaility.
+   We found in our experiment that the coordinates of tSNE output for any given 
+   cell might change drastically, 
+   This probably means that you shouldn't rely too heavily on the exact values of
+   t-SNE's output. 
+2) Different analyses also have their strengths.   
+   Using cell-type labeling, our experiment illstrated that t-SNE does 
+   appear to give some biologically relevant output information for this dataset. 
+3) Playing with parameters so you can fine-tune them is a good way to give you more
+   information about a particular analysis as well as the data itself. 
+   
+In summary, if the results of an analysis can be completely changed by changing it's
+parameters, you should be more cautious when it comes to the conclusions you
+draw from it as well as having good rationale for he parameters you choose. 
+
+Read [this article](https://distill.pub/2016/misread-tsne/) by Wattenberg et al
+to learn more about using t-SNE properly. 
+  
+t-SNE may be okay for some things, but note that the following dimension reduction 
+methods may be worth considering: 
+
+- [PCA](http://setosa.io/ev/principal-component-analysis/)  
+- [UMAP](https://github.com/lmcinnes/umap)  
+- [VASC](https://www.sciencedirect.com/science/article/pii/S167202291830439X)  
+- [scVI](https://scvi.readthedocs.io/en/master/readme.html)  
+
+#### Print session info:
+
+```{r}
+sessionInfo()
+```
