@@ -23,32 +23,24 @@ downstream analyses.
 For these analyses, we will need Seurat as well as the dplyr pipe. 
 
 ```{r}
-library(Seurat)
+# Load libraries
+library(scran)
+library(scater)
 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
 ```
 
-We need to reload the Seurat object with the data we set up and normalized 
-previously. 
+For this module, we are going to use the data that we processed part of in 
+`02-tag-based_pre-processing_scRNA-seq.md`
 
-```{r Path to Seurat}
-# Load in Seurat object
-seurat_norm <- readRDS(file.path("data", "seurat_object.RDS"))
-```
+```{r Load in Tabula Muris Data}
+# Read in gene matrix
+tab_mur_data <- readr::read_tsv(file.path("data", "tab_mur_scran_norm.tsv")) %>%
+  dplyr::select(-'genes')
 
-Remember that previously, we filtered our dataset, so as we import our metadata
-we need to filter it so that it only contains the cells we are working with, 
-in the order we are working with them in the data. 
-
-```{r Filter metadata}
-# Get list of cells after we previously filtered the data
-cells <- colnames(seurat_norm@raw.data)
-
-# Read in metadata, but filter out cells that were previously filtered out of 
-# the full dataset
-sc_meta <- readr::read_tsv(file.path("data", "darmanis_metadata.tsv")) %>% 
-  dplyr::filter(geo_accession %in% cells)
+# Read in associated metadata
+tab_mur_meta <- readr::read_tsv(file.path("data", "tab_mur_metadata.tsv"))
 ```
 
 ## Principal Components Analysis
@@ -59,24 +51,21 @@ Previously, we identified the high variance genes in this dataset and now we
 will use these genes for PCA.
 
 ```{r PCA}
-# Need to scale our data to run PCA
-seurat_norm <- ScaleData(seurat_norm)
-
 # Run PCA
-seurat_norm <- RunPCA(object = seurat_norm, pc.genes = seurat_norm@var.genes,
-                      do.print = FALSE)
+pca_tab_mur <- prcomp(t(tab_mur_data))
+
+# Make a dataframe with these PCA scores
+pca_tab_mur <- data.frame(pca_tab_mur$x[, 1:2],
+                          tab_mur_meta)
 ```
 
-Let's plot our first two principal components and label our cells with what cell
-type they are (remember this data was FACS sorted).
+Let's plot our first two principal components and label our cells with what 
+tissue they are from.
 
 ```{r Plot PCA}
-# Make a dataframe with the metdata and pca data
-pca <- data.frame(seurat_norm@dr$pca@cell.embeddings)
-
 # Plot this with ggplot2 and label the points with cell types
-ggplot(pca, aes(x = PC1, y = PC2, color = sc_meta$cell.type.ch1)) + 
-  geom_point() # +
+ggplot(pca_tab_mur, aes(x = PC1, y = PC2, color = tissue)) + 
+  geom_point() +
   # Add this so our color palette is colorblindness friendly
   colorblindr::scale_color_OkabeIto()
 ```
@@ -92,8 +81,7 @@ data looks like with a `ggplot2` scatterplot.
 
 ```{r tSNE}
 # Do tsne plots for each perplexity parameter, but this time use color argument
-seurat_norm <- RunTSNE(object = seurat_norm, dims.use = 1:10, seed.use = 1234, 
-                       perplexity = 30, do.fast = TRUE)
+tsne_tab_mur <- Rtsn::Rtsne(tab_mur_data)
 
 # Make this a data.frame so ggplot will like it
 tsne <- data.frame(seurat_norm@dr$tsne@cell.embeddings)
