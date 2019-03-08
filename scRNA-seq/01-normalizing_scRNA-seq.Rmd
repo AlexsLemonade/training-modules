@@ -114,10 +114,12 @@ a single-cell RNA-seq dataset that all of cells within the set have reliable,
 high quality data.
 
 This is why exploring your data and filtering it is important before we attempt to
-look for any biologically meaningful information. 
-  
-Let's visualize the distribution of total counts to see if the 48 count sample 
-is the only one we should get rid of.
+look for any biologically meaningful information. Let's visualize the 
+distribution of total counts to see if the 48 count sample is the only one we 
+should get rid of.
+
+For the following graphs, we will use vertical red lines to indicate where 
+maybe a suggested cutoff should go.
 
 ```{r Explore total counts distribution}
 # Let's take a look at what this looks like:
@@ -139,7 +141,6 @@ sc_metadata_filtered <- sc_metadata %>%
 # Always good to double check that your data and your metadata matches
 all.equal(colnames(sc_data_filtered ), sc_metadata_filtered$geo_accession)
 ```
-We got rid of some of the ridiculously low total count samples. 
 
 ### Number of genes a cell expresses as a quality measure
 
@@ -188,8 +189,8 @@ num_genes_exp_df <- data.frame('geo_accession' = colnames(detection_mat),
 
 # Plot these data
 ggplot(num_genes_exp_df, aes(x = num_genes_exp)) + 
-  geom_density(aes(color = cell.type.ch1)) +
-  geom_vline(xintercept = 200, color = "red")
+  geom_density(fill = "lightblue") +
+  facet_wrap(~cell.type.ch1) 
 ```
 
 ### Number of samples that express a gene as a quality measure
@@ -214,7 +215,7 @@ num_samples_that_exp <- apply(detection_mat, 1, sum)
 # Let's take a look at what this looks like:
 qplot(num_samples_that_exp, geom = "density") + 
   geom_density(fill = "lightblue") +
-  geom_vline(xintercept = 5, col = "red")
+  geom_vline(xintercept = 10, col = "red")
 ```
 
 ### Apply a filter based on our criteria
@@ -225,7 +226,7 @@ actually filter our data.
 ```{r Apply filter}
 sc_data_filtered <- GeneMatrixFilter(sc_data_filtered, 
                                      min_counts = 0, 
-                                     num_samples = 5, 
+                                     num_samples = 10, 
                                      num_genes = 200)
 ```
 
@@ -240,8 +241,9 @@ perc_map_reads <- readr::read_tsv(file.path("data",
   dplyr::mutate("kept" = geo_accession %in% colnames(sc_data_filtered)) 
 
 # Plot the densities of these data
-ggplot(perc_map_reads, aes(x = percent_mapped_reads, fill = kept)) +
-  geom_density(alpha = 0.15)
+ggplot(perc_map_reads, aes(x = perc_mapped_reads, fill = kept)) +
+  geom_density(alpha = 0.15) + 
+  colorblindr::scale_fill_OkabeIto()
 ```
 
 The samples we filtered out do appear to include the lower percent mapped reads 
@@ -317,7 +319,7 @@ total per million reads for a sample such as counts per million reads (CPMs),
 
 #### Normalization step 1: Estimate cell clusters:
 
-Using a quick clustering, let's determine groupiungs for our cells that we will
+Using a quick clustering, let's determine groupings for our cells that we will
 normalize by.
 
 ```{r}
@@ -330,8 +332,8 @@ qclust <- scran::quickCluster(sce_raw)
 
 Compute factors for each sample using the clusters we just made.
 
-```{r}
-# Calculate the size factors based on the clusters
+```{r Calculate sum factors}
+# Calculate the sum factors based on the clusters
 sce_raw <- scran::computeSumFactors(sce_raw, clusters = qclust)
 ```
 
@@ -367,7 +369,7 @@ sce_norm <- scater::normalize(sce_raw)
 
 ## Compare normalized data to count data
 
-One way to determine whether our normalization is yielding biolgically relevant 
+One way to determine whether our normalization is yielding biologically relevant 
 results, is to plot it and see if similarly labeled samples and cells end up 
 together.
 Because plotting 1000's of genes together isn't practical, we will reduce the 
@@ -406,58 +408,14 @@ pca_scores <- rbind.data.frame(count_pca$x[, 1:2],
 # Now plot it
 ggplot(pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() +
-  facet_wrap(~data_label, scales = "free")
+  colorblindr::scale_color_OkabeIto() +
+  facet_wrap(~data_label, scales = "free") 
 ```
 
 The normalization in particular has appeared to help separate the rest of the 
 brain cells from the immune cells. 
-But overall, data seems moderately clustered by cell type, and for PC1 in 
+Overall, data seems moderately clustered by cell type, and for PC1 in 
 particular, this appears to have been improved by the `scran` normalization.
-
-## Explore gene variance
-
-Even after normalization, our transcript data is being dominated by a few genes 
-that are highly expressed. 
-Some of these high expression genes are probably "housekeeping-like" in that 
-their expression patterns are stable across different circumstances. 
-These "housekeeping-like" genes are unlikely to help us determine biologically 
-meaningful gene expression patterns. 
-So another way to determine potential genes of interest is to calculate the 
-variance.
-
-```{r Calculate Gene Variance}
-# Create a gene variance vector
-gene_var <- apply(sce_norm, 1 , sd)
-
-# Create a gene mean vector
-gene_mean <- apply(sce_norm, 1 , mean)
-
-# Combine these into a data frame that also contains log(variance/mean)
-gene_stats <- data.frame(log_var = log2(1 + gene_var), 
-                         log_mean = log2(1 + gene_mean)) %>% 
-  dplyr::mutate(var_mean_ratio = (log_var - log_mean))
-```
-
-Let's plot the relationship of gene variance and gene means so we can get a 
-better idea of what kinds of genes we are working with.
-Here we will plot the `log(variance/mean)` against the `log(mean)` expression 
-for each gene.
-On your own, it's good practice to see how this graph changes 
-with changes of normalization parameters, as well as high variance gene cutoffs.
-
-```{r Plot Variance vs Means}
-# Let's plot this with ggplot2
-ggplot(gene_stats, aes(x = log_mean, y = var_mean_ratio)) +
-  # We are using alpha so that the points are more see-through
-  geom_point(alpha = 0.15) +
-  xlab("Gene log(Mean)") +
-  ylab("Gene log(Variance/Mean)") + 
-  cowplot::theme_cowplot() 
-```
-
-Because our x axis has the same data that we plotted in the above section, 
-you'll notice that we continue to see zero inflation that our single-cell is
-known for.
 
 ## Save the normalized data to tsv file
 
