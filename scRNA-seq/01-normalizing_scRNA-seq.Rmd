@@ -33,6 +33,9 @@ For these analyses, we will need `scater` and `scran` packages, which have been
 installed already on your Docker container. 
 
 ```{r Set Up}
+# Read in a function for filtering the gene matrix from a source script
+source(file.path("scripts", "GeneMatrixFilter.R"))
+
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
 
@@ -59,23 +62,214 @@ and could use these same steps to filter and normalize the data.
   
 ```{r Import Data}
 # Read in the data
-sc_data <- readr::read_tsv(file.path("data", "darmanis_counts.tsv"), 
+sc_data <- readr::read_tsv(file.path("data", "unfiltered_darmanis_counts.tsv"), 
                            progress = FALSE)
+
+# Read in the metadata
+sc_metadata <- readr::read_tsv(file.path("data", "unfiltered_darmanis_metadata.tsv"), 
+                               progress = FALSE)
 ```
+
+## Filter the counts matrix
+  
+Single-cell RNA-seq experiments are generally much larger dimensions than bulk 
+RNA-seq, since every individual cell is being measured. 
+However, due to the high risk of technical artifacts, we don't necessarily want 
+to keep the data for all the cells and genes. 
+
+There are different approaches to filtering your data. 
+In an ideal world, all RNA-seq data would come with the percent mapped reads 
+statistics associated with it. 
+This should be one of the first things you filter your data by.
+Side note: even the highest quality single-cell RNA-seq data still has much 
+lower percent mapped reads than bulk RNA-seq, so don't expect the same range of
+percent mapped reads of bulk RNA-seq.
+However, because a lot of publicly available data does not have percent mapped
+read statistics associated with it, we are going to attempt to get around this
+by trying other strategies of filtering first.
+
+#### Total counts as a quality measure
+
+One basic of method of exploring if a particular cell's data is trustworthy is
+seeing how many counts were measured total, over all the genes. 
+Let's take a look at this data from how many counts are there per sample:
+Note that for `apply` the second argument indicates whether the function you 
+specify is being applied across all the rows or the columns (1 = rows, 2 = columns).
+Also note that in this case we are excluding the `genes` column for the calculation. 
+
+```{r}
+# Make a vector of the total number of counts per sample
+total_counts <- apply(sc_data[, -1], 2, sum)
+
+# Take a look at the summary statistics for the total counts
+summary(total_counts)
+```
+
+Yikes, one of the samples has only 48 counts. 
+It's highly likely that this 'cell' is either an empty well or the well it was
+in didn't get sequenced properly. 
+Regardless of what may have happened, we can't trust that 'cell'.
+These kinds of things are to be expected; it's highly unlikely that when obtain 
+a single-cell RNA-seq dataset that all of cells within the set have reliable, 
+high quality data.
+
+This is why exploring your data and filtering it is important before we attempt to
+look for any biologically meaningful information. 
+  
+Let's visualize the distribution of total counts to see if the 48 count sample 
+is the only one we should get rid of.
+
+```{r Explore total counts distribution}
+# Let's take a look at what this looks like:
+hist(total_counts, col = "lightblue", breaks = 40);
+  # let's plot what we might want to be our cutoff:
+  abline(v = 50000, col = "red")
+```
+
+```{r Filter by total counts}
+# Filter our data based on this cutoff 
+sc_data_filtered <- sc_data %>% 
+  tibble::column_to_rownames("genes") %>%
+  dplyr::select(which(total_counts > 50000))
+
+# So we can be sure that our data matches or metadata, we will use a filter
+sc_metadata_filtered <- sc_metadata %>% 
+  dplyr::filter(geo_accession %in% colnames(sc_data_filtered))
+
+# Always good to double check that your data and your metadata matches
+all.equal(colnames(sc_data_filtered ), sc_metadata_filtered$geo_accession)
+```
+We got rid of some of the ridiculously low total count samples. 
+
+### Number of genes a cell expresses as a quality measure
+
+What if a particular cell has all its counts belonging to one gene?
+This cell would not have helpful data for us, so we should look to remove any 
+cells we suspect might not have a useful amount of its transcriptome measured.
+
+But before we can determine how many genes we consider a particular cell to be 
+expressing we need to determine a numeric cutoff for what we consider to be a 
+detected gene.
+How many counts must there be for you to consider a gene expressed? 
+For single-cell data, it is probably best to be a bit lenient due to the nature
+of the data. 
+Here let's go for a simple detection cutoff of > 0 
+
+```{r Create detection matrix}
+detection_mat <- as.matrix(sc_data_filtered) > 0 
+```
+
+Now that we have turned our data into a matrix of `TRUE/FALSE` for detection, we
+can sum this data by column to effectively get a vector of how many genes were 
+measured in each cell. 
+
+```{r}
+# Make a vector that contains the number of genes expressed by a particular cell
+num_genes_exp <- apply(detection_mat, 2, sum)
+
+# Let's take a look at what this looks like:
+qplot(num_genes_exp, geom = "density") + 
+  geom_density(fill = "lightblue")
+```
+
+This distribution makes it seem like maybe any cells expressing less than 750
+genes might be a good cutoff?
+
+But as you may have noticed in our `sc_metadata` we have cell-type information 
+for these data. 
+Let's use the power of our single-cell resolution data to our advantage and look 
+at this data with cell-type labels. 
+
+```{r}
+# Let's match this to the metadata so we can plot samples by their cell type
+num_genes_exp_df <- data.frame('geo_accession' = colnames(detection_mat), 
+                               num_genes_exp) %>% 
+  dplyr::inner_join(sc_metadata, by = 'geo_accession')
+
+# Plot these data
+ggplot(num_genes_exp_df, aes(x = num_genes_exp)) + 
+  geom_density(aes(color = cell.type.ch1)) +
+  geom_vline(xintercept = 200, color = "red")
+```
+
+### Number of samples that express a gene as a quality measure
+
+Now we have an idea of what samples we probably want to get rid of.
+But what if our data contains genes that we can't reliably measure in these cells?
+Some gene types, like many long non-coding RNAs for example, are very tissue 
+specific and wouldn't be useful for us to look at it. 
+For example if only one cell is supposedly expressing a particular gene at a low
+level, do we think that is biologically relevant, or is it more likely a 
+technical artifact? 
+Because our single-cell data is already riddled with zeroes, it's best just to 
+get rid of these genes that we suspect are not being reliably measured by many 
+cells. 
+To do this, we will use our detection matrix to add up how many samples express
+each of these genes. 
+
+```{r}
+# Make a vector that contains the number of cells that express a particular gene
+num_samples_that_exp <- apply(detection_mat, 1, sum)
+
+# Let's take a look at what this looks like:
+qplot(num_samples_that_exp, geom = "density") + 
+  geom_density(fill = "lightblue") +
+  geom_vline(xintercept = 5, col = "red")
+```
+
+### Apply a filter based on our criteria
+
+Now that we've explored our data, let's used the information we've learned to 
+actually filter our data.
+
+```{r Apply filter}
+sc_data_filtered <- GeneMatrixFilter(sc_data_filtered, 
+                                     min_counts = 0, 
+                                     num_samples = 5, 
+                                     num_genes = 200)
+```
+
+Let's see how our filter did in regards to getting rid of samples that are 
+likely bad quality according to percent mapped reads data.
+
+```{r Check percent mapped reads}
+# Let's read in the percent mapped reads data
+perc_map_reads <- readr::read_tsv(file.path("data",
+                                            "darmanis_percent_mapped_reads.tsv")) %>%
+  # Let's make a new variable that says whether or not the cell was filtered out
+  dplyr::mutate("kept" = geo_accession %in% colnames(sc_data_filtered)) 
+
+# Plot the densities of these data
+ggplot(perc_map_reads, aes(x = percent_mapped_reads, fill = kept)) +
+  geom_density(alpha = 0.15)
+```
+
+The samples we filtered out do appear to include the lower percent mapped reads 
+so this is decent support for our filtering methods.
 
 ## Set up a SingleCellExperiment object from count data
 
-```{r Set Up SCE Object}
+For the rest of this module and some of the upcoming modules, we are going to 
+use some single-cell RNA-seq R packages called `scater` and `scran` to do some 
+processing for us.
+The functions in these packages require the data to be in their own special 
+object type (not an uncommon thing for R packages to do) called `SingleCellExperiment`.
+So first, we are going to set up our data in this format.
+
+```{r Set up SCE object}
 # Prep a matrix with just the rounded counts so we can create an sce object
-counts_mat <- round(as.matrix(sc_data[, -1]))
+counts_mat <- round(as.matrix(sc_data_filtered))
 
 # Set up the Single Cell Experiment object 
 sce_raw <- SingleCellExperiment::SingleCellExperiment(list(counts = counts_mat))
 ```
 
-Use this space to explore the SingleCellExperiment object you just made.
+Special object type are difficult to use at times if we don't know what they 
+look like. 
+Based on things we've learned in the previous modules, use this space to explore
+the `SingleCellExperiment` object you just made.
 
-```{r}
+```{r Explore SCE structure}
 # The SingleCellExperiment is a special type of object used by scater and scran
 # R packages. 
 # Use what we've learned so far to identify how many genes and cells passed
@@ -94,42 +288,26 @@ qplot(gene_means, geom = "density", xlab = "counts") +
   geom_density(fill = "lightblue")
 ```
 
-The unnormalized, counts data has so many zeroes. 
-Actually for this dataset, 78.8% of the data points are zeroes, which is not 
+The unnormalized, counts data has so many zeroes, which we should expect. 
+For this dataset, 79.5% of the data points are zeroes, which is not 
 out of the ordinary for single-cell RNA-seq data. 
-So we can get a little bit more sensible of a graph, let's plot the same thing
-but log transformed.
-
-```{r}
-# Plot the log(means)
-qplot(log(1 + gene_means), geom = "density", xlab = "counts") + 
-  geom_density(fill = "lightblue")
-```
-
-As we should expect, our single-cell RNA-seq transcript counts consists of a few
-genes that are expressed a lot, and the rest of the genes are barely detected. 
+This means our data consists of a few genes that are expressed a lot, and the 
+rest of the genes are barely detected. 
 
 ## Normalization of count data 
 
 In whatever data we are working with, we are always looking to maximize biological 
 variance and minimize technical variance. 
 This is where normalization methods usually come into the workflow.
-For our data, many of these zeroes are likely biologically sensible: an individual
-cell doesn't need to express every gene.
-However, some of these zeroes might be technical in origin: we start with such 
-a small amount of RNA in single cell (we are potentially trying to detect just 
-a few RNA molecules that might exist for this gene in this cell).  
-  
-So ideally, we would like to avoid the technical zeroes, but leave the biological 
-zeroes alone.
-[Lun et al 2016]((https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7)) 
-developed a normalization method in `scran` that attempts to do this. 
+With this high amount of zeroes in our data, this makes normalization particularly
+tricky.
+So in order to normalize with less of these zeroes in the way, we normalize cells
+in groups with other cells like them; a method determine by [Lun et al 2016](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
   
 *Overall strategy for `scran::computeSumFactors` based normalization:*
 1) Group cells with other like cells by clustering.  
 2) Compute sum factors for each cell cluster grouping.  
-3) Estimate new counts using linear algebra.  
-4) Normalize by the total reads with counts per million reads (CPMs).  
+3) Normalize using these pooled sum factors to create log counts per million reads (CPMs).  
   
 Because of differences in sequencing depth, it's pretty common to try to correct
 for this by using total per million reads.
@@ -139,56 +317,102 @@ total per million reads for a sample such as counts per million reads (CPMs),
 
 #### Normalization step 1: Estimate cell clusters:
 
+Using a quick clustering, let's determine groupiungs for our cells that we will
+normalize by.
+
 ```{r}
 # Calculate clusters (can adjust min.size depending on clusters sizes you may 
 # expect based on prior knowledge)
-qclust <- scran::quickCluster(sce_raw, min.size = 100)
-
-# Look at the group sizes before we continue:
-summary(qclust)
+qclust <- scran::quickCluster(sce_raw)
 ```
 
 #### Normalization step 2: Compute sum factors:
 
-Computer factors for each sample using the clusters we just made.
+Compute factors for each sample using the clusters we just made.
 
 ```{r}
 # Calculate the size factors based on the clusters
 sce_raw <- scran::computeSumFactors(sce_raw, clusters = qclust)
 ```
 
-#### Normalization step 3 and 4: Calculate CPMs and normalize using sum factors:
+The authors of `scran` recommend removing cells that have negative size factors, 
+so we will do that here. 
+Of course, if you have a lot of cells that turn up has negative size factors, 
+you should probably reconsider your filter and/or whether something has affected
+the quality of your data. 
+
+```{r Remove negative size factor cells}
+# Extract the negative factor data
+neg.fact <- which(sce_raw@int_colData@listData$size_factor <= 0)
+
+# Let's see how many cells this is
+length(neg.fact)
+
+# Since it's only three, let's go ahead and remove them from the data
+sce_raw <- sce_raw[, -neg.fact]
+
+# Take these out the metadata too
+sc_metadata_filtered <- sc_metadata_filtered %>%
+  dplyr::filter(geo_accession %in% sce_raw@colData@rownames)
+```
+
+#### Normalization step 3: Calculate pooled CPMs and normalize using sum factors:
 
 For more details on the normalization [read here](https://rdrr.io/bioc/scran/man/computeSumFactors.html)
 
 ```{r Normalize the Data}
 # Normalize the data
-sce_norm <- scater::calculateCPM(sce_raw, use_size_factors = TRUE)
+sce_norm <- scater::normalize(sce_raw)
 ```
 
-## Explore and compare normalized data to counts
+## Compare normalized data to count data
 
-Let's recreate the plot we did before, except now, let's put our scran 
-normalized plotted next to it.
+One way to determine whether our normalization is yielding biolgically relevant 
+results, is to plot it and see if similarly labeled samples and cells end up 
+together.
+Because plotting 1000's of genes together isn't practical, we will reduce the 
+dimensions of our data using Principal Components Analysis. 
+Note that the `t()` function is being used here to transpose the `matrix`, so 
+it is samples x genes. 
+Because, in this instance, we would like to have PCA scores for each cell.
+We could however, obtain PCA scores for each gene if we didn't transpose our
+data.frame first. 
 
 ```{r}
-# Get means of raw and normalized datasets
-all_means <- list("log_counts" = apply(log(1 + counts(sce_raw)), 1, mean), 
-                  "log_scran" = apply(log(1 + sce_norm), 1, mean))
+# Use PCA for dimension reduction of cells' raw data
+count_pca <- prcomp(t(counts(sce_raw)))
 
-# Make into a dataframe so ggplot likes it
-all_means <- reshape2::melt(all_means) %>%
-  dplyr::mutate("dataset" = factor(L1, levels = c("log_counts", "log_scran"))) %>% 
-  dplyr::select(-L1)
-
-# Plot the density of the means 
-ggplot(all_means, aes(x = value)) +
-  geom_density(fill = "lightblue") +
-  facet_wrap(~dataset)
+# Use PCA for dimension reduction of cells' scran normalized data
+norm_pca <- prcomp(t(logcounts(sce_norm)))
 ```
 
-The scran normalized data doesn't look quite as 0 heavy as the counts data, 
-although we can see it's still clearly skewed to the right. 
+There's a lot of data we can pull from these `prcomp` objects, but for now, 
+we need the PCA scores for the samples.
+In order to retrieve the PCA scores, we will use `$x` at the end of our `prcomp`
+objects and because we only really want
+
+```{r Graph PCA}
+# Make this into a dataframe for easy graphing 
+pca_scores <- rbind.data.frame(count_pca$x[, 1:2], 
+                               norm_pca$x[, 1:2]) %>% 
+  # Make data and cell type labels
+  dplyr::mutate("data_label" = c(rep("counts", nrow(count_pca$x)),
+                                 rep("norm", nrow(norm_pca$x))),
+                "cell_type" = rep(sc_metadata_filtered$cell.type.ch1, 2)) %>%
+  # Change these into factors
+  dplyr::mutate("data_label" = as.factor(data_label),
+                "cell_type" = as.factor(cell_type))
+
+# Now plot it
+ggplot(pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+  geom_point() +
+  facet_wrap(~data_label, scales = "free")
+```
+
+The normalization in particular has appeared to help separate the rest of the 
+brain cells from the immune cells. 
+But overall, data seems moderately clustered by cell type, and for PC1 in 
+particular, this appears to have been improved by the `scran` normalization.
 
 ## Explore gene variance
 
@@ -203,16 +427,14 @@ variance.
 
 ```{r Calculate Gene Variance}
 # Create a gene variance vector
-# Here we use the apply function to tell R to peform the function over all the 
-# rows (use 1 for rows, 2 for columns)
 gene_var <- apply(sce_norm, 1 , sd)
 
 # Create a gene mean vector
 gene_mean <- apply(sce_norm, 1 , mean)
 
 # Combine these into a data frame that also contains log(variance/mean)
-gene_stats <- data.frame(log_var = log(1 + gene_var), 
-                         log_mean = log(1 + gene_mean)) %>% 
+gene_stats <- data.frame(log_var = log2(1 + gene_var), 
+                         log_mean = log2(1 + gene_mean)) %>% 
   dplyr::mutate(var_mean_ratio = (log_var - log_mean))
 ```
 
@@ -237,9 +459,6 @@ Because our x axis has the same data that we plotted in the above section,
 you'll notice that we continue to see zero inflation that our single-cell is
 known for.
 
-Question: Which the genes plotted here might be of particular interest for our 
-further analyses?
-
 ## Save the normalized data to tsv file
 
 In case we wanted to return to this data later, let's save the normalized data
@@ -248,8 +467,8 @@ to a tsv file.
 
 ```{r Save Data to .tsv}
 # Save this gene matrix to a tsv file
-sce_norm %>% as.data.frame() %>%
-  readr::write_tsv(file.path("data", "normalized_gbm_gene_matrix.tsv"))
+logcounts(sce_norm) %>% as.data.frame() %>%
+  readr::write_tsv(file.path("data", "scran_norm_gbm_gene_matrix.tsv"))
 ```
 
 ### Print session info
