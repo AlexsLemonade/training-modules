@@ -5,9 +5,9 @@
 #### In this section, we will be running through the basics of pre-processing single-cell RNA-seq data.
 
 We will be using a tag-based scRNA-seq sample from [Tabula Muris data](https://www.nature.com/articles/s41586-018-0590-4).
-This dataset is made of 20 mouse organs that were sequenced using 10X Genomics 
-Chromium single cell sequencing methods. 
-In these methods, cells are separated by emulsion/droplets, and individual cells
+This dataset is made of 20 mouse organs that were sequenced using 10X Genomics
+Chromium single cell sequencing methods.
+For 10X Genomics scRNA-seq data, cells are separated by emulsion/droplets, and individual cells
 are given barcodes.
 These data also have
 [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772)
@@ -19,9 +19,11 @@ Salmon, just like was done in the bulk RNA-seq module.
 
 ## Steps for Processing scRNA-seq Data:
 
-### Step 0: Obtaining the data
+### Step 0: About the data
 
-We obtained these data from Tabula Muris project's [Figshare](https://figshare.com/projects/Tabula_Muris_Transcriptomic_characterization_of_20_organs_and_tissues_from_Mus_musculus_at_single_cell_resolution/27733) 
+We obtained these data from Tabula Muris project's [Figshare](https://figshare.com/projects/Tabula_Muris_Transcriptomic_characterization_of_20_organs_and_tissues_from_Mus_musculus_at_single_cell_resolution/27733)
+The bam files that were on Figshare were converted to fastq files using
+`CellRanger bamtofastq`.
 We will process a fastq file from mouse bladder for this as an example.  
 To limit the amount of time this takes to run in the context of this workshop,
 we have subset this fastq file.
@@ -146,4 +148,3 @@ alevinQC::alevinQCReport(alevin_file,
 ```
 Now you can check out "tabula_muris_P3_S1_L001_R1_001_qc_report.html" in order to examine
 the quality of your data and performance of Alevin.
-
