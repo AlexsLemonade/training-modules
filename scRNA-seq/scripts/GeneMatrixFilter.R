@@ -31,6 +31,12 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, num_samples = 100,
       dataset <- apply(dataset, 2, round)
     }
 
+    # Filter samples that express at least 100 genes
+    sample.sum <- apply(dataset > min_counts, 2, sum)
+    
+    # Keep the samples we want to keep
+    dataset <- dataset[, which(sample.sum > num_genes)]
+    
     # Find genes that are expressed in _% of cells
     gene.sum <- apply(dataset > min_counts, 1, sum)
 
@@ -40,12 +46,6 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, num_samples = 100,
     # Only keep those genes
     dataset <- dataset[genes.keep, ]
     gene <- gene[genes.keep, ]
-
-    # Filter samples that express at least 100 genes
-    sample.sum <- apply(dataset >= min_counts, 2, sum)
-
-    # Keep the samples we want to keep
-    dataset <- dataset[, which(sample.sum > num_genes) ]
 
     # Need the genes to be its own column
     dataset <- data.frame(gene, dataset)
