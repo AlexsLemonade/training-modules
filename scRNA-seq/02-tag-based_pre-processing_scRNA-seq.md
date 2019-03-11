@@ -4,12 +4,14 @@
 
 #### In this section, we will be running through the basics of pre-processing single-cell RNA-seq data.
 
-We will be using a peripheral blood mononuclear cells (pbmc's) 10X Genomics [(Zheng et al, 2017)](https://www.ncbi.nlm.nih.gov/pubmed/28091601) dataset as an example.
-For 10X Genomics scRNA-seq data, cells are separated by emulsion/droplets, and
-individual cells are given barcodes.
+We will be using a tag-based scRNA-seq sample from [Tabula Muris data](https://www.nature.com/articles/s41586-018-0590-4).
+This dataset is made of 20 mouse organs that were sequenced using 10X Genomics 
+Chromium single cell sequencing methods. 
+In these methods, cells are separated by emulsion/droplets, and individual cells
+are given barcodes.
 These data also have
 [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772)
-which allow us to better control for PCR amplification errors and biases.
+which allow us to examine PCR amplification errors and biases.
 
 *Note*: Raw single-cell RNA-seq data from non-tag-based methods, like the Smart-seq2
 dataset we were working with in the previous section, can be processed using
@@ -19,12 +21,10 @@ Salmon, just like was done in the bulk RNA-seq module.
 
 ### Step 0: Obtaining the data
 
-10X Genomics has plenty of [datasets](https://support.10xgenomics.com/single-cell-gene-expression/datasets)
-available to play around with.
-For this example, we will use the [1k pbmc](https://support.10xgenomics.com/single-cell-gene-expression/datasets/3.0.0/pbmc_1k_v2).
-We will process a fastq file of this as an example.  
+We obtained these data from Tabula Muris project's [Figshare](https://figshare.com/projects/Tabula_Muris_Transcriptomic_characterization_of_20_organs_and_tissues_from_Mus_musculus_at_single_cell_resolution/27733) 
+We will process a fastq file from mouse bladder for this as an example.  
 To limit the amount of time this takes to run in the context of this workshop,
- we have subset this fastq file
+we have subset this fastq file.
 
 *Note*: depending on the state of the data you are working with, ie. if you have
 a `.bcl` file, you will need to use `CellRanger` with their `mkfastq` command to
@@ -56,8 +56,8 @@ built for you.
 But for your own reference, here is how you'd do it yourself:
 ```
 salmon --threads=16 --no-version-check index \
-  -t Homo_sapiens.GRCh38.cdna.all.fa.gz \
-  -i human_index \
+  -t Mus_musculus.GRCm38.cdna.all.fa.gz \
+  -i mouse_index \
   -k 23
 ```
 
@@ -105,8 +105,8 @@ Copy and paste this in your command line to run Alevin quantification.
 ```
 salmon alevin -l ISR \
   -i data/human_index \
-  -1 data/pbmc_1k_v2_S1_L001_R1_subset.fastq.gz \
-  -2 data/pbmc_1k_v2_S1_L001_R2_subset.fastq.gz \
+  -1 data/tabula_muris_P4_3_S1_L001_R1_001.fastq.gz \
+  -2 data/tabula_muris_P4_3_S1_L001_R2_001.fastq.gz \
   --chromium  \
   -p 10 \
   -o alevin_output \
@@ -139,13 +139,11 @@ This will provide html output with graphs evaluating the data.
 ```r
 # Produce a QC report
 alevinQC::alevinQCReport(alevin_file,
-                         sampleId = "pbmc_1k_v2_S1_L001_subset",
-                         outputFile = "pbmc_1k_v2_S1_L001_qc_report.html",
+                         sampleId = "tabula_muris_P4_3_S1_L001_R1_001",
+                         outputFile = "tabula_muris_P4_3_S1_L001_R1_001_qc_report.html",
                          outputDir = "data",
                          outputFormat = "html_document")
 ```
-Now you can check out "pbmc_1k_v2_S1_L001_qc_report.html" in order to examine
+Now you can check out "tabula_muris_P3_S1_L001_R1_001_qc_report.html" in order to examine
 the quality of your data and performance of Alevin.
 
-Here's the full pbmc dataset to compare to:
-[Full 10k pbmc dataset](https://alexslemonade.github.io/training-modules/scRNA-seq/data/pbmc_10k_v3_S1_L002_qc_report.html).
