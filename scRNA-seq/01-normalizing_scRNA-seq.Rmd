@@ -217,6 +217,11 @@ ggplot(num_genes_exp_df, aes(x = num_genes_exp)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+Although a cutoff of 750 will disproportionally affect the astrocytes and
+oligodendrocytes, it looks like this overall will be a decent cutoff. 
+It was good for us to map the samples by their cell types so that way we know 
+how this may be affecting different cell types differently. 
+
 ### Number of samples that express a gene as a quality measure
 
 Now we have an idea of what samples we probably want to get rid of.
@@ -253,6 +258,10 @@ sc_data_filtered <- GeneMatrixFilter(sc_data_filtered,
                                      min_counts = 0, 
                                      num_samples = 10, 
                                      num_genes = 750)
+
+# Filter metadata accordingly again
+sc_metadata_filtered <- sc_metadata_filtered %>% 
+  dplyr::filter(geo_accession %in% colnames(sc_data_filtered))
 ```
 
 Let's see how our filter did in regards to getting rid of samples that are 
@@ -326,13 +335,14 @@ normalize by.
 This step may take a minute or so.
 
 ```{r}
-# Calculate clusters (can adjust min.size depending on clusters sizes you may 
-# expect based on prior knowledge)
+# Set seed for reproducibility
+set.seed(1234)
+
+# Run clustering
 qclust <- scran::quickCluster(sce_raw)
 ```
 
 #### Normalization step 2: Compute sum factors:
-TODO: set seed
 
 Compute factors for each sample using the clusters we just made.
 For more details on the `computeSumFactors` step [read here](https://rdrr.io/bioc/scran/man/computeSumFactors.html)
@@ -347,21 +357,6 @@ so we will do that here.
 Of course, if you have a lot of cells that turn up has negative size factors, 
 you should probably reconsider your filter and/or whether something has affected
 the quality of your data. 
-
-```{r Remove negative size factor cells}
-# Extract the negative factor data
-neg.fact <- which(sce_raw@int_colData@listData$size_factor <= 0)
-
-# Let's see how many cells this is
-length(neg.fact)
-
-# Since it's only a few let's go ahead and remove them from the data
-sce_raw <- sce_raw[, -neg.fact]
-
-# Take these out the metadata too
-sc_metadata_filtered <- sc_metadata_filtered %>%
-  dplyr::filter(geo_accession %in% sce_raw@colData@rownames)
-```
 
 #### Normalization step 3: Calculate pooled CPMs and normalize using sum factors:
 
