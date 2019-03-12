@@ -142,7 +142,7 @@ hist(total_counts, col = "lightblue", breaks = 40);
   abline(v = 50000, col = "red")
 ```
 
-Let's filter out some of the samples that have a lower amount of total counts. 
+Let's filter out some of the samples that have lower amount total counts. 
 We also will need to remove these samples from our metadata.
 
 ```{r Filter by total counts}
@@ -260,26 +260,6 @@ sc_metadata_filtered <- sc_metadata_filtered %>%
   dplyr::filter(geo_accession %in% colnames(sc_data_filtered))
 ```
 
-Let's see how our filter did in regards to getting rid of samples that are 
-likely bad quality according to percent mapped reads data.
-
-```{r Check percent mapped reads}
-# Let's read in the percent mapped reads data
-perc_map_reads <- readr::read_tsv(file.path("data",
-                                            "darmanis_percent_mapped_reads.tsv")) %>%
-  # Let's make a new variable that says whether or not the cell was filtered out
-  dplyr::mutate("kept" = geo_accession %in% colnames(sc_data_filtered)) 
-
-# Plot the densities of these data
-ggplot(perc_map_reads, aes(x = perc_mapped_reads, fill = kept)) +
-  geom_density(alpha = 0.15) + 
-  colorblindr::scale_fill_OkabeIto() +
-  cowplot::theme_cowplot() 
-```
-
-The samples we filtered out do appear to include the lower percent mapped reads 
-so this is decent support for our filtering methods.
-
 ## Set up a SingleCellExperiment object from count data
 
 For the rest of this module and some of the upcoming modules, we are going to 
@@ -372,7 +352,7 @@ Because plotting 1000's of genes together isn't practical, we will reduce the
 dimensions of our data using Principal Components Analysis. 
 Note that the `t()` function is being used here to transpose the `matrix`, so 
 it is samples x genes. 
-Because, in this instance, we would like to have PCA scores for each cell.
+in this instance, we would like to have PCA scores for each cell.
 We could however, obtain PCA scores for each gene if we didn't transpose our
 data.frame first. 
 
@@ -384,11 +364,8 @@ count_pca <- prcomp(t(counts(sce_raw)))
 norm_pca <- prcomp(t(logcounts(sce_norm)))
 ```
 
-There's a lot of data we can pull from these `prcomp` objects, but for now, 
-we need the PCA scores for the samples.
-In order to retrieve the PCA scores, we will use `$x` at the end of our `prcomp`
-objects and because we only really want the PCA scores so we can make our 
-scatterplot.
+Now we will retrieve the PCA scores, by using `$x` at the end of our `prcomp`
+objects. 
 
 ```{r Graph PCA}
 # Make this into a dataframe for easy graphing 
