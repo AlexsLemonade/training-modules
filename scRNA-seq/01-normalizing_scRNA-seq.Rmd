@@ -24,9 +24,9 @@ Single-cell RNA-seq data zero inflation occurs because of biological and
 technical reasons. 
 - _Biologically_, zeroes may arise because a cell doesn't express a gene at a 
 particular point in time. 
-- Alternatively, zeroes as a result of _technical_ issues, called  gene _dropout_,
-are when a cell may have actually expressed a gene but this wasn't detected by 
-sequencing. 
+- Alternatively, zeroes arise from _technical_ issues, such as an expressed 
+gene that was not detected by sequencing. 
+This is called  gene _dropout_. 
   
 For this tutorial, we will be using a pair of single-cell analysis specific 
 R packages: `scater` and `scran` to work with our data. 
@@ -90,17 +90,15 @@ qplot(gene_means, geom = "density", xlab = "gene mean counts") +
   cowplot::theme_cowplot() 
 ```
 
-The unnormalized, counts data has so many zeroes, which we should expect. 
-For this dataset, 83.3% of the data points are zeroes, which is not 
-out of the ordinary for single-cell RNA-seq data. 
+The counts data has so many zeroes, which we should expect. 
+83.3% of the data points are zeroes. 
+This is not out of the ordinary for single-cell RNA-seq data. 
 This means our data consists of a few genes that are expressed a lot, and the 
 rest of the genes are barely detected. 
 
 ## Filter the counts matrix
   
-Single-cell RNA-seq experiments are generally much larger dimensions than bulk 
-RNA-seq, since every individual cell is being measured. 
-However, due to the high risk of technical artifacts, we don't necessarily want 
+Due to the high risk of technical artifacts, we don't necessarily want 
 to keep the data for all the cells and genes. 
 The small amount of RNA in a single cell results in higher chances of errors or 
 biases in amplification steps for some genes. 
@@ -108,7 +106,7 @@ biases in amplification steps for some genes.
 #### Total counts as a quality measure
 
 One basic of method of exploring if a particular cell's data is trustworthy is
-seeing how many counts were measured total, over all the genes. 
+seeing how many counts were measured in total. 
 Let's take a look at this data from how many counts are there per sample:
 Note that for `apply` the second argument indicates whether the function you 
 specify is being applied across all the rows or the columns (1 = rows, 2 = columns).
@@ -123,20 +121,19 @@ summary(total_counts)
 ```
 
 Yikes, one of the samples has only 48 counts. 
-It's highly likely that this 'cell' is either an empty well or the well it was
-in didn't get sequenced properly. 
+It's highly likely that this 'cell' is either an empty well or did not get 
+sequenced properly. 
 Regardless of what may have happened, we can't trust that sample.
-These kinds of things are to be expected; it's highly unlikely that when obtain 
-a single-cell RNA-seq dataset that all of cells within the set have reliable, 
-high quality data.
+These kinds of things are to be expected; it's highly unlikely that all cells
+within the set have reliable, high-quality data.
 
-This is why exploring your data and filtering it is important before we attempt to
-look for any biologically meaningful information. Let's visualize the 
-distribution of total counts to see if the 48 count sample is the only one we 
-should get rid of.
+This is why exploring and filtering your data prior to performing analysis is 
+important.
+Let's visualize the distribution of total counts to see if the 48 count sample 
+is the only one we should get rid of.
 
-For the following graphs, we will use vertical red lines to indicate where 
-maybe a suggested cutoff should go.
+For the following graphs, we will use vertical red lines to indicate possible 
+cutoffs. 
 
 ```{r Explore total counts distribution}
 # Let's take a look at what this looks like:
@@ -146,7 +143,7 @@ hist(total_counts, col = "lightblue", breaks = 40);
 ```
 
 Let's filter out some of the samples that have a lower amount of total counts. 
-We also will need to filter the samples in our metadata so it matches our data.
+We also will need to remove these samples from our metadata.
 
 ```{r Filter by total counts}
 # Filter our data based on this cutoff 
@@ -164,7 +161,7 @@ all.equal(colnames(sc_data_filtered), sc_metadata_filtered$geo_accession)
 
 ### Number of genes a cell expresses as a quality measure
 
-What if a particular cell has all its counts belonging to one gene?
+What if a single gene accounted for all counts in a particular cell?
 This cell would not have helpful data for us, so we should look to remove any 
 cells we suspect might not have a useful amount of its transcriptome measured.
 
@@ -174,7 +171,7 @@ detected gene.
 How many counts must there be for you to consider a gene expressed? 
 For single-cell data, it is probably best to be a bit lenient due to the nature
 of the data. 
-Here let's go for a simple detection cutoff of > 0 
+Here let's go for a simple detection cutoff of > 0. 
 
 ```{r Create detection matrix}
 detection_mat <- as.matrix(sc_data_filtered) > 0 
@@ -219,8 +216,8 @@ ggplot(num_genes_exp_df, aes(x = num_genes_exp)) +
 
 Although a cutoff of 750 will disproportionally affect the astrocytes and
 oligodendrocytes, it looks like this overall will be a decent cutoff. 
-It was good for us to map the samples by their cell types so that way we know 
-how this may be affecting different cell types differently. 
+It was good to plot cell types separately. 
+That way we know how this may be affecting different cell types differently. 
 
 ### Number of samples that express a gene as a quality measure
 
@@ -231,9 +228,8 @@ specific and wouldn't be useful for us to look at it.
 For example if only one cell is supposedly expressing a particular gene at a low
 level, do we think that is biologically relevant, or is it more likely 
 _gene dropout_, due to some amplification issue? 
-Because our single-cell data is already riddled with zeroes, it's best just to 
-get rid of these genes that we suspect are not being reliably measured by many 
-cells. 
+It's best just to get rid of these genes that we suspect are not being reliably 
+measured by many cells. 
 To do this, we will use our detection matrix to add up how many samples express
 each of these genes. 
 
@@ -360,7 +356,7 @@ the quality of your data.
 
 #### Normalization step 3: Calculate pooled CPMs and normalize using sum factors:
 
-For more details on the normalization step [read here](https://bioconductor.org/packages/release/bioc/vignettes/scran/inst/doc/scran.html)
+You can find more details on the normalization step [here](https://bioconductor.org/packages/release/bioc/vignettes/scran/inst/doc/scran.html)
 
 ```{r Normalize the Data}
 # Normalize the data
@@ -369,7 +365,7 @@ sce_norm <- scater::normalize(sce_raw)
 
 ## Compare normalized data to count data
 
-One way to determine whether our normalization is yielding biologically relevant 
+One way to determine whether our normalization yields biologically relevant 
 results, is to plot it and see if similarly labeled samples and cells end up 
 together.
 Because plotting 1000's of genes together isn't practical, we will reduce the 

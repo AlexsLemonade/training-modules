@@ -1,10 +1,14 @@
 # C.Savonen, CCDL for ALSF
 # 2018
 
-GeneMatrixFilter <- function(dataset, min_counts = 1, num_samples = 100,
-                             num_genes = 100, round_opt = FALSE) {
-    # This function is filters and makes dataset into ASAP format and assumes gene info
-    # is the first column
+GeneMatrixFilter <- function(dataset, min_counts = 1, num_genes = 100,
+                             num_samples = 100, round_opt = FALSE) {
+    # This function filters a gene matrix that is a data.frame.
+    # First it filters the samples/cells based on the number of genes a they
+    # express (num_genes); then it filters genes based on how many samples
+    # express it (num_samples)
+    # If the matrix has a "genes" column that is labeled with "gene" in the column
+    # name it will be kept in the output.
     # Args:
     #  dataset: a gene expression data.frame that is gene x samples, with the column
     #           that has gene information containing the words "gene"
@@ -17,13 +21,12 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, num_samples = 100,
     #  round_opt: If you want the data to be rounded to no decimal points, then
     #             Put TRUE. Otherwise default is FALSE.
     # Returns:
-    #   A filtered gene expression data.frame, that is able to be submitted to ASAP
-    # Get rid of decimal points
+    #   A filtered gene matrix as a data.frame based on the criteria given.
     #
     # Store the genes separately
     gene <- dataset %>% dplyr::select(dplyr::contains("gene"))
 
-    # Get rid of gene column while we play with this
+    # Get rid of gene column while we calculate things
     dataset <- dataset %>% dplyr::select(-dplyr::contains("gene"))
 
     # round the data only if the option says to
@@ -31,13 +34,13 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, num_samples = 100,
       dataset <- apply(dataset, 2, round)
     }
 
-    # Filter samples that express at least 100 genes
+    # Calculate how many genes a sample expresses based on min_counts
     sample.sum <- apply(dataset > min_counts, 2, sum)
-    
+
     # Keep the samples we want to keep
     dataset <- dataset[, which(sample.sum > num_genes)]
-    
-    # Find genes that are expressed in _% of cells
+
+    # Calculate how many samples express a particular gene
     gene.sum <- apply(dataset > min_counts, 1, sum)
 
     # Get indices of genes that meet criteria
@@ -47,7 +50,7 @@ GeneMatrixFilter <- function(dataset, min_counts = 1, num_samples = 100,
     dataset <- dataset[genes.keep, ]
     gene <- gene[genes.keep, ]
 
-    # Need the genes to be its own column
+    # Reattach the gene names column
     dataset <- data.frame(gene, dataset)
 
     return(dataset)
