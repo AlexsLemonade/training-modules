@@ -18,12 +18,18 @@ in single-cell RNA-seq:
 
 - Requires more PCR amplification (and therefore more PCR-associated biases and
 error).  
-- Has more zeroes in the gene expression data (most genes aren't expressed 
-across cell types).  
-People sometimes refer to this as "sparsity" or "dropout."  
+- Has more zeroes in the gene expression data (called 'zero inflation').  
+
+Single-cell RNA-seq data zero inflation occurs because of biological and 
+technical reasons. 
+- _Biologically_, zeroes may arise because a cell doesn't express a gene at a 
+particular point in time. 
+- Alternatively, zeroes arise from _technical_ issues, such as an expressed 
+gene that was not detected by sequencing. 
+This is called  gene _dropout_. 
   
 For this tutorial, we will be using a pair of single-cell analysis specific 
-R packages: `scater` and `scran`. 
+R packages: `scater` and `scran` to work with our data. 
 This tutorial is in part based on the [scran
 tutorial.](https://bioconductor.org/packages/devel/bioc/vignettes/scran/inst/doc/scran.html)
   
@@ -50,7 +56,7 @@ This [data set](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465)
 we are using is glioblastoma data that was Fluorescence-Activated Cell sorted 
 and then was processed by paired end sequencing using Smart-seq2 protocol 
 [(Darmanis et al. _Cell Reports._ 2017.).](https://www.ncbi.nlm.nih.gov/pubmed/29091775).
-We're using a subset of this dataset (n = 786 cells).
+We're using a subset of this dataset (n = 1854 cells).
 You have been provided with a counts matrix from single-cell RNA-seq data that 
 has already been processed using `Salmon` and `tximport` and saved the counts to 
 a tsv file. 
@@ -70,28 +76,37 @@ sc_metadata <- readr::read_tsv(file.path("data", "unfiltered_darmanis_metadata.t
                                progress = FALSE)
 ```
 
+Now that we have loaded our data, let's take a look at what it looks like 
+overall. 
+To do this, let's calculate the gene means and make a density plot. 
+
+```{r}
+# Let's calculate the gene means and make a density plot
+gene_means <- apply(sc_data[, -1], 1, mean)
+
+# Plot the means
+qplot(gene_means, geom = "density", xlab = "gene mean counts") + 
+  geom_density(fill = "lightblue") +
+  cowplot::theme_cowplot() 
+```
+
+The counts data has so many zeroes, which we should expect. 
+83.3% of the data points are zeroes. 
+This is not out of the ordinary for single-cell RNA-seq data. 
+This means our data consists of a few genes that are expressed a lot, and the 
+rest of the genes are barely detected. 
+
 ## Filter the counts matrix
   
-Single-cell RNA-seq experiments are generally much larger dimensions than bulk 
-RNA-seq, since every individual cell is being measured. 
-However, due to the high risk of technical artifacts, we don't necessarily want 
+Due to the high risk of technical artifacts, we don't necessarily want 
 to keep the data for all the cells and genes. 
-
-There are different approaches to filtering your data. 
-In an ideal world, all RNA-seq data would come with the percent mapped reads 
-statistics associated with it. 
-This should be one of the first things you filter your data by.
-Side note: even the highest quality single-cell RNA-seq data still has much 
-lower percent mapped reads than bulk RNA-seq, so don't expect the same range of
-percent mapped reads of bulk RNA-seq.
-However, because a lot of publicly available data does not have percent mapped
-read statistics associated with it, we are going to attempt to get around this
-by trying other strategies of filtering first.
+The small amount of RNA in a single cell results in higher chances of errors or 
+biases in amplification steps for some genes. 
 
 #### Total counts as a quality measure
 
 One basic of method of exploring if a particular cell's data is trustworthy is
-seeing how many counts were measured total, over all the genes. 
+seeing how many counts were measured in total. 
 Let's take a look at this data from how many counts are there per sample:
 Note that for `apply` the second argument indicates whether the function you 
 specify is being applied across all the rows or the columns (1 = rows, 2 = columns).
@@ -106,20 +121,19 @@ summary(total_counts)
 ```
 
 Yikes, one of the samples has only 48 counts. 
-It's highly likely that this 'cell' is either an empty well or the well it was
-in didn't get sequenced properly. 
-Regardless of what may have happened, we can't trust that 'cell'.
-These kinds of things are to be expected; it's highly unlikely that when obtain 
-a single-cell RNA-seq dataset that all of cells within the set have reliable, 
-high quality data.
+It's highly likely that this 'cell' is either an empty well or did not get 
+sequenced properly. 
+Regardless of what may have happened, we can't trust that sample.
+These kinds of things are to be expected; it's highly unlikely that all cells
+within the set have reliable, high-quality data.
 
-This is why exploring your data and filtering it is important before we attempt to
-look for any biologically meaningful information. Let's visualize the 
-distribution of total counts to see if the 48 count sample is the only one we 
-should get rid of.
+This is why exploring and filtering your data prior to performing analysis is 
+important.
+Let's visualize the distribution of total counts to see if the 48 count sample 
+is the only one we should get rid of.
 
-For the following graphs, we will use vertical red lines to indicate where 
-maybe a suggested cutoff should go.
+For the following graphs, we will use vertical red lines to indicate possible 
+cutoffs. 
 
 ```{r Explore total counts distribution}
 # Let's take a look at what this looks like:
@@ -127,6 +141,9 @@ hist(total_counts, col = "lightblue", breaks = 40);
   # let's plot what we might want to be our cutoff:
   abline(v = 50000, col = "red")
 ```
+
+Let's filter out some of the samples that have lower amount total counts. 
+We also will need to remove these samples from our metadata.
 
 ```{r Filter by total counts}
 # Filter our data based on this cutoff 
@@ -139,12 +156,12 @@ sc_metadata_filtered <- sc_metadata %>%
   dplyr::filter(geo_accession %in% colnames(sc_data_filtered))
 
 # Always good to double check that your data and your metadata matches
-all.equal(colnames(sc_data_filtered ), sc_metadata_filtered$geo_accession)
+all.equal(colnames(sc_data_filtered), sc_metadata_filtered$geo_accession)
 ```
 
 ### Number of genes a cell expresses as a quality measure
 
-What if a particular cell has all its counts belonging to one gene?
+What if a single gene accounted for all counts in a particular cell?
 This cell would not have helpful data for us, so we should look to remove any 
 cells we suspect might not have a useful amount of its transcriptome measured.
 
@@ -154,7 +171,7 @@ detected gene.
 How many counts must there be for you to consider a gene expressed? 
 For single-cell data, it is probably best to be a bit lenient due to the nature
 of the data. 
-Here let's go for a simple detection cutoff of > 0 
+Here let's go for a simple detection cutoff of > 0. 
 
 ```{r Create detection matrix}
 detection_mat <- as.matrix(sc_data_filtered) > 0 
@@ -191,9 +208,16 @@ num_genes_exp_df <- data.frame('geo_accession' = colnames(detection_mat),
 # Plot these data
 ggplot(num_genes_exp_df, aes(x = num_genes_exp)) + 
   geom_density(fill = "lightblue") +
-  facet_wrap(~cell.type.ch1) +
-  cowplot::theme_cowplot() 
+  geom_vline(xintercept = 750, color = "red") + 
+  facet_wrap(~ cell.type.ch1) +
+  cowplot::theme_cowplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
+
+Although a cutoff of 750 will disproportionally affect the astrocytes and
+oligodendrocytes, it looks like this overall will be a decent cutoff. 
+It was good to plot cell types separately. 
+That way we know how this may be affecting different cell types differently. 
 
 ### Number of samples that express a gene as a quality measure
 
@@ -202,11 +226,10 @@ But what if our data contains genes that we can't reliably measure in these cell
 Some gene types, like many long non-coding RNAs for example, are very tissue 
 specific and wouldn't be useful for us to look at it. 
 For example if only one cell is supposedly expressing a particular gene at a low
-level, do we think that is biologically relevant, or is it more likely a 
-technical artifact? 
-Because our single-cell data is already riddled with zeroes, it's best just to 
-get rid of these genes that we suspect are not being reliably measured by many 
-cells. 
+level, do we think that is biologically relevant, or is it more likely 
+_gene dropout_, due to some amplification issue? 
+It's best just to get rid of these genes that we suspect are not being reliably 
+measured by many cells. 
 To do this, we will use our detection matrix to add up how many samples express
 each of these genes. 
 
@@ -230,28 +253,12 @@ actually filter our data.
 sc_data_filtered <- GeneMatrixFilter(sc_data_filtered, 
                                      min_counts = 0, 
                                      num_samples = 10, 
-                                     num_genes = 200)
+                                     num_genes = 750)
+
+# Filter metadata accordingly again
+sc_metadata_filtered <- sc_metadata_filtered %>% 
+  dplyr::filter(geo_accession %in% colnames(sc_data_filtered))
 ```
-
-Let's see how our filter did in regards to getting rid of samples that are 
-likely bad quality according to percent mapped reads data.
-
-```{r Check percent mapped reads}
-# Let's read in the percent mapped reads data
-perc_map_reads <- readr::read_tsv(file.path("data",
-                                            "darmanis_percent_mapped_reads.tsv")) %>%
-  # Let's make a new variable that says whether or not the cell was filtered out
-  dplyr::mutate("kept" = geo_accession %in% colnames(sc_data_filtered)) 
-
-# Plot the densities of these data
-ggplot(perc_map_reads, aes(x = perc_mapped_reads, fill = kept)) +
-  geom_density(alpha = 0.15) + 
-  colorblindr::scale_fill_OkabeIto() +
-  cowplot::theme_cowplot() 
-```
-
-The samples we filtered out do appear to include the lower percent mapped reads 
-so this is decent support for our filtering methods.
 
 ## Set up a SingleCellExperiment object from count data
 
@@ -282,25 +289,6 @@ the `SingleCellExperiment` object you just made.
 # the filtering step
 ```
 
-Let's examine what our filtered counts data looks like with a gene mean density
-plot.
-
-```{r}
-# Let's calculate the gene means and make a density plot
-gene_means <- apply(counts(sce_raw), 1, mean)
-
-# Plot the means
-qplot(gene_means, geom = "density", xlab = "counts") + 
-  geom_density(fill = "lightblue") +
-  cowplot::theme_cowplot() 
-```
-
-The unnormalized, counts data has so many zeroes, which we should expect. 
-For this dataset, 79.5% of the data points are zeroes, which is not 
-out of the ordinary for single-cell RNA-seq data. 
-This means our data consists of a few genes that are expressed a lot, and the 
-rest of the genes are barely detected. 
-
 ## Normalization of count data 
 
 In whatever data we are working with, we are always looking to maximize biological 
@@ -308,34 +296,32 @@ variance and minimize technical variance.
 This is where normalization methods usually come into the workflow.
 With this high amount of zeroes in our data, this makes normalization particularly
 tricky.
-So in order to normalize with less of these zeroes in the way, we normalize cells
-in groups with other cells like them; a method determine by [Lun et al 2016](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
+So in order to account for these zeroes, we normalize cells in groups with other 
+cells like them; a method introduced in [Lun et al 2016](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
   
 *Overall strategy for `scran::computeSumFactors` based normalization:*
 1) Group cells with other like cells by clustering.  
 2) Compute sum factors for each cell cluster grouping.  
-3) Normalize using these pooled sum factors to create log counts per million reads (CPMs).  
-  
-Because of differences in sequencing depth, it's pretty common to try to correct
-for this by using total per million reads.
-You have probably seen data reported that was, in part, normalized based the 
-total per million reads for a sample such as counts per million reads (CPMs),
-(or TPMs, FPKMs, and RPKMs, which you can [read about more here](https://haroldpimentel.wordpress.com/2014/05/08/what-the-fpkm-a-review-rna-seq-expression-units/) on your own).
+3) Normalize using these pooled sum factors and log transform. 
 
 #### Normalization step 1: Estimate cell clusters:
 
 Using a quick clustering, let's determine groupings for our cells that we will
 normalize by.
+This step may take a minute or so.
 
 ```{r}
-# Calculate clusters (can adjust min.size depending on clusters sizes you may 
-# expect based on prior knowledge)
+# Set seed for reproducibility
+set.seed(1234)
+
+# Run clustering
 qclust <- scran::quickCluster(sce_raw)
 ```
 
 #### Normalization step 2: Compute sum factors:
 
 Compute factors for each sample using the clusters we just made.
+For more details on the `computeSumFactors` step [read here](https://rdrr.io/bioc/scran/man/computeSumFactors.html)
 
 ```{r Calculate sum factors}
 # Calculate the sum factors based on the clusters
@@ -348,24 +334,9 @@ Of course, if you have a lot of cells that turn up has negative size factors,
 you should probably reconsider your filter and/or whether something has affected
 the quality of your data. 
 
-```{r Remove negative size factor cells}
-# Extract the negative factor data
-neg.fact <- which(sce_raw@int_colData@listData$size_factor <= 0)
-
-# Let's see how many cells this is
-length(neg.fact)
-
-# Since it's only three, let's go ahead and remove them from the data
-sce_raw <- sce_raw[, -neg.fact]
-
-# Take these out the metadata too
-sc_metadata_filtered <- sc_metadata_filtered %>%
-  dplyr::filter(geo_accession %in% sce_raw@colData@rownames)
-```
-
 #### Normalization step 3: Calculate pooled CPMs and normalize using sum factors:
 
-For more details on the normalization [read here](https://rdrr.io/bioc/scran/man/computeSumFactors.html)
+You can find more details on the normalization step [here](https://bioconductor.org/packages/release/bioc/vignettes/scran/inst/doc/scran.html)
 
 ```{r Normalize the Data}
 # Normalize the data
@@ -374,14 +345,14 @@ sce_norm <- scater::normalize(sce_raw)
 
 ## Compare normalized data to count data
 
-One way to determine whether our normalization is yielding biologically relevant 
+One way to determine whether our normalization yields biologically relevant 
 results, is to plot it and see if similarly labeled samples and cells end up 
 together.
 Because plotting 1000's of genes together isn't practical, we will reduce the 
 dimensions of our data using Principal Components Analysis. 
 Note that the `t()` function is being used here to transpose the `matrix`, so 
 it is samples x genes. 
-Because, in this instance, we would like to have PCA scores for each cell.
+in this instance, we would like to have PCA scores for each cell.
 We could however, obtain PCA scores for each gene if we didn't transpose our
 data.frame first. 
 
@@ -393,10 +364,8 @@ count_pca <- prcomp(t(counts(sce_raw)))
 norm_pca <- prcomp(t(logcounts(sce_norm)))
 ```
 
-There's a lot of data we can pull from these `prcomp` objects, but for now, 
-we need the PCA scores for the samples.
-In order to retrieve the PCA scores, we will use `$x` at the end of our `prcomp`
-objects and because we only really want
+Now we will retrieve the PCA scores, by using `$x` at the end of our `prcomp`
+objects. 
 
 ```{r Graph PCA}
 # Make this into a dataframe for easy graphing 
@@ -414,7 +383,7 @@ pca_scores <- rbind.data.frame(count_pca$x[, 1:2],
 ggplot(pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() +
   colorblindr::scale_color_OkabeIto() +
-  facet_wrap(~data_label, scales = "free") +
+  facet_wrap(~ data_label, scales = "free") +
   cowplot::theme_cowplot() 
 ```
 
