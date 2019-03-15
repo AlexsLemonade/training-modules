@@ -20,63 +20,66 @@ downstream analyses.
 
 ## Set Up 
 
-For these analyses, we will need Seurat as well as the dplyr pipe. 
-
 ```{r}
-library(Seurat)
+# Load libraries
+library(ggplot2)
 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
+
+# Setting the seed so our t-SNE is reproducible
+set.seed(12345)
 ```
 
-We need to reload the Seurat object with the data we set up and normalized 
-previously. 
+For this module, we are going to use the dataset that we processed part of in 
+`02-tag-based_pre-processing_scRNA-seq.md`
+We have already filtered and `scran` normalized this data for you (following 
+the same steps we did in `01-normalizing_scRNA-seq.Rmd`, but using slightly 
+different cutoffs).
+We also randomly selected 500 cells', and are only using the top 95% 
+highest average expression genes from these 500 cells.
 
-```{r Path to Seurat}
-# Load in Seurat object
-seurat_norm <- readRDS(file.path("data", "seurat_object.RDS"))
-```
+```{r Load in Tabula Muris Data}
+# Read in gene matrix
+tab_mur_data <- readr::read_tsv(file.path("data", "scran_norm_tab_mur.tsv"), 
+                                progress = FALSE) 
 
-Remember that previously, we filtered our dataset, so as we import our metadata
-we need to filter it so that it only contains the cells we are working with, 
-in the order we are working with them in the data. 
-
-```{r Filter metadata}
-# Get list of cells after we previously filtered the data
-cells <- colnames(seurat_norm@raw.data)
-
-# Read in metadata, but filter out cells that were previously filtered out of 
-# the full dataset
-sc_meta <- readr::read_tsv(file.path("data", "darmanis_metadata.tsv")) %>% 
-  dplyr::filter(geo_accession %in% cells)
+# Read in associated metadata
+tab_mur_meta <- readr::read_tsv(file.path("data", "tab_mur_metadata.tsv"), 
+                                progress = FALSE)
 ```
 
 ## Principal Components Analysis
 
-Just like we did with bulk RNA-seq, we will also run PCA with our single-cell 
-data. 
-Previously, we identified the high variance genes in this dataset and now we 
-will use these genes for PCA.
+Just like we did with our other scRNA-seq data, we will also run PCA with this
+dataset. 
+Before we do that, we are going to go ahead and transpose our matrix, since 
+we will need a sample x gene matrix for our dimension reduction in the 
+following steps. 
 
-```{r PCA}
-# Need to scale our data to run PCA
-seurat_norm <- ScaleData(seurat_norm)
-
-# Run PCA
-seurat_norm <- RunPCA(object = seurat_norm, pc.genes = seurat_norm@var.genes,
-                      do.print = FALSE)
+```{r Transpose Data}
+# Transpose our matrix
+transposed_data <- t(tab_mur_data_sub)
 ```
 
-Let's plot our first two principal components and label our cells with what cell
-type they are (remember this data was FACS sorted).
+Now let's used the transposed data to obtain PCA scores for our samples.
+
+```{r PCA}
+# Run PCA
+pca_tab_mur <- prcomp(transposed_data)
+
+# Make a dataframe with these PCA scores
+pca_tab_mur <- data.frame(pca_tab_mur$x[, 1:2],
+                          tab_mur_meta)
+```
+
+Let's plot our first two principal components and label our cells with what 
+tissue they are from.
 
 ```{r Plot PCA}
-# Make a dataframe with the metdata and pca data
-pca <- data.frame(seurat_norm@dr$pca@cell.embeddings)
-
 # Plot this with ggplot2 and label the points with cell types
-ggplot(pca, aes(x = PC1, y = PC2, color = sc_meta$cell.type.ch1)) + 
-  geom_point() # +
+ggplot(pca_tab_mur, aes(x = PC1, y = PC2, color = tissue)) + 
+  geom_point() +
   # Add this so our color palette is colorblindness friendly
   colorblindr::scale_color_OkabeIto()
 ```
@@ -92,31 +95,31 @@ data looks like with a `ggplot2` scatterplot.
 
 ```{r tSNE}
 # Do tsne plots for each perplexity parameter, but this time use color argument
-seurat_norm <- RunTSNE(object = seurat_norm, dims.use = 1:10, seed.use = 1234, 
-                       perplexity = 30, do.fast = TRUE)
+tsne_tab_mur <- Rtsne::Rtsne(transposed_data)
 
 # Make this a data.frame so ggplot will like it
-tsne <- data.frame(seurat_norm@dr$tsne@cell.embeddings)
+tsne_data <- data.frame(tsne_tab_mur$Y)
   
 # Plot this with ggplot2
-ggplot(tsne, aes(x = tSNE_1, y = tSNE_2)) + 
-  geom_point()
+ggplot(tsne_data, aes(x = X1, y = X2)) + 
+  geom_point() + 
+  colorblindr::scale_color_OkabeIto()
 ```
 
 #### Apply metadata labels to our tSNE
 
 Let's re-plot this with labels using some of our metadata to see 
 how the cells are clustering (or not clustering) by different variables. 
-Remember that previously we set up `sc_meta` to have the corresponding
-metadata for each of our cells. 
-Below we have set up the cells to be colored by the `cell.type` variable. 
+Remember that `tab_mur_meta` has the corresponding information for each of our
+cells. 
+Below we have set up the cells to be colored by the `tissue` variable. 
 Run this, but also feel free to look at what other information we have for these
-cells in `sc_meta` by using `str()` and change this to a different variable to 
+cells in `tab_mur_meta` by using `str()` and change this to a different variable to 
 graph it by.
 
 ```{r}
 # Plot this with ggplot2, but add the color argument
-ggplot(tsne, aes(x = tSNE_1, y = tSNE_2, color = sc_meta$cell.type.ch1)) + 
+ggplot(tsne_data, aes(x = X1, y = X2, color = tab_mur_meta$tissue)) + 
   geom_point() +
   colorblindr::scale_color_OkabeIto()
 ```
@@ -124,7 +127,7 @@ ggplot(tsne, aes(x = tSNE_1, y = tSNE_2, color = sc_meta$cell.type.ch1)) +
 Now that we have an idea of what the default parameters look like, let's try
 experimenting with the perplexity parameter. 
 For us to determine a good number range to use for testing perplexity, let's 
-first look up the documentation for `Seurat::RunTSNE` and find out what the 
+first look up the documentation for `Rtsne::Rtsne` and find out what the 
 default for the `perplexity` argument is. 
 
 In order to prepare for this experiment, we will create a *function* that allows
@@ -132,23 +135,22 @@ use to rerun this same code chunk easily, but create an argument that allows us
 to change one variable: our perplexity variable. 
 
 ```{r Make tSNE plot function}
-tSNE_plot_wrapper <- function(perplexity_param = 30) {
+TsnePlotWrapper <- function(perplexity_param = 30) {
   # Purpose: Run t-SNE and plot the output
   # Args: perplexity_param: a single numeric argument that will change the 
   #                         perplexity variable in the RunTSNE function. 
   # Output: a ggplot scatterplot with the two t-SNE coordinates plotted and 
   #         cell-types labeled with data point colors. 
 
-  # Run tSNE and plot it
-  seurat_norm <- RunTSNE(object = seurat_norm, dims.use = 1:10, seed.use = 1234, 
-                         perplexity = perplexity_param, do.fast = TRUE)
+  # Do tsne plots for each perplexity parameter, but this time use color argument
+  tsne_tab_mur <- Rtsne::Rtsne(transposed_data, perplexity = perplexity_param)
 
   # Make this a data.frame so ggplot will like it
-  tsne <- data.frame(seurat_norm@dr$tsne@cell.embeddings)
+  tsne <- data.frame(tsne_tab_mur$Y)
   
   # Plot this with ggplot2
-  ggplot(tsne, aes(x = tSNE_1, y = tSNE_2, color = sc_meta$cell.type.ch1)) +
-    geom_point() +
+  ggplot(tsne, aes(x = X1, y = X2, color = tab_mur_meta$tissue)) + 
+    geom_point() + 
     colorblindr::scale_color_OkabeIto()
 }
 ```
@@ -159,7 +161,7 @@ Then run the chunks and compare your output graphs.
 
 ```{r Run tSNE 1}
 # Use the tSNE_plot_wrapper function but alter the perplexity argument
-tSNE_plot_wrapper(perplexity = 3)
+TsnePlotWrapper(perplexity_param = 3)
 ```
 
 ```{r Run tSNE 2}
@@ -187,13 +189,13 @@ distinct clusters of cells.
 
 #### Some 'big picture' thoughts to take from this experiment: 
 
-1) Different analyses (such as t-SNE) have various limitations for interpretaility.
-   We found in our experiment that the coordinates of tSNE output for any given 
+1) Different analyses (such as t-SNE) have various limitations for interpretability.
+   We found in our experiment that the coordinates of t-SNE output for any given 
    cell might change drastically, 
    This probably means that you shouldn't rely too heavily on the exact values of
    t-SNE's output. 
 2) Different analyses also have their strengths.   
-   Using cell-type labeling, our experiment illstrated that t-SNE does 
+   Using cell-type labeling, our experiment illustrated that t-SNE does 
    appear to give some biologically relevant output information for this dataset. 
 3) Playing with parameters so you can fine-tune them is a good way to give you more
    information about a particular analysis as well as the data itself. 
