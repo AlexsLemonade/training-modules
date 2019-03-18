@@ -165,6 +165,9 @@ salmon quant -i index/Homo_sapiens/long_index -l A \
         --gcBias --seqBias --biasSpeedSamp 5
 ```
 
+Navigate to `data` > `quant` > `gastric_cancer` > `SRR585570` > `aux_info` and open `meta_info.json`.
+Look for a field called `percent_mapped` -- what value does this sample have?
+
 ---
 
 ### Note on mapping validation
