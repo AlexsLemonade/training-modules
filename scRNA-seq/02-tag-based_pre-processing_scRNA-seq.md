@@ -26,7 +26,7 @@ The bam files that were on Figshare were converted to fastq files using
 `CellRanger bamtofastq`.
 We will process a fastq file from mouse bladder for this as an example.  
 To limit the amount of time this takes to run in the context of this workshop,
-we have subset this fastq file.
+we are only running part of the sample's reads.
 
 *Note*: depending on the state of the data you are working with, ie. if you have
 a `.bcl` file, you will need to use `CellRanger` with their `mkfastq` command to
@@ -106,7 +106,7 @@ later on, including files with information on the UMIs and cell barcodes.
 Copy and paste this in your command line to run Alevin quantification.
 ```
 salmon alevin -l ISR \
-  -i data/human_index \
+  -i index/Mus_musculus/short_index \
   -1 data/tabula_muris_P4_3_S1_L001_R1_001.fastq.gz \
   -2 data/tabula_muris_P4_3_S1_L001_R2_001.fastq.gz \
   --chromium  \
@@ -148,3 +148,9 @@ alevinQC::alevinQCReport(alevin_file,
 ```
 Now you can check out "tabula_muris_P3_S1_L001_R1_001_qc_report.html" in order to examine
 the quality of your data and performance of Alevin.
+Remember that this is only part of this sample.
+
+#### Examples of alevinQC reports:
+If you'd like to see the full QC report for P4_3 mouse bladder sample [go here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
+
+As a contrast, here is an example of a [poor quality sample alevin QC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html)
