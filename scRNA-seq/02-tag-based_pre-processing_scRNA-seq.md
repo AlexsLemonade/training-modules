@@ -110,8 +110,8 @@ Copy and paste this in your command line to run Alevin quantification.
 ```
 salmon alevin -l ISR \
   -i index/Mus_musculus/short_index \
-  -1 data/tab_mur_10X_P4_3_L001_R1_001.fastq.gz \
-  -2 data/tab_mur_10X_P4_3_L001_R2_001.fastq.gz \
+  -1 data/tab_mur_10X_P4_3_L001_R1_subset.fastq.gz \
+  -2 data/tab_mur_10X_P4_3_L001_R2_subset.fastq.gz \
   --chromium  \
   -p 10 \
   -o alevin_output \
