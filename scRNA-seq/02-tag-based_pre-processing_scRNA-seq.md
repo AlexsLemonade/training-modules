@@ -106,7 +106,7 @@ later on, including files with information on the UMIs and cell barcodes.
 Copy and paste this in your command line to run Alevin quantification.
 ```
 salmon alevin -l ISR \
-  -i mouse_index \
+  -i index/Mus_musculus/short_index \
   -1 data/tabula_muris_P4_3_S1_L001_R1_001.fastq.gz \
   -2 data/tabula_muris_P4_3_S1_L001_R2_001.fastq.gz \
   --chromium  \
