@@ -58,10 +58,10 @@ In the interest of time, we have already run the command below and have the inde
 built for you.
 But for your own reference, here is how you'd do it yourself:
 ```
-salmon --threads=16 --no-version-check index \
-  -t Mus_musculus.GRCm38.cdna.all.fa.gz \
-  -i mouse_index \
-  -k 23
+# salmon --threads=16 --no-version-check index \
+#  -t Mus_musculus.GRCm38.cdna.all.fa.gz \
+#  -i mouse_index \
+#  -k 23
 ```
 
 ### Step 3: For each sample, run [Alevin](https://www.biorxiv.org/content/10.1101/335000v2) for quantification
@@ -131,13 +131,15 @@ In order to perform quality control checks, we will need to open R.
 Alevin provides count data output for each transcript and cell. To read this
 data into R, we will import a function from the script `ReadAlevin.R` which is
 located in the `scripts` folder.
+In the interest of time, we won't import these data into R, but this is how you'd
+do it on your own.
 
 ```r
 # Import the function to read alevin output data
-source(file.path("scripts", "ReadAlevin.R"))
+# source(file.path("scripts", "ReadAlevin.R"))
 
 # Read in the data
-alevin_file <- ReadAlevin("alevin_output")
+# alevin_file <- ReadAlevin("alevin_output")
 ```
 
 Now that our data is imported into the R environment, we can run quality control
@@ -147,16 +149,15 @@ This will provide html output with graphs evaluating the data.
 ```r
 # Produce a QC report
 alevinQC::alevinQCReport(alevin_file,
-                         sampleId = "tab_mur_10X_P4_3_L001",
-                         outputFile = "tab_mur_10X_P4_3_L001_qc_report.html",
+                         sampleId = "tab_mur_10X_P4_3_subset",
+                         outputFile = "tab_mur_10X_P4_3_subset_qc_report.html",
                          outputDir = "data",
                          outputFormat = "html_document")
 ```
-Now you can check out "tab_mur_10X_P4_3_L001_qc_report.html" in order to examine
+Now you can check out "tab_mur_10X_P4_3_subset_qc_report.html" in order to examine
 the quality of your data and performance of Alevin.
-Remember that this is only part of this sample.
-
-#### Examples of alevinQC reports:
+Remember that this is only part of this sample, so it won't look as good as if
+we had run the full fastq file.
 
 If you'd like to see the full alevinQC report for P4_3 mouse bladder sample [go here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
 
