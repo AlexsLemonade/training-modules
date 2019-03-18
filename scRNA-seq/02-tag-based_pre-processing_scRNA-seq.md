@@ -8,7 +8,7 @@ We will be using a tag-based scRNA-seq sample from [Tabula Muris data](https://w
 This dataset is made of 20 mouse organs that were sequenced using 10X Genomics
 Chromium single cell sequencing methods.
 For 10X Genomics scRNA-seq data, cells are separated by emulsion/droplets, and individual cells
-are given barcodes.
+are given barcodes (often abbreviated 'CB' in documentation).
 These data also have
 [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772)
 which allow us to examine PCR amplification errors and biases.
@@ -44,30 +44,31 @@ for us to store our output data in.
 mkdir alevin_output  
 ```
 
-### Step 2: Index the human transcriptome with Salmon
+### Step 2: Index the mouse transcriptome with Salmon
+
 Before you can quantify with Salmon and
 [Alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
 to be indexed.
 You can use the same transcriptome index as bulk RNA-seq, however,
 due to the shorter read lengths as opposed to bulk, you may want to build the
 index with a smaller `-k`.
-In this instance, we used a `-k` of 23 using the ensemble transcriptome.
+In this instance, we used a `-k` of 23 using the Ensembl transcriptome.
 
 In the interest of time, we have already run the command below and have the index
 built for you.
 But for your own reference, here is how you'd do it yourself:
 ```
-salmon --threads=16 --no-version-check index \
-  -t Mus_musculus.GRCm38.cdna.all.fa.gz \
-  -i mouse_index \
-  -k 23
+# salmon --threads=16 --no-version-check index \
+#  -t Mus_musculus.GRCm38.cdna.all.fa.gz \
+#  -i mouse_index \
+#  -k 23
 ```
 
-### Step 3: For each sample, run [Alevin](https://www.biorxiv.org/content/10.1101/335000v2)
-for quantification
+### Step 3: For each sample, run [Alevin](https://www.biorxiv.org/content/10.1101/335000v2) for quantification
+
 From the command line, running Alevin is not too much different from running
 Salmon for bulk RNA-seq.
-You downloaded two files:
+You have two files:
 - `R1` contain the barcodes for cells as well as the UMIs
 - `R2` files contain the full reads for that sample.  
 
@@ -76,7 +77,7 @@ You'll recognize a lot of these options as the same as regular `Salmon` such as
 - `-1` and `-2` for file input
 - `-o` to designate a folder for output
 
-### `Alevin` options summary:
+### `Alevin`-specific options summary:
 
 #### `-l`
 As mentioned, `-l` is for designating library type. For all single-cell quant,
@@ -91,7 +92,7 @@ flag instead of this.
 
 #### `--tgMap`
 This is needed to supply a transcript to gene key that Alevin will use to
-quantify the genes. For our example, we've premade the file `genes_2_tx.tsv` from
+quantify the genes. For our example, we've premade the file `mouse_genes_2_tx.tsv` from
 the Ensembl transcriptome that we indexed above. The file has to be a tsv file.
 
 #### `--dumpCsvCounts`
@@ -103,16 +104,18 @@ This option will print out information that we will need for quality checks
 later on, including files with information on the UMIs and cell barcodes.
 
 #### Running Salmon Alevin
+
 Copy and paste this in your command line to run Alevin quantification.
+
 ```
 salmon alevin -l ISR \
   -i index/Mus_musculus/short_index \
-  -1 data/tabula_muris_P4_3_S1_L001_R1_001.fastq.gz \
-  -2 data/tabula_muris_P4_3_S1_L001_R2_001.fastq.gz \
+  -1 data/tab_mur_10X_P4_3_L001_R1_subset.fastq.gz \
+  -2 data/tab_mur_10X_P4_3_L001_R2_subset.fastq.gz \
   --chromium  \
   -p 10 \
   -o alevin_output \
-  --tgMap data/genes_2_tx.tsv \
+  --tgMap data/mouse_genes_2_tx.tsv \
   --dumpCsvCounts \
   --dumpFeatures
 ```
@@ -123,17 +126,22 @@ for a complete list of the Alevin options and see the
 for example analyses.
 
 ### Step 4: Perform QC checks with `alevinQC`
+
 In order to perform quality control checks, we will need to open R.
 Alevin provides count data output for each transcript and cell. To read this
 data into R, we will import a function from the script `ReadAlevin.R` which is
 located in the `scripts` folder.
+In the interest of time, we won't import these data into R, but this is how you'd
+do it on your own.
+
 ```r
 # Import the function to read alevin output data
-source(file.path("scripts", "ReadAlevin.R"))
+# source(file.path("scripts", "ReadAlevin.R"))
 
 # Read in the data
-alevin_file <- ReadAlevin("alevin_output")
+# alevin_file <- ReadAlevin("alevin_output")
 ```
+
 Now that our data is imported into the R environment, we can run quality control
 checks using `alevinQC` package.
 This will provide html output with graphs evaluating the data.
@@ -141,16 +149,16 @@ This will provide html output with graphs evaluating the data.
 ```r
 # Produce a QC report
 alevinQC::alevinQCReport(alevin_file,
-                         sampleId = "tabula_muris_P4_3_S1_L001_R1_001",
-                         outputFile = "tabula_muris_P4_3_S1_L001_R1_001_qc_report.html",
+                         sampleId = "tab_mur_10X_P4_3_subset",
+                         outputFile = "tab_mur_10X_P4_3_subset_qc_report.html",
                          outputDir = "data",
                          outputFormat = "html_document")
 ```
-Now you can check out "tabula_muris_P3_S1_L001_R1_001_qc_report.html" in order to examine
+Now you can check out "tab_mur_10X_P4_3_subset_qc_report.html" in order to examine
 the quality of your data and performance of Alevin.
-Remember that this is only part of this sample.
+Remember that this is only part of this sample, so it won't look as good as if
+we had run the full fastq file.
 
-#### Examples of alevinQC reports:
-If you'd like to see the full QC report for P4_3 mouse bladder sample [go here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
+If you'd like to see the full alevinQC report for P4_3 mouse bladder sample [go here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
 
-As a contrast, here is an example of a [poor quality sample alevin QC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html)
+As a contrast, here is an example of a [poor quality sample alevinQC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html)
