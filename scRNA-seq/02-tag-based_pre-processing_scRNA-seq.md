@@ -153,4 +153,4 @@ Remember that this is only part of this sample.
 #### Examples of alevinQC reports:
 If you'd like to see the full QC report for P4_3 mouse bladder sample [go here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
 
-As a contrast, here is an example of a [poor quality sample alevin qc report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html)
+As a contrast, here is an example of a [poor quality sample alevin QC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html)
