@@ -1,7 +1,7 @@
 ## Harenza, et al. neuroblastoma cell line data
 
 In this section, we'll be working with RNA-seq data from neuroblastoma (NB) cell lines from
-[Harenza, et al. _Scientific Data._ 2017.](https://doi.org/10.1038/sdata.2017.33).
+[Harenza, et al. _Scientific Data._ 2017.](https://doi.org/10.1038/sdata.2017.33)
 
 The course directors have already processed the raw data using `salmon quant` and the `quant.sf` files for each sample can be found in `data/quant/NB_cell_line/<SAMPLE>`.
 
