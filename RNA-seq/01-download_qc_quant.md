@@ -174,6 +174,6 @@ Look for a field called `percent_mapped` -- what value does this sample have?
 
 Newer versions of Salmon, including the one that we are using (`0.12.0`), can be run in mapping validation mode that is used when we provide the [`--validateMappings`](https://salmon.readthedocs.io/en/latest/salmon.html#validatemappings) flag to `salmon quant`.
 This improves quantification estimates.
-When using this option, it is recommended that you trim low quality bases and adapter content prior to quantification with Salmon.
+When using this option, it is recommended that you trim low-quality bases and adapter content prior to quantification with Salmon.
 The [authors of Salmon recommend](https://github.com/COMBINE-lab/salmon/releases/tag/v0.13.1) all users move to mapping validation as it is likely to be the default behavior in future releases.
 In near-future versions of the workshop, we will very likely perform trimming and use `--validateMappings`. Stay tuned!
