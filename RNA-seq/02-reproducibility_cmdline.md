@@ -22,6 +22,8 @@ This is the preferred way to interact with a command line, because it provides a
 Let's create our first shell script.
 In RStudio go to the file menu, select New File, Text File.
 Name the script `rnaseq.sh` and put it in the kitematic folder.
+At the very top of the file put: `#!/bin/bash`; this tells the computer to read
+the file as a shell script. 
 Now, paste all of the commands that you ran to process the RNA-seq data sequentially into the `rnaseq.sh` file.
 When you want to run the commands, change directories to the kitematic folder and type `sh rnaseq.sh`.
 This will run the script, and hopefully each step will complete successfully!
