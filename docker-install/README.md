@@ -1,4 +1,4 @@
-### Post-Docker-install steps using Kitematic
+### Prepare the RNA-seq Environment using Kitematic
 
 1. Pull the appropriate image using command line.
 
