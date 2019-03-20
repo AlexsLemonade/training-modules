@@ -106,8 +106,7 @@ We'll be using Salmon in quasi-mapping mode.
 
 Salmon requires a set of transcripts (what we want to quantify) in the form of a transcriptome index built with `salmon index`.
 Building an index can take a while (but you only have to do it once!), so we've built the one we will use today ahead of time.
-We also have provided methods for obtaining [other transcriptomes indices on
-GitHub.](https://github.com/AlexsLemonade/training-txome-prep) 
+We also have provided methods for obtaining [other transcriptomes indices on GitHub.](https://github.com/AlexsLemonade/training-txome-prep) 
 Before we use it, we'll take a moment to give a bit of background.
 
 One of the things we learned by using FastQC is read length.
