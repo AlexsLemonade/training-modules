@@ -39,6 +39,8 @@ We will start from fastq files.
 
 As described in a previous module, we'll make a directory from command line
 for us to store our output data in.
+Make sure that your current directory is `kitematic/scRNA-seq`. 
+Remember to use `ls` and `cd` to help get you there.
 
 ```
 mkdir alevin_output  
@@ -148,7 +150,7 @@ This will provide html output with graphs evaluating the data.
 
 ```r
 # Produce a QC report
-alevinQC::alevinQCReport(alevin_file,
+alevinQC::alevinQCReport("alevin_output",
                          sampleId = "tab_mur_10X_P4_3_subset",
                          outputFile = "tab_mur_10X_P4_3_subset_qc_report.html",
                          outputDir = "data",
