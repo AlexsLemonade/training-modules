@@ -21,7 +21,7 @@ When you are finished, return to the schedule for your workshop for the link to 
 ![Mac Docker Install](screenshots/mac-01-applications.png)
 3. Open the Applications folder and find and open Docker.
 ![Mac Docker Start](screenshots/mac-02-opendocker.png)
-4. Click the whale icon in the taskbar. Log in to the docker store.
+4. Click the whale icon in the taskbar. Log in to the Docker store.
 ![Mac Docker Log In](screenshots/mac-03-dockerlogin.png)
 5. Click the whale icon in the taskbar and go to Preferences.
 ![Mac preferences](screenshots/mac-preferences.png)
@@ -45,7 +45,7 @@ We summarize the most important steps below, but if you run into trouble you may
 ![Windows 10 Download](screenshots/win10-00-download.png)
 2. Download Docker Community Edition for Windows and follow the prompts.  
 ![Windows 10 Get Docker](screenshots/win10-01-getdocker.png)
-3. During installation, a configuration menu will come up. Do not select "Use Windows containers instead of Linux containers".  
+3. During installation, a configuration menu will come up. Do not select "Use Windows containers instead of Linux containers."  
 ![Windows 10 configuration](screenshots/win10-configuration.png)
 4. Log back in and click on the Docker Desktop icon to run Docker Desktop. Enter your Docker account credentials.    
 5. Find the Docker whale in your taskbar and right click it to bring up the menu.  
