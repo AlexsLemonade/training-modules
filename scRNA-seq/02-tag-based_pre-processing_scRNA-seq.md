@@ -38,8 +38,8 @@ We will start from fastq files.
 ### Step 1: Get to the scRNA-seq directory
 
 Before you run the command below, you need to make your current directory:
-`kitematic/scRNA-seq`. 
-To do this, use the `Terminal` command line.
+`kitematic/scRNA-seq`.
+To do this, use the `Terminal` command-line.
 Remember to use `ls` and `cd` to help get you there.
 
 ### Step 2: Set up your output directory
@@ -53,11 +53,10 @@ mkdir alevin_output
 
 ### Step 3: Index the mouse transcriptome with Salmon
 
-Before you can quantify with Salmon and
-[Alevin](https://www.biorxiv.org/content/10.1101/335000v2), we need a transcriptome
-to be indexed.
+Before you can quantify with Salmon and [Alevin](https://www.biorxiv.org/content/10.1101/335000v2)
+we need our species' [transcriptome to be indexed.](https://github.com/AlexsLemonade/training-txome-prep)
 You can use the same transcriptome index as bulk RNA-seq, however,
-due to the shorter read lengths as opposed to bulk, you may want to build the
+due to the shorter read lengths as opposed to bulk, you will want to build the
 index with a smaller `-k`.
 In this instance, we used a `-k` of 23 using the Ensembl transcriptome.
 
@@ -100,7 +99,7 @@ flag instead of this.
 
 #### `--tgMap`
 This is needed to supply a transcript to gene key that Alevin will use to
-quantify the genes. 
+quantify the genes.
 For our example, we've premade the file `mouse_genes_2_tx.tsv` from
 the Ensembl transcriptome that we indexed above. The file has to be a tsv file.
 
@@ -134,45 +133,66 @@ for a complete list of the Alevin options and see the
 [Alevin tutorials](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/)
 for example analyses.
 
-### Step 5: Read Alevin output into R
+### Step 5: Prep R for analyzing our Alevin output
+
+To use our Alevin data in R, we will first need to navigate to the R console.
+
+Similar to how we need to be in the `scRNA-seq` directory when we were in
+`Terminal`, we need to do the same thing in R now.
+
+First open the R console and use `setwd()` to change to R's working (aka
+current) directory to `scRNA-seq`.
+Remember that this is where we put our `alevin_output` file.
+You can run `dir()` to check if your `alevin_output` folder is in R's current
+directory.
+Once you are in `scRNA-seq` folder, you can continue to the next steps.
+
+### Step 6: Read Alevin output into R
+
+*In the interest of time, we won't import these data into R, but this is how you'd
+do it on your own, in R.*
+
+After we have successfully quantified our tag-based scRNA-seq data, we would
+probably want to read it into R to start to analyze it.
 
 Alevin provides count data output for each transcript and cell. To read this
-data into R, we will import a function from the script `ReadAlevin.R` which is
-located in the `scripts` folder.
-In the interest of time, we won't import these data into R, but this is how you'd
-do it on your own, in R.
-This script is based on the COMBINE lab's function in their [tutorial]([Alevin tutorials](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/)
-for example analyses.)
+data into R, we would import a function from the script `ReadAlevin.R` which is
+located in the `scRNA-seq/scripts` folder.
+This script is based on the COMBINE lab's function in their [tutorial](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/)
 
-In an Rscript/RNotebook/R console: 
+In the R console:
 ```r
 # Import the function to read alevin output data
 # source(file.path("scripts", "ReadAlevin.R"))
+```
 
+After we have imported the function in this script like above, you can use
+the `ReadAlevin` function to read in your output.
+The argument needs to be the directory that contains your output.
+In this case we named our directory `alevin_output`, so that would be our
+argument.
+
+In the R console:
+```r
 # Read in the data
 # alevin_file <- ReadAlevin("alevin_output")
 ```
 
-### Step 5: Perform QC checks with `alevinQC`
+### Step 7: Perform QC checks with `alevinQC`
 
-In order to perform quality control checks, we will need to open R's console
-to use `alevinQC` R package.
-Note that alevinQC depends on files that get using the`--dumpFeatures` option in Alevin. 
-This will provide html output with graphs evaluating the data.
+In order to perform quality control checks, we'll use the `alevinQC` R package.
+Note that `alevinQC` depends on files that we get using the`--dumpFeatures`
+option in Alevin.
 
-A brief explanation of the argument in the `alevinQCReport` function: 
-The first argument needs to be where the sample's output data was put when Alevin was
-run. 
-In our case, we put our data in the `alevin_output` in the current directory we were
-in, which was `scRNA-seq`
-The rest of the arguments tell R where to put the output QC report. 
+About the `alevinQCReport` function:
+The first argument needs to be where the sample's output data was put when
+Alevin was run (as a character string, aka using quotes)
+In our case, we put our data in `alevin_output` in the current directory we
+were in, which was `scRNA-seq`.
+The rest of `alevinQCReport`'s arguments tell R where to put the output QC
+report also using `characters`.
 
-To run the QC, first open the R console and use `setwd()` to change to R's
-working (aka current) directory to `scRNA-seq`. 
-Remember that this is where we put our `alevin_output` file. 
-Once you are in `scRNA-seq` folder, you can run `dir()` to check if your 
-`alevin_output` folder is in R's current directory. 
-If it is, go ahead and paste the following into R's console and run it.
+In R console, copy paste and run this:
 ```r
 # Produce a QC report
 alevinQC::alevinQCReport("alevin_output",
@@ -181,11 +201,12 @@ alevinQC::alevinQCReport("alevin_output",
                          outputDir = "data",
                          outputFormat = "html_document")
 ```
+
 Check out `data/tab_mur_10X_P4_3_subset_qc_report.html` in order to examine
 the quality of your data and performance of Alevin.
 Remember that this is only part of this sample, so it won't look as good as if
 we had run the full fastq file, which we have provided the alevinQC report of
-in your `scRNA-seq/data` directory (or by the link below). 
+in your `scRNA-seq/data` directory (or by the link below).
 
 For the full alevinQC report for P4_3 mouse bladder sample [go here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
 
