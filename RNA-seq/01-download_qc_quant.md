@@ -1,6 +1,6 @@
 ## Introduction to RNA-seq data processing
 
-We will first learn how to process RNA-seq data at the command line using two samples that were assayed with paired-end sequencing. 
+We will first learn how to process RNA-seq data at the command line using two samples that were assayed with paired-end sequencing.
 
 These samples come from a project ([`PRJNA178120`](https://www.ebi.ac.uk/ena/data/view/PRJNA178120)) that includes 8 samples from normal gastric tissue, gastric cancer cell lines and primary gastric tumor cell cultures.
 
@@ -16,9 +16,9 @@ Later, we will use the full dataset (n = 8) to explore how to summarize estimate
 
 ---
 
-For these exercises, we'll want to set our **LOCAL FOLDER** in Kitematic to the `RNA-seq` folder. 
+For these exercises, we'll want to set our **LOCAL FOLDER** in Kitematic to the `RNA-seq` folder.
 
-Copy and paste the text in the code blocks below into your `Terminal` window in RStudio. 
+Copy and paste the text in the code blocks below into your `Terminal` window in RStudio.
 It should be in the lower left hand corner as a tab next to `Console`.
 
 We'll first want to set our working directory to the top-level of the RNA-seq folder like so
@@ -40,19 +40,19 @@ We'll use the `-P` option for `wget` to download the files into our new director
 #### SRR585570
 
 ```bash
-wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585570/SRR585570_1.fastq.gz -P data/fastq/gastric_cancer 
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585570/SRR585570_1.fastq.gz -P data/fastq/gastric_cancer
 ```
 ```bash
-wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585570/SRR585570_2.fastq.gz -P data/fastq/gastric_cancer 
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585570/SRR585570_2.fastq.gz -P data/fastq/gastric_cancer
 ```
 
 #### SRR585574
 
 ```bash
-wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585574/SRR585574_1.fastq.gz -P data/fastq/gastric_cancer 
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585574/SRR585574_1.fastq.gz -P data/fastq/gastric_cancer
 ```
 ```bash
-wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585574/SRR585574_2.fastq.gz -P data/fastq/gastric_cancer 
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585574/SRR585574_2.fastq.gz -P data/fastq/gastric_cancer
 ```
 
 ### Quality control with FastQC
@@ -96,19 +96,20 @@ Let's look at the results together.
 
 ### Quantification with Salmon
 
-We'll use [Salmon](https://combine-lab.github.io/salmon/) for quantifying transcript expression ([documentation](http://salmon.readthedocs.io/en/latest/)). 
+We'll use [Salmon](https://combine-lab.github.io/salmon/) for quantifying transcript expression ([documentation](http://salmon.readthedocs.io/en/latest/)).
 Salmon ([Patro, et al. _Nature Methods._ 2017.](https://doi.org/10.1038/nmeth.4197)) is fast and requires very little memory, which makes it a great choice for running on your laptop and for a project like refine.bio!
-We can use the output for downstream analyses like differential expression analysis and clustering. 
-Below, we'll walk through the arguments options we'll use when running `salmon quant`. 
+We can use the output for downstream analyses like differential expression analysis and clustering.
+Below, we'll walk through the arguments options we'll use when running `salmon quant`.
 We'll be using Salmon in quasi-mapping mode.
 
 #### Transcriptome index (`-i`)
 
 Salmon requires a set of transcripts (what we want to quantify) in the form of a transcriptome index built with `salmon index`.
-Building an index can take a while (but you only have to do it once!), so we've built the one we will use today ahead of time. 
+Building an index can take a while (but you only have to do it once!), so we've built the one we will use today ahead of time.
+We also have provided methods for obtaining [other transcriptomes indices on GitHub.](https://github.com/AlexsLemonade/training-txome-prep) 
 Before we use it, we'll take a moment to give a bit of background.
 
-One of the things we learned by using FastQC is read length. 
+One of the things we learned by using FastQC is read length.
 `salmon index` has a parameter `-k` which sets the k-mer length.
 The most important point is that the recommended value for _k_ depends on the read length, with _k_ = 31 is appropriate for 75bp or longer reads.
 The index we'll use now was built with `-k 31` and can be found here:
@@ -119,7 +120,7 @@ index/Homo_sapiens/long_index
 
 #### `--gcBias`
 
-With this option enabled, Salmon will attempt to correct for fragment GC-bias. 
+With this option enabled, Salmon will attempt to correct for fragment GC-bias.
 Regions with high or low GC content tend to be underrepresented in sequencing data.
 
 It should be noted that this is only appropriate for use with paired-end reads, as fragment length can not be inferred from single-end reads (see [this Github issue](https://github.com/COMBINE-lab/salmon/issues/83)).
@@ -128,9 +129,9 @@ It should be noted that this is only appropriate for use with paired-end reads, 
 
 With this option enabled, Salmon will attempt to correct for the bias that occurs when using random hexamer priming (preferential sequencing of reads when certain motifs appear at the beginning).
 
-#### `--biasSpeedSamp` 
+#### `--biasSpeedSamp`
 
-We'll set this value to `5` (the default) to speed up the GC bias correction. 
+We'll set this value to `5` (the default) to speed up the GC bias correction.
 This should have very little effect on the results according to the Salmon documentation.
 
 #### `-o`
@@ -139,7 +140,7 @@ Output directory, `salmon quant` should create this for us if it doesn't exist y
 
 #### `-l`
 
-We'll use `-l A` to allow Salmon to automatically infer the library type based on a subset of reads, but you can also provide the [library type](http://salmon.readthedocs.io/en/latest/salmon.html#what-s-this-libtype) to Salmon with this argument. 
+We'll use `-l A` to allow Salmon to automatically infer the library type based on a subset of reads, but you can also provide the [library type](http://salmon.readthedocs.io/en/latest/salmon.html#what-s-this-libtype) to Salmon with this argument.
 
 ### Running `salmon quant`
 

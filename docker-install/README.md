@@ -48,3 +48,5 @@ After you complete the operating system specific portions, scroll to the bottom 
 
 1. Open kitematic and log in to the Docker Store account from within kitematic.
 ![Kitematic Log In](screenshots/all-00-kitematic.png)
+
+### Now return to the workshop schedule for the link to the next steps.
