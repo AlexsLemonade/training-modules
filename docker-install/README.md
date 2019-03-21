@@ -41,7 +41,7 @@ When you are finished, return to the schedule for your workshop for the link to 
 Here are the [Windows install instructions](https://docs.docker.com/docker-for-windows/install/).
 We summarize the most important steps below, but if you run into trouble you may need to consult the Docker documentation.
 
-1. Visit the [Docker Store](https://store.docker.com/search?type=edition&offering=community) and select Docker Desktop for Windows.  
+1. Visit the [Docker Store](https://hub.docker.com/editions/community/docker-ce-desktop-windows) and select Docker Desktop for Windows.  
 ![Windows 10 Download](screenshots/win10-00-download.png)
 2. Download Docker Community Edition for Windows and follow the prompts.  
 ![Windows 10 Get Docker](screenshots/win10-01-getdocker.png)
