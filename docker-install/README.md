@@ -36,7 +36,6 @@ When you are finished, return to the schedule for your workshop for the link to 
 10. Open the new Kitematic program. Accept the prompt.  
 ![Mac Kitematic Open](screenshots/mac-07-openkite.png)
 
-
 ### Windows 10 Pro
 
 Here are the [Windows install instructions](https://docs.docker.com/docker-for-windows/install/).
@@ -49,7 +48,7 @@ We summarize the most important steps below, but if you run into trouble you may
 3. During installation, a configuration menu will come up. Do not select "Use Windows containers instead of Linux containers".  
 ![Windows 10 configuration](screenshots/win10-configuration.png)
 4. Log back in and click on the Docker Desktop icon to run Docker Desktop. Enter your Docker account credentials.    
-5. Find the Docker whale in your taskbar and right click it to bring up the menu.
+5. Find the Docker whale in your taskbar and right click it to bring up the menu.  
 ![Windows Taskbar](screenshots/win10-taskbar-whale.png)
 6. Go to Settings.  
 ![Windows Settings](screenshots/win10-taskbar-settings.png)
@@ -62,7 +61,6 @@ For reference, we've found that 2 CPUs and 6 GB of RAM on a quad-core with 8 GB 
 ![Windows download kitematic](screenshots/win10-download-kitematic.png)
 9. Extract all files from the `Kitematic-Windows.zip` into `C:\Program Files\Docker\Kitematic`. You may need to create a new `Kitematic` Folder.  
 10. Navigate back to the Taskbar, Docker whale, and click on Kitematic. You should now see a prompt for your Docker credentials.  
-
 
 #### Troubleshooting
 
@@ -77,7 +75,6 @@ You can check if you have Hyper-V support in the Performance tab of Task Manager
 If you need to enable virtualization, you will need to enter the BIOS setup menu by restarting your computer and booting safe mode. You may find [this article](https://www.laptopmag.com/articles/access-bios-windows-10) helpful.
 In the BIOS set up, you will need to enable virtualization.
 Unfortunately, the steps for enabling virtualization are manufacturer- and sometimes model-specific.  
-
 
 ### Windows 7
 
