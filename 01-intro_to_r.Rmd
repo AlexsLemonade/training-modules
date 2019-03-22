@@ -1,0 +1,560 @@
+---
+title: "Intro to R"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+**CCDL 2019**
+
+### This RMarkdown takes you through the basics of R  
+
+*For more comprehensive tutorials:*  
+  - For a tutorial on R, RStudio and R Markdown: https://ismayc.github.io/rbasics-book/  
+  - [Datacamp](https://www.datacamp.com/) has lots of good tutorials for R and the intro ones are free.       
+  - For a lot of handy R cheatsheets: https://www.rstudio.com/resources/cheatsheets/  
+  - For more guidance all the things you can do with R Notebooks:    
+    https://bookdown.org/yihui/rmarkdown/notebook.html  
+    
+## The Basics  
+
+R remembers what you tell it and stores assigned values in it's *environment*. 
+You can think of an R *environment* as a box that you can put objects in for R to 
+store. 
+In RStudio, you will see what R has in it's *environment* in the *environment* 
+tab in the upper right corner.
+Going with this analogy then, you can only references things in R that are in the 
+*environment*. 
+Here let's assign the value of `1` to `x` using the assignment operator: `<-`.
+Let's subsequently print out `x` and see what output we get. 
+
+```{r Basic assignment}
+x <- 1
+# Print out x:
+x
+```
+
+As you may notice from above, R will ignore what you say (allowing you to make 
+comments on your code) if you put hashtags/pound signs.
+
+```{r Comments}
+# This is important because you should always have comments to explain your code
+```
+
+What do you suppose will happen if we ask for R to print `y`? 
+(Hint: see what's listed in the *environment* tab)
+
+```{r error=TRUE}
+y
+```
+
+This is R's way of telling us that it doesn't know what y is because it's not 
+in it's *environment*. 
+  
+Base R (R without any extra frills from *packages*) knows how to do arithmetic. 
+Feel free to try out division, exponents, and multiplication.   
+*Hint:* `/`  `^`  `*` 
+
+```{r Arithmetic}
+# Addition:
+x + 5
+```
+
+## Data Types 
+
+*Why are data types important?*  
+Data *types* relate to the kind of data in an object: What is it made up of?
+Not all questions or transformations make sense, nor do all R commands. 
+*Functions* are things that take input, do something with this input, and then
+give you output. 
+But often these *functions* are built to work with specific *data types*. 
+You can just search for a function by name in the *help bar* in RStudio in the
+lower right corner.
+A function's documentation in the *help* tab should tell you what data *type* it
+will expect as input.
+
+Let's explore different data types in R: 
+To find out what data type `x` is, use the function `str`.
+Note you can also see some information about `x` in the *environment* tab in the
+upper right. 
+
+```{r Data structures}
+# Ask R to tell you what type of data structure "x" is
+str(x)
+```
+
+So `x` is currently numeric (abbreviated `num`). 
+*Numeric* data types refer to numbers like `1.3333` or `1`.  
+Now let's turn `x` into something else to explore our next data type.
+*Integer* data, as you would expect, is whole numbers that aren't decimals.
+
+```{r Characters}
+# Let's make x something else
+x <- "x"
+
+# What do you suppose this will say now? 
+str(x)
+```
+
+By using quotes, we've made `x` a *character* variable. 
+*Character* data types have quotes around them; usually strings of characters.
+Note that quotes make it a character even if it's a number in the quote: 
+
+```{r Characters continued}
+x <- "1"
+str(x)
+```
+
+Let's say we change our minds and we don't want `x` to be known as `1` in our 
+environment anymore, we can use the function `rm`.
+
+```{r Removal}
+# Remove x from the environment
+rm(x)
+```
+
+After running the above step, take a look at our environment tab. Is x there? 
+Let's bring x back so we can try to get rid of it's assignment a different way:
+
+```{r}
+# Reassign x
+x <- "1"
+
+# Make x NULL
+x <- NULL
+```
+
+Take a look at our environment. It's technically still there, but it's says
+`NULL`. This means it's there, but empty.
+
+Let's store a bunch of things together in different types of *vectors*: 
+*Vectors* are one dimensional and contain multiple pieces of datum (more on that 
+later).
+
+Let's make a numeric *vector*.   
+Also sidenote that the best object names are ones that intuitively make sense to 
+people.
+This way people who review your code can more easily understand what's going on
+(more on this later).
+Colons tell R to take all the numbers in between. 
+
+```{r Vectors}
+# We'll name this vector "nums" so it's more clear what this object is. 
+nums <- 1:5
+
+# What do you think this will give us now?: 
+str(nums)
+```
+
+Let's make a *character* vector.
+The `c` function allows us to *concatenate* ie. put multiple things together in one vector.
+We'll make a character vector and call this object `words`.
+
+```{r Non-numeric vector}
+# Let's store these words as a vector
+words <- c("apple", "boy", "cat", "dog", "elephant")
+
+# What do you think this will give us now?:
+str(words)
+```
+
+Let's make a *factor* vector. 
+If we want R to treat the strings that are the same as the same value such as if
+we had the vector below where `blue` and `red` are repeated, we would need to 
+make this into a `factor.` 
+
+```{r}
+# Let's make a color vector
+color_vector <- c("red", "blue", "red", "yellow", "blue")
+```
+  
+Let's take a look at our vector `color_vector` and what it looks like.
+
+```{r}
+str(color_vector)
+```
+Oh no! We wanted to make a factor vector but R thinks that we want a character
+vector. That's because R will, by default, assume this is a character string. 
+
+But what's the difference anyway?...
+  
+Let's take a look at our object another way using the function `summary`.
+Notice that if we use `summary` on a this character vector, it doesn't give us
+terribly meaningful information about how many times each color is repeated 
+because R sees this as a character string and doesn't know to look at the data
+like we want it to. 
+
+```{r Summary}
+summary(color_vector)
+```
+
+If we want `color_vector` to be a factor we need to tell R to treat it as such. 
+If you want to try to tell R to reinterpret something as a `factor`, you need to 
+use the function `as.factor`
+*Note* that every character type has it's own `as.___` function (eg. `as.numeric`, 
+`as.character`, etc.).
+
+```{r Coerce Factor}
+# Let's turn our character vector into a factor
+color_vector <- as.factor(color_vector)
+
+# Character strings that are the same will be included in the same level
+# What do you think this will give us now that we've turned this into a factor?
+summary(color_vector)
+```
+
+*Logical* vectors are ones that can help you find out what data meets 
+different criteria.
+You can create logical vectors from using *logical statements* on other vectors.
+`0` means `FALSE` and `1` means `TRUE`
+  
+We've already learned   `<-` is for assigning objects, here are other R operators
+that can be used for logical expressions.  
+  `==` : Is this equal? Note that this is different interpretation than a single
+         `=` which is generally used for arguments in functions or also R will 
+         interpret as an assignment(`<-`).  
+  `!=` : Is this not equal? An exclamation point reverses the previous statement.
+  `>` : Is this greater than?  
+  `<` : Is this lesser than?  
+  `>=` : Is this greater than or equal to?  
+  `<=` : Is this lesser than or equal to?  
+  
+For example, if we want to see which of the words in our `words` vector are 
+the words `"dog"`, we'll construct a statement: 
+
+```{r Logical color_vector}
+# First let's take another look at what `words` looks like: 
+words
+```
+
+```{r}
+# Now let's determine which of the items in `words` are equal to "dog"
+words == "dog"
+```
+
+This has printed out a vector of the same length as "words" but with `TRUE` or 
+`FALSE` at each position in the vector. 
+For numeric values, we can use greater than or equal signs. 
+
+```{r Logical nums}
+# First let's take another look at what `nums` looks like: 
+nums
+```
+
+```{r}
+# Now let's determine which of the items in `nums` are greater than or equal to 2
+nums >= 2
+```
+
+Note that when it comes to logical statements, factors can be referenced by their
+character strings:
+
+```{r Logical factor 2}
+# Let's remind ourselves of what `color_vector` looks like: 
+color_vector
+```
+
+```{r}
+# Let's determine which of these colors are 'red'
+color_vector != "red"
+```
+
+...or by their numeric level if you coerce the factor to numeric with 
+`as.numeric`:
+
+```{r Logical factor 1}
+# Let's check out what levels are assigned to our colors with `levels` function
+levels(color_vector)
+```
+
+Notice that levels are automatically assigned in alphabetical order. 
+Let's turn color_vector into numeric data and see what numbers are assigned
+to each level.
+
+```{r Make factor into num}
+# Let's transform 
+color_vector_num <- as.numeric(color_vector)
+
+# Let's take a look at what numbers were given to each level by printing the number and factor 
+# versions together:
+color_vector
+color_vector_num
+```
+
+Based on what we've seen with the level order above, what does this give us?:
+
+```{r}
+# Now we can use greater than or lesser than with this object:
+color_vector_num > 1
+```
+
+*To review, here are the R data types we learned*:  
+  - *Numeric* : Numbers like 1.3333 or 1  
+  - *Integer* : Numbers without decimals   
+  - *Character* : Things with quotes around them; strings of characters  
+  - *Factor* : Sets of variables that R will assign an factor levels to  
+  - *Logical* : An object where 0 means FALSE and 1 means TRUE  
+
+## Data Structures  
+
+Data *structures* refer to the sizes and dimensions of the objects. 
+
+*Example:* You may have already noticed, but `str()` reports the dimensions of 
+an object so, for a vector that has 10 pieces dimensions will be shown as 
+`[1:10]`.
+
+```{r Vectors again}
+one_through_ten <- 1:10
+str(one_through_ten)
+```
+
+A matrix is a two dimensional collection of data. Like in math, commas separate
+rows and columns indices. 
+We will generally be using matrices when we are working with only the numbers of
+a gene expression matrix.
+eg. for a vector that has 10 rows and 10 columns `str()` will report dimensions 
+of `[1:10, 1:10]`
+
+```{r Matrix}
+# Note that we need to use arguments for the matrix function to tell R how many 
+# rows "nrow = 10" and how many columns "ncol = 10" we want. 
+sq_matrix <- matrix(1:100, nrow = 10, ncol = 10)
+str(sq_matrix)
+```
+
+```{r}
+# In RStudio, you can also view an object by clicking on it in the Environment 
+# tab OR by using `View()`
+View(sq_matrix)
+```
+
+What dimensions do you suppose this matrix will have by default if we don't 
+specify the number of rows and columns we want? 
+To check out this dimensions of this object, let's use the `dim()` function.
+
+```{r Matrix cont.}
+not_sq_matrix <- matrix(1:100)
+dim(not_sq_matrix)
+```
+
+Matrices however, cannot store different types of data. 
+Notice that in the above examples we are only using integers. 
+If you try to mix data types together in a matrix, R will coerce them to be all 
+one type, which will probably be bad for you because your information will be 
+distorted.   
+  
+Hence the `data.frame` is probably what you will be using for a lot of your data. 
+Working with `data.frame`s also is handy because Hadley Wickham's `tidyverse` tools 
+are mostly built around using `data.frame`s or its' closely related sibling the 
+`tibble`. The next Rmd will show you all about manipulating `data.frame`s with the 
+tidyverse tools. 
+
+```{r Data frames}
+# Let's make a data frame from our previously created vectors!
+df <- data.frame(nums , words, color_vector)
+```
+
+Note that if these vectors were not conveniently all the same length, we could 
+not put them in a `data.frame` together.  
+
+```{r}
+str(df)
+# Also note that "obs" are rows and "variables" are the columns in a data.frame
+```
+
+Also note that the `data.frame` function makes strings a factor by default,
+unless you tell it not to. 
+So let's remake this `data.frame`, but tell R not to do that with one of the 
+arguments for the `data.frame` function. 
+
+```{r Data frames cont. }
+# Let's make a data frame from our previously created vectors but tell R not to
+# turn strings into factors!
+df <- data.frame(nums, words, color_vector, stringsAsFactors = FALSE)
+str(df)
+# Note that with the argument `stringsAsFactors` now our words variable remains 
+# a character vector as it was before. 
+```
+
+Now that we have a nice `data.frame` and other objects to play with in our 
+environment; let's play around with it and extract pieces of it. 
+
+```{r Subsetting Indices}
+# Let's say we only want to see what's in the first row and first column of this
+# data.frame. We can subset data structures by using brackets. 
+df[1, 1]
+```
+
+We can do the same sort of thing to a matrix:
+
+```{r Subsetting Indices 2}
+# Note that you can do this same thing to matrices: 
+sq_matrix[3, 3]
+```
+
+We can also select multiple columns at once. Either by using a colon:  
+
+```{r}
+sq_matrix[3, 1:3]
+```
+
+Or by using `c()`
+
+```{r}
+sq_matrix[c(1, 3), ]
+```
+
+Also note that by not putting a column index above, all the columns were selected. 
+
+There are also built in objects to preview matrices or data.frames.   
+-`head()` will give you the first 6 rows of data, by default.   
+-`tail()` will give you the last 6 rows of data.  
+
+```{r}
+head(sq_matrix)
+```
+
+If you want more or less rows, you can specify this by putting an `n = ` argument.
+
+```{r}
+tail(df, n = 3)
+```
+
+Why do you suppose we don't have a comma to subset this object?: 
+
+```{r}
+one_through_ten[8]
+# Hint: Check it's structure with str() if you forgot what this object looks like. 
+```
+
+Data frames have column and row names. You can also specially reference 
+`data.frame`s' variables by their column names. 
+
+```{r Special data.frame things}
+# data.frames store column names and row names 
+df$nums
+# We'll do fancier data.frame manipulations in the next Rmd so hold tight!
+```
+
+What if we want to store all of our object in one big object? 
+We can't do that with data frames because not all of these are the same length 
+or dimensions. 
+This is where `lists` come in handy.
+Lists do not care about data type or data structure, but let you store whatever
+you want in one big object.
+
+```{r}
+# Let's remind ourselves of what objects we've made so far using the `ls` function 
+# Note you can also look in your environment tab panel to see this info.
+ls()
+```
+
+Now let's make one crazy list with various objects of different dimensions and
+types using the function `list`!
+
+```{r Lists}
+variety_list <- list(df, sq_matrix, color_vector, x)
+
+# Let's take a look at this list 
+str(variety_list)
+```
+
+How do we extract things from this weird list? We need to use brackets again. 
+
+```{r Single bracket}
+# This will show us our data.frame in the first spot as a singular item
+first_item <- variety_list[1]
+
+# Let's take a look at this, note that we've just made this a list of one now
+str(first_item)
+```
+
+You'll find that the single bracket is probably not giving you what you want 
+here. 
+To explain this, let's look at a couple other things about how lists work. 
+The structure of lists are kind of analogous to those 
+[Russian nesting dolls](https://en.wikipedia.org/wiki/Matryoshka_doll) in that 
+you can have lists inside of lists and you can think of them as layers.
+In this analogy the single bracket is not actually extracting the `data.frame`
+that is in this list. 
+
+```{r Double Bracket}
+# This however will give us the data.frame in this spot in the list. 
+variety_list[[1]]
+```
+
+Let's take a look at the structure of this:
+
+```{r Double Bracket str}
+# Let's look at the structure of this after we've 'extracted' the data.frame
+# from the list with the double brackets. 
+str(variety_list[[1]])
+```
+
+To further clarify the difference between the double and single bracket, note 
+that with a single bracket we can't use the `data.frame` as usual.
+R tells us `NULL` if we try to reference the column `$color_vector` because it 
+doesn't recognize it as a `data.frame`, but instead thinks of it as a `list` item.
+But, with the double bracket we can play with our `data.frame` the same way as before: 
+
+```{r Subset list and df}
+# Single bracket: can't use the data.frame
+variety_list[1]$color_vector
+```
+
+Notice the above doesn't give us the column we were looking for. 
+Instead we need to use the double brackets like below:
+
+```{r Subset list and df 2}
+# Double bracket: can use the data.frame
+variety_list[[1]]$color_vector
+```
+
+*To review, here are the data structures we learned:* 
+  - A *Vector* is one dimensional collection of data that is all of the same type  
+  - A *Matrix* a two dimensional storage of data that is all of the same type  
+  - A *Dataframe* is a two dimensional storage of data that can be a mix of data
+    types  
+  - A *List* is multidimensional storage of data that can be a mix of data types 
+    and structures (more explanation to come with )
+
+## About good coding practices
+
+#### 1) Style guides help people read your code
+
+Just like how incorrect punctuation and grammar can be distracting for a reader
+to grasp your message in your writing, code that doesn't follow a style is 
+difficult for others to understand and be able to use.
+Your code is not useful if it isn't easily readable, which is why naming 
+conventions, code style, and consistency are important. 
+
+We suggest following a style guide like one of these:  
+- [Hadley Wickham's R Style Guide](http://adv-r.had.co.nz/Style.html)  
+- [Google's R Style Guide](https://google.github.io/styleguide/Rguide.xml).   
+  
+#### 2) `set.seed` helps people reproduce your results
+
+When performing any kind of analyses that use random sampling, or something that
+may vary each time you re-run it.
+
+```{r}
+# How to set the seed: 
+# 1) Put any number as your argument for the function and run set.seed like below
+# 2) Run your analyses like normal
+# 3) If you run your analyses again, they give exactly the same numbers. 
+set.seed(54321)
+```
+
+Setting the seed makes it so what ever results you get, are reproducible *exactly*.
+
+#### 3) `sessionInfo` tells people what packages you used
+
+This prints out what packages and versions you used in your analysis.
+This way, when others try to reproduce your research, they know what packages 
+you have loaded and how things were set for the code you ran. 
+
+```{r}
+# Print out the versions and packages we are using in this session
+sessionInfo()
+```
