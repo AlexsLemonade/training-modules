@@ -21,7 +21,7 @@ Salmon, just like was done in the bulk RNA-seq module.
 
 ### Step 0: About the data
 
-We obtained these data from Tabula Muris project's [Figshare](https://figshare.com/projects/Tabula_Muris_Transcriptomic_characterization_of_20_organs_and_tissues_from_Mus_musculus_at_single_cell_resolution/27733)
+We obtained these data from Tabula Muris project's [Figshare](https://figshare.com/projects/Tabula_Muris_Transcriptomic_characterization_of_20_organs_and_tissues_from_Mus_musculus_at_single_cell_resolution/27733).
 The bam files that were on Figshare were converted to fastq files using
 `CellRanger bamtofastq`.
 We will process a fastq file from mouse bladder for this as an example.  
@@ -46,7 +46,7 @@ Remember to use `ls` and `cd` to help get you there.
 
 Now that we are in `kitematic/scRNA-seq`, we'll make a directory from
 for us to store our output data in.
-In `Terminal`, copy, paste, and run the following command:
+In `Terminal`, run the following command:
 ```
 mkdir alevin_output  
 ```
@@ -66,7 +66,7 @@ But for your own reference, here is how you'd do it yourself:
 ```
 # salmon --threads=16 --no-version-check index \
 #  -t Mus_musculus.GRCm38.cdna.all.fa.gz \
-#  -i mouse_index \
+#  -i index/Mus_musculus/short_index \
 #  -k 23
 ```
 
@@ -158,7 +158,7 @@ probably want to read it into R to start to analyze it.
 Alevin provides count data output for each transcript and cell. To read this
 data into R, we would import a function from the script `ReadAlevin.R` which is
 located in the `scRNA-seq/scripts` folder.
-This script is based on the COMBINE lab's function in their [tutorial](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/)
+This script is based on the COMBINE lab's function in their [tutorial](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/).
 
 In the R console:
 ```r
@@ -208,6 +208,6 @@ Remember that this is only part of this sample, so it won't look as good as if
 we had run the full fastq file, which we have provided the alevinQC report of
 in your `scRNA-seq/data` directory (or by the link below).
 
-For the full alevinQC report for P4_3 mouse bladder sample [go here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
+The full alevinQC report for P4_3 mouse bladder sample can be found [here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
 
-For an example of [poor quality sample alevinQC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html)
+This is an example of [poor quality sample alevinQC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html).
