@@ -175,7 +175,7 @@ argument.
 In the R console:
 ```r
 # Read in the data
-# alevin_file <- ReadAlevin("alevin_output")
+# alevin_data <- ReadAlevin("alevin_output")
 ```
 
 ### Step 7: Perform QC checks with `alevinQC`
@@ -210,4 +210,4 @@ in your `scRNA-seq/data` directory (or by the link below).
 
 The full alevinQC report for P4_3 mouse bladder sample can be found [here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
 
-This is an example of [poor quality sample alevinQC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html).
+This is an example of [a poor quality sample alevinQC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html).
