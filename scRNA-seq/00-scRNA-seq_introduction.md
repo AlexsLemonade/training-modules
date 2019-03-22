@@ -55,11 +55,11 @@ and another with the individual reads.
 
 ## Resources:
 
-- Work-on-your-own [scRNA-seq training course](https://hemberg-lab.github.io/scRNA.seq.course/index.html)
+- Hemberg Lab [scRNA-seq training course](https://hemberg-lab.github.io/scRNA.seq.course/index.html)
 
-- GUI to do scRNA-seq processing things for you on [ASAP website][https://asap.epfl.ch/]
+- [ASAP: Automated Single-cell Analysis Pipeline](https://asap.epfl.ch/) is a web server that allows you to process scRNA-seq data. ([Gardeux et al. _Bioinformatics._ 2017.](https://doi.org/10.1093/bioinformatics/btx337 ))
 
-- UMI [concepts article](https://cgatoxford.wordpress.com/2015/08/14/unique-molecular-identifiers-the-problem-the-solution-and-the-proof/)
+- Smith. [_Unique Molecular Identifiers – the problem, the solution and the proof_](https://cgatoxford.wordpress.com/2015/08/14/unique-molecular-identifiers-the-problem-the-solution-and-the-proof/) provides an excellent background on UMIs.
 
 *Literature on the comparisons and explanations of scRNA-seq  technologies:*     
 - [Zhang et al. _Molecular Cell._ 2018.](https://doi.org/10.1016/j.molcel.2018.10.020)  
