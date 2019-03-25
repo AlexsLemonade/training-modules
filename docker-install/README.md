@@ -15,7 +15,7 @@ When you are finished, return to the schedule for your workshop for the link to 
 
 ### MacOS
 
-1. Visit the [Docker Store](https://store.docker.com/search?type=edition&offering=community) and download Docker Community Edition for Mac.
+1. Visit the [Docker Store](https://store.docker.com/search?type=edition&offering=community) and download Docker Desktop for Mac.
 ![Mac Download](screenshots/mac-00-download.png)
 2. Open the downloaded file and drag the Docker Whale icon to your Applications folder.
 ![Mac Docker Install](screenshots/mac-01-applications.png)
