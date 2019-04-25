@@ -24,7 +24,7 @@ _These screenshots were generated using a Docker container._
 
 3. You can switch to a **Terminal** where commands will be carried out by clicking the `Terminal` tab to the right of the `Console` tab. 
 This is a [command-line interface](https://en.wikipedia.org/wiki/Command-line_interface).
-Commands here will not be carried out by R.
+Commands here are for programs on your system _other_ than R.
 
 ![terminal](screenshots/02-terminal.png)
 
@@ -64,9 +64,11 @@ Try typing `?setwd` and `?getwd` to learn more about working directories.
 ![files](screenshots/09-files.png)
 
 11. Clicking an R Markdown file (`.Rmd`) in the **Files** pane will open it up in the **Source** pane.
-Note that the working directory for an R Notebook is where ever that notebook is saved.
+Note that the working directory for an R Notebook is automatically wherever that notebook is saved.
 
 ![open-rmd](screenshots/10-open_rmd.png)
+
+Rscript files (`.R`) will also open in the **Source** pane.
 
 12. If you want to adjust what is displayed or the pane layout, you can do so by clicking `View` > `Panes` > `Pane Layout` which will bring up an Options menu.
 
