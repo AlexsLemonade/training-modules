@@ -44,7 +44,7 @@ You will see this `::` method of referencing libraries throughout the course.
 
 ## About directories
 
-Before we can import the file we need though, we should double check where R is 
+Before we can import the file we need, we should double check where R is 
 looking for files aka our what our *working* directory currently is. 
 We can do this by using the `getwd()` function, which will tell us what folder
 we are in. 
@@ -54,7 +54,9 @@ we are in.
 getwd()
 ```
 
-Then we can use the `dir()` function to have R list the files in our current 
+Note that for Rmd files, the working directory is always wherever the file is 
+located. 
+We can use the `dir()` function to have R list the files in our working 
 directory. 
 
 ```{r}
@@ -71,16 +73,16 @@ directory to somewhere else using `setwd()` OR we can tell R to look for the
 file `metadata.tsv` somewhere else using a relative `file.path()` (more on this
 later in this notebook).
 
-Let's read in the file`metadata.tsv` that is in our current directory. 
+We will use this `metadata.tsv` file for our examples here.
 This metadata is from GSE30074 on [refine.bio](https://www.refine.bio/experiments/GSE30074/expression-data-from-30-medulloblastomas),
 a gene expression dataset from medulloblastoma ([Park et al. _Neuro Oncol._ 2011.](https://www.ncbi.nlm.nih.gov/pubmed/22090452)).
   
 First let's read in the dataset using the tidyverse package: `readr`.
 Although base R has read-in functions, the `readr` functions are faster and more
 straightforward to use so we are going to use those here. 
-Because the file we are reading in is a .tsv file we will be using the 
+Because the file we are reading in is a TSV file we will be using the 
 `read_tsv` function. 
-But note that there are analogous functions for .csv files (`read_csv`) and 
+But note that there are analogous functions for CSV files (`read_csv`) and 
 other files types.
 
 ```{r}
@@ -94,7 +96,7 @@ To keep our files organized, we will want to make a directory for our output.
 We will call this directory: `results`. 
 But before we create the directory, we should check if it already exists. 
 Let's use the `dir.exists` function to see if a `results` directory already 
-exists in our current directory. 
+exists in our working directory. 
 
 ```{r}
 # Check if the results directory exists
@@ -105,7 +107,7 @@ If the above says `FALSE` that means we will need to create a `results` director
 using the function `dir.create`.
 
 ```{r}
-# Make a directory within the current directory called 'results'
+# Make a directory within the working directory called 'results'
 dir.create("results")
 ```
 
@@ -128,6 +130,20 @@ if (!dir.exists("results")) {
   # ... create a 'results' directory
   dir.create("results")
 }
+```
+
+Note that the `dir.exists` function will not work on files themselves.
+In this case, there is an analogous function called `file.exists`.
+
+Try using the `file.exists` function to see if the `metadata.tsv` file exists 
+in the current directory.
+Use the code chunk we set up for you below. 
+Note that in our notebooks (and sometimes elsewhere), wherever you see a `<FILL_IN_THE_BLANK>` like in the chunk below, that is meant for you to replace with the correct phrase before you run the chunk (otherwise you will get an error).
+
+```{r eval=FALSE}
+# Replace the <PUT_FILE_NAME_HERE> with the name of the file you are looking for
+# Remember to use quotes to make it a character string
+file.exists(<PUT_FILE_NAME_HERE>)
 ```
 
 ## dplyr pipes
@@ -266,57 +282,53 @@ head(metadata_edit)
 
 ## Saving files
 
-Let's write this data we edited to a file.
+#### Saving to TSV files
 
-Before we can save our file, we need to return to the concept of directories we
-discussed at the beginning of this notebook. 
+Let's write this data we edited to a file.
+To do this, we can use the `readr` library of `write` functions. 
+Note that the second argument of `write_tsv` needs to be our a character string 
+that contains our `file.path` to the new file we would like to create.
 Remember that we created a `results` directory to put our output in. 
-But if we want to save our data to a directory other than our current directory, 
+But if we want to save our data to a directory other than our working directory, 
 we need to specify this. 
 This is what we will use the `file.path` function for. 
 Let's look at what `file.path` does, by taking a look at the print out of it 
-from two examples below.
+from examples below.
 
 ```{r}
-# What is the difference among these file.paths? 
-file.path("metadata_clean.tsv")
+# Which of these file paths lead to the actual files?
+file.path("metadata.tsv")
 file.path("results", "metadata_clean.tsv")
 file.path("metadata_clean.tsv", "results")
 ```
 
-Which one of the three file.paths from above do we need to use in order to get our 
-file into the `results` folder? 
+Replace `<NEW_FILE_PATH>` below with the file.path from above that will 
+succesfully save our file to the `results` folder 
 
-Now that we have determined how to designate our file.path, we can write our 
-`data.frame` to a file. 
-To do this, we can use the `readr` library of `write` functions. 
-In this case, we will use `write_tsv`.
-Note that the second argument needs to be our a character string that contains 
-our `file.path` that we determine above. 
-
-Also note that in our notebooks, wherever you see a `<FILL_IN_THE_BLANK>` like
-in the chunk below, that is meant for you to replace with the correct phrase
-before you run the chunk (otherwise you will get an error).
-
-```{r eval=FALSE}
-write_tsv(metadata_edit, <PUT_CORRECT_FILE_PATH_HERE>)
+```{r eval=TRUE}
+# Write our data.frame to a TSV file
+write_tsv(metadata_edit, <NEW_FILE_PATH>)
 ```
 
-For this example we have been working with `data.frame`s, however, we may also 
-work with more complicated structure objects or very large objects. 
-In these instances, we may want to save our data to an RDS file as opposed to 
-a TSV like we did above. 
+Check in your `results` directory to see if your new file has succesfully saved.
+
+#### Saving to RDS files
+
+For this example we have been working with `data.frame`s, however, in other 
+situations we may want to save more complicated structure objects or very large 
+objects. 
+RDS files may be a better option in these instances.
 RDS is R's special file format for holding data exactly as you have it in your 
 R environment. 
 RDS files also are compressed, meaning they will take up less space on your 
 computer. 
-Just like when we made the file.paths above, we will want to end the file.name 
-in the correct extension so here, we will use a similar `file.path` as we did 
-before, but replace the `.tsv` with `.RDS`
+Let's save our data to an RDS file in our `results` folder.
+You will need to replace the `.tsv` with `.RDS`, but you can use what we 
+determined as our `file.path` for the last chunk as your template. 
 
-```{r}
+```{r eval=TRUE}
 # Write your object to an RDS file
-write_rds(metadata_edit, file.path("results", "metadata_clean.RDS"))
+write_rds(metadata_edit, <PUT_CORRECT_FILE_PATH_HERE>)
 ```
 
 Since now you have learned the `readr` functions: `read_tsv`, `write_tsv`, and 
