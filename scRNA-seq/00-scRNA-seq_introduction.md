@@ -61,7 +61,8 @@ and another with the individual reads.
 
 - Smith. [_Unique Molecular Identifiers – the problem, the solution and the proof_](https://cgatoxford.wordpress.com/2015/08/14/unique-molecular-identifiers-the-problem-the-solution-and-the-proof/) provides an excellent background on UMIs.
 
-*Literature on the comparisons and explanations of scRNA-seq  technologies:*     
+*Literature on the comparisons and explanations of scRNA-seq  technologies:*
+- [Amezquita et al. _BioArchiv_ 2019.](https://www.biorxiv.org/content/10.1101/590562v1)    
 - [Zhang et al. _Molecular Cell._ 2018.](https://doi.org/10.1016/j.molcel.2018.10.020)  
 - [AlJanahi et al. _Mol Ther Methods Clin Dev._ 2018.](https://doi.org/10.1016/j.omtm.2018.07.003)  
 - [Angerer et al. _Curr Opin Sys Bio._ 2017.](http://dx.doi.org/10.1016/j.coisb.2017.07.004)  
