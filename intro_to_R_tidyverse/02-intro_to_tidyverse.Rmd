@@ -11,9 +11,8 @@ output:
 In this notebook, we will take you through the basics of the tidyverse: 
 a collection of packages that make R use easier and more convenient.  
 
-There are a lot of tutorials and free books Hadley Wickham and friends have on 
-how to use the [tidyverse packages](https://r4ds.had.co.nz/index.html). 
-[Datacamp](https://www.datacamp.com/) also has a bunch of good tutorials on this. 
+We recommend using the free books Hadley Wickham and friends have on 
+how to use the [tidyverse packages](https://r4ds.had.co.nz/index.html).
 
 ## Set Up
 
@@ -34,19 +33,16 @@ do it using the `install.packages` function like this: `install.packages("tidyve
 library(tidyverse)
 ```
 
-"metadata.tsv" is a file we will use for practicing the tidyverse.
-This metadata is from GSE30074 [refine.bio](https://www.refine.bio), a gene 
-expression dataset from medulloblastoma.
-  
-First let's read in the dataset using the tidyverse package: `readr`.
-Although base R has read-in functions, the `readr` functions are faster and more
-straightforward to use so we are going to use those here. 
-Because the file we are reading in is a .tsv file we will be using the 
-`read_tsv` function. 
-But note that there are analogous functions for .csv files (`read_csv`) and 
-other files types.
+### Referencing a library's function with `::`
 
-### About directories
+Note that if we had not imported the tidyverse set of packages using `library` 
+like above, and we were using a tidyverse function like `read_tsv`, we would need to 
+tell R what package to find this function in.
+To do this, we would use `::` to tell R to load in this function from the 
+`readr` package by using `readr::read_tsv`.
+You will see this `::` method of referencing libraries throughout the course.  
+
+## About directories
 
 Before we can import the file we need though, we should double check where R is 
 looking for files aka our what our *working* directory currently is. 
@@ -66,24 +62,73 @@ directory.
 dir()
 ```
 
+#### Read a TSV file
+
 What we should see is the file `metadata.tsv` show up as one of the files when 
 we run `dir()`.
 If for some reason we were not in the correct directory, we can either set our
 directory to somewhere else using `setwd()` OR we can tell R to look for the 
-file `metadata.tsv` somewhere else using a relative `file.path()`.
-* `setwd()` 
-We will discuss and practice these concepts more in other modules as we go along.
+file `metadata.tsv` somewhere else using a relative `file.path()` (more on this
+later in this notebook).
+
+Let's read in the file`metadata.tsv` that is in our current directory. 
+This metadata is from GSE30074 on [refine.bio](https://www.refine.bio/experiments/GSE30074/expression-data-from-30-medulloblastomas),
+a gene expression dataset from medulloblastoma ([Park et al. _Neuro Oncol._ 2011.](https://www.ncbi.nlm.nih.gov/pubmed/22090452)).
+  
+First let's read in the dataset using the tidyverse package: `readr`.
+Although base R has read-in functions, the `readr` functions are faster and more
+straightforward to use so we are going to use those here. 
+Because the file we are reading in is a .tsv file we will be using the 
+`read_tsv` function. 
+But note that there are analogous functions for .csv files (`read_csv`) and 
+other files types.
 
 ```{r}
 # The file we are reading in is our argument for read_tsv
 metadata <- read_tsv("metadata.tsv")
 ```
 
-Note that if we had not imported the tidyverse library, we would also need to 
-tell R what package to find `read_tsv` in (because it is not a base R function).
-To do this, we would use `::` to tell R to load in this function from the 
-`readr` package by using `readr::read_tsv`.
-You will see this `::` method of referencing libraries throughout the course.  
+#### Managing directories
+
+To keep our files organized, we will want to make a directory for our output. 
+We will call this directory: `results`. 
+But before we create the directory, we should check if it already exists. 
+Let's use the `dir.exists` function to see if a `results` directory already 
+exists in our current directory. 
+
+```{r}
+# Check if the results directory exists
+dir.exists("results")
+```
+
+If the above says `FALSE` that means we will need to create a `results` directory
+using the function `dir.create`.
+
+```{r}
+# Make a directory within the current directory called 'results'
+dir.create("results")
+```
+
+After creating the results directory above, let's re-run `dir.exists` to see if 
+now it exists.
+
+```{r}
+# Re-check if the results directory exists
+dir.exists("results")
+```
+
+We can use the output of `dir.exists` to automatically create or hold off on 
+creating a directory by putting this together in an `if` statement like below. 
+Note that we put an exclamation point to signify that we want a directory to be
+created only *if* `dir.exists(results)` is NOT equal to `TRUE`.
+
+```{r}
+# If 'results' directory doesn't exist...
+if (!dir.exists("results")) {
+  # ... create a 'results' directory
+  dir.create("results")
+}
+```
 
 ## dplyr pipes
 A nifty thing with the tidyverse is the pipes: `%>%`
@@ -219,13 +264,73 @@ Let's use `head(metadata_edit)` so we can look at a preview of what we made:
 head(metadata_edit)
 ```
 
-Let's write this data to a file using `write_tsv`. Note that the second argument 
-needs to be a character string that ends in the appropriate file extension ".tsv"
-and it is what your file you are creating will be named. 
+## Saving files
+
+Let's write this data we edited to a file.
+
+Before we can save our file, we need to return to the concept of directories we
+discussed at the beginning of this notebook. 
+Remember that we created a `results` directory to put our output in. 
+But if we want to save our data to a directory other than our current directory, 
+we need to specify this. 
+This is what we will use the `file.path` function for. 
+Let's look at what `file.path` does, by taking a look at the print out of it 
+from two examples below.
 
 ```{r}
-write_tsv(metadata_edit, "metadata_clean.tsv")
+# What is the difference among these file.paths? 
+file.path("metadata_clean.tsv")
+file.path("results", "metadata_clean.tsv")
+file.path("metadata_clean.tsv", "results")
 ```
+
+Which one of the three file.paths from above do we need to use in order to get our 
+file into the `results` folder? 
+
+Now that we have determined how to designate our file.path, we can write our 
+`data.frame` to a file. 
+To do this, we can use the `readr` library of `write` functions. 
+In this case, we will use `write_tsv`.
+Note that the second argument needs to be our a character string that contains 
+our `file.path` that we determine above. 
+
+Also note that in our notebooks, wherever you see a `<FILL_IN_THE_BLANK>` like
+in the chunk below, that is meant for you to replace with the correct phrase
+before you run the chunk (otherwise you will get an error).
+
+```{r eval=FALSE}
+write_tsv(metadata_edit, <PUT_CORRECT_FILE_PATH_HERE>)
+```
+
+For this example we have been working with `data.frame`s, however, we may also 
+work with more complicated structure objects or very large objects. 
+In these instances, we may want to save our data to an RDS file as opposed to 
+a TSV like we did above. 
+RDS is R's special file format for holding data exactly as you have it in your 
+R environment. 
+RDS files also are compressed, meaning they will take up less space on your 
+computer. 
+Just like when we made the file.paths above, we will want to end the file.name 
+in the correct extension so here, we will use a similar `file.path` as we did 
+before, but replace the `.tsv` with `.RDS`
+
+```{r}
+# Write your object to an RDS file
+write_rds(metadata_edit, file.path("results", "metadata_clean.RDS"))
+```
+
+Since now you have learned the `readr` functions: `read_tsv`, `write_tsv`, and 
+now, `write_rds`, what do you suppose the function you will need to read your 
+RDS file is called? 
+Use that function here to reimport your data in the chunk we set up for you
+below.
+
+```{r eval=FALSE}
+# Read in your RDS file
+reimport_df <- <PUT_FUNCTION_NAME>(file.path("results", "metadata_clean.RDS"))
+```
+
+As is good practice, we will end this session by printing out our session info. 
 
 #### Session Info: 
 
