@@ -1,0 +1,160 @@
+---
+title: "Exercise: Leukemia bulk RNA-seq"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+Here, we'll examine a mouse model of acute myeloid leukemia (AML).
+We're using [`SRP049821`](https://www.ebi.ac.uk/ena/data/view/PRJNA267255).
+Here's the description from the authors:
+
+> Mutant RAS oncoproteins activate signaling molecules that drive oncogenesis in multiple human tumors including acute myelogenous leukemia (AML). However, the specific function of these pathways in AML is unclear. To elucidate the downstream functions of activated NRAS in AML, we employed a murine model of AML harboring Mll-AF9 and NRASG12V. We found that NRASG12V enforced leukemia self-renewal gene expression signatures and was required to maintain an MLL-AF9 and MYB-dependent gene expression program. In a multiplexed analysis of RAS-dependent signaling intermediates, the leukemia stem cell compartment was preferentially sensitive to RAS withdrawal. Use of RAS-pathway inhibitors showed that NRASG12V maintained leukemia self-renewal through mTOR and MEK pathway activation, implicating these pathways as potential targets for cancer stem cell-specific therapies. Overall design: Primary leukemia cells harvested from spleens were sorted into immunophenotypic subpopulations (Mac-1High, Mac-1LowKit–Sca-1–, Mac-1LowKit+Sca-1–, and Mac-1LowKit+Sca-1+). RNA was extracted from this subpopulations of cells and submitted for RNA sequencing.
+
+These data were published as part of Sachs et al. _Blood._ 2014.
+
+### Setup 
+
+We've prepared the expression data all the way through the tximport step.
+This file can be found at: `data/tximport/leukemia/leukemia_stem_cell_txi.RDS`
+
+The metadata for this experiment can be found in this TSV file: `data/sample_metadata/leukemia/SRP049821_metadata.tsv`
+
+Using what we've learned so far, let's ask a series of questions about these
+data using DESeq2.
+
+```{r}
+library(DESeq2)
+```
+
+We'll use the `%>%` operator as well.
+
+```{r}
+`%>%` <- dplyr::`%>%`
+```
+
+### What does the relationship between the cell populations look like?
+
+Read in the gene expression data and the metadata.
+The cell population information is in a column called `cell_sorting` in the
+metadata file.
+
+```{r}
+# call the tximport processed data txi
+txi <- 
+```
+
+```{r}
+# call the metadata data.frame metadata_df
+metadata_df <- 
+```
+
+Use DESeq2 functionality to create a dataset, transform, and visualize the data.
+Recall that we are interested in the cell populations.
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+From Sachs et al. _Blood._ 2014 (read it [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4239336/)):
+
+> ...these data identify the Mac-1LowKit+Sca-1+ group as enriched with [leukemia stem-cells] compared with the other groups, particularly the Mac1High group that accounts for the majority of the leukemia population.
+...
+Both of these modalities identify the Mac-1High group as the group with the least stem-cell capacity.
+
+Do the gene expression profiles align with the results from the Sachs et al. 
+experiments?
+
+### What genes are highly expressed in cells with high stem-cell capacity?
+
+Let's compare the `MacLowKitposSca1pos` (high capacity) to `MacHigh` (low 
+capacity) cells.
+First, we'll filter the tximport-processed data to only include samples
+from these two groups.
+
+```{r}
+str(txi)
+```
+
+There are 3 elements in the `txi` list that will need to be filtered.
+
+```{r}
+# first, let's make a copy of txi called txi_filtered that we will then
+# filter
+txi_filtered <- txi
+```
+
+We'll get the sample identifiers (or run accessions, e.g., `SRRXXXXXX`) for
+only the cell populations we're interesting using some tidyverse functionality.
+
+```{r}
+samples_to_keep <- metadata_df %>%
+  # filter to only the cell populations we care about
+  dplyr::filter(cell_sorting %in% c("MacLowKitposSca1pos", "MacHigh")) %>%
+  # pull out only the run accessions so we have a vector
+  dplyr::pull(Run)
+samples_to_keep
+```
+
+Filter the matrices using `samples_to_keep`.
+
+```{r}
+# filter the abundance
+txi_filtered$abundance <- txi_filtered$abundance[, samples_to_keep]
+# repeat this for the counts and length matrices
+txi_filtered$counts <-
+txi_filtered$length <- 
+```
+
+We should have an object that contains 11 samples.
+
+```{r}
+str(txi_filtered)
+```
+
+Filter `metadata_df` using `dplyr::filter` to create `metadata_filtered_df`
+
+```{r}
+metadata_filtered_df <-
+```
+
+Create a new DESeq2 dataset.
+
+```{r}
+# call the new dataset ddset_filtered
+ddset_filtered <- 
+```
+
+Perform differential expression analysis.
+
+```{r}
+# call the resulting object deseq_object
+deseq_object <- 
+```
+
+Get the results as a data.frame.
+
+```{r}
+
+```
+
+We're interested in genes that are highly expressed in the cell population
+with higher stem-cell potential (`MacLowKitposSca1pos`).
+Use `levels()` and `dplyr::arrange` to find these genes. 
+
+```{r}
+
+```
+
+```{r}
+
+```
