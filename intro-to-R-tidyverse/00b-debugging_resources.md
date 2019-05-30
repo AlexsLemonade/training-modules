@@ -24,8 +24,18 @@ As we discussed in
 objects have *structures* and *types*. 
 
 #### Use the RStudio help bar
+![search_bar](screenshots/r_search_bar.png)
 
 #### For Bioconductor package functions, look at their documents
+
+[DESeq2](https://www.bioconductor.org/packages/release/bioc/html/DESeq2.html) is 
+a Bioconductor package we use in RNA-seq module. 
+
+![bioconductor](screenshots/bioconductor_deseq2.png)
+
+![bioconductor_docs](screenshots/bioconductor_docs.png)
+
+[PDF reference manuals](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf)
 
 ### 3) Google your error message
 
