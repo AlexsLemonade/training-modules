@@ -3,6 +3,11 @@
 This guide gives you tips and approaches for fixing errors that will arise. We also go through some of the most common errors that 
 you will encounter and what they mean. 
 
+## Other helpful resources: 
+https://www.r-project.org/help.html
+https://www.propublica.org/nerds/how-to-ask-programming-questions
+https://blog.hartleybrody.com/debugging-code-beginner/
+
 ## Tips for approaching error
 
 ### 1) Identify which line and phrase of code is the source of the error.
@@ -28,12 +33,13 @@ objects have *structures* and *types*.
 
 #### For Bioconductor package functions, look at their documents
 
-[DESeq2](https://www.bioconductor.org/packages/release/bioc/html/DESeq2.html) is 
-a Bioconductor package we use in RNA-seq module. 
+Like other a lot of other packages we may be using for genomics analysis, [DESeq2](https://www.bioconductor.org/packages/release/bioc/html/DESeq2.html) is 
+a Bioconductor package. We use DESeq2 in the bulk RNA-seq module. 
 
-![bioconductor](screenshots/bioconductor_deseq2.png)
-
+The documentation on Bioconductor pages have information that can be valuable 
+for troubleshooting.
 ![bioconductor_docs](screenshots/bioconductor_docs.png)
+
 
 [PDF reference manuals](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf)
 
@@ -41,9 +47,7 @@ a Bioconductor package we use in RNA-seq module.
 
 The main advantage to Googling your errors, is that you likely not the first 
 person to encounter the problem. Certain phrases and terms in the error message
-will yield more fruitful search results then others. Through trial and error, 
-and also Google algorithms learning about what you look for, your search results
-can eventually lead you to helpful examples and forums. 
+will yield more fruitful search results then others.  
 
 When you do Google, two common sources that will probably come up that we 
 recommend looking at are:
@@ -54,10 +58,15 @@ StackOverflow this is a forum where people post
 #### b) [GitHub Issues](https://help.github.com/en/articles/about-issues)
 People also will post their problems to GitHub issues.
 
+#### c) [R-bloggers](https://www.r-bloggers.com/)
+R-bloggers has examples of R code that you can use to figure out how to construct
+various analyses. 
+
 ### 4) Google it again
-### 
 Because it's unlikely your first attempt at Googling will lead you straight
-to an answer; this is something you should continue try again. 
+to an answer; this is something you should continue try with different wordings. 
+Through trial and error, and also Google algorithms learning about what you look
+for, your search results can eventually lead you to helpful examples and forums.
 
 ### 5) Look at the source code for that function
 
