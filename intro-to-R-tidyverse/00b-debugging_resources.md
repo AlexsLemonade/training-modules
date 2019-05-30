@@ -1,7 +1,6 @@
-# An introductory guide to troubleshooting R code errors
+# An introductory guide to troubleshooting errors
 
-This guide gives you tips and approaches for fixing errors that will arise when 
-you are making R code. We also go through some of the most common errors that 
+This guide gives you tips and approaches for fixing errors that will arise. We also go through some of the most common errors that 
 you will encounter and what they mean. 
 
 ## Tips for approaching error
@@ -20,14 +19,13 @@ functions, Tidyverse functions, and *some* Bioconductor packages, the documentat
 will give you a lot of the information you need. However, you will likely find
 documentation isn't always thorough or clear. 
 
-
 #### Use the help bar
 
 #### If you are using a Bioconductor package, look at their documents
 
-#### a) What structure object is the function built to take? 
-
-#### b) What character type is the function built to take?  
+As we discussed in 
+[`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html),
+objects have *structures* and *types*. 
 
 ### 3) Google it
 
