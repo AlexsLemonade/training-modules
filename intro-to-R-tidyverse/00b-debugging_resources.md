@@ -1,8 +1,15 @@
-# An introductory guide to debugging 
+# An introductory guide to troubleshooting R code errors
+
+This guide gives you tips and approaches for fixing errors that will arise when 
+you are making R code. We also go through some of the most common errors that 
+you will encounter and what they mean. 
 
 ## Tips for approaching error
 
-### 1) Identify which phrase is the source of the problem 
+### 1) Identify which line and phrase of code is the source of the error.
+###  
+If you ran many lines of code, you may not know which part of your code is the 
+origin of the error message. 
 
 ### 2) Look at the documentation for a function to make sure you are using it correctly
 
@@ -16,6 +23,7 @@
 
 ### 3) Google it
 
+Googling errors is honestly some of the 
 #### StackOverflow
 #### Bioconductor 
 #### GitHub Issues
