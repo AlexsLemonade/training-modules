@@ -1,7 +1,8 @@
 # An Introductory Guide to Troubleshooting Errors
 
-This guide gives you tips and approaches for fixing errors that will arise. We also go through some of the most common errors that 
-you will encounter and what they mean. 
+This guide gives you tips and approaches for fixing errors that will arise. We 
+also go through some of the most common errors that you will encounter and what 
+they mean. 
 
 ## Other helpful resources: 
 https://www.r-project.org/help.html
@@ -27,14 +28,17 @@ believe should be in your environment, are in your environment.
 Once you've better determined the origin of the problem, you should use whatever
 documentation is available to you regarding the problematic code. When using 
 a new function from a package you are unfamiliar with, it's worthwhile to read 
-the documentation so you know how to properly use the functions. For Base R 
+the documentation so you know how to properly use the functions. For base R 
 functions, Tidyverse functions, and *some* Bioconductor packages, the documentation
 will give you a lot of the information you need. However, you will likely find
 documentation isn't always thorough or clear. 
 
 As we discussed in 
 [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html),
-objects have *structures* and *types*. 
+objects have *structures* and *types*. Having input that doesn't match the 
+requirements that a function has can be a common source of errors. Pay special
+attention to what the documentation says about what kind of input and output 
+the function is designed to use. 
 
 #### Use the RStudio help bar
 ![search_bar](screenshots/r_search_bar.png)
