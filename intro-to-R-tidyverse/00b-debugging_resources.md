@@ -98,12 +98,7 @@ Like other a lot of other packages we may be using for genomics analysis, [DESeq
 a Bioconductor package. We use DESeq2 in the bulk RNA-seq module. 
 
 The documentation on Bioconductor pages have information that can be valuable 
-for troubleshooting.  
-  
-![bioconductor_docs](screenshots/bioconductor_docs.png)
-
-Another place to look for documentation are the PDF reference manuals on 
-Bioconductor. Every bioconductor package has a PDF reference where all the 
+for troubleshooting. Every bioconductor package has a PDF reference where all the 
 functions and objects for that package are described. They can take some getting
 used to, but general can have helpful information. 
 
@@ -158,8 +153,8 @@ The most likely reason for this error is that the directory you are referencing
 isn't the correct path. You should use `getwd()`, `dir()` to reorient yourself 
 to where R is looking for the file that you are referencing, and double check 
 that the file you are looking at is where you think it is. This 
-[StackOverflow post](https://stackoverflow.com/questions/16798605/cannot-open-file-reason-no-such-file-or-directory) s
-hows why using `file.path` function can help avoid this error in some situations.
+[StackOverflow post](https://stackoverflow.com/questions/16798605/cannot-open-file-reason-no-such-file-or-directory) 
+shows why using `file.path` function can help avoid this error in some situations.
 RStudio also has a [blog post](https://support.rstudio.com/hc/en-us/articles/200711843-Working-Directories-and-Workspaces) 
 that touches on this subject.  
 
