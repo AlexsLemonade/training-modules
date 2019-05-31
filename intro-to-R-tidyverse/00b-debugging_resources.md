@@ -5,9 +5,9 @@ also go through some of the most common errors that you will encounter and what
 they mean. 
 
 ## Other helpful resources: 
-https://www.r-project.org/help.html
-https://www.propublica.org/nerds/how-to-ask-programming-questions
-https://blog.hartleybrody.com/debugging-code-beginner/
+https://www.r-project.org/help.html  
+https://www.propublica.org/nerds/how-to-ask-programming-questions  
+https://blog.hartleybrody.com/debugging-code-beginner/  
 
 ## Tips for approaching error
 
@@ -17,6 +17,20 @@ origin of the error message. Isolating the source of the error and trying to
 better understand your problem, should be your first course of action. 
 The best way to determine this, is by running each line, and each phrase by 
 itself, one at a time. 
+
+Chunk-out your code and test the individual bits of code. 
+For example, if we were troubleshooting this tidyverse pipe (this is from 
+[`intro_to_tidyverse` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/02-intro_to_tidyverse.nb.html)),
+it would be best to run each step by itself to ensure that it is working as well
+as investigate the resulting object from each step, and the individual inputs
+like `sample_id` and etc. 
+
+```
+metadata_pipe <- metadata %>%
+                 arrange(histology) %>%
+                 filter(follow_up_mths > 50) %>%
+                 select(sample_id, sex, organism)
+```
 
 ### 2) Be sure that the code you think you have run has all successfully run and in order. 
 It could be that the problem with your code, isn't that it doesn't work, it 
@@ -41,6 +55,10 @@ attention to what the documentation says about what kind of input and output
 the function is designed to use. 
 
 #### Use the RStudio help bar
+Here's a screenshot from the help window in RStudio. Note that here we searched
+for the `levels` function. R documentation includes information about what the
+expected arguments are as well as examples of how to use a function. Note here 
+that this documentation tells us that the input for `x` is probably a factor. 
 ![search_bar](screenshots/r_search_bar.png)
 
 #### For Bioconductor package functions, look at their documents
@@ -51,7 +69,6 @@ a Bioconductor package. We use DESeq2 in the bulk RNA-seq module.
 The documentation on Bioconductor pages have information that can be valuable 
 for troubleshooting.
 ![bioconductor_docs](screenshots/bioconductor_docs.png)
-
 
 [PDF reference manuals](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf)
 
