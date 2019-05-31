@@ -90,7 +90,18 @@ After you've tediously mined the internet for solutions to your problem and
 still not resolved your problem, you can post your problem to the internet for
 help. 
 
-## A guide to the most common errors
+*Keys for asking for coding help are:* 
+- Be *specific* with what the problem is. 
+- Show them the code for what you have already tried.
+- Give a workable example. See this excellent [StackOverflow post](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example/5963610#5963610) 
+on best practices for doing this.
+- Show your set up environment, including your session info. 
+
+The better you are able to follow these advice in posting your question, the 
+more likely you are to recieve useful help and guidance in regards to your 
+question. 
+
+## A guide to the most common R errors
 
 _Example Error 1:_ "No such file or directory"
 ```
@@ -152,8 +163,7 @@ _Example Error 6:_ "subscript out of bounds"
 Error in ... subscript out of bounds
 ```
 This most likely means that you are attempting to subset data from an index that 
-is larger than the data object is. For example, if you have a `vector` that is 5 entries long, and you attempt to subset an index that is larger
-than 5, this error will come back. So for vector like 
+is larger than the data object is. For example, if you have a `vector` that is 5 entries long, and you attempt to subset an index that is larger than 5, this error will come back. So for vector like 
 `alphabet <- c("a", "b")`
 if you try to do a subset with anything larger than 2, this error will 
 occur. eg, `alphabet[3]` will come back with this error. 
