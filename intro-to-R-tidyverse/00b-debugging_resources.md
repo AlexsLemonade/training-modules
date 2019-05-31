@@ -6,34 +6,81 @@ they mean.
 
 ## Tips for approaching error
 
-### 1) Identify which line and phrase of code is the source of the error.
+### 1) Carefully read any and all error messages
+This may seem like a silly thing to include as a tip, but it's very easy to
+gloss over an error message without actually reading it. Often, R may be telling
+you exactly what is wrong, but if you don't take the time to understand what the
+error message means, you will have trouble fixing the error. 
+
+Error messages often refer to R terms so if you need a refresher on what some
+terms mean, we recommend running through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html)
+or going through Hadley Wickham's [R for Data Science](https://r4ds.had.co.nz/)
+
+Secondly, realize that just because you don't recieve an error message, doesn't 
+mean that your code did what you intended it to. You also will need to carefully
+review your code and results to try to finding "silent" bugs (situations 
+where R did exactly what you asked, but you didn't get what you intended).
+
+### 2) Identify which line and phrase of code is the source of the error. 
+
 If you ran many lines of code, you may not know which part of your code is the 
 origin of the error message. Isolating the source of the error and trying to 
 better understand your problem, should be your first course of action. 
 The best way to determine this, is by running each line, and each phrase by 
 itself, one at a time. 
 
-Chunk-out your code and test the individual bits of code. 
+Chunk-out your code and test the individual bits of code. Do you have a lot of 
+lines of code, a lot of arguments, or multiple functions at once? Try each piece
+by itself to narrow down what piece appears to be the origin of the problem. 
 
-```
-mat <- matrix(rnorm(100), nrow = 10, ncolumn = 10)
-```
 TODO: make exercise notebook for debugging
 
-### 2) Be sure that the code you think you have run has all successfully run and in order. 
+### 3) Be sure that the code you think you have run has all successfully run and in order. 
+
 It could be that the problem with your code, isn't that it doesn't work, it 
 could be that you didn't run it or you didn't run it in the right order. This 
-should be the first thing you check, while checking that the objects that you 
-believe should be in your environment, are in your environment. 
+should be one of the first things you check, while checking that the objects 
+that you believe should be in your environment, are in your environment. 
 
-### 3) Look at the documentation for a function to make sure you are using it correctly
+It's also good practice to be refreshing your R session and clearing your R 
+notebook output. If you are encountering problems and haven't refreshed your
+R session, you may want to do that before further troubleshooting. 
+
+### 4) Google your error message
+
+The main advantage to Googling your errors, is that you likely not the first 
+person to encounter the problem. Certain phrases and terms in the error message
+will yield more fruitful search results then others.  
+
+When you do Google, a few common sources that will probably come up that we 
+recommend looking at are:
+
+#### a) [StackOverflow](https://stackoverflow.com/)
+StackOverflow this is a forum where people post questions and problems they 
+encounter in their code. 
+
+#### b) [GitHub Issues](https://help.github.com/en/articles/about-issues)
+People also will post their problems to GitHub issues. Often these are more
+geared toward fixing problems with the package or software itself, but this is 
+a way to potentially get direct help on an issue from the authors of the package
+you are using.
+
+#### c) [R-bloggers](https://www.r-bloggers.com/)
+R-bloggers has examples of R code that you can use to figure out how to construct
+various analyses. This is a good resource for example code, although it's format
+isn't built for asking exact questions like StackOverflow.
+
+### 5) Look at the documentation for a function to make sure you are using it correctly
+
 Once you've better determined the origin of the problem, you should use whatever
 documentation is available to you regarding the problematic code. When using 
-a new function from a package you are unfamiliar with, it's worthwhile to read 
-the documentation so you know how to properly use the functions. For base R 
-functions, Tidyverse functions, and *some* Bioconductor packages, the documentation
-will give you a lot of the information you need. However, you will likely find
-documentation isn't always thorough or clear. 
+a new function from a package you are unfamiliar with, it's worthwhile to skim
+through the documentation so you know how to properly use the functions. For 
+base R functions, Tidyverse functions, and *some* Bioconductor packages, the 
+documentation will give you a lot of the information you need. However, you will 
+also likely find that not all documentation is thorough or clear. 
+
+TODO: talk about skimming a document for the info you need.
 
 As we discussed in 
 [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html),
@@ -65,38 +112,14 @@ Bioconductor. Every bioconductor package has a PDF reference where all the
 functions and objects for that package are described. They can take some getting
 used to, but general can have helpful information. 
 
-### 4) Google your error message
-
-The main advantage to Googling your errors, is that you likely not the first 
-person to encounter the problem. Certain phrases and terms in the error message
-will yield more fruitful search results then others.  
-
-When you do Google, a few common sources that will probably come up that we 
-recommend looking at are:
-
-#### a) [StackOverflow](https://stackoverflow.com/)
-StackOverflow this is a forum where people post questions and problems they 
-encounter in their code. 
-
-#### b) [GitHub Issues](https://help.github.com/en/articles/about-issues)
-People also will post their problems to GitHub issues. Often these are more
-geared toward fixing problems with the package or software itself, but this is 
-a way to potentially get direct help on an issue from the authors of the package
-you are using.
-
-#### c) [R-bloggers](https://www.r-bloggers.com/)
-R-bloggers has examples of R code that you can use to figure out how to construct
-various analyses. This is a good resource for example code, although it's format
-isn't built for asking exact questions like StackOverflow.
-
-### 5) Google it again
+### 6) Google it again
 
 Because it's unlikely your first attempt at Googling will lead you straight
 to an answer; this is something you should continue try with different wordings. 
 Through trial and error, and also Google algorithms learning about what you look
 for, your search results can eventually lead you to helpful examples and forums.
 
-### 6) Look at the source code for that function
+### 7) Look at the source code for that function
 
 This should rarely be your first approach to solving a problem, since this
 approach is difficult and doesn't always pay off. 
@@ -104,7 +127,7 @@ This approach will require a a bit more practice at reading code, so it
 may not be the most fruitful approach depending on the readability and 
 complexity of the code. 
 
-### 7) Post to an appropriate forum on StackOverflow or a GitHub Issue
+### 8) Post to an appropriate forum on StackOverflow or a GitHub Issue
 
 After you've tediously mined the internet for solutions to your problem and 
 still not resolved your problem, you can post your problem to the internet for
@@ -192,6 +215,7 @@ is larger than the data object is. For example, if you have a `vector` that is 5
 `alphabet <- c("a", "b")`
 if you try to do a subset with anything larger than 2, this error will 
 occur. eg, `alphabet[3]` will come back with this error. 
+
 TODO: Put good stackoverflow answer 
 
 _Example Error 7:_ 
@@ -201,7 +225,8 @@ Error in ... unused argument <AN_ARGUMENT_YOU_GAVE>
 This generally means that you are using an argument that the function is not 
 built to take. You should check the documentation for that function and look in 
 the `Arguments` section of the help page for what argument the function *does*
-recognize. Remember that 
+recognize. Remember that arguments and R in general are very sensitive to 
+capitalization and puncutation so even the smallest typo can break your code. 
 
 ## Other helpful resources: 
 - [R's introduction to getting help](https://www.r-project.org/help.html)  
