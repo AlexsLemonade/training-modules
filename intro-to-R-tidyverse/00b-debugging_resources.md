@@ -4,7 +4,7 @@ This guide gives you tips and approaches for fixing errors that will arise. We
 also go through some of the most common errors that you will encounter and what 
 they mean. 
 
-## Tips for approaching error
+## Tips for approaching errors and bugs
 
 ### 1) Carefully read any and all error messages
 This may seem like a silly thing to include as a tip, but it's very easy to
@@ -32,8 +32,6 @@ itself, one at a time.
 Chunk-out your code and test the individual bits of code. Do you have a lot of 
 lines of code, a lot of arguments, or multiple functions at once? Try each piece
 by itself to narrow down what piece appears to be the origin of the problem. 
-
-TODO: make exercise notebook for debugging
 
 ### 3) Be sure that the code you think you have run has all successfully run and in order. 
 
@@ -79,8 +77,6 @@ through the documentation so you know how to properly use the functions. For
 base R functions, Tidyverse functions, and *some* Bioconductor packages, the 
 documentation will give you a lot of the information you need. However, you will 
 also likely find that not all documentation is thorough or clear. 
-
-TODO: talk about skimming a document for the info you need.
 
 As we discussed in 
 [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html),
@@ -147,9 +143,11 @@ question.
 
 ## A guide to the most common R errors
 
-The following are R errors, that you will almost certainly encounter if you use
-R. Many of these can be relatively simple to fix if you know what they mean, so
-we have explained what are the most likely origins of these errors. 
+The following are common R errors, that you will almost certainly encounter if 
+you use R. Many of these can be relatively simple to fix if you know what they 
+mean, so we have explained what are the most likely origins of these errors and 
+where applicable, we've also included helpful StackOverflow posts or other 
+articles that go over the same or similar problems. 
 
 _Example Error 1:_ "No such file or directory"
 ```
@@ -160,7 +158,10 @@ In file(file, "rt") : cannot open file '<FILENAME>': No such file or directory
 The most likely reason for this error is that the directory you are referencing
 isn't the correct path. You should use `getwd()`, `dir()` to reorient yourself 
 to where R is looking for the file that you are referencing, and double check 
-that the file you are looking at is where you think it is. 
+that the file you are looking at is where you think it is. This 
+[StackOverflow post](https://stackoverflow.com/questions/16798605/cannot-open-file-reason-no-such-file-or-directory) s
+hows why using `file.path` function can help avoid this error in some situations.
+RStudio also has a [blog post](https://support.rstudio.com/hc/en-us/articles/200711843-Working-Directories-and-Workspaces) that touches on this subject.  
 
 _Example Error 2:_ "could not find function"
 ```
@@ -170,7 +171,8 @@ Most common reason for this is that the function you are trying to use is from
 a package that hasn't been loaded yet. Remember that for you to use a function, 
 that is not in base R, you must load the package that the function comes from 
 using `library` or you need to precede the function's name with the package 
-it comes from and `::`. 
+it comes from and `::`. This [StackOverflow post](https://stackoverflow.com/questions/7027288/error-could-not-find-function-in-r) 
+covers what to look for if a function can't be found. 
 
 _Example Error 3:_ "object not found"
 ```
@@ -191,7 +193,9 @@ you can try to reinstall the package using `install.packages` function or if
 it's from Bioconductor `BiocManager::install` and then try again. If the package
 fails to install, there can be a number of reasons it failed, so you will need
 to troubleshoot that on your own, folowing the approaches we laid out in the
-first part of this document.
+first part of this document. This [RStudio blog](https://support.rstudio.com/hc/en-us/articles/200554786-Problem-Installing-Packages) 
+covers some reasons installation may have failed. This [StackOverflow post](https://stackoverflow.com/questions/25721884/how-should-i-deal-with-package-xxx-is-not-available-for-r-version-x-y-z-wa)
+also discusses how to attack problems with installing packages. 
 
 _Example Error 5:_ "no method for ... object of class"
 ```
@@ -204,7 +208,9 @@ looking for what types of objects the function is built to use. After you
 determine what type of object the function is looking for, you can attempt to 
 convert it by using `as.numeric` or the respective `as.<TYPE>` function.
 If you are trouble with this error often, we recommend you take another look 
-through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html)
+through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html) or if you'd like a more advanced explanation, we recommend 
+[Hadley Wickham's Advanced R chapter](http://adv-r.had.co.nz/S3.html) on the handling of
+object types.
 
 _Example Error 6:_ "subscript out of bounds"
 ```
@@ -214,9 +220,7 @@ This most likely means that you are attempting to subset data from an index that
 is larger than the data object is. For example, if you have a `vector` that is 5 entries long, and you attempt to subset an index that is larger than 5, this error will come back. So for vector like 
 `alphabet <- c("a", "b")`
 if you try to do a subset with anything larger than 2, this error will 
-occur. eg, `alphabet[3]` will come back with this error. 
-
-TODO: Put good stackoverflow answer 
+occur. eg, `alphabet[3]` will come back with this error.
 
 _Example Error 7:_ 
 ```
@@ -227,7 +231,15 @@ built to take. You should check the documentation for that function and look in
 the `Arguments` section of the help page for what argument the function *does*
 recognize. Remember that arguments and R in general are very sensitive to 
 capitalization and puncutation so even the smallest typo can break your code. 
+So for this error, it's particularly important to check the `Arguments` section 
+of the function's documentation. 
 
-## Other helpful resources: 
+## Some other resources about debugging: 
 - [R's introduction to getting help](https://www.r-project.org/help.html)  
 - [Tips for debugging code](https://blog.hartleybrody.com/debugging-code-beginner/)  
+
+### Some recommended StackOverflow R posts
+- [Sorting Dataframes](https://stackoverflow.com/questions/1296646/how-to-sort-a-dataframe-by-multiple-columns)
+- [Difference between `<-` and `=`](https://stackoverflow.com/questions/1741820/what-are-the-differences-between-and-in-r)
+- [How to merge data.frames](https://stackoverflow.com/questions/1299871/how-to-join-merge-data-frames-inner-outer-left-right)
+
