@@ -10,10 +10,9 @@ they mean.
 This may seem like a silly thing to include as a tip, but it's very easy to
 gloss over an error message without actually reading it. Often, R may be telling
 you exactly what is wrong, but if you don't take the time to understand what the
-error message means, you will have trouble fixing the error. 
-
-Error messages often refer to R terms so if you need a refresher on what some
-terms mean, we recommend running through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html)
+error message means, you will have trouble fixing the error. Error messages 
+often refer to R terms so if you need a refresher on what some terms mean, we 
+recommend running through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html)
 or going through Hadley Wickham's [R for Data Science](https://r4ds.had.co.nz/)
 
 Secondly, realize that just because you don't recieve an error message, doesn't 
@@ -222,7 +221,7 @@ is larger than the data object is. For example, if you have a `vector` that is 5
 if you try to do a subset with anything larger than 2, this error will 
 occur. eg, `alphabet[3]` will come back with this error.
 
-_Example Error 7:_ 
+_Example Error 7:_ "unused argument"
 ```
 Error in ... unused argument <AN_ARGUMENT_YOU_GAVE>
 ```
@@ -242,4 +241,3 @@ of the function's documentation.
 - [Sorting Dataframes](https://stackoverflow.com/questions/1296646/how-to-sort-a-dataframe-by-multiple-columns)
 - [Difference between `<-` and `=`](https://stackoverflow.com/questions/1741820/what-are-the-differences-between-and-in-r)
 - [How to merge data.frames](https://stackoverflow.com/questions/1299871/how-to-join-merge-data-frames-inner-outer-left-right)
-
