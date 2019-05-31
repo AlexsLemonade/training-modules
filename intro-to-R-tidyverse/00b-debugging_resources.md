@@ -4,11 +4,6 @@ This guide gives you tips and approaches for fixing errors that will arise. We
 also go through some of the most common errors that you will encounter and what 
 they mean. 
 
-## Other helpful resources: 
-https://www.r-project.org/help.html  
-https://www.propublica.org/nerds/how-to-ask-programming-questions  
-https://blog.hartleybrody.com/debugging-code-beginner/  
-
 ## Tips for approaching error
 
 ### 1) Identify which line and phrase of code is the source of the error.
@@ -19,18 +14,11 @@ The best way to determine this, is by running each line, and each phrase by
 itself, one at a time. 
 
 Chunk-out your code and test the individual bits of code. 
-For example, if we were troubleshooting this tidyverse pipe (this is from 
-[`intro_to_tidyverse` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/02-intro_to_tidyverse.nb.html)),
-it would be best to run each step by itself to ensure that it is working as well
-as investigate the resulting object from each step, and the individual inputs
-like `sample_id` and etc. 
 
 ```
-metadata_pipe <- metadata %>%
-                 arrange(histology) %>%
-                 filter(follow_up_mths > 50) %>%
-                 select(sample_id, sex, organism)
+mat <- matrix(rnorm(100), nrow = 10, ncolumn = 10)
 ```
+TODO: make exercise notebook for debugging
 
 ### 2) Be sure that the code you think you have run has all successfully run and in order. 
 It could be that the problem with your code, isn't that it doesn't work, it 
@@ -55,6 +43,7 @@ attention to what the documentation says about what kind of input and output
 the function is designed to use. 
 
 #### Use the RStudio help bar
+
 Here's a screenshot from the help window in RStudio. Note that here we searched
 for the `levels` function. R documentation includes information about what the
 expected arguments are as well as examples of how to use a function. Note here 
@@ -67,10 +56,14 @@ Like other a lot of other packages we may be using for genomics analysis, [DESeq
 a Bioconductor package. We use DESeq2 in the bulk RNA-seq module. 
 
 The documentation on Bioconductor pages have information that can be valuable 
-for troubleshooting.
+for troubleshooting.  
+  
 ![bioconductor_docs](screenshots/bioconductor_docs.png)
 
-[PDF reference manuals](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf)
+Another place to look for documentation are the PDF reference manuals on 
+Bioconductor. Every bioconductor package has a PDF reference where all the 
+functions and objects for that package are described. They can take some getting
+used to, but general can have helpful information. 
 
 ### 4) Google your error message
 
@@ -78,20 +71,26 @@ The main advantage to Googling your errors, is that you likely not the first
 person to encounter the problem. Certain phrases and terms in the error message
 will yield more fruitful search results then others.  
 
-When you do Google, two common sources that will probably come up that we 
+When you do Google, a few common sources that will probably come up that we 
 recommend looking at are:
 
 #### a) [StackOverflow](https://stackoverflow.com/)
-StackOverflow this is a forum where people post
+StackOverflow this is a forum where people post questions and problems they 
+encounter in their code. 
 
 #### b) [GitHub Issues](https://help.github.com/en/articles/about-issues)
-People also will post their problems to GitHub issues.
+People also will post their problems to GitHub issues. Often these are more
+geared toward fixing problems with the package or software itself, but this is 
+a way to potentially get direct help on an issue from the authors of the package
+you are using.
 
 #### c) [R-bloggers](https://www.r-bloggers.com/)
 R-bloggers has examples of R code that you can use to figure out how to construct
-various analyses. 
+various analyses. This is a good resource for example code, although it's format
+isn't built for asking exact questions like StackOverflow.
 
 ### 5) Google it again
+
 Because it's unlikely your first attempt at Googling will lead you straight
 to an answer; this is something you should continue try with different wordings. 
 Through trial and error, and also Google algorithms learning about what you look
@@ -115,14 +114,19 @@ help.
 - Be *specific* with what the problem is. 
 - Show them the code for what you have already tried.
 - Give a workable example. See this excellent [StackOverflow post](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example/5963610#5963610) 
-on best practices for doing this.
+on best practices for doing this for R.
 - Show your set up environment, including your session info. 
 
+For more on how to ask for programming help in general, [see this article](https://www.propublica.org/nerds/how-to-ask-programming-questions)
 The better you are able to follow these advice in posting your question, the 
 more likely you are to recieve useful help and guidance in regards to your 
 question. 
 
 ## A guide to the most common R errors
+
+The following are R errors, that you will almost certainly encounter if you use
+R. Many of these can be relatively simple to fix if you know what they mean, so
+we have explained what are the most likely origins of these errors. 
 
 _Example Error 1:_ "No such file or directory"
 ```
@@ -188,4 +192,17 @@ is larger than the data object is. For example, if you have a `vector` that is 5
 `alphabet <- c("a", "b")`
 if you try to do a subset with anything larger than 2, this error will 
 occur. eg, `alphabet[3]` will come back with this error. 
+TODO: Put good stackoverflow answer 
 
+_Example Error 7:_ 
+```
+Error in ... unused argument <AN_ARGUMENT_YOU_GAVE>
+```
+This generally means that you are using an argument that the function is not 
+built to take. You should check the documentation for that function and look in 
+the `Arguments` section of the help page for what argument the function *does*
+recognize. Remember that 
+
+## Other helpful resources: 
+- [R's introduction to getting help](https://www.r-project.org/help.html)  
+- [Tips for debugging code](https://blog.hartleybrody.com/debugging-code-beginner/)  
