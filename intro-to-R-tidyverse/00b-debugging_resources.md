@@ -160,7 +160,8 @@ to where R is looking for the file that you are referencing, and double check
 that the file you are looking at is where you think it is. This 
 [StackOverflow post](https://stackoverflow.com/questions/16798605/cannot-open-file-reason-no-such-file-or-directory) s
 hows why using `file.path` function can help avoid this error in some situations.
-RStudio also has a [blog post](https://support.rstudio.com/hc/en-us/articles/200711843-Working-Directories-and-Workspaces) that touches on this subject.  
+RStudio also has a [blog post](https://support.rstudio.com/hc/en-us/articles/200711843-Working-Directories-and-Workspaces) 
+that touches on this subject.  
 
 _Example Error 2:_ "could not find function"
 ```
@@ -216,8 +217,9 @@ _Example Error 6:_ "subscript out of bounds"
 Error in ... subscript out of bounds
 ```
 This most likely means that you are attempting to subset data from an index that 
-is larger than the data object is. For example, if you have a `vector` that is 5 entries long, and you attempt to subset an index that is larger than 5, this error will come back. So for vector like 
-`alphabet <- c("a", "b")`
+is larger than the data object is. For example, if you have a `vector` that is 5
+entries long, and you attempt to subset an index that is larger than 5, this 
+error will come back. So for vector like `alphabet <- c("a", "b")`
 if you try to do a subset with anything larger than 2, this error will 
 occur. eg, `alphabet[3]` will come back with this error.
 
