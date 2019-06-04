@@ -228,7 +228,7 @@ Error in ... unused argument <AN_ARGUMENT_YOU_GAVE>
 ```
 This generally means that you are using an argument that the function is not 
 built to take. You should check the documentation for that function and look in 
-the `Arguments` section of the help page for what argument the function *does*
+the `Arguments` section of the help page for what argument(s) the function *does*
 recognize. Remember that arguments and R in general are very sensitive to 
 capitalization and punctuation so even the smallest typo can break your code. 
 So for this error, it's particularly important to check the `Arguments` section 
