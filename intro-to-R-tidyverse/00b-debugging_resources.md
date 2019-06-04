@@ -7,12 +7,13 @@ they mean.
 ## Tips for approaching errors and bugs
 
 ### 1) Carefully read any and all error messages
+
 This may seem like a silly thing to include as a tip, but it's very easy to
 gloss over an error message without actually reading it. Often, R may be telling
 you exactly what is wrong, but if you don't take the time to understand what the
 error message means, you will have trouble fixing the error. Error messages 
-often refer to R terms so if you need a refresher on what some terms mean, we 
-recommend running through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html)
+often refer to R terms (eg. "argument", "directory") so if you need a refresher 
+on what some terms mean, we recommend running through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html)
 or going through Hadley Wickham's [R for Data Science](https://r4ds.had.co.nz/)
 
 Secondly, realize that just because you don't recieve an error message, doesn't 
@@ -100,7 +101,7 @@ a Bioconductor package. We use DESeq2 in the bulk RNA-seq module.
 The documentation on Bioconductor pages have information that can be valuable 
 for troubleshooting. Every bioconductor package has a PDF reference where all the 
 functions and objects for that package are described. They can take some getting
-used to, but general can have helpful information. 
+used to, but generally can have helpful information. 
 
 ### 6) Google it again
 
@@ -203,7 +204,8 @@ looking for what types of objects the function is built to use. After you
 determine what type of object the function is looking for, you can attempt to 
 convert it by using `as.numeric` or the respective `as.<TYPE>` function.
 If you are trouble with this error often, we recommend you take another look 
-through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html) or if you'd like a more advanced explanation, we recommend 
+through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html) 
+or if you'd like a more advanced explanation, we recommend 
 [Hadley Wickham's Advanced R chapter](http://adv-r.had.co.nz/S3.html) on the handling of
 object types.
 
