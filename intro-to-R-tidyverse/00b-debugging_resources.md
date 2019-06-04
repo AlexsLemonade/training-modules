@@ -12,13 +12,13 @@ This may seem like a silly thing to include as a tip, but it's very easy to
 gloss over an error message without actually reading it. Often, R may be telling
 you exactly what is wrong, but if you don't take the time to understand what the
 error message means, you will have trouble fixing the error. Error messages 
-often refer to R terms (eg. "argument", "directory") so if you need a refresher 
+often refer to R terms (e.g.. "argument", "directory") so if you need a refresher 
 on what some terms mean, we recommend running through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html)
 or going through Hadley Wickham's [R for Data Science](https://r4ds.had.co.nz/)
 
-Secondly, realize that just because you don't recieve an error message, doesn't 
+Secondly, realize that just because you don't receive an error message, doesn't 
 mean that your code did what you intended it to. You also will need to carefully
-review your code and results to try to finding "silent" bugs (situations 
+review your code (and your results) to try to find "silent" bugs (situations 
 where R did exactly what you asked, but you didn't get what you intended).
 
 ### 2) Identify which line and phrase of code is the source of the error. 
@@ -106,7 +106,7 @@ used to, but generally can have helpful information.
 ### 6) Google it again
 
 Because it's unlikely your first attempt at Googling will lead you straight
-to an answer; this is something you should continue try with different wordings. 
+to an answer; this is something you should continue to try with different wordings. 
 Through trial and error, and also Google algorithms learning about what you look
 for, your search results can eventually lead you to helpful examples and forums.
 
@@ -131,9 +131,9 @@ help.
 on best practices for doing this for R.
 - Show your set up environment, including your session info. 
 
-For more on how to ask for programming help in general, [see this article](https://www.propublica.org/nerds/how-to-ask-programming-questions)
+For more on how to ask for programming help in general, [see this article](https://www.propublica.org/nerds/how-to-ask-programming-questions).
 The better you are able to follow these advice in posting your question, the 
-more likely you are to recieve useful help and guidance in regards to your 
+more likely you are to receive useful help and guidance in regards to your 
 question. 
 
 ## A guide to the most common R errors
@@ -185,10 +185,10 @@ Error in library(<PACKAGE_NAME>) : there is no package called â€˜<PACKAGE_NAME>â
 ```
 Most likely reason for this message is that you are trying to use a package that
 you have not installed (or the package never installed correctly). To fix this, 
-you can try to reinstall the package using `install.packages` function or if 
+you can try to re-install the package using `install.packages` function or if 
 it's from Bioconductor `BiocManager::install` and then try again. If the package
 fails to install, there can be a number of reasons it failed, so you will need
-to troubleshoot that on your own, folowing the approaches we laid out in the
+to troubleshoot that on your own, following the approaches we laid out in the
 first part of this document. This [RStudio blog](https://support.rstudio.com/hc/en-us/articles/200554786-Problem-Installing-Packages) 
 covers some reasons installation may have failed. This [StackOverflow post](https://stackoverflow.com/questions/25721884/how-should-i-deal-with-package-xxx-is-not-available-for-r-version-x-y-z-wa)
 also discusses how to attack problems with installing packages. 
@@ -218,7 +218,7 @@ is larger than the data object is. For example, if you have a `vector` that is 5
 entries long, and you attempt to subset an index that is larger than 5, this 
 error will come back. So for vector like `alphabet <- c("a", "b")`
 if you try to do a subset with anything larger than 2, this error will 
-occur. eg, `alphabet[3]` will come back with this error.
+occur. e.g., `alphabet[3]` will come back with this error.
 
 _Example Error 7:_ "unused argument"
 ```
@@ -228,7 +228,7 @@ This generally means that you are using an argument that the function is not
 built to take. You should check the documentation for that function and look in 
 the `Arguments` section of the help page for what argument the function *does*
 recognize. Remember that arguments and R in general are very sensitive to 
-capitalization and puncutation so even the smallest typo can break your code. 
+capitalization and punctuation so even the smallest typo can break your code. 
 So for this error, it's particularly important to check the `Arguments` section 
 of the function's documentation. 
 
