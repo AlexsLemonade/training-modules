@@ -1,0 +1,176 @@
+                                                                                                                                                                                                                                                                                                                                                                                ---
+title: "Exercise: Clean Metadata and Prepare Gene Expression Matrix for Downstream Analysis"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+The goal of these exercises is to help you get familiar with using tidyverse functions to manipulate data. 
+
+Here, 
+TODO: Determine suitable experiment and write about it
+
+### Setup 
+Before we start the exercises, we need to create the necessary directories and loading the necessaty libraries.
+
+#### Creating necessary directories
+We need to create a directory to store the results of the exercises. We have done this for you. 
+Run the code chunk below and take a look at your files pane. You should see a directory `exercise-results` created. 
+
+```{r}
+#creating required directories as needed
+if (!dir.exists("excercise-results")) {
+  # ... create a 'results' directory
+  dir.create("exercise-results")
+}
+```
+
+#### Loading libraries
+For these exercises we will need the `tidyverse` library. Go ahead and load the library in the code chunk below. Don't forget to run the code chunk once you write the command! 
+
+```{r}
+#load tidyverse library
+library(tidyverse)
+```
+
+#### Importing Files
+Let's import all the files we will need for this exercise. 
+The metadata is present in `exercise-data/metadata_GSE49243.tsv` and gene expression matrix is in `exercise-data/GSE49243.tsv`
+Go ahead and read the metadata and gene expression matrix into variables called `metadata` and `gene_expression`
+
+```{r}
+# Reading Metadata
+metadata <- read_tsv(file.path("exercise-data","metadata_GSE49243.tsv"))
+
+# Reading Gene Expression Matrix
+gene_expression <- read_tsv(file.path("exercise-data","GSE49243.tsv"))
+```
+
+### Cleaning Metadata
+First, we are going to perform some cleaning activities like filtering, renaming, reordering, etc and then write the cleaned metadata into a new file. 
+
+
+#### Inspect the metadata
+Now that you have read the metadata into the variable `metadata`, explore what the metadata looks like. 
+
+```{r}
+View(metadata)
+```
+
+
+#### Filtering and Trimming
+Next, we're going to do some manipulations on the metadata to retain only the information we are interested in. 
+Below we have done some manipulations on the metadata. Take a look and then perform the same manipulations using pipes `%>%` and store the result in `metadata_clean`. 
+
+```{r}
+# Manipulations w/o pipes
+metadata_nopipe <- metadata
+metadata_nopipe <- filter(metadata_nopipe, refinebio_age < 18)
+metadata_nopipe <- select(metadata_nopipe, refinebio_accession_code, refinebio_age,refinebio_sex,histology)
+metadata_nopipe <- arrange(metadata_nopipe, refinebio_age)
+```
+
+It's your turn! 
+
+```{r}
+# Now you try it, with pipes %>%
+metadata_clean <- metadata %>% 
+                  filter(refinebio_age < 18) %>% 
+                  select(refinebio_accession_code, refinebio_age, refinebio_sex, histology) %>%
+                  arrange(refinebio_age)
+```
+
+
+#### Rename columns
+The coloumn names `refinebio_accession_code`, `refinebio_age`, `refinebio_sex` are too unwieldly. Let's rename it to something more manageable like `sample_id`, `age`, and `sex` respectively. 
+
+To do this, tidyverse has a function `dplyr::rename`. Use the help section to understand how you can use this function. Store the renamed metadata back into the variable `metadata_clean`. 
+(Feel free to Google for solutions as well!)
+
+```{r}
+# Use the Help section to learn how you can use the rename function
+metadata_clean <- metadata_clean %>%
+                  rename(sample_id = refinebio_accession_code, age = refinebio_age, sex = refinebio_sex)
+
+```
+
+
+### Summarize metadata
+Now, let's calculate the mean age by sex, mean age by histology, and counts of each tissue by sex. 
+
+If you get stuck at any point, feel free to refer to the Help section or google for solutions.
+
+```{r}
+# Calculate mean age by sex
+metadata_clean %>% 
+  group_by(sex) %>%
+  summarise(mean_age = mean(age))
+```
+
+
+```{r}
+# Calculate mean age by histology
+metadata_clean %>% 
+  group_by(histology) %>%
+  summarise(mean_age = mean(age))
+
+```
+
+
+```{r}
+# Calculate how many of each tissue type exists for each sex.
+metadata_clean %>% 
+  group_by(histology,sex) %>% 
+  summarize(counts = length(histology))
+
+```
+
+
+### Filter the Gene Experssion Matrix
+Now, filter the gene expression matrix so that it has the same samples as `metadata_clean`. (Remember we read the gene expression matrix into `gene_expression`)
+
+```{r}
+filtered_gene_expression <- gene_expression %>%
+                            select(metadata_clean$sample_id)
+```
+
+### Write to Files
+
+
+#### Write to Cleaned Metadata and Gene Expression Matrix to File
+Last step, write the cleaned metadata into `metadata_GSE49243_cleaned.tsv` and filtered gene expression matrix into `GSE49243_filtered.tsv` the exercise-results directory. 
+
+```{r}
+write_tsv(metadata_clean, file.path("exercise-results","metadata_GSE49243_cleaned.tsv"))
+write_tsv(filtered_gene_expression, file.path("exercise-results","GSE49243_filtered.tsv"))
+```
+
+You should notice two files named `metadata_GSE49243_cleaned.tsv`and `GSE49243_filtered.tsv has been created in `exercise-results` directory. 
+
+### Session Info
+
+```{r}
+sessionInfo()
+```
+
+
+
+
+
+
+#### Read Gene expression Matrix and cleaned metadata
+
+```{r}
+gene_expression <- read_tsv(file.path("exercise-data","GSE49243.tsv"))
+```
+
+
+
+#### Calculate Gene Means
+
+```{r}
+gene_means <- apply(filtered_gene_expression, 1, mean)
+```
+
+
+
