@@ -142,7 +142,9 @@ The following are common R errors, that you will almost certainly encounter if
 you use R. Many of these can be relatively simple to fix if you know what they 
 mean, so we have explained what are the most likely origins of these errors and 
 where applicable, we've also included helpful StackOverflow posts or other 
-articles that go over the same or similar problems. 
+articles that go over the same or similar problems. Also remember that when we 
+use this notation: '<FILL_IN_THE_BLANK>', these are placeholders for whatever 
+specific object, filename, function name or what have you, might be reported. 
 
 _Example Error 1:_ "No such file or directory"
 ```
