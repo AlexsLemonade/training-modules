@@ -176,7 +176,7 @@ metadata_nopipe <- filter(metadata_nopipe, follow_up_mths > 50)
 metadata_nopipe <- select(metadata_nopipe, sample_id, sex, organism)
 ```
   
-UGH, we have to repeat and assign `metadata_edit` so many times here! 
+UGH, we have to repeat and assign `metadata_nopipe` so many times here! 
 It's annoying and makes it harder for people to read. 
   
 *Example 2:* Same result as 1 but with pipes!
@@ -252,33 +252,85 @@ We can use the same function, but instead use the `desc` function too.
 metadata %>% arrange(desc(age_mths))
 ``` 
 
-What if we want to obtain summary statistics based on groups? 
-Conveniently named, there's a function called `group_by` that seamlessly allows
-us to do this. 
-Also note that `group_by` allows us to group by multiple variables at a time if 
-you want to.
-
-```{r}
-metadata %>% group_by(sex) %>% 
-             summarize(mean(age_mths))
-```
-
-What if we would like to create new variables based on other variables? 
+What if we would like to create new variables? 
 For that we use `mutate` function. 
 Let's convert the ages that are in months to years and make that into a new variable.
 Here we are also using the `round` function from base R to limit the number of 
 decimal points in our new variable to 2.
 
 ```{r}
-metadata_edit <- metadata %>% 
-                 mutate(age_yrs = round(age_mths/12, 2))
+metadata %>% 
+  mutate(age_yrs = round(age_mths/12, 2))
 ```
 
-Let's use `head(metadata_edit)` so we can look at a preview of what we made:
+What if we want to obtain summary statistics for a variable? 
+The `summarize` function allows us to calculate summary statistics for a column. 
+Here we will use summarize to obtain an overall mean age in months. 
 
 ```{r}
-head(metadata_edit)
+metadata %>% summarize(mean(age_mths))
 ```
+
+What if we'd like to obtain a summary statistics but have them for various groups?
+Conveniently named, there's a function called `group_by` that seamlessly 
+allows us to do this. 
+Also note that `group_by` allows us to group by multiple variables at a time if 
+you want to.
+
+```{r}
+metadata_summary <- metadata %>%
+      group_by(sex) %>% 
+      summarize(mean(age_mths))
+```
+
+Let's use `head(metadata_summary)` so we can look at a preview of what we made:
+
+```{r}
+head(metadata_summary)
+```
+
+## A brief intro to the `apply` family of functions
+
+In the previous section, we used the `summarize` section to calculate summary
+statistics for variables. 
+However, in base R there the `apply` family of functions can be an alternative 
+methods for performing calculations or transformations across a data.frame,
+matrix or for other object structures. 
+
+We will practice using `apply` here. 
+
+```{r}
+# Make a matrix for apply practice
+num_matrix <- matrix(rnorm(24), ncol = 4, nrow = 6)
+```
+
+The second argument in `apply` specifies whether we are applying something 
+across rows or across columns (1 for rows, 2 for columns).
+
+```{r}
+# Calculate row means
+row_means <- apply(num_matrix, 1, mean) # Notice we are using 1 here
+
+# What dimensions will row_means have? 
+str(row_means)
+```
+
+Now let's investigate the same set up, but use 2 to `apply` over the columns of
+our matrix.
+
+```{r}
+# Calculate column means
+col_means <- apply(num_matrix, 2, mean) # Notice we use 2 here
+
+# What dimensions will col_means have? 
+str(col_means)
+```
+
+Although the `apply` functions may not be as easy to use as the `tidyverse` 
+functions, for some applications, `apply` methods can be better suited.
+In this workshop, we will not delve too deeply into the various other apply 
+functions (`tapply`, `lapply`, etc.) but you can read more examples 
+about them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
 
 ## Save data to files
 
@@ -308,7 +360,7 @@ successfully save our file to the `results` folder
 
 ```{r eval=FALSE}
 # Write our data.frame to a TSV file
-write_tsv(metadata_edit, <NEW_FILE_PATH>)
+write_tsv(metadata_summary, <NEW_FILE_PATH>)
 ```
 
 Check in your `results` directory to see if your new file has successfully saved.
@@ -329,7 +381,7 @@ determined as our `file.path` for the last chunk as your template.
 
 ```{r eval=FALSE}
 # Write your object to an RDS file
-write_rds(metadata_edit, <PUT_CORRECT_FILE_PATH_HERE>)
+write_rds(metadata_summary, <PUT_CORRECT_FILE_PATH_HERE>)
 ```
 
 #### Read an RDS file
