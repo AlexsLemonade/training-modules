@@ -9,20 +9,22 @@ output:
 In this exercise, we will be using the [Darmanis data](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465) 
 we normalized and filtered in `01-normalizing_scRNA`. 
 
-This is glioblastoma data that was Fluorescence-Activated Cell Sorted (FACS) 
-and then was processed by paired-end sequencing using Smart-seq2 protocol 
+This data comes from Fluorescence-Activated Cell Sorted (FACS) glioblastoma cells
+and then was processed by paired-end sequencing using Smart-seq2
 [(Darmanis et al. _Cell Reports._ 2017.).](https://www.ncbi.nlm.nih.gov/pubmed/29091775).
 
 Our objective for this exercise is to investigate the expression of genes of
-interest by using cell-types. 
-We will do this first by extracting the gene data and making density plots.
-Then, we will calculate the marker gene means by cell-type and make a heatmap.
-Lastly, we will make a PCA plot but color the points by the gene data. 
+interest across cell-types. TODO: look at cell-type/cell type
+We will extract the gene's expression levels and make density plots.
+Then, we will calculate the mean expression of the marker genes by cell-type and 
+make a heatmap.
+Lastly, we will project cells onto principal components and color them by the 
+expression level of a marker gene. 
 
 ## Setup 
 
-We'll be using the `%>%` operator and we will need to set the seed so our results
-are reproducible.
+We'll be using the `%>%` operator (pipe) and we will need to set the seed so our 
+results are reproducible.
 
 ```{r}
 # Set the seed
@@ -45,11 +47,11 @@ if (!dir.exists(<FILL_IN_THE_BLANK>)) {
 
 Use `readr`'s function for reading RDS files. 
 Import the `SingleCellExperiment` object that we stored in "sce_norm.RDS" in the
-`data` folder. 
+`data` folder in `01-normalizing_scRNA-seq`. 
 Remember to use `file.path` and `::` to call any packages that you might use that
 you haven't imported. 
 
-```{r}
+```{r eval=FALSE}
 sce_norm <- 
 ```
 
@@ -59,51 +61,53 @@ Use the empty code chunk below to explore `sce_norm`.
 
 ```
 
-Here we are extracting the gene names from `sce_norm`. We've done this step for 
-you. Run the code chunk below and see what `genes` object gives you.
+Here we are extracting the gene names from `sce_norm`. 
+We've done this step for you. 
+Run the code chunk below and see what `genes` object gives you.
 
 ```{r}
 # Extract the gene names 
 genes <- rowData(sce_norm)$value
 ```
 
-Use the following code chunk to extract the normalized gene matrix and save it
-as a data.frame called `sce_norm_df`, where the first column is called "genes"
-and has the genes we extracted above.
+Complete the following code chunk to extract the normalized gene matrix and save 
+it as a data.frame called `sce_norm_df`, where the first column is called 
+"genes" and has the genes we extracted above.
 
 ```{r}
 # Extract the normalized data as a data.frame and have a genes column
 sce_norm_df <- 
 ```
 
-Load in the metadata that we saved in a TSV file called 
-"gbm_filtered_metadata.tsv" in the "data" folder. 
+Load the metadata that we saved in a TSV file called "gbm_filtered_metadata.tsv" 
+in the "data" folder in `01-normalizing_scRNA-seq`.
 
 ```{r}
 metadata <- 
 ```
 
-Use the empty code chunk below to get investigate the variables in `metadata`.
+Complete the code chunk below to investigate the variables in `metadata`.
 Then extract the cell-type labels as their own object, made into a `factor`,
 named `cell_types`.
 
 ```{r}
-cell_types <-
+cell_types <- 
 ```
 
-## Set up gene marker data
+## Set up marker gene data
 
-For this exercise, we want analyze specific genes and how they are expressed
-among the cell-types in our dataset. 
+For this exercise, we want to analyze specific genes and their expression among 
+the cell-types in our dataset. 
 
-Use https://www.genecards.org/ and pick a gene of your own liking to add to 
-this analysis. 
+Select a gene of your own liking and get its information from
+https://www.genecards.org/.
 Add your chosen gene in the same format we have started for you but replacing 
 our <FILL_IN_THE_BLANKS>. 
 
-In a later module, we will show you how to convert Ensembl IDs to other kinds of 
-gene IDs, however, for this exercise, we will only need a few genes and we've 
-already set some up for you. 
+In the machine-learning module, in `01-medulloblastoma_data_prep` we will show 
+you how to convert Ensembl IDs to other kinds of gene IDs in a bulk fashion. 
+However, for this exercise, we will only need a few genes and we've already set 
+some up for you. 
 
 ```{r eval=FALSE}
 # Make a data.frame that contains gene symbols and their associated Ensembl IDs
@@ -120,8 +124,8 @@ markers <- data.frame(symbols = c("CD45", # Marker for macrophages and microglia
 
 Depending on the gene you chose, it may not be in our filtered matrix, so you 
 may need to try a few. 
-You can use a `%in%` operator to check if the gene you are looking for is in 
-our filtered gene matrix (Remember it has to be an Ensembl Gene ID e.g.`ENSG`,
+You can use an `%in%` operator to check if the gene you are looking for is in 
+our filtered gene matrix (Remember it has to be an Ensembl gene ID e.g.`ENSG`,
 and it needs to be in quotes).
 
 ```{r eval=FALSE}
@@ -136,22 +140,22 @@ Use this code chunk to look at what `markers` looks like.
 ```
 
 Let's build a `dplyr` pipe to create a `data.frame` with the data for our marker 
-genes and add on `cell_type` vector as it's own column.
-Remember that each step in your pipe needs to be followed by the `%>%` operator.
-Also remember that we haven't loaded the `dplyr` library so remember to use the
-`::` if needed. 
+genes and add on `cell_type` vector as its own column.
+Remember that each step in your pipe needs to be followed by the `%>%` operator
+and that we haven't loaded the `dplyr` library so use the `::` if needed. 
 
 ```{r}
-# Make a data.frame with the genes in `markers` only
+# Make a data.frame with only the genes in `markers`
 marker_data <- sce_norm_df %>%
   # Use this line to filter the data to only the marker genes we care about.
   # Use this line for tibble::column_to_rownames function to hide the gene names
   # Use this line to transpose this data
-  as.data.frame() %>% # Need to turn this back into a data.frame after we transposed
+  as.data.frame() %>% # We've done this step of turning the matrix back into a 
+                      # data.frame after we transposed
   # Use this line to add a column with the information in `cell_types`
 ```
 
-## Plot the genes as a density plot by cell-type
+## Plot the marker genes' expression as a density plot by cell-type
 
 Use the following `ggplot` template to make a density plot by cell-type for one
 of your genes of interest (hint: use the `marker_data` we just made).
@@ -160,56 +164,56 @@ Remember that for each step in making a `ggplot`, you need to add a `+`.
 ```{r eval=FALSE}
 # Plot the gene data by cell-type using `facet_wrap`
 ggplot2::ggplot(<DATA_FRAME>, ggplot2::aes(x = <GENE_DATA_COLUMN>)) +
-  ggplot2::geom_density(fill = <COLOR_NAME>) + # Choose a color you'd like to use
-  ggplot2::facet_wrap(~ <CELL_TYPE_INFO>) # Use cell-types in this function to separate the 
-                                          # density plots by their cell-types
+  ggplot2::geom_density(fill = <COLOR_NAME>) + # Choose a color 
+  ggplot2::facet_wrap(~ <CELL_TYPE_INFO>) # Use cell-types in this function to 
+                                          # separate the density plots
 ```
 
 Feel free to play around with aspects of this plot and see how the plot changes.
 Look at [ggplot2's guide](https://ggplot2.tidyverse.org/) for a list of the 
 options. 
 
-## Make a heatmap of gene means by cell-type
+## Make a heatmap of mean expression of marker genes by cell-type
 
 Let's build a `dplyr` pipe to calculate the means of these marker genes based on 
-the cell-type labels we have. 
+the cell-type labels. 
 
 ```{r}
-# Build a pipe to calculate the means based on the cell-types
+# Build a pipe to calculate the mean expressions within each cell-type
 marker_means <- marker_data %>%
-  # Use this line to use a dplyr function to group the data by their cell-types 
-  # Use this next line to use a dplyr function to summarize to a mean
+  # Use this line for a dplyr function to group the data by their cell-types 
+  # Use this line for a dplyr function to summarize to a mean
   # Use the tibble::column_to_rownames hide the cell-type column
 ```
 
-Let's change the names to the symbols since they are easier to read when we make
+Let's change the Ensembl gene IDs to symbols since they are easier to read in 
 the heatmap.
  
 ```{r eval=FALSE}
-# Change the column names to the gene symbols
+# Change the column names to gene symbols
 colnames(marker_means) <- 
 ```
 
 Use `pheatmap::pheatmap` to make a heatmap of cell-type mean expression of these
-genes of interest. Use the argument `scale = "row"`. 
+marker genes. 
+Use the argument `scale = "row"`. 
 
 ```{r eval=FALSE}
-# Make a heatmap of gene means and cell-types
+# Make a heatmap of gene expression means and cell-types
 
 ```
 
 What do you think? Do these results make sense?
 
-On your own time, if you'd like to make a heatmap and play around with it a bit
-more, we recommend using the package `ComplexHeatmap` and following their 
-[excellent vignettes](https://jokergoo.github.io/ComplexHeatmap-reference/book/)
-to practice making heatmaps. 
+If you'd like to make a more customizable heatmap, we recommend using the 
+package `ComplexHeatmap`. 
+They provide [excellent vignettes](https://jokergoo.github.io/ComplexHeatmap-reference/book/).
 
-## Plot the PCA scores with the marker expression color coding
+## Plot the cells' PCA scores and color code by marker gene expression
 
 Another way to examine the relationship of genes and cell-types is to make a 
 PCA plot, like we did previously, but color the scatterplot points according 
-to one of the marker gene's expression data. 
+to one of the marker gene's expression. 
 
 Perform PCA on `sce_norm_df` by using the `prcomp` function (hints: you will need 
 to transpose the data and tell R to ignore the gene column - try a negative index). 
@@ -221,8 +225,8 @@ pca_res <-
 
 Use the following code chunk to inspect your `pca_res` object with your PCA 
 results. 
-Remember that `x` labeled entry in this object contains the PCA scores. 
-Do the number of scores you have correspond to the number of samples you have?
+Remember that `x` labeled entry in this object contains the cells' PCA scores. 
+Do the number of scores you have correspond to the number of cells you have?
 You can use this chunk to check. 
 
 ```{r}
@@ -230,17 +234,18 @@ You can use this chunk to check.
 ```
 
 Make the PCA results into a data.frame that is more easily used by `ggplot2`. 
-This data.frame should include the cell_type information, the first two PC scores, 
-and the `marker_data`. Call this data.frame `pca_res_df`.
+This data.frame should include the cell-type information, the first two PC scores, 
+and `marker_data`. 
+Call this data.frame `pca_res_df`.
 
 ```{r}
-# Make a dataframe that includes the cell_type information, the first two PC scores, 
-# and the marker_data
+# Make a dataframe that includes the cell-type information, the first two PC scores, 
+# and `marker_data`
 pca_res_df <- 
 ```
 
-Use your `pca_res_df` to make a scatterplot of the PCA results, using data for 
-the genes in your marker list to color them by. 
+Use your `pca_res_df` to make a scatterplot of the PCA results, coloring cells
+by the expression of a marker gene, of your choosing. 
 Mark your cell-types by making the points different shapes.
 We've given you a template below with <FILL_IN_THE_BLANKS>. 
 
@@ -254,12 +259,13 @@ ggplot2::ggplot(<DATA_FRAME>, # What data.frame should be here?
                              shape = <CELL_TYPE>)) + # What do we want to designate
                                                      # the shapes of the points by?
   # Use this line to specify that we want a scatterplot
-  # Use this line to add a title for this graph (if you want)
-  ggplot2::scale_shape_manual(values = c(4, 8, 15, 16, 17, 18, 21)) # Specifying shapes
+  # Use this line to add a title for this graph
+  ggplot2::scale_shape_manual(values = c(4, 8, 15, 16, 17, 18, 21)) # Since we 
+  # have more than 6 cell-types we have to specify the shapes with this step
 ```
 
-After you have successfully used this, repeat this `ggplot` template for the 
-other genes in your marker list. 
+After you have successfully made this plot, repeat this `ggplot` template for 
+the other genes in your marker list. 
 Make more code chunks as you need them.
 
 ```{r}
