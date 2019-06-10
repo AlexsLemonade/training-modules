@@ -13,7 +13,7 @@ gloss over an error message without actually reading it. Often, R may be telling
 you exactly what is wrong, but if you don't take the time to understand what the
 error message means, you will have trouble fixing the error. Error messages 
 often refer to R terms (e.g.. "argument", "directory") so if you need a refresher 
-on what some terms mean, we recommend running through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html)
+on what some terms mean, we recommend running through the [`intro-to-R` notebook](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html)
 or going through Hadley Wickham's [R for Data Science](https://r4ds.had.co.nz/)
 
 Secondly, realize that just because you don't receive an error message, doesn't 
@@ -25,7 +25,7 @@ where R did exactly what you asked, but you didn't get what you intended).
 
 If you ran many lines of code, you may not know which part of your code is the 
 origin of the error message. Isolating the source of the error and trying to 
-better understand your problem, should be your first course of action. 
+better understand your problem should be your first course of action. 
 The best way to determine this, is by running each line, and each phrase by 
 itself, one at a time. 
 
@@ -35,18 +35,19 @@ by itself to narrow down what piece appears to be the origin of the problem.
 
 ### 3) Be sure that the code you think you have run has all successfully run and in order. 
 
-It could be that the problem with your code, isn't that it doesn't work, it 
-could be that you didn't run it or you didn't run it in the right order. This 
-should be one of the first things you check, while checking that the objects 
-that you believe should be in your environment, are in your environment. 
+It could be that the problem with your code isn't that it doesn't work as it is written, 
+but that you didn't run it or didn't run it in the correct order.
+This should be one of the first things you check, while checking that the 
+objects that you believe should be in your environment, are in your environment. 
 
-It's also good practice to be refreshing your R session and clearing your R 
-notebook output. If you are encountering problems and haven't refreshed your
+It's also good practice to be periodically quitting your current R session and 
+starting a new one, in addition to clearing your R notebook output. 
+If you are encountering problems and haven't refreshed your
 R session, you may want to do that before further troubleshooting. 
 
 ### 4) Google your error message
 
-The main advantage to Googling your errors, is that you likely not the first 
+The main advantage to Googling your errors is that you are likely not the first 
 person to encounter the problem. Certain phrases and terms in the error message
 will yield more fruitful search results then others.  
 
@@ -79,7 +80,7 @@ documentation will give you a lot of the information you need. However, you will
 also likely find that not all documentation is thorough or clear. 
 
 As we discussed in 
-[`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html),
+[`intro_to_R` notebook](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html),
 objects have *structures* and *types*. Having input that doesn't match the 
 requirements that a function has can be a common source of errors. Pay special
 attention to what the documentation says about what kind of input and output 
@@ -93,15 +94,17 @@ expected arguments are as well as examples of how to use a function. Note here
 that this documentation tells us that the input for `x` is probably a factor. 
 ![search_bar](screenshots/r_search_bar.png)
 
-#### For Bioconductor package functions, look at their documents
+#### For Bioconductor package functions, look at their page on bioconductor.org
 
 Like other a lot of other packages we may be using for genomics analysis, [DESeq2](https://www.bioconductor.org/packages/release/bioc/html/DESeq2.html) is 
 a Bioconductor package. We use DESeq2 in the bulk RNA-seq module. 
 
 The documentation on Bioconductor pages have information that can be valuable 
-for troubleshooting. Every bioconductor package has a PDF reference where all the 
-functions and objects for that package are described. They can take some getting
-used to, but generally can have helpful information. 
+for troubleshooting. [Vignettes](https://www.bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) can have good example workflows to get started with (can 
+use the `browseVignettes` function for RStudio to open them). In addition, every 
+Bioconductor package has a [PDF reference](https://bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf) 
+where all the functions and objects for that package are described. They can 
+take some getting used to, but generally can have helpful information. 
 
 ### 6) Google it again
 
@@ -124,15 +127,15 @@ After you've tediously mined the internet for solutions to your problem and
 still not resolved your problem, you can post your problem to the internet for
 help. 
 
-*Keys for asking for coding help are:* 
-- Be *specific* with what the problem is. 
-- Show them the code for what you have already tried.
+*Keys for asking for coding help are:*  
+- Be *specific* with what the problem is.  
+- Include the code for what you have already tried.
 - Give a workable example. See this excellent [StackOverflow post](https://stackoverflow.com/questions/5963269/how-to-make-a-great-r-reproducible-example/5963610#5963610) 
-on best practices for doing this for R.
-- Show your set up environment, including your session info. 
+on best practices for doing this for R.  
+- Include your session info.  
 
 For more on how to ask for programming help in general, [see this article](https://www.propublica.org/nerds/how-to-ask-programming-questions).
-The better you are able to follow these advice in posting your question, the 
+The better you are able to follow this advice in posting your question, the 
 more likely you are to receive useful help and guidance in regards to your 
 question. 
 
@@ -140,13 +143,13 @@ question.
 
 The following are common R errors, that you will almost certainly encounter if 
 you use R. Many of these can be relatively simple to fix if you know what they 
-mean, so we have explained what are the most likely origins of these errors and 
-where applicable, we've also included helpful StackOverflow posts or other 
-articles that go over the same or similar problems. Also remember that when we 
-use this notation: '<FILL_IN_THE_BLANK>', these are placeholders for whatever 
+mean, so we have explained what are the most likely origins of these errors and
+we've also included helpful StackOverflow posts or other articles that go over 
+the same or similar problems, where applicable. Also remember that when we use 
+this notation: '<FILL_IN_THE_BLANK>', these are placeholders for whatever 
 specific object, filename, function name or what have you, might be reported. 
 
-_Example Error 1:_ "No such file or directory"
+#### _Example Error 1:_ "No such file or directory"
 ```
 Error in file(file, "rt") : cannot open the connection
 In addition: Warning message:
@@ -161,7 +164,7 @@ shows why using `file.path` function can help avoid this error in some situation
 RStudio also has a [blog post](https://support.rstudio.com/hc/en-us/articles/200711843-Working-Directories-and-Workspaces) 
 that touches on this subject.  
 
-_Example Error 2:_ "could not find function"
+#### _Example Error 2:_ "could not find function"
 ```
 Error in ... could not find function <FUNCTION_NAME>
 ```
@@ -172,16 +175,16 @@ using `library` or you need to precede the function's name with the package
 it comes from and `::`. This [StackOverflow post](https://stackoverflow.com/questions/7027288/error-could-not-find-function-in-r) 
 covers what to look for if a function can't be found. 
 
-_Example Error 3:_ "object not found"
+#### _Example Error 3:_ "object not found"
 ```
 Error in ... object '<OBJECT_NAME>' not found
 ```
 Most likely reason for this error message is that the object you are referencing
 doesn't exist in your global environment. Use `ls()` or check your environment 
-panel in RStudio to check that the object you have referenced, is actually 
-existing in the current environment.
+panel in RStudio to check that the object you have referenced exists in the 
+current environment.
 
-_Example Error 4:_ "no package"
+#### _Example Error 4:_ "no package"
 ```
 Error in library(<PACKAGE_NAME>) : there is no package called ‘<PACKAGE_NAME>’
 ```
@@ -195,23 +198,23 @@ first part of this document. This [RStudio blog](https://support.rstudio.com/hc/
 covers some reasons installation may have failed. This [StackOverflow post](https://stackoverflow.com/questions/25721884/how-should-i-deal-with-package-xxx-is-not-available-for-r-version-x-y-z-wa)
 also discusses how to attack problems with installing packages. 
 
-_Example Error 5:_ "no method for ... object of class"
+#### _Example Error 5:_ "no method for ... object of class"
 ```
 Error in ... no applicable method for <OBJECT_NAME> applied to an object of class <CLASS_OF_OBJECT>
 ```
 Most likely reason for this error message is that you are attempting to apply 
-a function to an object of the wrong object type. Best approach here is to 
+a function to an object of the wrong object type. The best approach here is to 
 reference the function's documentation by looking for it in the search bar, then
 looking for what types of objects the function is built to use. After you 
 determine what type of object the function is looking for, you can attempt to 
 convert it by using `as.numeric` or the respective `as.<TYPE>` function.
 If you are trouble with this error often, we recommend you take another look 
-through the [`intro_to_R` module](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html) 
+through the [`intro_to_R` notebook](https://alexslemonade.github.io/training-modules/intro-to-R-tidyverse/01-intro_to_r.nb.html) 
 or if you'd like a more advanced explanation, we recommend 
 [Hadley Wickham's Advanced R chapter](http://adv-r.had.co.nz/S3.html) on the handling of
 object types.
 
-_Example Error 6:_ "subscript out of bounds"
+#### _Example Error 6:_ "subscript out of bounds"
 ```
 Error in ... subscript out of bounds
 ```
@@ -220,9 +223,9 @@ is larger than the data object is. For example, if you have a `vector` that is 5
 entries long, and you attempt to subset an index that is larger than 5, this 
 error will come back. So for vector like `alphabet <- c("a", "b")`
 if you try to do a subset with anything larger than 2, this error will 
-occur. e.g., `alphabet[3]` will come back with this error.
+occur, e.g., `alphabet[3]` will come back with this error.
 
-_Example Error 7:_ "unused argument"
+#### _Example Error 7:_ "unused argument"
 ```
 Error in ... unused argument <AN_ARGUMENT_YOU_GAVE>
 ```
