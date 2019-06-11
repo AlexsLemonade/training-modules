@@ -11,6 +11,34 @@ But each step can require extensive manual entry.
 As we get to know our command line, we can get reproducibility and efficiency.
 We can also script commands so that we can run them again anytime.
 
+### Download data
+
+First, let's create a directory for our raw sequencing data (`.fastq.gz`) files.
+
+```bash
+mkdir data/fastq/gastric_cancer -p
+```
+
+We'll use the `-P` option for `wget` to download the files into our new directory.
+
+#### SRR585570
+
+```bash
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585570/SRR585570_1.fastq.gz -P data/fastq/gastric_cancer
+```
+```bash
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585570/SRR585570_2.fastq.gz -P data/fastq/gastric_cancer
+```
+
+#### SRR585574
+
+```bash
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585574/SRR585574_1.fastq.gz -P data/fastq/gastric_cancer
+```
+```bash
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR585/SRR585574/SRR585574_2.fastq.gz -P data/fastq/gastric_cancer
+```
+
 #### Shell scripts
 
 When you are running commands by typing them into a command line, they are being interpreted and run by a "shell" (think of this as the program that converts your typed commands into steps that the computer runs).
