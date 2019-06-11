@@ -9,12 +9,12 @@
 
 # In the interest of time, we'll run one of the fastq files through FastQC
 fastqc data/fastq/gastric_cancer/SRR585570/SRR585570_1.fastq.gz \
-	-o data/QC/gastric_cancer/
+	-o QC/gastric_cancer/fastqc_output
 
-# Fastp ------------------------------------------------------------------------
+# fastp ------------------------------------------------------------------------
 
 # Create a directory to hold the JSON and HTML output from Fastp
-mkdir fastp_output
+mkdir QC/gastric_cancer/fastp_output/
 
 # Run the adapter and quality trimming step -- also produces QC report
 fastp -i data/fastq/gastric_cancer/SRR585570/SRR585570_1.fastq.gz \
@@ -24,8 +24,8 @@ fastp -i data/fastq/gastric_cancer/SRR585570/SRR585570_1.fastq.gz \
 	--qualified_quality_phred 15 \
 	--length_required 20 \
 	--report_title "SRR585570" \
-	--json fastp_output/SRR585570_fastp.json \
-	--html fastp_output/SRR585570_fastp.html
+	--json QC/gastric_cancer/fastp_output/SRR585570_fastp.json \
+	--html QC/gastric_cancer/fastp_output/SRR585570_fastp.html
 
 # Quantification with Salmon ---------------------------------------------------
 
