@@ -37,5 +37,5 @@ salmon quant -i index/Homo_sapiens/short_index \
     -1 data/fastq/gastric_cancer/SRR585570/SRR585570_fastp_1.fastq.gz \
     -2 data/fastq/gastric_cancer/SRR585570/SRR585570_fastp_2.fastq.gz \
     -o data/quant/gastric_cancer/SRR585570 \
-    --validateMappings --rangeFactorization 4 \
+    --validateMappings --rangeFactorizationBins 4 \
 	--gcBias --seqBias
