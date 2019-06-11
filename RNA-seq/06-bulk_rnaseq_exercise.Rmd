@@ -71,65 +71,11 @@ experiments?
 
 Let's compare the `MacLowKitposSca1pos` (high capacity) to `MacHigh` (low 
 capacity) cells.
-First, we'll filter the tximport-processed data to only include samples
-from these two groups.
 
 Use `str` to examine the structure of the tximport-processed data.
 
 ```{r}
 
-```
-
-There are 3 elements in the `txi` list that will need to be filtered.
-
-```{r}
-# first, let's make a copy of txi called txi_filtered that we will then
-# filter
-txi_filtered <- txi
-```
-
-We'll get the sample identifiers (or run accessions, e.g., `SRRXXXXXX`) for
-only the cell populations we're interesting using some tidyverse functionality.
-The chunk below does the filtering for you and will show you the result.
-
-```{r}
-samples_to_keep <- metadata_df %>%
-  # filter to only the cell populations we care about
-  dplyr::filter(cell_sorting %in% c("MacLowKitposSca1pos", "MacHigh")) %>%
-  # pull out only the run accessions so we have a vector
-  dplyr::pull(Run)
-samples_to_keep
-```
-
-Filter the matrices using `samples_to_keep`.
-We've filtered the abundance matrix for you.
-Repeat the filtering for counts and length.
-
-```{r}
-# filter the abundance
-txi_filtered$abundance <- txi_filtered$abundance[, samples_to_keep]
-# repeat this for the counts and length matrices
-txi_filtered$counts <-
-txi_filtered$length <- 
-```
-
-We should have an object that contains 11 samples.
-
-```{r}
-str(txi_filtered)
-```
-
-Filter `metadata_df` using `dplyr::filter` to create `metadata_filtered_df`
-
-```{r}
-metadata_filtered_df <-
-```
-
-Create a new DESeq2 dataset.
-
-```{r}
-# call the new dataset ddset_filtered
-ddset_filtered <- 
 ```
 
 Perform differential expression analysis.
@@ -140,18 +86,21 @@ deseq_object <-
 ```
 
 Get the results as a data.frame.
+Using the `results` function and its `contrast` argument, we can specify the
+comparison we are interested in.
+Given our research question, which should group should be in the numerator of 
+our fold change and which should be in the denominator? 
+Keeping this in mind, go to the help page for the DESeq2 `results` function and 
+look under the `contrast` argument to figure out how to specify the comparison 
+we want. 
 
 ```{r}
+# obtain the results of deseq_object with our desired comparison
+deseq_df <- 
+  # use this line to make the results into data.frame
 
-```
-
-We're interested in genes that are highly expressed in the cell population
-with higher stem-cell potential (`MacLowKitposSca1pos`).
-
-Use `levels()` to determine what direction the stat and log2 fold change 
-indicates higher expression in `MacLowKitposSca1pos`. 
-
-```{r}
+  # use this line to make the gene rownames to a column using the tibble::rownames_to_column 
+  # function
 
 ```
 
