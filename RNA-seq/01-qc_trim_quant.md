@@ -182,11 +182,11 @@ We use Salmon in mapping mode, with mapping validation enabled, using the follow
 # per the Salmon documentation
 salmon quant -i index/Homo_sapiens/short_index \
 	-l A \
-    -1 data/fastq/gastric_cancer/SRR585570/SRR585570_fastp_1.fastq.gz \
-    -2 data/fastq/gastric_cancer/SRR585570/SRR585570_fastp_2.fastq.gz \
-    -o data/quant/gastric_cancer/SRR585570 \
-    --validateMappings --rangeFactorization 4 \
-    --gcBias --seqBias
+	-1 data/fastq/gastric_cancer/SRR585570/SRR585570_fastp_1.fastq.gz \
+	-2 data/fastq/gastric_cancer/SRR585570/SRR585570_fastp_2.fastq.gz \
+	-o data/quant/gastric_cancer/SRR585570 \
+	--validateMappings --rangeFactorization 4 \
+	--gcBias --seqBias
 ```
 
 Below, we'll walk through the arguments/options we used to run `salmon quant`.
