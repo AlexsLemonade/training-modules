@@ -22,6 +22,9 @@ For these analyses, we will need `scater` and `scran` packages, which have been
 installed already on your Docker container. 
 
 ```{r Set Up}
+# Set seed for reproducibility
+set.seed(1234)
+
 # Read in a function for filtering the gene matrix from a source script
 source(file.path("scripts", "GeneMatrixFilter.R"))
 
@@ -255,10 +258,18 @@ Now that we've explored our data, let's used the information we've learned to
 actually filter our data.
 
 ```{r Apply filter}
+# Put the gene names back as a column and GeneMatrixFilter will handle it
+sc_data_filtered <- sc_data_filtered %>% 
+  tibble::rownames_to_column("gene")
+
+# Do the filtering
 sc_data_filtered <- GeneMatrixFilter(sc_data_filtered, 
                                      min_counts = 0, 
                                      num_samples = 10, 
                                      num_genes = 750)
+
+# Store the genes separately
+genes <- sc_data_filtered %>% dplyr::pull("gene")
 ```
 
 Need to filter our metadata accordingly, again:
@@ -282,7 +293,7 @@ Bioconductor packages, we recommend this article: [Amezquita et al. _bioRxiv._ 2
 
 ```{r Set up SCE object}
 # Prep a matrix with just the rounded counts so we can create an sce object
-counts_mat <- round(as.matrix(sc_data_filtered))
+counts_mat <- round(as.matrix(sc_data_filtered[, -1]))
 ```
 
 Put our counts matrix in this special `SingleCellExperiment` function: 
@@ -290,6 +301,9 @@ Put our counts matrix in this special `SingleCellExperiment` function:
 ```{r}
 # Set up the Single Cell Experiment object 
 sce_raw <- SingleCellExperiment::SingleCellExperiment(list(counts = counts_mat))
+
+# Store the gene names in this object
+rowData(sce_raw) <- genes
 ```
 
 Special object type are difficult to use at times if we don't know what they 
@@ -316,9 +330,6 @@ cells like them; a method introduced in [Lun et al 2016](https://genomebiology.b
 *These steps may take a minute or so.*
 
 ```{r Normalize Data}
-# Set seed for reproducibility
-set.seed(1234)
-
 # Step 1) Group cells with other like cells by clustering.  
 qclust <- scran::quickCluster(sce_raw)
 
@@ -392,8 +403,25 @@ to a tsv file.
 
 ```{r Save Data to .tsv}
 # Save this gene matrix to a tsv file
-logcounts(sce_norm) %>% as.data.frame() %>%
+logcounts(sce_norm) %>% 
+  as.data.frame() %>%
   readr::write_tsv(file.path("data", "scran_norm_gbm_gene_matrix.tsv"))
+```
+
+Because our metadata has been filtered to match our gene matrix, we will also 
+save a new file for the metadata. 
+
+```{r}
+readr::write_tsv(sc_metadata_filtered, file.path("data", "gbm_filtered_metadata.tsv"))
+```
+
+We will return to our normalized `sce_norm` object in the exercise, so we will 
+also save our data in an RDS file so that we can re-load it into our R 
+environment as a `SingleCellExperiment` object.
+
+```{r}
+# Save the data as an RDS
+readr::write_rds(sce_norm, file.path("data", "sce_norm.RDS"))
 ```
 
 ### Print session info
