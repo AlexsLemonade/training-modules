@@ -79,7 +79,7 @@ fastqc data/fastq/gastric_cancer/SRR585570/SRR585570_1.fastq.gz \
 #### `-o`
 
 The `-o` flag allows us to specify where the output of FastQC is saved. 
-Note that this is saved in a different place than the raw data files and in a directory specifically for quality control information.
+Note that this is saved in a separate place than the raw data files and in a directory specifically for quality control information.
 
 For comparison to the report for `SRR585570_1.fastq.gz` we generate with our script, we've prepared a FastQC report for one of the sets of reads for another sample in the experiment.
 It can be found at `QC/gastric_cancer/fastqc_output/SRR585574_1_fastqc.html`.
