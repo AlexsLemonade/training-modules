@@ -125,7 +125,7 @@ For paired-end data like SRR585570, adapters can be detected automatically witho
 
 #### Input: `-i` and `-I`
 
-These arguments specify the read1 input and read2 input, respectively.
+These arguments specify the read1 input and read2 (sometimes called left and right) input, respectively.
 
 #### fastq output: `-o` and `-O`
 
