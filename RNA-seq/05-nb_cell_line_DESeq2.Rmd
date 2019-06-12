@@ -168,7 +168,7 @@ Let's save this to our results file.
 readr::write_rds(deseq_object, path = deseq_file)
 ```
 
-Let's take a look at the results.
+Let's take a look at the results table.
 
 ```{r}
 deseq_results <- results(deseq_object)
@@ -206,6 +206,57 @@ summary(results(deseq_object), alpha = 0.05)
 ```{r}
 readr::write_tsv(deseq_df, path = deseq_df_file)
 ```
+
+#### Visualize differential expression results with a heatmap
+
+Let's get an overall picture of our results using a heatmap. 
+Before we can do this, we will need to transform our data so that when we make
+the heatmap the genes are on a more similar scale and the heatmap is 
+interpretable. 
+We will use variance stablizing transformation (vst) from DESeq2 to do this.
+Refer to the help page or the DESeq2 docs for more information. 
+
+```{r}
+vst_data <- vst(ddset)
+```
+
+Need to extract the normalized gene matrix from the `vst_data` object. 
+
+```{r}
+vst_data <- assay(vst_data)
+```
+
+~37,000 genes will be too crowded for one heatmap, let's calculate the standard
+deviation for all the genes using `apply` and then use `dplyr::filter` to keep 
+only the highest variance genes for this heatmap. 
+
+Calculate standard deviation for every gene.
+
+```{r}
+gene_sd <- apply(vst_data, 1, sd)
+```
+
+Determine what is the top 1% highest standard deviation.
+
+```{r}
+sd_cutoff <- quantile(gene_sd, 0.99)
+```
+
+Filter out the bottom 99% standard deviation genes.
+
+```{r}
+high_sd_data <- vst_data %>%
+  as.data.frame() %>%
+  dplyr::filter(gene_sd > sd_cutoff)
+```
+
+Let's make the results into a heatmap using the `pheatmap` package. 
+
+```{r}
+pheatmap::pheatmap(high_sd_data, show_rownames = FALSE)
+```
+
+We go over heatmaps more in-depth in the machine-learning module. 
 
 ## Session Info
 
