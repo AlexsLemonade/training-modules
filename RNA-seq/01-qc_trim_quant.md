@@ -195,17 +195,20 @@ Below, we'll walk through the arguments/options we used to run `salmon quant`.
 
 Salmon requires a set of transcripts (what we want to quantify) in the form of a transcriptome index built with `salmon index`.
 Building an index can take a while (but you only have to do it once!), so we've built the one we use today ahead of time.
-We also have provided methods for obtaining [other transcriptomes indices on GitHub.](https://github.com/AlexsLemonade/training-txome-prep) 
 Before we use it, we'll take a moment to give a bit of background.
 
-`salmon index` has a parameter `-k` which sets the k-mer length.
+You can see how we obtained this index and others [on GitHub](https://github.com/AlexsLemonade/training-txome-prep).
+Note that we used Homo sapiens GRCh38, Ensembl release 95.
+It is important to keep track of what build, resource, and files were used and putting our shell scripts on GitHub allows us to do that.  
+
+The `salmon index` command has a parameter `-k` which sets the k-mer length.
 The index we used was built with `-k 23` and can be found here:
 
 ```
 index/Homo_sapiens/short_index
 ```
 
-Using a smaller value for _k_ than the default (31) is appropriate for shorter reads and may improve sensitivity when using `--validateMappings` according to the [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#preparing-transcriptome-indices-mapping-based-mode).
+Using a smaller value for _k_ than the default (_k_ = 31) is appropriate for shorter reads and may improve sensitivity when using `--validateMappings` according to the [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#preparing-transcriptome-indices-mapping-based-mode).
 
 #### `-l`
 
