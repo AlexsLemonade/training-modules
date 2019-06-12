@@ -6,19 +6,33 @@ output:
     toc_float: true
 ---
 
-In this exercise, we will be using the [Darmanis data](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465) 
-we normalized and filtered in `01-normalizing_scRNA`. 
+Our objective for this exercise is to investigate the expression of marker genes
+across cell types.
+Here we consider *marker genes* to be genes considered by the field to be 
+classic indicators of cell type.
 
-This data comes from Fluorescence-Activated Cell Sorted (FACS) glioblastoma cells
-and then was processed by paired-end sequencing using Smart-seq2
-[(Darmanis et al. _Cell Reports._ 2017.).](https://www.ncbi.nlm.nih.gov/pubmed/29091775).
+These *marker genes* are the ones often used for FAC sorting, which is what
+was done in [Darmanis et al. _Cell Reports._ 2017.](https://www.ncbi.nlm.nih.gov/pubmed/29091775)
+We previously normalized and filtered these data in `01-normalizing_scRNA`. 
+Here's a figure from their paper to give you a very brief overview of their 
+FAC sorting methodology. 
+  
+![**Figure 1B from Darmanis et al. _Cell Reports._ 2017**](data/gbm_figure.jpg)
 
-Our objective for this exercise is to investigate the expression of genes of
-interest across cell types.
-We will extract the gene's expression levels and make density plots.
-Then, we will calculate the mean expression of the marker genes by cell type and 
-make a heatmap.
-Lastly, we will project cells onto principal components and color them by the 
+For more details on the methods, [see their manuscript.](https://www.ncbi.nlm.nih.gov/pubmed/29091775)
+But, in short, this study splits cells from a glioblastoma tumor by their 
+cell-type based on their FAC sorting. 
+
+The authors identified neoplastic cells using multiple analyses, including a
+high level of _SOX9_ expression. 
+The neoplastic cells make up the vast majority of the tumor core. 
+So by seeing what marker genes they express, we may get an initial, gene-by-gene
+idea of how these cells behave. 
+
+After extracting the normalized data for our marker genes of interest, we will 
+make a heatmap to compare the mean expression of the marker genes by cell type.
+Then we will visualize the marker gene expression in reduced dimensions by 
+creating a principal components scatterplot that color codes each cell by the 
 expression level of a marker gene. 
 
 ## Setup 
@@ -49,7 +63,7 @@ Use `readr`'s function for reading RDS files.
 Import the `SingleCellExperiment` object that we stored in "sce_norm.RDS" in the
 `data` folder in `01-normalizing_scRNA-seq`. 
 Remember to use `file.path` and `::` to call any packages that you might use that
-you haven't imported. 
+you haven't imported.
 
 ```{r eval=FALSE}
 sce_norm <- 
@@ -94,18 +108,24 @@ named `cell_types`.
 cell_types <- 
 ```
 
-## Set up marker gene data
+## What marker genes should we investigate across cell types?  
 
 For this exercise, we want to analyze specific genes and their expression among 
 the cell types in our dataset. 
+We have already added _SOX9_ and _CD45_ as marker genes to investigate as 
+controls, due to their use in the methods for FAC sorting. 
+_MOG_ has been added as a different type of control: a gene that wasn't used for
+FACS, but is related to myelination, and thus the oligodendrocyte phenotype. 
 
-Select a gene of your own liking and get its information from
-https://www.genecards.org/.
-Add your chosen gene in the same format we have started for you but replacing 
-our <FILL_IN_THE_BLANKS>. 
+Add other genes you are interested in to the gene list we started for you below. 
+You can use  [GeneCard](https://www.genecards.org/.) to get information about 
+your chosen gene. 
+Then add your chosen gene to this data.frame in the same format we have started 
+for you by replacing our `<FILL_IN_THE_BLANKS>`. 
 
-In the machine-learning module, in `01-medulloblastoma_data_prep` we will show 
-you how to convert Ensembl IDs to other kinds of gene IDs in a bulk fashion. 
+Note: In the machine-learning module notebook `01-medulloblastoma_data_prep`, we
+will show you how to convert Ensembl IDs to other kinds of gene IDs in a bulk
+fashion. 
 However, for this exercise, we will only need a few genes and we've already set 
 some up for you. 
 
@@ -139,50 +159,78 @@ Use this code chunk to look at what `markers` looks like.
 
 ```
 
-Let's build a `dplyr` pipe to create a `data.frame` with the data for our marker 
-genes and add on `cell_type` vector as its own column.
-Remember that each step in your pipe needs to be followed by the `%>%` operator
-and that we haven't loaded the `dplyr` library so use the `::` if needed. 
+Let's build a chain of `dplyr` functions to create a `data.frame` with the data 
+for our marker genes.
+Use `dplyr::filter` to extract the marker genes from `sce_norm_df`.
+Remember that each step in a `dplyr` chain of functions needs to be followed by 
+the `%>%` operator and that we haven't loaded the `dplyr` library so use the 
+`::` if needed.
 
 ```{r}
-# Make a data.frame with only the genes in `markers`
-marker_data <- sce_norm_df %>%
-  # Use this line to filter the data to only the marker genes we care about.
+# Make a data.frame with the genes in `markers` only
+marker_data <- 
+```
 
-  # Use this line for tibble::column_to_rownames function to hide the gene names
+Let's change the Ensembl gene IDs to symbols since they are easier to read and 
+make sense of.
+First, we should check if the genes in `marker` and the genes in `marker_data`
+are in the same order.
+
+```{r}
+all.equal(marker_data$genes, markers$ensembl)
+```
+
+Use `dplyr::arrange` to make it so your genes are in the same order in `markers`
+and `marker_data`.
+
+```{r}
+# Use this line to arrange markers in order by Ensembl ID
+
+# Test if you made the genes in marker and marker_data in the same order
+all.equal(marker_data$genes, markers$ensembl)
+```
+
+Now that your genes are in the correct order, assign the gene symbols from 
+`markers` to the `rownames` in `marker_data`.
+
+```{r}
+# Assign gene symbols to the rownames in marker_data
+rownames(marker_data) <-
+```
+
+Let's build another chain of `dplyr` functions to further clean our `marker_data`. 
+
+1) Get rid of the `genes` column since now we have stored that information as 
+gene symbols in the rownames. 
+
+2) Add the `cell_type` vector as a new column. Note that we will need to 
+transpose the data so our dimensions match.
+
+```{r}
+marker_data <- 
+  # Use this line  to remove the `genes` column
 
   # Use this line to transpose this data
 
   # We've done this step of turning the matrix back into a data.frame after we 
   # transposed
-  as.data.frame() %>%
-
+  as.data.frame() %>%  
   # Use this line to add a column with the information in `cell_types`
 
 ```
 
-## Plot the marker genes' expression as a density plot by cell type
+Use this chunk to check out your cleaned `marker_data`
 
-Use the following `ggplot` template to make a density plot by cell type for one
-of your genes of interest (hint: use the `marker_data` we just made).
-Remember that for each step in making a `ggplot`, you need to add a `+`.
-
-```{r eval=FALSE}
-# Plot the gene data by cell type using `facet_wrap`
-ggplot2::ggplot(<DATA_FRAME>, ggplot2::aes(x = <GENE_DATA_COLUMN>)) +
-  ggplot2::geom_density(fill = <COLOR_NAME>) + # Choose a color 
-  ggplot2::facet_wrap(~ <CELL_TYPE_INFO>) # Use cell types in this function to 
-                                          # separate the density plots
+```{r}
+marker_data
 ```
 
-Feel free to play around with aspects of this plot and see how the plot changes.
-Look at [ggplot2's guide](https://ggplot2.tidyverse.org/) for a list of the 
-options. 
+\*Note that this is just one way to do it. 
 
-## Make a heatmap of mean expression of marker genes by cell type
+## How does the mean expression of marker genes compare across cell types?
 
-Let's build a `dplyr` pipe to calculate the means of these marker genes based on 
-the cell-type labels. 
+Let's build a chain of `dplyr` functions to calculate the means of these marker 
+genes based on the cell-type labels. 
 
 ```{r}
 # Build a pipe to calculate the mean expressions within each cell type
@@ -193,14 +241,6 @@ marker_means <- marker_data %>%
 
   # Use the tibble::column_to_rownames hide the cell-type column
 
-```
-
-Let's change the Ensembl gene IDs to symbols since they are easier to read in 
-the heatmap.
- 
-```{r eval=FALSE}
-# Change the column names to gene symbols
-colnames(marker_means) <- 
 ```
 
 Use `pheatmap::pheatmap` to make a heatmap of cell-type mean expression of these
@@ -219,11 +259,11 @@ If you'd like to make a more customizable heatmap, we recommend using the
 package `ComplexHeatmap`. 
 They provide [excellent vignettes](https://jokergoo.github.io/ComplexHeatmap-reference/book/).
 
-## Plot the cells' PCA scores and color code by marker gene expression
+## How does marker gene expression relate to principal components analysis scores across different cell types? 
 
-Another way to examine the relationship of genes and cell types is to make a 
-PCA plot, like we did previously, but color the scatterplot points according 
-to one of the marker gene's expression. 
+Another way to examine the relationship of marker genes and cell types is to 
+make a PCA plot, like we did previously, but color the scatterplot points 
+according to one of the marker gene's expression. 
 
 Perform PCA on `sce_norm_df` by using the `prcomp` function (hints: you will need 
 to transpose the data and tell R to ignore the gene column - try a negative index). 
@@ -280,6 +320,10 @@ ggplot2::ggplot(<DATA_FRAME>, # What data.frame should be here?
 After you have successfully made this plot, repeat this `ggplot` template for 
 the other genes in your marker list. 
 Make more code chunks as you need them.
+
+Feel free to play around with aspects of this plot and see how the plot changes.
+Look at [ggplot2's guide](https://ggplot2.tidyverse.org/) for a list of the 
+options. 
 
 ```{r}
 
