@@ -196,13 +196,13 @@ In R console, copy paste and run this:
 ```r
 # Produce a QC report
 alevinQC::alevinQCReport("data/tabula_muris/alevin_quant/10X_P4_3",
-                         sampleId = "tab_mur_10X_P4_3_subset",
-                         outputFile = "tab_mur_10X_P4_3_subset_qc_report.html",
+                         sampleId = "10X_P4_3_subset",
+                         outputFile = "10X_P4_3_subset_qc_report.html",
                          outputDir = "data/tabula_muris/qc_reports",
                          outputFormat = "html_document")
 ```
 
-Check out `data/tabula_muris/qc_reports/tab_mur_10X_P4_3_subset_qc_report.html` 
+Check out `data/tabula_muris/qc_reports/10X_P4_3_subset_qc_report.html` 
 in order to examine the quality of your data and performance of Alevin.
 Remember that this is only part of this sample, so it won't look as good as if
 we had run the full fastq file, which we have provided the alevinQC report of
