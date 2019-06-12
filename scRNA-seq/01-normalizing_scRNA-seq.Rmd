@@ -26,7 +26,7 @@ installed already on your Docker container.
 set.seed(1234)
 
 # Read in a function for filtering the gene matrix from a source script
-source(file.path("scripts", "GeneMatrixFilter.R"))
+source(file.path("scripts", "gene_matrix_filter.R"))
 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
@@ -49,15 +49,33 @@ a tsv file, just as we did in the bulk RNA-seq modules.
 As far as *tag-based* scRNA-seq data, we will explain how to process raw data, 
 like fastq files, in the next section, so you can also get it to a count matrix
 and could use these same steps to filter and normalize the data.
-  
+
+### Directories and files
+
+```{r}
+# Directory where the gene matrix is 
+gene_matrix_file <- file.path("data", "glioblastoma", "raw",
+                              "unfiltered_darmanis_counts.tsv")
+
+# Directory where the metadata file is 
+metadata_file <- file.path("data", "glioblastoma", "raw",
+                           "unfiltered_darmanis_metadata.tsv")
+
+# Output directory
+norm_dir <- file.path("data", "glioblastoma", "normalized")
+if (!dir.exists(norm_dir)) {
+  dir.create(norm_dir, recursive = TRUE)
+}
+```
+
+Let's import the gene matrix and metadata. 
+
 ```{r Import Data}
 # Read in the data
-sc_data <- readr::read_tsv(file.path("data", "unfiltered_darmanis_counts.tsv"), 
-                           progress = FALSE)
+sc_data <- readr::read_tsv(gene_matrix_file, progress = FALSE)
 
 # Read in the metadata
-sc_metadata <- readr::read_tsv(file.path("data", "unfiltered_darmanis_metadata.tsv"), 
-                               progress = FALSE)
+sc_metadata <- readr::read_tsv(metadata_file, progress = FALSE)
 ```
 
 Now that we have loaded our data, let's take a look at what it looks like 
@@ -258,15 +276,15 @@ Now that we've explored our data, let's used the information we've learned to
 actually filter our data.
 
 ```{r Apply filter}
-# Put the gene names back as a column and GeneMatrixFilter will handle it
+# Put the gene names back as a column and gene_matrix_filter will handle it
 sc_data_filtered <- sc_data_filtered %>% 
   tibble::rownames_to_column("gene")
 
 # Do the filtering
-sc_data_filtered <- GeneMatrixFilter(sc_data_filtered, 
-                                     min_counts = 0, 
-                                     num_samples = 10, 
-                                     num_genes = 750)
+sc_data_filtered <- gene_matrix_filter(sc_data_filtered, 
+                                       min_counts = 0, 
+                                       num_samples = 10, 
+                                       num_genes = 750)
 
 # Store the genes separately
 genes <- sc_data_filtered %>% dplyr::pull("gene")
@@ -405,14 +423,14 @@ to a tsv file.
 # Save this gene matrix to a tsv file
 logcounts(sce_norm) %>% 
   as.data.frame() %>%
-  readr::write_tsv(file.path("data", "scran_norm_gbm_gene_matrix.tsv"))
+  readr::write_tsv(file.path(norm_dir, "scran_norm_gbm_gene_matrix.tsv"))
 ```
 
 Because our metadata has been filtered to match our gene matrix, we will also 
 save a new file for the metadata. 
 
 ```{r}
-readr::write_tsv(sc_metadata_filtered, file.path("data", "gbm_filtered_metadata.tsv"))
+readr::write_tsv(sc_metadata_filtered, file.path(norm_dir, "gbm_filtered_metadata.tsv"))
 ```
 
 We will return to our normalized `sce_norm` object in the exercise, so we will 
@@ -421,7 +439,7 @@ environment as a `SingleCellExperiment` object.
 
 ```{r}
 # Save the data as an RDS
-readr::write_rds(sce_norm, file.path("data", "sce_norm.RDS"))
+readr::write_rds(sce_norm, file.path(norm_dir, "sce_norm.RDS"))
 ```
 
 ### Print session info

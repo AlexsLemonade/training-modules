@@ -1,8 +1,8 @@
-# Pre-processing single-cell RNA-seq data
+# Preprocessing single-cell RNA-seq data
 
 **CCDL 2019**
 
-#### In this section, we will be running through the basics of pre-processing single-cell RNA-seq data.
+#### In this section, we will be running through the basics of preprocessing single-cell RNA-seq data.
 
 We will be using a tag-based scRNA-seq sample from [Tabula Muris data](https://www.nature.com/articles/s41586-018-0590-4).
 This dataset is made of 20 mouse organs that were sequenced using 10X Genomics
@@ -45,11 +45,12 @@ Remember to use `ls` and `cd` to help get you there.
 ### Step 2: Set up your output directory
 
 Now that we are in `kitematic/scRNA-seq`, we'll make a directory from
-for us to store our output data in.
+for us to store our quantification files in.
 In `Terminal`, run the following command:
 ```
-mkdir alevin_output  
+mkdir -p data/tabula_muris/alevin_quant/10X_P4_3
 ```
+In this scenario, `10X_P4_3` refers to our sample name. 
 
 ### Step 3: Index the mouse transcriptome with Salmon
 
@@ -100,7 +101,7 @@ flag instead of this.
 #### `--tgMap`
 This is needed to supply a transcript to gene key that Alevin will use to
 quantify the genes.
-For our example, we've premade the file `mouse_genes_2_tx.tsv` from
+For our example, we've premade the file `Mus_musculus.GRCm38_tx2gene.tsv` from
 the Ensembl transcriptome that we indexed above. The file has to be a tsv file.
 
 #### `--dumpCsvCounts`
@@ -118,12 +119,12 @@ Copy and paste this in your command line to run Alevin quantification.
 ```
 salmon alevin -l ISR \
   -i index/Mus_musculus/short_index \
-  -1 data/tab_mur_10X_P4_3_L001_R1_subset.fastq.gz \
-  -2 data/tab_mur_10X_P4_3_L001_R2_subset.fastq.gz \
+  -1 data/tabula_muris/fastq/tab_mur_10X_P4_3_L001_R1_subset.fastq.gz \
+  -2 data/tabula_muris/fastq/tab_mur_10X_P4_3_L001_R2_subset.fastq.gz \
   --chromium  \
   -p 10 \
-  -o alevin_output \
-  --tgMap data/mouse_genes_2_tx.tsv \
+  -o data/tabula_muris/alevin_quant/10X_P4_3 \
+  --tgMap index/Mus_musculus/Mus_musculus.GRCm38_tx2gene.tsv \
   --dumpCsvCounts \
   --dumpFeatures
 ```
@@ -142,8 +143,9 @@ Similar to how we need to be in the `scRNA-seq` directory when we were in
 
 First open the R console and use `setwd()` to change to R's working (aka
 current) directory to `scRNA-seq`.
-Remember that this is where we put our `alevin_output` file.
-You can run `dir()` to check if your `alevin_output` folder is in R's current
+Remember that this folder: `data/tabula_muris/alevin_quant/10X_P4_3` that 
+contains the Alevin quantification files, is located in `scRNA-seq`.
+You can run `dir()` to check what files and folders are in R's current 
 directory.
 Once you are in `scRNA-seq` folder, you can continue to the next steps.
 
@@ -156,26 +158,26 @@ After we have successfully quantified our tag-based scRNA-seq data, we would
 probably want to read it into R to start to analyze it.
 
 Alevin provides count data output for each transcript and cell. To read this
-data into R, we would import a function from the script `ReadAlevin.R` which is
+data into R, we would import a function from the script `read_alevin.R` which is
 located in the `scRNA-seq/scripts` folder.
 This script is based on the COMBINE lab's function in their [tutorial](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/).
 
 In the R console:
 ```r
 # Import the function to read alevin output data
-# source(file.path("scripts", "ReadAlevin.R"))
+# source(file.path("scripts", "read_alevin.R"))
 ```
 
 After we have imported the function in this script like above, you can use
-the `ReadAlevin` function to read in your output.
+the `read_alevin` function to read in your output.
 The argument needs to be the directory that contains your output.
-In this case we named our directory `alevin_output`, so that would be our
+In this case we named our directory `alevin_quant`, so that would be our
 argument.
 
 In the R console:
 ```r
 # Read in the data
-# alevin_data <- ReadAlevin("alevin_output")
+# alevin_data <- read_alevin("data/tabula_muris/alevin_quant/10X_P4_3")
 ```
 
 ### Step 7: Perform QC checks with `alevinQC`
@@ -187,27 +189,25 @@ option in Alevin.
 About the `alevinQCReport` function:
 The first argument needs to be where the sample's output data was put when
 Alevin was run (as a character string, aka using quotes)
-In our case, we put our data in `alevin_output` in the current directory we
-were in, which was `scRNA-seq`.
 The rest of `alevinQCReport`'s arguments tell R where to put the output QC
 report also using `characters`.
 
 In R console, copy paste and run this:
 ```r
 # Produce a QC report
-alevinQC::alevinQCReport("alevin_output",
-                         sampleId = "tab_mur_10X_P4_3_subset",
-                         outputFile = "tab_mur_10X_P4_3_subset_qc_report.html",
-                         outputDir = "data",
+alevinQC::alevinQCReport("data/tabula_muris/alevin_quant/10X_P4_3",
+                         sampleId = "10X_P4_3_subset",
+                         outputFile = "10X_P4_3_subset_qc_report.html",
+                         outputDir = "data/tabula_muris/qc_reports",
                          outputFormat = "html_document")
 ```
 
-Check out `data/tab_mur_10X_P4_3_subset_qc_report.html` in order to examine
-the quality of your data and performance of Alevin.
+Check out `data/tabula_muris/qc_reports/10X_P4_3_subset_qc_report.html` 
+in order to examine the quality of your data and performance of Alevin.
 Remember that this is only part of this sample, so it won't look as good as if
 we had run the full fastq file, which we have provided the alevinQC report of
-in your `scRNA-seq/data` directory (or by the link below).
+in your `scRNA-seq/data/tabula_muris/qc_reports` directory (or by the link below).
 
-The full alevinQC report for P4_3 mouse bladder sample can be found [here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/10X_P4_3_qc_report.html)
+The full alevinQC report for P4_3 mouse bladder sample can be found [here.](https://alexslemonade.github.io/training-modules/scRNA-seq/data/tabula_muris/qc_reports/10X_P4_3_qc_report.html)
 
-This is an example of [a poor quality sample alevinQC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/Bad_Example_10X_P4_2_qc_report.html).
+This is an example of [a poor quality sample alevinQC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/tabula_muris/qc_reports/Bad_Example_10X_P4_2_qc_report.html).

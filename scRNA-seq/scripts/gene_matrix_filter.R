@@ -1,8 +1,8 @@
 # C.Savonen, CCDL for ALSF
 # 2018
 
-GeneMatrixFilter <- function(dataset, min_counts = 1, num_genes = 100,
-                             num_samples = 100, round_opt = FALSE) {
+gene_matrix_filter <- function(dataset, min_counts = 1, num_genes = 100,
+                               num_samples = 100, round_opt = FALSE) {
     # This function filters a gene matrix that is a data.frame.
     # First it filters the samples/cells based on the number of genes a they
     # express (num_genes); then it filters genes based on how many samples
