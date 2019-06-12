@@ -1,4 +1,4 @@
-## Introduction to bulk RNA-seq data processing
+# Introduction to bulk RNA-seq data processing
 
 We will first learn how to process RNA-seq data at the command line using two samples that were assayed with paired-end sequencing.
 
@@ -21,7 +21,7 @@ For these exercises, we'll want to set our **LOCAL FOLDER** in Kitematic to the 
 Copy and paste the text in the code blocks below into your `Terminal` window in RStudio.
 It should be in the lower left hand corner as a tab next to `Console`.
 
-We'll first want to set our working directory to the top-level of the RNA-seq folder like so
+We'll first want to set our working directory to the top-level of the RNA-seq folder like so:
 
 ```bash
 cd kitematic
@@ -42,17 +42,17 @@ This is a time and resource intensive step, so we have prepared the required out
 ### Input files
 
 The raw data FASTQ files (`fastq.gz`) for this sample, SRR585570, are in `data/fastq/gastric_cancer/SRR585570`.
-The first two directories, `data/fastq`, tell us that these files are data and 
+The first two directories, `data/fastq`, tell us that these files are data and the type of files (FASTQ). 
 The third directory `gastric_cancer` tells us which experiment or dataset these data are from. 
 We'll be working with an additional dataset later in the module, so this distinction will become more important.
 
 The use of the `SRR585570` folder might seem unnecessary because we are only processing a single sample here, but keeping files for individual samples in their own folder keeps things organized for multi-sample workflows.
-(You can peak ahead and look at the `data/quant/NB_cell_line` folder for such an example.)
+(You can peek ahead and look at the `data/quant/NB_cell_line` folder for such an example.)
 
 There is no "one size fits all" approach for project organization. 
 It's most important that it's consistent, easy for you and others to find the files you need quickly, and minimizes the likelihood for errors (e.g., writing over files accidentally).
 
-### Quality control with FastQC
+## 1. Quality control with FastQC
 
 The first thing our script does is use [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) for quality control in command line mode.
 Here's a link to the FastQC documentation: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/
@@ -81,20 +81,20 @@ fastqc data/fastq/gastric_cancer/SRR585570/SRR585570_1.fastq.gz \
 The `-o` flag allows us to specify where the output of FastQC is saved. 
 Note that this is saved in a different place than the raw data files and in a directory specifically for quality control information.
 
-For comparison, we've prepared a FastQC report for one of the sets of reads for another sample in the experiment.
+For comparison to the report for `SRR585570_1.fastq.gz` we generate with our script, we've prepared a FastQC report for one of the sets of reads for another sample in the experiment.
 It can be found at `QC/gastric_cancer/fastqc_output/SRR585574_1_fastqc.html`.
 
-**Let's look at the results together.**
+**Let's look at the reports for both samples.**
 
-### Preprocessing with fastp
+## 2. Preprocessing with fastp
 
 We use [fastp](https://github.com/OpenGene/fastp) to preprocess the FASTQ files ([Chen et al. _Bioinformatics._ 2018.](https://doi.org/10.1093/bioinformatics/bty560)). 
-Note that fastp has quality control functionality and many different options for preprocessing (see [all options on Github](https://github.com/OpenGene/fastp/blob/master/README.md#all-options)), most of which we will cover.
+Note that fastp has quality control functionality and many different options for preprocessing (see [all options on Github](https://github.com/OpenGene/fastp/blob/master/README.md#all-options)), most of which we will not cover.
 Here, we focus on adapter trimming, quality filtering, and length filtering.
 
 Below, we discuss the two commands we used in the script.
 
-**Create a directory**
+### Create a directory
 
 ```bash
 # Create a directory to hold the JSON and HTML output from Fastp
@@ -104,7 +104,7 @@ mkdir QC/gastric_cancer/fastp_output/
 `mkdir` allows us to create a new folder in the `QC/gastric_cancer/` directory specifically to hold the _report_ information from fastp.
 As we'll cover below, fastp essentially has two kinds of output: filtered FASTQ files (data) and reports (quality control).
 
-**fastp**
+### fastp
 
 ```bash
 # Run the adapter and quality trimming step -- also produces QC report
@@ -142,16 +142,18 @@ There are other ways to organize this and
 Anything below 20, where a phred score of 20 represents a 1 in 100 chance that the call is incorrect, is considered poor quality by FastQC.
 Using `--qualified_quality_phred 15` (which is the default), means scores >= 15 are considered "qualified." 
 Using the default parameters as we do here, reads will be filtered out if >40% of the bases are unqualified.
-You can read more about the quality filter functionality of fastp [here](https://github.com/OpenGene/fastp/blob/master/README.md#quality-filter).
+You can read more about the **quality filtering** functionality of fastp [here](https://github.com/OpenGene/fastp/blob/master/README.md#quality-filter).
 
 The Salmon documentation notes that, given the way we run `salmon quant`, quantification may be more sensitive to calls that are likely to be erroneous (of low quality) and, therefore, quality trimming may be important.
 Trimming, in contrast to filtering, refers to removing low quality base calls from the (typically 3') end of reads.
 A recent preprint from the Salmon authors ([Srivastava et al. _bioRxiv._ 2019.](https://doi.org/10.1101/657874)) notes that trimming did not effect mapping rates from random publicly available human bulk (paired-end) RNA-seq samples (they used [TrimGalore](https://github.com/FelixKrueger/TrimGalore)). 
-fastp does have [the functionality](https://github.com/OpenGene/fastp#per-read-cutting-by-quality-score) to perform trimming using a sliding window.
+fastp does have [the functionality](https://github.com/OpenGene/fastp#per-read-cutting-by-quality-score) to perform trimming using a sliding window, which must be enabled. 
+We are not using it here.
 
 _Note that there are two kinds of encoding for phred scores, phred33 and phred64. 
 FastQC guessed that the file for SRR585570 uses Sanger/Illumina 1.9 encoding (phred33). 
-If we had phred64 data, we'd use the `--phred64` flag._
+If we had phred64 data, we'd use the `--phred64` flag. 
+You can read a little bit more about the encoding [here](http://resources.qiagenbioinformatics.com/manuals/clcgenomicsworkbench/700/Quality_scores_in_Illumina_platform.html)._
 
 #### `--length_required`
 
@@ -169,7 +171,7 @@ Including the sample name in the filenames again may help us with project organi
 
 **If we look at** `QC/gastric_cancer/fastp_output/SRR585570_fastp.json` **or the top of the HTML report, we can see that fastp reports certain metrics before and after filtering, which can be very useful in making analysis decisions.**
 
-### Quantification with Salmon
+## 3. Quantification with Salmon
 
 We'll use [Salmon](https://combine-lab.github.io/salmon/) for quantifying transcript expression ([documentation](http://salmon.readthedocs.io/en/latest/)).
 Salmon ([Patro, et al. _Nature Methods._ 2017.](https://doi.org/10.1038/nmeth.4197)) is fast and requires very little memory, which makes it a great choice for running on your laptop during training.
@@ -240,5 +242,5 @@ It should be noted that this is only appropriate for use with paired-end reads, 
 
 With this option enabled, Salmon will attempt to correct for the bias that occurs when using random hexamer priming (preferential sequencing of reads when certain motifs appear at the beginning).
 
-**Navigate to** `data` > `quant` > `gastric_cancer` > `SRR585571` > `aux_info` **and open** `meta_info.json`**.
+**Navigate to** `data/quant/gastric_cancer/SRR585571/aux_info` **and open** `meta_info.json`**.
 Look for a field called** `percent_mapped` **-- what value does this sample have?**

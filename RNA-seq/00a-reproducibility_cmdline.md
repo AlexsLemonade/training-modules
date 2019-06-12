@@ -20,7 +20,7 @@ This is something called a "shell script."
 This is the preferred way to interact with a command line, because it provides a record of the exact set of commands that were run.
 We used a shell script (`scripts/run_SRR585570.sh`) in the first notebook (`01-qc_trim_quant.md`) to execute the FastQC, fastp, and Salmon steps for a single sample sequentially.
 
-To create a new shell script: in RStudio go to the file menu, select New File, Text File.
+To create a new shell script: in RStudio go to the `File` menu > select `New File` > `Text File`.
 Name the script using the `.sh` file extension (e.g., `rnaseq.sh`) and put it in the `kitematic` folder.
 At the very top of the file put a [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix)) like so:
 
