@@ -168,7 +168,7 @@ Let's save this to our results file.
 readr::write_rds(deseq_object, path = deseq_file)
 ```
 
-Let's take a look at the results.
+Let's take a look at the results table.
 
 ```{r}
 deseq_results <- results(deseq_object)
@@ -206,6 +206,60 @@ summary(results(deseq_object), alpha = 0.05)
 ```{r}
 readr::write_tsv(deseq_df, path = deseq_df_file)
 ```
+
+#### Visualize differentially expressed genes with a heatmap
+
+Let's get an overall picture of our results using a heatmap. 
+Before we can do this, we will need to transform our data so that when we make
+the heatmap the genes are on a more similar scale and the heatmap is 
+interpretable. 
+We will use variance stabilizing transformation (VST) from DESeq2 to do this.
+Refer to the help page or the DESeq2 docs for more information. 
+
+```{r}
+vst_data <- vst(ddset)
+```
+
+We need to extract the normalized gene matrix from the `vst_data` object. 
+
+```{r}
+vst_data <- assay(vst_data)
+```
+
+We will make a heatmap of only the significant genes, so let's obtain the gene 
+IDs that have an adjusted p-value less than 0.05.
+
+```{r}
+signif_genes <- deseq_df %>%
+  dplyr::filter(padj < 0.05) %>%
+  dplyr::pull(Gene)
+```
+
+Now we will use `signif_genes` to filter `vst_data` to only have significant 
+genes' data. 
+
+```{r}
+signif_vst_data <- vst_data %>%
+  as.data.frame() %>%
+  dplyr::filter(rownames(vst_data) %in% signif_genes)
+```
+
+Let's make the results into a heatmap using the `pheatmap` package. 
+We will use the `scale = "row"` argument so that the data is standardized by
+gene (i.e., will be made into [z-scores](https://www.statisticshowto.datasciencecentral.com/probability-and-statistics/z-score/)). 
+Standardizing the data by gene makes it so our heatmap is more easily 
+interpretable despite how different genes' distributions may be. 
+
+```{r}
+pheatmap::pheatmap(signif_vst_data, 
+                   show_rownames = FALSE,
+                   scale = "row",
+                   colorRampPalette(c("deepskyblue",
+                                      "black",
+                                      "yellow"))(25))
+```
+
+We go over heatmaps in greater depth in the machine learning module. 
 
 ## Session Info
 
