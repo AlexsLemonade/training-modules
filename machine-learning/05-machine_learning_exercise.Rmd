@@ -8,7 +8,7 @@ output:
 
 ## NCI-60 Cell Line Data
 
-In this exercise, we'll work with datafrom GEO accession [`GSE116436`](https://www.refine.bio/experiments/GSE116436/drug-induced-change-in-gene-expression-across-nci-60-cell-lines-after-exposure-to-15-anticancer-agents-for-2-6-and-24h)
+In this exercise, we'll work with data from GEO accession [`GSE116436`](https://www.refine.bio/experiments/GSE116436/drug-induced-change-in-gene-expression-across-nci-60-cell-lines-after-exposure-to-15-anticancer-agents-for-2-6-and-24h)
 that was processed with refine.bio. 
 
 Here's an excerpt of the description from the authors:
@@ -17,20 +17,14 @@ Here's an excerpt of the description from the authors:
 
 **We've supplied the following to you:**
 
-* The gene expression matrix (`data/GSE116436/GSE116436_filtered.tsv`)
+* A PLIER model that was trained on the expression data from this experiment (`models/NCI60_PLIER_model.RDS`)
 * The sample metadata (`data/GSE116436/metadata_GSE116436_cleaned.tsv`)
-* Sample-sample Pearson correlation matrix (`data/GSE116436/GSE116436_sample_correlation.RDS`)
-* PCA (`prcomp` output) (`models/NCI60_prcomp_results.RDS`)
-* A PLIER model (`models/NCI60_PLIER_model.RDS`)
-
-_Note that we've only made a subset of samples available and we've already
-cleaned the metadata for you.
-If you want to learn more about how the metadata was cleaned, ask an
-instructor._
 
 We're going to look specifically at **pathways that change with treatment**, 
-but we precomputed the other objects in case you would like to understand what 
-samples tend to group together or what is driving the variation in the data.
+by using the PLIER model.
+Specifically, we can find PLIER latent variables associated with pathways of
+interest and look at how the expression values of those latent variables
+change during the course of treatment.
 
 We'll use `dplyr` and `ggplot2` quite a bit in this notebook, so use the chunk
 below to load them.
@@ -39,14 +33,14 @@ below to load them.
 
 ```
 
-The metadata is available at `data/data/GSE116436/metadata_GSE116436_cleaned.tsv`.
-Read it in with `readr` and save it as `metadata_df`
+The metadata is available at `data/GSE116436/metadata_GSE116436_cleaned.tsv`.
+Read it in with `readr` and save it as `metadata_df`.
 
 ```{r}
 metadata_df <- 
 ```
 
-What metadata do we have for these samples ? 
+What metadata do we have for these samples? 
 Use this chunk to explore `metadata_df`.
 
 ```{r}
@@ -55,15 +49,16 @@ Use this chunk to explore `metadata_df`.
 
 ## What pathways are perturbed by the drugs in this experiment?
 
-The PLIER model we've precomputed is available `models/NCI60_PLIER_model.RDS`.
+The PLIER model we've precomputed is available at 
+`models/NCI60_PLIER_model.RDS`.
 Read it in with `readr` and save it as `plier_results`.
 
 ```{r}
 plier_results <-
 ```
 
-The `summary` element of what is returned by PLIER can tell us about
-associations, you can access it with `$` and it is a `data.frame`.
+The `summary` element of `plier_results` can tell us about associations, you 
+can access it with `$` and it is a `data.frame`.
 
 Use this chunk to view the PLIER model `summary`.
 
@@ -71,7 +66,7 @@ Use this chunk to view the PLIER model `summary`.
 
 ```
 
-Save the summary information as it's own data.frame called `summary_df`. 
+Save the summary information as its own data.frame called `summary_df`. 
 We'll use this object to find out more about our model. 
 
 ```{r}
@@ -79,8 +74,8 @@ summary_df <-
 ```
 
 The latent variables from this model will be associated with a pathway if the
-gene expression data supports that there is some variation in the expression
-levels of genes in that pathway.
+gene expression data supports that there is some shared variation in the 
+expression levels of genes in that pathway.
 It could be due to treatment with a drug or variation could arise from tissue- 
 or cell line-specific differences.
 
@@ -92,10 +87,10 @@ PLIER notebook earlier.
 
 ```{r}
 summary_df %>%
-  dplyr::filter(,  # significant associations only
-                # grepl returns TRUE when the pattern "proteasome" is found
-                # in the pathway column
-                grepl("proteasome", pathway, ignore.case = TRUE))
+  filter(,  # significant associations only
+         # grepl returns TRUE when the pattern "proteasome" is found
+         # in the pathway column
+         grepl("proteasome", pathway, ignore.case = TRUE))
 ```
 
 The LV index column of `summary_df` tells us _which row_ in the LV by sample
@@ -110,8 +105,7 @@ Recall that the column names of `plier_results$B` are the sample identifiers.
 Call this data.frame `proteasome_df`.
 
 ```{r}
-proteasome_df <- data.frame(geo_accession = ,
-                            proteasome_lv = )
+proteasome_df <- 
 ```
 
 Now that you have `proteasome_df`, let's join it with our metadata using
@@ -119,9 +113,9 @@ an `inner_join` from `dplyr` to form a new data.frame called `prot_meta_df`.
 We'll join by the sample names, which is what `by = "geo_accession"` specifies.
 
 ```{r}
-prot_meta_df <- dplyr::inner_join(x = , 
-                                  y = , 
-                                  by = "geo_accession")
+prot_meta_df <- inner_join(x = , 
+                           y = , 
+                           by = "geo_accession")
 ```
 
 Let's find out what samples have the highest expression values for the
@@ -143,17 +137,17 @@ Let's make a plot that shows the change of the proteasome latent variable
 expression level over time, when treated with the drug that comes to the top
 of the list.
 We'll look at a single tissue of your choosing.
-This requires use to do the following:
+This requires us to do the following:
 
 1. Filter `prot_meta_df` to samples from your tissue of interest and the
    drug that we are interested in
 2. Make a line graph that tracks the expression value of the proteasome 
    latent variable during different time points of the experiment.
 
-Save this plot as `p`.
+Save this plot as `treatment_plot`.
 
 ```{r}
-p <- prot_meta_df %>%
+treatment_plot <- prot_meta_df %>%
   # use these lines to filter to only the samples that are treated with the drug
   # of interest and to the tissue of your choice
   %>% 
@@ -174,7 +168,7 @@ p <- prot_meta_df %>%
 Let's see what the plot looks like with this chunk below.
 
 ```{r}
-p
+treatment_plot
 ```
 
 **Based on what you know about the mechanism of action of this drug, do these 
@@ -183,12 +177,12 @@ What did the PLIER model uncover and what does the plot mean?**
 
 #### Customizing the plot
 
-We can add to `p` or tweak things by using the `+` operator without having to
-repeat the code that set it up.
+We can add to `treatment_plot` or tweak things by using the `+` operator 
+without having to repeat the code that set it up.
 In the chunk below, we're changing the theme of the plot to `theme_bw()`.
 
 ```{r}
-p + theme_bw()
+treatment_plot + theme_bw()
 ```
 
 Using the new theme, label the x-axis Time (Hours) and the y-axis Proteasome 
@@ -202,7 +196,8 @@ Make the title the name of the drug you are plotting data for.
 If we wanted to change the spacing of the x-axis, such that the time points are
 evenly spaced, we'd have to make `time_hours` into a factor.
 _This is not always an appropriate visualization choice, it depends on your
-experiment!_
+experiment.
+If the interval is important, the points should not be evenly spaced._
 
 Let's check what class `time_hours` currently is with the function `class`.
 
@@ -217,13 +212,14 @@ factor.
 
 ```
 
-Now make a new plot, `p_factor`, using the same theme, color scale, labels, etc.
+Now make a new plot, `treatment_plot_factor`, using the same theme, color scale,
+labels, etc.
 
 ```{r}
 
 ```
 
-Display `p_factor`
+Display `treatment_plot_factor`
 
 ```{r}
 
@@ -237,9 +233,14 @@ See [this post](https://rstudio-pubs-static.s3.amazonaws.com/7433_4537ea5073dc41
 ## Additional analyses
 
 Now that you've made and customized a line graph, explore the data in another
-way:
+way. You can try another pathway/latent variable, tissue, drug combination!
 
-* Try another latent variable, tissue, drug combination
-* Make a boxplot of PC1 by tissue or treatment
-* Make a heatmap of the sample-sample correlation matrix and use annotation
-bars to help identify patterns
+We've also provided you with the following:
+
+* The gene expression matrix (`data/GSE116436/GSE116436_filtered.tsv`)
+* Sample-sample Pearson correlation matrix (`data/GSE116436/GSE116436_sample_correlation.RDS`)
+* PCA (`prcomp` output) (`models/NCI60_prcomp_results.RDS`)
+
+With these data and results, you could make a boxplot of PC1 by tissue or 
+treatment or make a heatmap of the sample-sample correlation matrix using 
+annotation bars to help identify patterns.
