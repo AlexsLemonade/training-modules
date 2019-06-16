@@ -10,7 +10,7 @@ We present them in order of increasing difficulty and/or departure from what is 
 
 * [MultiQC](#multiqc)
 * [tximeta](#tximeta)
-* [Selective alignment with Salmon](#selective-alignment-with-salmon)
+* [Selective alignment with Salmon](#decoy-sequence-aware-selective-alignment-with-salmon)
 
 ## MultiQC
 
@@ -68,7 +68,7 @@ If you have time to use `tximeta` with your own data, we encourage you to try it
 BiocManager::install("tximeta", update = FALSE)
 ```
 
-## Selective alignment with Salmon
+## Decoy sequence-aware selective alignment with Salmon
 
 Three weeks before our 2019 Chicago training workshop (24-26 June), the folks that develop Salmon posted a preprint called _Alignment and mapping methodology influence transcript abundance estimation_ ([Srivastava et al. _bioRxiv._ 2019.](https://doi.org/10.1101/657874)).
 We're summarizing our understanding of the work here, but we encourage you to take a look at the preprint yourself.
@@ -76,10 +76,11 @@ We're summarizing our understanding of the work here, but we encourage you to ta
 Srivastava et al. demonstrate that transcript abundance estimates from lightweight mapping approaches like Salmon can differ from abundance estimates derived from traditional alignment approaches in experimental data.
 This differs from the takeaway of most prior work comparing lightweight mapping and traditional alignment; this is very likely due to the typical focus on _simulated data_ rather than experimental data.
 
-The authors introduce a new approach termed "selective alignment" that is less computationally costly than traditional alignment while still offering improvements over lightweight mapping. 
-The newest version of Salmon (as of writing this) `v0.14.0` includes selective alignment and allows users to input sequences from unannotated genomic loci that are similar to annotated transcripts, termed decoy sequences, to avoid falsely mappings fragments that arise from these unannotated regions to transcripts.
+In the preprint, the authors introduced a new approach termed "selective alignment" that is less computationally costly than traditional alignment while still offering improvements over lightweight mapping. 
 
-#### Why don't we use selective alignment with decoy sequences in training?
+The newest version of Salmon (as of writing this) `v0.14.0` allows users to input sequences from unannotated genomic loci that are similar to annotated transcripts, termed decoy sequences, to avoid falsely mapping fragments that arise from these unannotated regions to transcripts.
+
+#### Why don't we use decoy-aware selective alignment in training?
 
 There are a few reasons we don't use this in training:
 
@@ -126,7 +127,7 @@ salmon quant -i <PATH TO INDEX OUTPUT> -l A \
 	-1 <FASTQ_DIRECTORY>/<SAMPLE_IDENTIFIER>_1.fastq.gz \
 	-2 <FASTQ_DIRECTORY>/<SAMPLE_IDENTIFIER>_2.fastq.gz \
 	-o <QUANT_DIRECTORY>/<SAMPLE_IDENTIFIER> \
-	--validateMappings --gcBias --seqBias
+	--mimicBT2 --gcBias --seqBias
 ```
 
 where `<PATH TO INDEX OUTPUT>` is the same path as the path used in the `salmon index` command above.
