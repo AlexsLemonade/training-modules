@@ -20,7 +20,7 @@ This can be helpful to get an overall picture of the samples in your experiment.
 For example, fastp reports statistics before and after it processes samples.
 If you were to perform _quality trimming_ with fastp and look at the before and after information across samples, it may tell you that, after trimming, a large portion of your reads were too short and were filtered out. 
 That's likely information you'd want to know when performing downstream analyses.
-MulitQC supports the three tools we present in the bulk RNA-seq module: FastQC, fastp, and Salmon. 
+MultiQC supports the three tools we present in the bulk RNA-seq module: FastQC, fastp, and Salmon. 
 In addition, MultiQC is not limited to RNA-seq data; the website has example reports for Hi-C data and whole genome sequencing.
 
 MultiQC is available on the training Docker image.
@@ -77,7 +77,7 @@ Srivastava et al. demonstrate that transcript abundance estimates from lightweig
 This differs from the takeaway of most prior work comparing lightweight mapping and traditional alignment; this is very likely due to the typical focus on _simulated data_ rather than experimental data.
 
 The authors introduce a new approach termed "selective alignment" that is less computationally costly than traditional alignment while still offering improvements over lightweight mapping. 
-The newest version of Salmon (as of writing this) `v0.14.0` includes selective alignment and allows users to input sequences from unnanotated genomic loci that are similar to annotated transcripts, termed decoy sequences, to avoid falsely mappings fragments that arise from these unannotated regions to transcripts.
+The newest version of Salmon (as of writing this) `v0.14.0` includes selective alignment and allows users to input sequences from unannotated genomic loci that are similar to annotated transcripts, termed decoy sequences, to avoid falsely mappings fragments that arise from these unannotated regions to transcripts.
 
 #### Why don't we use selective alignment with decoy sequences in training?
 
