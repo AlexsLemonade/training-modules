@@ -10,7 +10,7 @@ We present them in order of increasing difficulty and/or departure from what is 
 
 * [MultiQC](#multiqc)
 * [tximeta](#tximeta)
-* [Selective alignment with Salmon](#decoy-sequence-aware-selective-alignment-with-salmon)
+* [Decoy sequence-aware selective alignment with Salmon](#decoy-sequence-aware-selective-alignment-with-salmon)
 
 ## MultiQC
 
