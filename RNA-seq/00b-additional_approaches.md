@@ -3,7 +3,7 @@
 Our modules are designed to take up approximately half a day and to be run on your own laptops.
 As a result, we do not cover every tool or method that would complement what is included in our main bulk RNA-seq module.
 For your reference, we've put together what we might teach if we had more time or computational resources.
-It is intended to be an introduction to these approaches and a "jumping off point" for further reading or experimentation.
+This is intended to be an introduction to these approaches and a "jumping off point" for further reading or experimentation.
 We present them in order of increasing difficulty and/or departure from what is presented in training.
  
 ####  Contents
@@ -29,7 +29,8 @@ Note that you will not have FastQC or fastp output for most samples, so there wi
 
 #### Running MultiQC on the gastric cancer samples
 
-You would set your **LOCAL FOLDER** in Kitematic to the `RNA-seq` folder, as we did at the beginning of the training module.
+Run the training Docker container ([instructions](https://github.com/AlexsLemonade/RNA-Seq-Exercises#post-docker-steps-using-kitematic), set your **LOCAL FOLDER** in Kitematic to the `RNA-seq` folder, and navigate to RStudio in your browser as we did at the beginning of the RNA-seq training module.
+
 Run the following steps in the `Terminal` tab of RStudio.
 
 Set your working directory to the top-level of the RNA-seq folder:
@@ -80,7 +81,7 @@ In the preprint, the authors introduced a new approach termed "selective alignme
 
 The newest version of Salmon (as of writing this) `v0.14.0` allows users to input sequences from unannotated genomic loci that are similar to annotated transcripts, termed decoy sequences, to avoid falsely mapping fragments that arise from these unannotated regions to transcripts.
 
-#### Why don't we use decoy-aware selective alignment in training?
+### Why don't we use decoy-aware selective alignment in training?
 
 There are a few reasons we don't use this in training:
 
@@ -88,7 +89,7 @@ There are a few reasons we don't use this in training:
 
 * As we emphasize throughout the course, _software versions really matter!_ If we upgraded to Salmon `v0.14.0`, the `salmon alevin` output in the single-cell RNA-seq module changes and we'd have to use a different version of R to continue to use the quality control package, `alevinQC`, we use in that module.
 
-#### How can I try it out if I'm interested?
+### How can I try it out if I'm interested?
 
 We have not extensively explored the memory and runtime requirements for the steps we describe below, but we have successfully run human samples with an index that includes decoy sequences on a Linux Desktop with 64 GB of RAM.
 
@@ -101,7 +102,7 @@ docker run -e PASSWORD=<FILL IN YOUR PASSWORD> -p 8787:8787 jtaroni/2019-chi-tra
 
 _Check out [the Post-Docker Installation steps](https://github.com/AlexsLemonade/RNA-Seq-Exercises#post-docker-steps-using-kitematic) if you need a refresher about getting a Docker container up and running locally._
 
-##### Index
+#### Build the index with decoy sequences
 
 Once you have the correct version of Salmon, you need to build a new transcriptome index:
 
@@ -116,7 +117,7 @@ salmon index -t gentrome.fa -d decoys.txt -i <PATH TO INDEX OUTPUT> -k 23
 
 We include `-k 23` here because it's appropriate for reads shorter than 75bp, it may improve sensitivity for longer reads, and because it is consistent with what the authors used in Srivastava et al.
 
-##### Quantification
+#### Run `salmon quant`
 
 Now you're ready to quantify with `salmon quant`. The flags `--validateMappings`, `--mimicBT2`, or `--mimicStrictBT2` all enable selective alignment (ref: [Salmon v0.14.0 release notes](https://github.com/COMBINE-lab/salmon/releases/tag/v0.14.0)).
 
