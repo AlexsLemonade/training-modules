@@ -88,7 +88,7 @@ do
   salmon quant -i <INDEX_DIRECTORY> -l A \
         -1 <FASTQ_DIRECTORY>/${samp}/${samp}_1.fastq.gz \
         -2 <FASTQ_DIRECTORY>/${samp}/${samp}_2.fastq.gz \
-        -o <QUANT_DIRECTORY>/${samp}/${samp} \
+        -o <QUANT_DIRECTORY>/${samp} \
         --validateMappings --rangeFactorizationBins 4 \
         --gcBias --seqBias
 done
