@@ -33,7 +33,7 @@ Once we start running the script, we will give a short lecture to introduce this
 **Enter the following in the Terminal to start running the script:**
 
 ```bash
-./script/run_SRR585570.sh
+./scripts/run_SRR585570.sh
 ```
 
 _Note: Don't worry if the Salmon step does not complete by the time we move on to the next notebook.
