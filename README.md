@@ -5,7 +5,7 @@ This repository is a collection of modules that are combined into 1-5 day worksh
 **If you are childhood cancer researcher** and are interested attending a workshop go to the [CCDL's website](https://www.ccdatalab.org/projects-training)
 to learn more about our upcoming workshop locations and dates.
 
-You are also welcome to use walk through this material on your own, either module
+You are also welcome to walk through this material on your own, either module
 by module or by following a sample schedule [like that for the RNA-seq workshop](https://github.com/AlexsLemonade/RNA-Seq-Exercises/blob/master/schedule.md).
 The data files that we process in the course are too large to be stored on GitHub so you will not be able to follow the material *exactly* as written.
 
