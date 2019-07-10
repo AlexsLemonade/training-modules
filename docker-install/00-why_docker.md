@@ -27,7 +27,7 @@ We can use Docker to transfer our software set-up to you.
 In this illustration, the software set-up you will be getting from us and using
 to run your analyses is called a **container**.
 In the Docker set-up instructions, you build the container based on an **image**
-which is a "snapshot" of a software set-up. We can *pull* this *image* from the
+which is a "snapshot" of a software set-up. We can *pull* this image from the
 internet or *load* a file form of it that we have locally into Docker.  
 
 ## Docker for reproducibility
