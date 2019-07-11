@@ -42,9 +42,9 @@ To do this, we would use `::` to tell R to load in this function from the
 `readr` package by using `readr::read_tsv`.
 You will see this `::` method of referencing libraries throughout the course.  
 
-## About directories
+## Managing directories
 
-Before we can import the file we need, we should double check where R is 
+Before we can import the data we need, we should double check where R is 
 looking for files aka our what our *working* directory currently is. 
 We can do this by using the `getwd()` function, which will tell us what folder
 we are in. 
@@ -56,7 +56,13 @@ getwd()
 
 Note that for Rmd files, the working directory is always wherever the file is 
 located. 
-We can use the `dir()` function to have R list the files in our working 
+
+We will want to make a directory for our output and we will call this directory: 
+`results`. 
+But before we create the directory, we should check if it already exists. 
+We will show two ways that we can do this. 
+
+First, we can use the `dir()` function to have R list the files in our working 
 directory. 
 
 ```{r}
@@ -64,39 +70,10 @@ directory.
 dir()
 ```
 
-#### Read a TSV file
+This shows us there is no folder called "results" yet. 
 
-What we should see is the file `metadata.tsv` show up as one of the files when 
-we run `dir()`.
-If for some reason we were not in the correct directory, we can either set our
-directory to somewhere else using `setwd()` OR we can tell R to look for the 
-file `metadata.tsv` somewhere else using a relative `file.path()` (more on this
-later in this notebook).
-
-We will use this `metadata.tsv` file for our examples here.
-This metadata is from GSE30074 on [refine.bio](https://www.refine.bio/experiments/GSE30074/expression-data-from-30-medulloblastomas),
-a gene expression dataset from medulloblastoma ([Park et al. _Neuro Oncol._ 2011.](https://www.ncbi.nlm.nih.gov/pubmed/22090452)).
-  
-First let's read in the dataset using the tidyverse package: `readr`.
-Although base R has read-in functions, the `readr` functions are faster and more
-straightforward to use so we are going to use those here. 
-Because the file we are reading in is a TSV file we will be using the 
-`read_tsv` function. 
-But note that there are analogous functions for CSV files (`read_csv`) and 
-other files types.
-
-```{r}
-# The file we are reading in is our argument for read_tsv
-metadata <- read_tsv("metadata.tsv")
-```
-
-#### Managing directories
-
-To keep our files organized, we will want to make a directory for our output. 
-We will call this directory: `results`. 
-But before we create the directory, we should check if it already exists. 
-Let's use the `dir.exists` function to see if a `results` directory already 
-exists in our working directory. 
+If we want to more pointedly look for "results" in our working directory we can 
+use the `dir.exists` function.
 
 ```{r}
 # Check if the results directory exists
@@ -138,12 +115,41 @@ In this case, there is an analogous function called `file.exists`.
 Try using the `file.exists` function to see if the `metadata.tsv` file exists 
 in the current directory.
 Use the code chunk we set up for you below. 
-Note that in our notebooks (and sometimes elsewhere), wherever you see a `<FILL_IN_THE_BLANK>` like in the chunk below, that is meant for you to replace with the correct phrase before you run the chunk (otherwise you will get an error).
+Note that in our notebooks (and sometimes elsewhere), wherever you see a 
+`<FILL_IN_THE_BLANK>` like in the chunk below, that is meant for you to replace 
+with the correct phrase before you run the chunk (otherwise you will get an error).
 
 ```{r eval=FALSE}
 # Replace the <PUT_FILE_NAME_HERE> with the name of the file you are looking for
 # Remember to use quotes to make it a character string
 file.exists(<PUT_FILE_NAME_HERE>)
+```
+
+Now that we've determined this file exists, we are ready to read it into our R
+environment
+
+#### Read a TSV file
+
+If for some reason we were not in the correct directory, we can either set our
+directory to somewhere else using `setwd()` OR we can tell R to look for the 
+file `metadata.tsv` somewhere else using a relative `file.path()` (more on this
+later in this notebook).
+
+We will use this `metadata.tsv` file for our examples here.
+This metadata is from GSE30074 on [refine.bio](https://www.refine.bio/experiments/GSE30074/expression-data-from-30-medulloblastomas),
+a gene expression dataset from medulloblastoma ([Park et al. _Neuro Oncol._ 2011.](https://www.ncbi.nlm.nih.gov/pubmed/22090452)).
+  
+First let's read in the dataset using the tidyverse package: `readr`.
+Although base R has read-in functions, the `readr` functions are faster and more
+straightforward to use so we are going to use those here. 
+Because the file we are reading in is a TSV (tab separated values) file we will 
+be using the `read_tsv` function. 
+But note that there are analogous functions for CSV (comma separated values) 
+files (`read_csv`) and other files types.
+
+```{r}
+# The file we are reading in is our argument for read_tsv
+metadata <- read_tsv("metadata.tsv")
 ```
 
 ## dplyr pipes
@@ -221,15 +227,29 @@ We can use filter similarly for numeric statements.
 metadata %>% filter(age_mths > 100)
 ```
 
-What if we wanted filter this dataset to males who are older than 100 months? 
+What if we wanted filter this dataset to females who are older than 100 months? 
 Let's add another filtering argument to this filter.
 
 ```{r }
 metadata %>% filter(age_mths > 100, sex == "F")
 ```
 
-Let's build on to this pipe and keep only some of these variables with the 
-`select` function. 
+When we are filtering, the `%in%` operator can come in handy if we have multiple
+items we would like to match.
+Let's take a look at what using `%in%` does.
+
+```{r}
+metadata$histology %in% c("Anaplastic", "Desmoplastic")
+```
+
+`%in%` returns a logical vector that now we can use in `dplyr::filter`.
+
+```{r }
+metadata %>% filter(histology %in% c("Anaplastic", "Desmoplastic"))
+```
+
+Let's return to our first `filter` and build on to it. 
+This time, let's keep only some of these variables with the `select` function. 
 
 ```{r}
 metadata %>% filter(age_mths > 100, sex == "F") %>%
@@ -289,9 +309,47 @@ Let's use `head(metadata_summary)` so we can look at a preview of what we made:
 head(metadata_summary)
 ```
 
+## A brief intro to `ggplot2` data visualization
+
+`ggplot2` is a tidyverse package that is very useful for making publication ready 
+plots. 
+We will use `ggplot2` to create data visualization throughout our workshops. 
+For now, we will introduce you to the very basic structure of `ggplot2`. 
+
+The two basic arguments needed by `ggplot` are 1) `data` and 2) `aes` (short for
+aesthetics).
+Other aspects of the plot will be added after these two arguments are established. 
+
+For the `data` argument, `ggplot` needs a data.frame that is ["tidy"](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html)
+
+For the `aes` argument, we need to specify our variables. 
+The variables we specify should be named columns within the object we specifed as 
+our `data`. 
+Here we will use `sex` and `age_mths` as our variables. 
+
+```{r}
+sex_by_age_plot <- ggplot(data = metadata, aes(x = sex, y = age_mths))
+```
+
+Although we have the basic structure of our ggplot, we haven't yet added anything 
+to specify what kind of plot we would like, so this default plot is rather boring 
+and not sensible. 
+
+To add more to our plot, we will use the `+` operator. 
+
+```{r}
+sex_by_age_plot + geom_boxplot()
+```
+
+In this case, we will add `geom_boxplot` so that our data is displayed in 
+a way that tells us more information. 
+
+There is a lot more we could do to further personalize this plot, but for now
+we've covered the basic structure. 
+
 ## A brief intro to the `apply` family of functions
 
-In the previous section, we used the `summarize` section to calculate summary
+Previously in this notebook, we used the `summarize` section to calculate summary
 statistics for variables. 
 However, in base R there the `apply` family of functions can be an alternative 
 methods for performing transformations across a data.frame, matrix or for other 
