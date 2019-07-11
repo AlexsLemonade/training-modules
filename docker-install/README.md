@@ -25,7 +25,7 @@ When you are finished, return to the schedule for your workshop for the link to 
 ![Mac Docker Log In](screenshots/mac-03-dockerlogin.png)
 5. Click the whale icon in the taskbar and go to Preferences.
 ![Mac preferences](screenshots/mac-preferences.png)
-6. Increase the resources available to Docker. For reference, we've found that 2 CPUs and 6 GB of RAM on a quad-core with 8 GB of RAM total works for the workshop offerings. If you are able to provide more resources, do so.  
+6. Increase the resources available to Docker. For reference, we've found that 2 CPUs and 6 GB of RAM on a quad-core with 8 GB of RAM total works for the workshop offerings. If you are able to provide more than 8GB of RAM, do so. However, be careful not to allot your computer's maximum RAM capacity. 
 ![Mac advanced](screenshots/mac-advanced-settings.png)
 7. Click the whale icon in the taskbar. Click the Kitematic menu entry.  
 ![Mac Kitematic Round 1](screenshots/mac-04-kitematic.png)
