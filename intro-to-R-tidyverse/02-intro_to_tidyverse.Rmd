@@ -112,8 +112,8 @@ if (!dir.exists("results")) {
 Note that the `dir.exists` function will not work on files themselves.
 In this case, there is an analogous function called `file.exists`.
 
-Try using the `file.exists` function to see if the `metadata.tsv` file exists 
-in the current directory.
+Try using the `file.exists` function to see if the file `metadata.tsv` file 
+exists in the current directory.
 Use the code chunk we set up for you below. 
 Note that in our notebooks (and sometimes elsewhere), wherever you see a 
 `<FILL_IN_THE_BLANK>` like in the chunk below, that is meant for you to replace 
@@ -125,21 +125,19 @@ with the correct phrase before you run the chunk (otherwise you will get an erro
 file.exists(<PUT_FILE_NAME_HERE>)
 ```
 
-Now that we've determined this file exists, we are ready to read it into our R
-environment
+Now that we've determined that `metadata.tsv` exists, we are ready to read it 
+into our R environment.
 
 #### Read a TSV file
 
-If for some reason we were not in the correct directory, we can either set our
-directory to somewhere else using `setwd()` OR we can tell R to look for the 
-file `metadata.tsv` somewhere else using a relative `file.path()` (more on this
-later in this notebook).
-
-We will use this `metadata.tsv` file for our examples here.
-This metadata is from GSE30074 on [refine.bio](https://www.refine.bio/experiments/GSE30074/expression-data-from-30-medulloblastomas),
+This file `metadata.tsv` is from GSE30074 on [refine.bio](https://www.refine.bio/experiments/GSE30074/expression-data-from-30-medulloblastomas),
 a gene expression dataset from medulloblastoma ([Park et al. _Neuro Oncol._ 2011.](https://www.ncbi.nlm.nih.gov/pubmed/22090452)).
   
-First let's read in the dataset using the tidyverse package: `readr`.
+If `metadata.tsv` was not in our working directory, remember we can tell R to 
+look for `metadata.tsv` somewhere else using a relative directory path. 
+In R, we will use `file.path()` for this (more on this later in this notebook).  
+  
+Let's read in the data from `metadata.tsv` using the tidyverse package: `readr`.
 Although base R has read-in functions, the `readr` functions are faster and more
 straightforward to use so we are going to use those here. 
 Because the file we are reading in is a TSV (tab separated values) file we will 
@@ -312,22 +310,26 @@ Let's use `head(metadata_summary)` so we can look at a preview of what we made:
 head(metadata_summary)
 ```
 
-Let's say we have a scenario where we have two data.frames that we would like to combine. 
+Let's say we have a scenario where we have two data.frames that we would like to 
+combine. 
 Recall that `metadata_pipe` and `metadata_filtered` are data.frames we've
 made with information about some of the same samples.
-The [`dplyr::join` family of functions](https://dplyr.tidyverse.org/reference/join.html) are useful for various scenarios of combining data.frames. 
+The [`dplyr::join` family of functions](https://dplyr.tidyverse.org/reference/join.html) 
+are useful for various scenarios of combining data.frames. 
 
 For now, we will focus on `inner_join`, which will combine data.frames by only
 keeping information about the samples that are in both data.frames. 
 We need to use the `by` argument to designate what column(s) 
 should be used as a key to match the data.frames (in this case our `sample_id`s). 
+
 ```{r}
 metadata_filtered %>% inner_join(metadata_pipe, by = 'sample_id') 
 ```
 
-Note that if there are duplicate columns, the default is to save both columns 
-but a `x` or `y` is added to the name to note which data.frame it originated from.
-In this case `x` = `metadata_filtered` and `y` = `metadata_pipe`.
+Note that if there are columns of the same name in both data.frames, the default 
+is to save both columns but a `x` or `y` is added to the name to note which 
+data.frame it originated from.
+In this case, `x` = `metadata_filtered` and `y` = `metadata_pipe`.
 
 ## A brief intro to `ggplot2` data visualization
 
