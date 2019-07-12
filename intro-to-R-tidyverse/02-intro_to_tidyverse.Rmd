@@ -250,10 +250,12 @@ metadata %>% filter(histology %in% c("Anaplastic", "Desmoplastic"))
 
 Let's return to our first `filter` and build on to it. 
 This time, let's keep only some of these variables with the `select` function. 
+Let's also save this as a new data.frame called `metadata_filtered`.
 
 ```{r}
-metadata %>% filter(age_mths > 100, sex == "F") %>%
-             select(sample_id, histology, metastasis)
+metadata_filtered <- metadata %>% 
+  filter(age_mths > 100, sex == "F") %>%
+  select(sample_id, histology, metastasis)
 ```
 
 Let's say we wanted to arrange this dataset so that the patients were arranged
@@ -308,6 +310,22 @@ Let's use `head(metadata_summary)` so we can look at a preview of what we made:
 ```{r}
 head(metadata_summary)
 ```
+
+Let's say we have a scenario where we have two data.frames that we would like to combine. 
+Recall that `metadata_pipe` and `metadata` are data.frames with information about some of the same samples.
+The [`dplyr::join` family of functions](https://dplyr.tidyverse.org/reference/join.html) are useful for various scenarios of combining data.frames. 
+
+For now, we will focus on `inner_join`, which is used when you 
+only want to keep an intersection of two data.frames. 
+We need to use the `by` argument to designate what column(s) 
+should be used as a key to match the data.frames. 
+
+```{r}
+metadata %>% inner_join(metadata_pipe, by = 'sample_id') 
+```
+
+Note that if there are duplicate columns, the default is to save both columns 
+but a `x` or `y` is added to the name to note which data.frame it originated from.
 
 ## A brief intro to `ggplot2` data visualization
 
