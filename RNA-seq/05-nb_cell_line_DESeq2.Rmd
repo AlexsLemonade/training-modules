@@ -213,17 +213,17 @@ Let's get an overall picture of our results using a heatmap.
 Before we can do this, we will need to transform our data so that when we make
 the heatmap the genes are on a more similar scale and the heatmap is 
 interpretable. 
-We will use variance stabilizing transformation (VST) from DESeq2 to do this.
+We will use regularized log transformation from DESeq2 to do this.
 Refer to the help page or the DESeq2 docs for more information. 
 
 ```{r}
-vst_data <- vst(ddset)
+rlog_data <- rlog(ddset)
 ```
 
-We need to extract the normalized gene matrix from the `vst_data` object. 
+We need to extract the normalized gene matrix from the `rlog_data` object. 
 
 ```{r}
-vst_data <- assay(vst_data)
+rlog_data <- assay(rlog_data)
 ```
 
 We will make a heatmap of only the significant genes, so let's obtain the gene 
@@ -235,13 +235,13 @@ signif_genes <- deseq_df %>%
   dplyr::pull(Gene)
 ```
 
-Now we will use `signif_genes` to filter `vst_data` to only have significant 
+Now we will use `signif_genes` to filter `rlog_data` to only have significant 
 genes' data. 
 
 ```{r}
-signif_vst_data <- vst_data %>%
+signif_rlog_data <- rlog_data %>%
   as.data.frame() %>%
-  dplyr::filter(rownames(vst_data) %in% signif_genes)
+  dplyr::filter(rownames(rlog_data) %in% signif_genes)
 ```
 
 Let's make the results into a heatmap using the `pheatmap` package. 
@@ -251,7 +251,7 @@ Standardizing the data by gene makes it so our heatmap is more easily
 interpretable despite how different genes' distributions may be. 
 
 ```{r}
-pheatmap::pheatmap(signif_vst_data, 
+pheatmap::pheatmap(signif_rlog_data, 
                    show_rownames = FALSE,
                    scale = "row",
                    colorRampPalette(c("deepskyblue",
