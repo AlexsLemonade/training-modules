@@ -131,7 +131,6 @@ These arguments specify the read1 input and read2 (sometimes called left and rig
 
 These arguments specify the read1 output and read2 output, respectively.
 Note that the output is being placed in `data/fastq/gastric_cancer/SRR585570/`, so the preprocessed FASTQ files will be in the same place as the FASTQ files that have not been filtered.
-There are other ways to organize this and 
 
 #### `--qualified_quality_phred`
 

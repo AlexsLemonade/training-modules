@@ -109,14 +109,18 @@ ddset <- DESeqDataSetFromTximport(txi = txi,
                                   design = ~ tissue)
 ```
 
-### Variance-stablizing transformation
+### Regularized log transformation
 
 Before visualizing the data, we'll transform it such that it is on a `log2` 
 scale and library size is taken into account with the `DESeq2` function
-for variance-stablizing transformations.
+for regularized log transformations.
+If you are working with a larger dataset, you may want to consider using 
+DESeq2's variance stablizing transformation (VST) instead, see [this section of
+their vignette](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization) 
+for more on this topic. 
 
 ```{r}
-vst_data <- vst(ddset)
+rlog_data <- rlog(ddset)
 ```
 
 ### Principal components analysis
@@ -131,7 +135,7 @@ tissue source) affect our dataset and help us spot any technical effects
 `DESeq2` has built-in functionality for performing PCA.
 
 ```{r}
-DESeq2::plotPCA(vst_data, intgroup = "tissue")
+plotPCA(rlog_data, intgroup = "tissue")
 ```
 
 Save the most recent plot to file with `ggsave` from `ggplot2`
@@ -161,13 +165,20 @@ Let's rerun the `DESeq2` steps.
 ddset_batch <- DESeqDataSetFromTximport(txi = txi,
                                         colData = sample_meta_df,
                                         design = ~ tissue)
-vst_batch <- vst(ddset_batch)
+rlog_batch <- rlog(ddset_batch)
 ```
 
 ```{r}
-pca_data <- DESeq2::plotPCA(vst_batch, intgroup = c("tissue", "batch"), 
-                            returnData = TRUE)
+pca_data <- plotPCA(rlog_batch, intgroup = c("tissue", "batch"), 
+                    returnData = TRUE)
+
+# Here we are setting up the percent variance that we are extracting from the `pca_data` object
 percent_var <- round(100 * attr(pca_data, "percentVar"))
+```
+
+Let's use ggplot to vizualize the first two principal components. 
+
+```{r}
 ggplot2::ggplot(pca_data, ggplot2::aes(PC1, PC2, color = batch, 
                                        shape = tissue)) +
   ggplot2::geom_point(size = 3) +
