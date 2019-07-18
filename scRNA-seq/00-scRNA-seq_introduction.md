@@ -16,7 +16,7 @@ Kiselev et al. have very [good tutorial for scRNA-seq](https://hemberg-lab.githu
 *Example:* Smart-seq2 [(Picelli et al. _Nature Protocols._ 2014.)](https://www.nature.com/articles/nprot.2014.006)   
 Cells are physically separated into individual wells of a plate and are
 often also sorted by other means (e.g., Fluorescence Activated Cell Sorting).
-Each cell is then sequenced individual and has its own fastq file.
+Each cell is then sequenced individually and has its own fastq file.
 (This will be two fastq files if this is paired-end sequencing.)
 The data preprocessing steps for these types of scRNA-seq data are similar to
 bulk RNA-seq methods.
