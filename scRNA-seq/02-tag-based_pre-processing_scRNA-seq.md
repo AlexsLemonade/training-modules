@@ -44,7 +44,7 @@ Remember to use `ls` and `cd` to help get you there.
 
 ### Step 2: Set up your output directory
 
-Now that we are in `kitematic/scRNA-seq`, we'll make a directory from
+Now that we are in `kitematic/scRNA-seq`, we'll make a directory
 for us to store our quantification files in.
 In `Terminal`, run the following command:
 ```
