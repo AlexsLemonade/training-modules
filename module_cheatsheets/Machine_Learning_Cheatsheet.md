@@ -14,7 +14,7 @@ Read the `AnnotationDbi` package vignette [**here**](http://bioconductor.org/pac
 
 | Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
 |-----------------------------------------|---------------------------------------------|-------------------------|------------------------------------------------------------------------|
-| `AnnotationDbi`        | [`keytypes()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects)      | Keytypes     | Returns a character vector of column names/keytypes (eg., type of gene identifiers, which was "ENSEMBL" in the notebook)                                              |
+| `AnnotationDbi`        | [`keytypes()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects)      | Keytypes     | Returns a character vector of column names/keytypes (eg., type of gene identifiers) available in an `AnnotationDbi` package.                                              |
 | `AnnotationDbi`       | [`mapIDs()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects) | Mapped IDs       | Extracts the mapped ids for a set of keys (e.g., gene identifiers) of a specific keytype                                    |                                  
 
  <div style="page-break-after: always;"></div>
