@@ -143,10 +143,10 @@ To use our Alevin data in R, we will first need to navigate to the R console.
 Similar to how we need to be in the `scRNA-seq` directory when we were in
 `Terminal`, we need to do the same thing in R now.
 
-First open the R console and use `setwd()` to change to R's working (aka
-current) directory to `scRNA-seq`.
-Remember that this folder: `data/tabula_muris/alevin_quant/10X_P4_3` that
-contains the Alevin quantification files, is located in `scRNA-seq`.
+First open the R console and use the function `setwd()` to change to R's working 
+(aka current) directory to `scRNA-seq`.
+Remember that this folder: `data/tabula_muris/alevin_quant/10X_P4_3` contains 
+the Alevin quantification files and is located in `scRNA-seq`.
 You can run `dir()` to check what files and folders are in R's current
 directory.
 Once you are in `scRNA-seq` folder, you can continue to the next steps.
