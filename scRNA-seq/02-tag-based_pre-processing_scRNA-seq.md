@@ -103,7 +103,7 @@ flag instead of this.
 #### `--tgMap`
 This is needed to supply a transcript to gene key that Alevin will use to
 quantify the genes.
-For our example, we've premade the file `Mus_musculus.GRCm38_tx2gene.tsv` from
+For our example, we've pre-made the file `Mus_musculus.GRCm38_tx2gene.tsv` from
 the Ensembl transcriptome that we indexed above. The file has to be a tsv file.
 
 #### `--dumpCsvCounts`
