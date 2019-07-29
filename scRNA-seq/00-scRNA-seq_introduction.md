@@ -10,7 +10,7 @@ The pre-processing steps and the biases to look out for in post-processing vary
 based on technology and how the cells are sorted.
 
 For more extensive background on single-cell experimental methods,
-Kiselev et al. have very [good tutorial for scRNA-seq](https://hemberg-lab.github.io/scRNA.seq.course/introduction-to-single-cell-rna-seq.html#experimental-methods).
+Kiselev et al. have very [good tutorial for scRNA-seq](https://scrnaseq-course.cog.sanger.ac.uk/website/index.html).
 
 ### 1) Full-length scRNA-seq  
 *Example:* Smart-seq2 [(Picelli et al. _Nature Protocols._ 2014.)](https://www.nature.com/articles/nprot.2014.006)   
@@ -55,7 +55,7 @@ and another with the individual reads.
 
 ## Resources:
 
-- Hemberg Lab [scRNA-seq training course](https://hemberg-lab.github.io/scRNA.seq.course/index.html)
+- Hemberg Lab [scRNA-seq training course](https://scrnaseq-course.cog.sanger.ac.uk/website/index.html)
 
 - [ASAP: Automated Single-cell Analysis Pipeline](https://asap.epfl.ch/) is a web server that allows you to process scRNA-seq data. ([Gardeux et al. _Bioinformatics._ 2017.](https://doi.org/10.1093/bioinformatics/btx337 ))
 

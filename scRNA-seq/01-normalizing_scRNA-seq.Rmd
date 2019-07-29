@@ -25,15 +25,20 @@ installed already on your Docker container.
 # Set seed for reproducibility
 set.seed(1234)
 
-# Read in a function for filtering the gene matrix from a source script
-source(file.path("scripts", "gene_matrix_filter.R"))
-
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
 
 # Load the already installed packages
 library(scater)
 library(scran)
+```
+
+In this notebook, we will be using a pre-made function to do some of our work. 
+We will load in this pre-made function using the `source` function. 
+
+```{r}
+# Read in a function for filtering the gene matrix from a source script
+source(file.path("scripts", "gene_matrix_filter.R"))
 ```
 
 ## Import single-cell RNA-seq counts matrix
@@ -46,6 +51,9 @@ We're using a subset of this dataset (n = 1854 cells).
 You have been provided with a counts matrix from single-cell RNA-seq data that 
 has already been processed using `Salmon` and `tximport` and saved the counts to 
 a tsv file, just as we did in the bulk RNA-seq modules.
+
+![**Overall view of full-length and tag-based workflows**](figure/full-length_1.png) 
+
 As far as *tag-based* scRNA-seq data, we will explain how to process raw data, 
 like fastq files, in the next section, so you can also get it to a count matrix
 and could use these same steps to filter and normalize the data.
@@ -324,8 +332,10 @@ sce_raw <- SingleCellExperiment::SingleCellExperiment(list(counts = counts_mat))
 rowData(sce_raw) <- genes
 ```
 
-Special object type are difficult to use at times if we don't know what they 
-look like. 
+Besides, the typical R object types, special object types are generally specific 
+to groups of R packages. 
+`SingleCellExperiment` objects are what a lot of single-cell analysis R packages
+use, so we will try to get acquainted with them. 
 Based on things we've learned in the previous modules, use this space to explore
 the `SingleCellExperiment` object you just made.
 
@@ -334,6 +344,17 @@ the `SingleCellExperiment` object you just made.
 # R packages, explore its properties here. 
 # Also check it out in the environment tab.
 ```
+
+Here's a modified version of the figure from [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1) 
+that shows the general structure of `SingleCellExperiment` objects. 
+Note that each function designed to transform the `SingleCellExperiment` object
+also has a corresponding function that allows you to extract (or setting)
+the information from that object. 
+
+![SingleCellExperiment Object Structure](figure/sce_structure.png)
+
+For more information on `SingleCellExperiment` objects, check out this [excellent vignette](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html)
+and/or [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1).
 
 ## Normalization of count data 
 
@@ -347,7 +368,7 @@ cells like them; a method introduced in [Lun et al 2016](https://genomebiology.b
 
 *These steps may take a minute or so.*
 
-```{r Normalize Data}
+```{r}
 # Step 1) Group cells with other like cells by clustering.  
 qclust <- scran::quickCluster(sce_raw)
 
@@ -357,6 +378,7 @@ sce_raw <- scran::computeSumFactors(sce_raw, clusters = qclust)
 # Step 3) Normalize using these pooled sum factors and log transform. 
 sce_norm <- scater::normalize(sce_raw)
 ```
+
 
 ## Compare normalized data to count data
 
@@ -417,6 +439,8 @@ from the immune cells.
 
 In case we wanted to return to this data later, let's save the normalized data
 to a tsv file. 
+In order to do this we need to extract our normalized counts from sce_norm. 
+Refer back to the 
 `readr` requires that it be a `data.frame` so we will convert our `matrix` first.
 
 ```{r Save Data to .tsv}
