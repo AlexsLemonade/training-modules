@@ -88,7 +88,7 @@ Read the Salmon tool documentation [**here**](https://salmon.readthedocs.io/en/l
 
 ### Useful command line commands:
 <br>
-![Useful Command Line Commands](diagrams/command_line_example.jpeg)
+![Useful Command Line Commands](diagrams/command-line-example.jpeg)
 
 Feel free to give these commands a try on your own! (Note that our example begins in the training-module directory.)
 
