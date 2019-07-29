@@ -107,11 +107,11 @@ affect the outcomes.
 First, let's run our data through t-SNE on default parameters and see what our 
 data looks like with a `ggplot2` scatterplot.
 Here we will be using the R package, `Rtsne` to perform t-SNE. 
-Although packages like `scater` have built in methods for performing t-SNE, we
-want to show you a method that can be applied to most any data so long as it 
-is in a matrix.
+Although packages like `scater` have built in methods for performing dimension
+reduction (`scater::runTSNE`), we want to show you a method that can be applied 
+to most any data so long as it is in a matrix.
 
-```{r tSNE}
+```{r t-SNE}
 # Run t-SNE using the Rtsne package
 tsne_tab_mur <- Rtsne::Rtsne(transposed_data)
 
@@ -125,7 +125,7 @@ ggplot(tsne_data, aes(x = X1, y = X2)) +
   colorblindr::scale_color_OkabeIto()
 ```
 
-#### Apply metadata labels to our tSNE
+#### Apply metadata labels to our t-SNE
 
 Let's re-plot this with labels using some of our metadata to see 
 how the cells are clustering (or not clustering) by different variables. 
@@ -153,15 +153,15 @@ In order to prepare for this experiment, we will create a *function* that allows
 us to rerun this same code chunk easily, but create an argument that allows us
 to change one variable: our perplexity variable. 
 
-```{r Make tSNE plot function}
+```{r Make t-SNE plot function}
 TsnePlotWrapper <- function(perplexity_param = 30) {
   # Purpose: Run t-SNE and plot the output
   # Args: perplexity_param: a single numeric argument that will change the 
-  #                         perplexity variable in the RunTSNE function. 
+  #                         perplexity variable in the Rtsne function. 
   # Output: a ggplot scatterplot with the two t-SNE coordinates plotted and 
-  #         cell types labeled with data point colors. 
+  #         cell-types labeled with data point colors. 
 
-  # Do tsne plots for each perplexity parameter, but this time use color argument
+  # Run t-SNE but set the perplexity parameter
   tsne_tab_mur <- Rtsne::Rtsne(transposed_data, perplexity = perplexity_param)
 
   # Make this a data.frame so ggplot will like it
@@ -179,38 +179,38 @@ you would like to use for each.
 Then run the chunks and compare your output graphs.
 
 ```{r Run tSNE 1}
-# Use the tSNE_plot_wrapper function but alter the perplexity argument
+# We've set up the first example for you
 TsnePlotWrapper(perplexity_param = 3)
 ```
 
-```{r Run tSNE 2}
+```{r Run t-SNE 2}
 # Run tSNE_plot_wrapper function for a second time, but use a different perplexity
 # argument
 ```
 
-```{r Run tSNE 3}
+```{r Run t-SNE 3}
 # Run tSNE_plot_wrapper function for a third time, but use a different perplexity
 # argument
 ```
 
-```{r Run tSNE 4}
+```{r Run t-SNE 4}
 # Run tSNE_plot_wrapper function for a fourth time, but use a different perplexity
 # argument
 ```
 
-```{r Run tSNE 5}
+```{r Run t-SNE 5}
 # Run tSNE_plot_wrapper function for a fifth time, but use a different perplexity
 # argument
 ```
 
-You'll notice that for some settings of tSNE parameters, it's hard to distinguish
+You'll notice that for some settings of t-SNE parameters, it's hard to distinguish
 distinct clusters of cells.
 
 #### Some 'big picture' thoughts to take from this experiment: 
 
 1) Different analyses (such as t-SNE) have various limitations for interpretability.
    We found in our experiment that the coordinates of t-SNE output for any given 
-   cell might change drastically. 
+   cell might change drastically, 
    This probably means that you shouldn't rely too heavily on the exact values of
    t-SNE's output. 
 2) Different analyses also have their strengths.   
@@ -221,16 +221,18 @@ distinct clusters of cells.
    
 In summary, if the results of an analysis can be completely changed by changing its
 parameters, you should be more cautious when it comes to the conclusions you
-draw from it as well as having good rationale for the parameters you choose. 
+draw from it as well as having good rationale for he parameters you choose. 
 
-Read [this article](https://distill.pub/2016/misread-tsne/) by Wattenberg et al
-to learn more about using t-SNE properly. 
+### For further reading on dimension reduction:  
+
+- [Wattenberg et al](](https://distill.pub/2016/misread-tsne/) discuss how to 
+use t-SNE properly with great visuals.  
+- [Nyguen & Holmes _PLoS Comput Biol_ 2019.](https://journals.plos.org/ploscompbiol/article/file?id=10.1371/journal.pcbi.1006907&type=printable)
+lay out guidelines on choosing dimensions reduction methods.  
+- [Becht et al _Nature Biotechnology_ 2018.](https://www.nature.com/articles/nbt.4314) discusses using [UMAP](https://github.com/lmcinnes/umap) for single-cell data  
+- This website explains [PCA visually](http://setosa.io/ev/principal-component-analysis/)  
   
-t-SNE may be okay for some things, but note that the following dimension reduction 
-methods may be worth considering: 
-
-- [PCA](http://setosa.io/ev/principal-component-analysis/)  
-- [UMAP](https://github.com/lmcinnes/umap)  
+**Single-cell specific dimension reduction methods to consider:**  
 - [VASC](https://www.sciencedirect.com/science/article/pii/S167202291830439X)  
 - [scVI](https://scvi.readthedocs.io/en/master/readme.html)  
 

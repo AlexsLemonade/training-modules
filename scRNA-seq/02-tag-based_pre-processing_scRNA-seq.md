@@ -13,11 +13,11 @@ These data also have
 [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772)
 which allow us to examine PCR amplification errors and biases.
 
-![**Relative workflow for tag-based data](figure/tag-based_1.png)
+![**Relative workflow for tag-based data**](figure/tag-based_1.png)
 
 *Note*: Raw single-cell RNA-seq data from non-tag-based methods, like the Smart-seq2
 dataset we were working with in the previous section, can be processed using
-Salmon, just like was done in the bulk RNA-seq module.
+Salmon, just like is done in the bulk RNA-seq module.
 
 ## Steps for Processing scRNA-seq Data:
 
