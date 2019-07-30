@@ -30,12 +30,12 @@ the concepts underlying each module.
 Cheatsheets for each module are named and linked below.  
 Each cheatsheet consists of functions that are used in its corresponding module, along with links to documentation on the usage of these functions. 
 
-These cheatsheets can also be found in the folder named [module-cheatsheets](https://github.com/AlexsLemonade/training-modules/tree/master/module_cheatsheets).
+These cheatsheets can also be found in the folder named [module-cheatsheets](https://github.com/AlexsLemonade/training-modules/tree/master/module-cheatsheets).
 
-- [intro-to-R-tidyverse-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module_cheatsheets/intro-to-R-tidyverse-cheatsheet.md)
-- [RNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module_cheatsheets/RNA-seq-cheatsheet.md)
-- [scRNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module_cheatsheets/scRNA-seq-cheatsheet.md)
-- [machine-learning-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module_cheatsheets/machine-learning-cheatsheet.md)  
+- [intro-to-R-tidyverse-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.md)
+- [RNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/RNA-seq-cheatsheet.md)
+- [scRNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-cheatsheet.md)
+- [machine-learning-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/machine-learning-cheatsheet.md)  
 
 
   
