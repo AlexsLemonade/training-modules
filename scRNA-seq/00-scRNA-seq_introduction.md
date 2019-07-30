@@ -10,7 +10,7 @@ The pre-processing steps and the biases to look out for in post-processing vary
 based on technology and how the cells are sorted.
 
 For more extensive background on single-cell experimental methods,
-Kiselev et al. have very [good tutorial for scRNA-seq](https://scrnaseq-course.cog.sanger.ac.uk/website/index.html).
+Kiselev et al. have a very [good tutorial for scRNA-seq](https://scrnaseq-course.cog.sanger.ac.uk/website/index.html).
 
 ### 1) Full-length scRNA-seq  
 *Example:* Smart-seq2 [(Picelli et al. _Nature Protocols._ 2014.)](https://www.nature.com/articles/nprot.2014.006)   
