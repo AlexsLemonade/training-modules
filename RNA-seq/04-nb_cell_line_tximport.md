@@ -11,3 +11,5 @@ We will also use `DESeq2` for these analyses, specifically for differential expr
 In order to prepare the NB cell line data for differential expression analysis, modify the gastric cancer tximport notebook (`02-gastric_cancer_tximport.Rmd`) and save this new notebook as `nb_cell_line_tximport`.
 
 Save the `tximport` output as `data/tximport/NB_cell_line/NB_cell_line_tximport.RDS`. Note that `data/tximport/NB_cell_line` is a new directory.
+
+![](figures/rna-seq_3.png)
