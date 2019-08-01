@@ -13,7 +13,7 @@ These data also have
 [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772)
 which allow us to examine PCR amplification errors and biases.
 
-![**Relative workflow for tag-based data**](figure/tag-based_1.png)
+![**Relative workflow for tag-based data**](diagrams/tag-based_1.png)
 
 *Note*: Raw single-cell RNA-seq data from non-tag-based methods, like the Smart-seq2
 dataset we were working with in the previous section, can be processed using
@@ -187,7 +187,7 @@ In the R console:
 Now that we have quantified our data with Alevin, we are ready to perform
 quality control checks.
 
-![**Current status of this dataset**](figure/tag-based_2.png)
+![**Current status of this dataset**](diagrams/tag-based_2.png)
 
 In order to perform quality control checks, we'll use the `alevinQC` R package.
 Note that `alevinQC` depends on files that we get using the`--dumpFeatures`
