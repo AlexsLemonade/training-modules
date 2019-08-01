@@ -13,9 +13,11 @@ These data also have
 [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772)
 which allow us to examine PCR amplification errors and biases.
 
+![**Relative workflow for tag-based data**](diagrams/tag-based_1.png)
+
 *Note*: Raw single-cell RNA-seq data from non-tag-based methods, like the Smart-seq2
 dataset we were working with in the previous section, can be processed using
-Salmon, just like was done in the bulk RNA-seq module.
+Salmon, just like is done in the bulk RNA-seq module.
 
 ## Steps for Processing scRNA-seq Data:
 
@@ -50,7 +52,7 @@ In `Terminal`, run the following command:
 ```
 mkdir -p data/tabula_muris/alevin_quant/10X_P4_3
 ```
-In this scenario, `10X_P4_3` refers to our sample name. 
+In this scenario, `10X_P4_3` refers to our sample name.
 
 ### Step 3: Index the mouse transcriptome with Salmon
 
@@ -101,7 +103,7 @@ flag instead of this.
 #### `--tgMap`
 This is needed to supply a transcript to gene key that Alevin will use to
 quantify the genes.
-For our example, we've premade the file `Mus_musculus.GRCm38_tx2gene.tsv` from
+For our example, we've pre-made the file `Mus_musculus.GRCm38_tx2gene.tsv` from
 the Ensembl transcriptome that we indexed above. The file has to be a tsv file.
 
 #### `--dumpCsvCounts`
@@ -141,11 +143,11 @@ To use our Alevin data in R, we will first need to navigate to the R console.
 Similar to how we need to be in the `scRNA-seq` directory when we were in
 `Terminal`, we need to do the same thing in R now.
 
-First open the R console and use `setwd()` to change to R's working (aka
-current) directory to `scRNA-seq`.
-Remember that this folder: `data/tabula_muris/alevin_quant/10X_P4_3` that 
-contains the Alevin quantification files, is located in `scRNA-seq`.
-You can run `dir()` to check what files and folders are in R's current 
+First open the R console and use the function `setwd()` to change to R's working 
+(aka current) directory to `scRNA-seq`.
+Remember that this folder: `data/tabula_muris/alevin_quant/10X_P4_3` contains 
+the Alevin quantification files and is located in `scRNA-seq`.
+You can run `dir()` to check what files and folders are in R's current
 directory.
 Once you are in `scRNA-seq` folder, you can continue to the next steps.
 
@@ -182,6 +184,11 @@ In the R console:
 
 ### Step 7: Perform QC checks with `alevinQC`
 
+Now that we have quantified our data with Alevin, we are ready to perform
+quality control checks.
+
+![**Current status of this dataset**](diagrams/tag-based_2.png)
+
 In order to perform quality control checks, we'll use the `alevinQC` R package.
 Note that `alevinQC` depends on files that we get using the`--dumpFeatures`
 option in Alevin.
@@ -202,7 +209,7 @@ alevinQC::alevinQCReport("data/tabula_muris/alevin_quant/10X_P4_3",
                          outputFormat = "html_document")
 ```
 
-Check out `data/tabula_muris/qc_reports/10X_P4_3_subset_qc_report.html` 
+Check out `data/tabula_muris/qc_reports/10X_P4_3_subset_qc_report.html`
 in order to examine the quality of your data and performance of Alevin.
 Remember that this is only part of this sample, so it won't look as good as if
 we had run the full fastq file, which we have provided the alevinQC report of

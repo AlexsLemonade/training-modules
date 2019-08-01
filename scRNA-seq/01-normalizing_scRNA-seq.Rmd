@@ -25,15 +25,20 @@ installed already on your Docker container.
 # Set seed for reproducibility
 set.seed(1234)
 
-# Read in a function for filtering the gene matrix from a source script
-source(file.path("scripts", "gene_matrix_filter.R"))
-
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
 
 # Load the already installed packages
 library(scater)
 library(scran)
+```
+
+In this notebook, we will be using a pre-made function to do some of our work. 
+We will load in our pre-made function using the `source` function. 
+
+```{r}
+# Read in a function for filtering the gene matrix from a source script
+source(file.path("scripts", "gene_matrix_filter.R"))
 ```
 
 ## Import single-cell RNA-seq counts matrix
@@ -46,6 +51,9 @@ We're using a subset of this dataset (n = 1854 cells).
 You have been provided with a counts matrix from single-cell RNA-seq data that 
 has already been processed using `Salmon` and `tximport` and saved the counts to 
 a tsv file, just as we did in the bulk RNA-seq modules.
+
+![](diagrams/full-length_1.png) 
+
 As far as *tag-based* scRNA-seq data, we will explain how to process raw data, 
 like fastq files, in the next section, so you can also get it to a count matrix
 and could use these same steps to filter and normalize the data.
@@ -138,7 +146,7 @@ We will use `apply` again here, but what will we use for the second argument?
 total_counts <- apply(sc_data, 2, sum)
 ```
 
-We want to get the `sum` of each column (ie for each cell), so we put `2`
+We want to get the `sum` of each column (i.e. for each cell), so we put `2`
 as our argument in `apply` this time.
 
 ```{r}
@@ -223,7 +231,7 @@ But as you may have noticed in our `sc_metadata` we have cell-type information
 for these data. 
 Let's use the power of our single-cell resolution data to our advantage and look 
 at this data with cell-type labels. 
-In order to do this we need to prepare a data.frame that has our `num_genes_exp`
+In order to do this, we need to prepare a data.frame that has our `num_genes_exp`
 numbers along side our cell-type labels.
 
 ```{r}
@@ -300,9 +308,11 @@ sc_metadata_filtered <- sc_metadata_filtered %>%
 
 ## Set up a SingleCellExperiment object from count data
 
-For the rest of this module and some of the upcoming modules, we are going to 
-use some single-cell RNA-seq R packages called `scater` and `scran` to do some 
-processing for us.
+Now that we have filtered our data, we are ready to normalize it.
+To do this, we are going to use some single-cell RNA-seq R packages called `scater` and `scran`.
+
+![](diagrams/full-length_2.png)
+
 The functions in these packages require the data to be in their own special 
 object type (not an uncommon thing for R packages to do) called `SingleCellExperiment`.
 So first, we are going to set up our data in this format.
@@ -324,16 +334,34 @@ sce_raw <- SingleCellExperiment::SingleCellExperiment(list(counts = counts_mat))
 rowData(sce_raw) <- genes
 ```
 
-Special object type are difficult to use at times if we don't know what they 
-look like. 
-Based on things we've learned in the previous modules, use this space to explore
-the `SingleCellExperiment` object you just made.
+In the intro-to-R-tidyverse module notebook, `01-intro-to-r`, we discuss base R 
+object types, but there are some 'special' object types that are 
+package-specific. 
+`SingleCellExperiment` objects, for example, are what a lot of single-cell 
+analysis R packages use, so we will try to get acquainted with them. 
+
+Use this chunk we've set up below to do some exploring of the 
+`SingleCellExperiment` object you just made.
 
 ```{r Explore SCE structure}
 # The SingleCellExperiment is a special type of object used by scater and scran
 # R packages, explore its properties here. 
 # Also check it out in the environment tab.
 ```
+
+Below is a figure from [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1) 
+that shows the general structure of `SingleCellExperiment` objects. 
+
+![](figures/sce_structure.png)
+
+Note that each function which transforms the `SingleCellExperiment` object
+stores its results back into the object.
+Each of these transformation functions also have a corresponding extraction 
+function that allow you extract (or set) those results from the 
+`SingleCellExperiment` object.
+
+For more information on `SingleCellExperiment` objects, check out this [excellent vignette](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html)
+and/or [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1)
 
 ## Normalization of count data 
 
@@ -347,7 +375,7 @@ cells like them; a method introduced in [Lun et al 2016](https://genomebiology.b
 
 *These steps may take a minute or so.*
 
-```{r Normalize Data}
+```{r}
 # Step 1) Group cells with other like cells by clustering.  
 qclust <- scran::quickCluster(sce_raw)
 
@@ -417,7 +445,9 @@ from the immune cells.
 
 In case we wanted to return to this data later, let's save the normalized data
 to a tsv file. 
-`readr` requires that it be a `data.frame` so we will convert our `matrix` first.
+In order to do this we need to extract our normalized counts from `sce_norm`. 
+Refer back to the `SingleCellExperiment` figure above to determine why we are 
+using this `logcounts` function.
 
 ```{r Save Data to .tsv}
 # Save this gene matrix to a tsv file
@@ -426,11 +456,14 @@ logcounts(sce_norm) %>%
   readr::write_tsv(file.path(norm_dir, "scran_norm_gbm_gene_matrix.tsv"))
 ```
 
+Also note that `readr::write_tsv` requires a `data.frame`; so we need to convert 
+our `matrix` to a data.frame.
 Because our metadata has been filtered to match our gene matrix, we will also 
 save a new file for the metadata. 
 
 ```{r}
-readr::write_tsv(sc_metadata_filtered, file.path(norm_dir, "gbm_filtered_metadata.tsv"))
+readr::write_tsv(sc_metadata_filtered, file.path(norm_dir, 
+                                                 "gbm_filtered_metadata.tsv"))
 ```
 
 We will return to our normalized `sce_norm` object in the exercise, so we will 
