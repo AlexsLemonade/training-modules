@@ -12,6 +12,8 @@ based on technology and how the cells are sorted.
 For more extensive background on single-cell experimental methods,
 Kiselev et al. have a very [good tutorial for scRNA-seq](https://scrnaseq-course.cog.sanger.ac.uk/website/index.html).
 
+![**Overall view of full-length and tag-based workflows**](diagrams/overview_workflow.png)
+
 ### 1) Full-length scRNA-seq  
 *Example:* Smart-seq2 [(Picelli et al. _Nature Protocols._ 2014.)](https://www.nature.com/articles/nprot.2014.006)   
 Cells are physically separated into individual wells of a plate and are
