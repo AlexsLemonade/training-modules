@@ -6,7 +6,7 @@ These samples come from a project ([`PRJNA178120`](https://www.ebi.ac.uk/ena/dat
 
 Here we will perform quality control checks, trimming, and estimate the transcript abundances for a single sample, SRR585570.
 
-![](figures/rna-seq_1.png)
+![](diagrams/rna-seq_1.png)
 
 **Our objectives:**
 
@@ -56,6 +56,8 @@ It's most important that it's consistent, easy for you and others to find the fi
 
 ## 1. Quality control with FastQC
 
+![](diagrams/rna-seq_2.png)
+
 The first thing our script does is use [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) for quality control in command line mode.
 Here's a link to the FastQC documentation: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/
 
@@ -89,6 +91,8 @@ It can be found at `QC/gastric_cancer/fastqc_output/SRR585574_1_fastqc.html`.
 **Let's look at the reports for both samples.**
 
 ## 2. Preprocessing with fastp
+
+![](diagrams/rna-seq_3.png)
 
 We use [fastp](https://github.com/OpenGene/fastp) to preprocess the FASTQ files ([Chen et al. _Bioinformatics._ 2018.](https://doi.org/10.1093/bioinformatics/bty560)). 
 Note that fastp has quality control functionality and many different options for preprocessing (see [all options on Github](https://github.com/OpenGene/fastp/blob/master/README.md#all-options)), most of which we will not cover.
@@ -174,7 +178,7 @@ Including the sample name in the filenames again may help us with project organi
 
 ## 3. Quantification with Salmon
 
-![](figures/rna-seq_2.png)
+![](diagrams/rna-seq_4.png)
 
 We'll use [Salmon](https://combine-lab.github.io/salmon/) for quantifying transcript expression ([documentation](http://salmon.readthedocs.io/en/latest/)).
 Salmon ([Patro, et al. _Nature Methods._ 2017.](https://doi.org/10.1038/nmeth.4197)) is fast and requires very little memory, which makes it a great choice for running on your laptop during training.
