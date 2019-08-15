@@ -2,7 +2,7 @@
 
 This CCDL-designed module covers the introduction to R and the Tidyverse package. It is designed to be taught in 1.5 hours. 
 
-It goes through the basics of R _(including data types, data strucutures, and good scientific coding practices)_ and the tidyverse package _(including dplyr pipes, common tidyverse functions, and the usage of ggplot2 for data visualization)_, thus providing the tools needed to move onto the subsequent training modules. 
+It goes through the basics of R _(including data types, data structures, and good scientific coding practices)_ and the tidyverse package _(including dplyr pipes, common tidyverse functions, and the usage of ggplot2 for data visualization)_, thus providing the tools needed to move onto the subsequent training modules. 
 
 The notebooks that comprise this module are: 
 
