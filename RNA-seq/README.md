@@ -8,5 +8,5 @@ The notebooks that comprise this module are:
 * [Quality control, trim, and quantification with salmon](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/01-qc_trim_quant.md)
 * [Gene-level summaries with tximport](https://alexslemonade.github.io/training-modules/RNA-seq/02-gastric_cancer_tximport.nb.html)
 * [Exploratory analyses](https://alexslemonade.github.io/training-modules/RNA-seq/03-gastric_cancer_exploratory.nb.html)
-* Differential expression analysis: [tximport](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/04-nb_cell_line_tximport.md) and [Differential Expression](https://alexslemonade.github.io/training-modules/RNA-seq/05-nb_cell_line_DESeq2.nb.html)
+* Differential expression analysis: [tximport](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/04-nb_cell_line_tximport.md) and [differential expression](https://alexslemonade.github.io/training-modules/RNA-seq/05-nb_cell_line_DESeq2.nb.html)
 * [Additional exercises](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/06-bulk_rnaseq_exercise.Rmd)
