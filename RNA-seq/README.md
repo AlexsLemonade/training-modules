@@ -1,6 +1,6 @@
 # RNA-Seq Training Module
 
-This CCDL-designed module covers the analysis of RNA-seq data using Alevin.
+This CCDL-designed module covers the analysis of RNA-seq data using Salmon.
 It is designed to be taught in approximately 3.5 hours.
 It depends on knowledge gained in the [intro to R](https://github.com/AlexsLemonade/training-modules/tree/master/intro-to-R-tidyverse) module and analyses are performed within a [Docker container](https://github.com/AlexsLemonade/training-modules/tree/master/docker-install).
 It covers QC steps, gene expression abundance estimation, and certain downstream analyses.
