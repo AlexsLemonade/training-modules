@@ -1,9 +1,9 @@
 # Machine Learning Training Module 
 
-This CCDL-designed module involves the analysis of primary medulloblastoma sample gene expression data from [Northcott, et al. _Nature._ 2012](https://www.ncbi.nlm.nih.gov/pubmed/22832581) using some machine learning methods.        
-It is designed to be taught in approximately 1.5 hours.          
-It depends on knowledge gained in the [intro to R](https://github.com/AlexsLemonade/training-modules/tree/master/intro-to-R-tidyverse) module and analyses are performed within a [Docker container](https://github.com/AlexsLemonade/training-modules/tree/master/docker-install).      
-It covers conversion between different gene identifiers, hierarchical clustering, consensus clustering, and obtaining correlated patterns of expression in data or latent variables (LVs) through the implementation of PLIER (Pathway-Level Information Extractor).      
+This CCDL-designed module involves the analysis of primary medulloblastoma sample gene expression data from [Northcott, et al. _Nature._ 2012](https://www.ncbi.nlm.nih.gov/pubmed/22832581) using some machine learning methods.
+It is designed to be taught in approximately 1.5 hours.
+It depends on knowledge gained in the [intro to R](https://github.com/AlexsLemonade/training-modules/tree/master/intro-to-R-tidyverse) module and analyses are performed within a [Docker container](https://github.com/AlexsLemonade/training-modules/tree/master/docker-install).
+It covers conversion between different gene identifiers, hierarchical clustering, consensus clustering, and obtaining correlated patterns of expression in data or latent variables (LVs) through the implementation of PLIER (Pathway-Level Information Extractor).
 The notebooks that comprise this module are:
 
 * [Data Preparation](https://alexslemonade.github.io/training-modules/machine-learning/01-medulloblastoma_data_prep.nb.html)
