@@ -151,7 +151,7 @@ You can read more about the **quality filtering** functionality of fastp [here](
 
 The Salmon documentation notes that, given the way we run `salmon quant`, quantification may be more sensitive to calls that are likely to be erroneous (of low quality) and, therefore, quality trimming may be important.
 Trimming, in contrast to filtering, refers to removing low quality base calls from the (typically 3') end of reads.
-A recent preprint from the Salmon authors ([Srivastava et al. _bioRxiv._ 2019.](https://doi.org/10.1101/657874)) notes that trimming did not effect mapping rates from random publicly available human bulk (paired-end) RNA-seq samples (they used [TrimGalore](https://github.com/FelixKrueger/TrimGalore)). 
+A recent preprint from the Salmon authors ([Srivastava et al. _bioRxiv._ 2019.](https://doi.org/10.1101/657874)) notes that trimming did not affect mapping rates from random publicly available human bulk (paired-end) RNA-seq samples (they used [TrimGalore](https://github.com/FelixKrueger/TrimGalore)). 
 fastp does have [the functionality](https://github.com/OpenGene/fastp#per-read-cutting-by-quality-score) to perform trimming using a sliding window, which must be enabled. 
 We are not using it here.
 
@@ -162,7 +162,7 @@ You can read a little bit more about the encoding [here](http://resources.qiagen
 
 #### `--length_required`
 
-Trimming reads may result in short reads, which may effect gene expression estimates ([Williams et al. _BMC Bioinformatics._ 2016.](https://doi.org/10.1186/s12859-016-0956-2)).
+Trimming reads may result in short reads, which may affect gene expression estimates ([Williams et al. _BMC Bioinformatics._ 2016.](https://doi.org/10.1186/s12859-016-0956-2)).
 Using `--length_required 20` means that reads shorter than 20bp will be discarded (similar to what was used in Srivastava et al. above).
 
 #### `--report_title`
