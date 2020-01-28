@@ -19,10 +19,10 @@ workshop.
 The accompanying slides for each module are linked below and briefly introduce
 the concepts underlying each module.
 
-- [intro-to-R-tidyverse](https://docs.google.com/presentation/d/e/2PACX-1vSDRF-1QQeU4frb7G-rn0X_TDORCXxFAR-HGZogci3zZPPleNkPPF5RXuuy4JDFoA-gRMg4Lv5G3esB/pub?)
-- [RNA-seq](https://docs.google.com/presentation/d/e/2PACX-1vS1NpKqvcysYancX56_2Zv3_QgapnHIo3rNLvtkjhQreTmW42XhZuGrjk5i71L7eV1yYqsAVR28HEHP/pub?)
-- [scRNA-seq](https://docs.google.com/presentation/d/e/2PACX-1vT0YL0J1-KZOAids-vr8TlI2vrQn-c1nWR6Zavai849HnSg37zzLG4KJCIXB4OKAm16meiwmVAOOfJ9/pub?)
-- [machine-learning](https://docs.google.com/presentation/d/e/2PACX-1vQBa20R5X6HULp3KLb42oeA4-t-vsrhUrBCVqNYeDqGsfhJKKaVSHdhaOWVsb-lJuUqq4gP-GkQHfSn/pub?)
+- [intro-to-R-tidyverse](https://drive.google.com/a/ccdatalab.org/file/d/11GXEddKwUBan1Z-NF_UM2HecckpODLKM/view?usp=sharing)
+- [RNA-seq](https://drive.google.com/a/ccdatalab.org/file/d/1A9gNDIuD_c3ppF2k6vY3b0VgSKZjchzp/view?usp=sharing)
+- [scRNA-seq](https://drive.google.com/a/ccdatalab.org/file/d/186niFprBKICNsF53WpIhKbiIMLawu-ms/view?usp=sharing)
+- [machine-learning](https://drive.google.com/a/ccdatalab.org/file/d/1tmX8sFDmnPpkRdkWQm-v3vtdGr6YWy-j/view?usp=sharing)
 
 
 ### Cheatsheets:
