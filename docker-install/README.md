@@ -5,36 +5,40 @@ When you are finished, return to the schedule for your workshop for the link to 
 
 ## Pre-install Steps
 
-1. If you do not have an account with the Docker Store, visit the [Docker Store website](https://store.docker.com/). In the upper right corner, select Log In. Create an account.
+1. If you do not have an account with  Docker Hub, you may find it convenient to create one, though this is optional. Do do this, visit the [Docker Hub website](https://hub.docker.com/). In the upper right corner, select "Get Started" to create an account.
+
 
 ## Installation
 
-* [Mac OS](#macos)
+* [macOS](#macos)
 * [Windows 10 Pro](#windows-10-pro)
 * [Windows 7](#windows-7)
 
 ### MacOS
 
-1. Visit the [Docker Store](https://store.docker.com/search?type=edition&offering=community) and download Docker Desktop for Mac.
+1. Visit [Docker Hub](https://hub.docker.com/editions/community/docker-ce-desktop-mac) and download Docker Desktop for Mac.
 ![Mac Download](screenshots/mac-00-download.png)
-2. Open the downloaded file and drag the Docker Whale icon to your Applications folder.
+2. Open the downloaded file and drag the Docker App icon to your Applications folder.
 ![Mac Docker Install](screenshots/mac-01-applications.png)
-3. Open the Applications folder and find and open Docker.
-![Mac Docker Start](screenshots/mac-02-opendocker.png)
-4. Click the whale icon in the taskbar. Log in to the Docker store.
-![Mac Docker Log In](screenshots/mac-03-dockerlogin.png)
-5. Click the whale icon in the taskbar and go to Preferences.
+3. Open the Applications folder and find and open Docker. You will likely encounter a warning message asking for permission to open the application. Click "Open".  
+![Mac Docker Warning](screenshots/mac-02-security_warning.png)
+4. You will see a whale icon appear in the toolbar and start animating. If you have a Docker Hub account, you can click on the whale and login to Docker Hub (this is optional).
+![Mac Docker Log In](screenshots/mac-03-docker_login.png)
+5. Once the menu bar icon stops animating, click the whale icon in the taskbar and go to Preferences.
 ![Mac preferences](screenshots/mac-preferences.png)
 6. Increase the resources available to Docker. For reference, we've found that 2 CPUs and 6 GB of RAM on a quad-core with 8 GB of RAM total works for the workshop offerings. If you are able to provide more than 8GB of RAM, do so. However, be careful not to allot your computer's maximum RAM capacity. 
 ![Mac advanced](screenshots/mac-advanced-settings.png)
-7. Click the whale icon in the taskbar. Click the Kitematic menu entry.  
-![Mac Kitematic Round 1](screenshots/mac-04-kitematic.png)
-8. Follow the prompts to download Kitematic.  
-![Mac Kitematic Download](screenshots/mac-05-kitematicinstall.png)
-9. Drag the Kitematic icon to the Applications folder.  
-![Mac Kitematic Applications](screenshots/mac-06-kitematicapps.png)
-10. Open the new Kitematic program. Accept the prompt.  
-![Mac Kitematic Open](screenshots/mac-07-openkite.png)
+7. For ease of managing your Docker images, we currently recommend Kitematic. Its functionality is *slowly* being incorporated into the main Docker Desktop application, but for now it is available as a separate download. Go to the [Kitematic Releases page on Github](https://github.com/docker/kitematic/releases) to download the latest release for macOS.
+![Mac Kitematic Download](screenshots/mac-download-kitematic.png)
+9. Locate the downloaded file and drag the Kitematic icon to the Applications folder.  
+![Mac Kitematic Icon](screenshots/mac-kitematic-icon.png)
+10. When you open Kitematic, you will likely see a warning that the application is from an unidentified developer, with no option to open the application.
+![Mac Kitematic Blocked](screenshots/mac-kitematic-blocked.png)
+Click "OK", then right click on the icon and select "Open" from the popup menu.  
+![Mac Kitematic Open](screenshots/mac-kitematic-open.png)
+The warning that pops up this time should give you the option to open the Kitematic application. Click "Open" and you should be all set. The next time you launch Kitematic it should open normally, with no warnings.
+![Mac Kitematic warning](screenshots/mac-kitematic-warning.png)
+
 
 ### Windows 10 Pro
 
