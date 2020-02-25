@@ -81,15 +81,5 @@ If you need to enable virtualization, you will need to enter the BIOS setup menu
 In the BIOS set up, you will need to enable virtualization.
 Unfortunately, the steps for enabling virtualization are manufacturer- and sometimes model-specific.  
 
-### Windows 7
-
-1. Visit the [Docker Toolbox Docker documentation page](https://docs.docker.com/toolbox/toolbox_install_windows/). Download Docker Toolbox.  
-![Windows 7 Download](screenshots/win7-00-download.png)
-2. After the download completes, follow the prompts to complete the Docker Toolbox installation.  
-3. After the installation, select the Kitematic icon from the desktop.  
-![Windows 7 kitematic](screenshots/win7-01-kitematic.png)
-4. Select the option to start in VirtualBox. Then you should see a loading image while the Virtualbox session starts.  
-![Windows 7 Virtual Box](screenshots/win7-02-startingvm.png)
-
 
 ### Now return to the workshop schedule for the link to the next steps.
