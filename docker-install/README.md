@@ -12,7 +12,6 @@ When you are finished, return to the schedule for your workshop for the link to 
 
 * [macOS](#macos)
 * [Windows 10 Pro](#windows-10-pro)
-* [Windows 7](#windows-7)
 
 ### MacOS
 
