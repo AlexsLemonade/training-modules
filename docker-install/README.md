@@ -36,6 +36,7 @@ When you are finished, return to the schedule for your workshop for the link to 
 ![Mac Kitematic Blocked](screenshots/mac-kitematic-blocked.png)
 Click "OK", then right click on the icon and select "Open" from the popup menu.  
 ![Mac Kitematic Open](screenshots/mac-kitematic-open.png)
+
 The warning that pops up this time should give you the option to open the Kitematic application. Click "Open" and you should be all set. The next time you launch Kitematic it should open normally, with no warnings.
 ![Mac Kitematic warning](screenshots/mac-kitematic-warning.png)
 
