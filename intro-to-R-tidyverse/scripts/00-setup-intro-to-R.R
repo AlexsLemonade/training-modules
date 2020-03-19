@@ -1,28 +1,42 @@
-# Set up statistics table for intro to R module
+# Set up gene level statistics table for intro to R module
 
-# C. Savonen 
+# C. Savonen for ALSF - CCDL
 
 # 2020
 
+# Magrittr pipe
 `%>%` <- dplyr::`%>%`
 
+# Establish base dir
+root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
+
+# Establish R dir
+intro_r_dir <- file.path(root_dir, "intro-to-R-tidyverse")
+
+# Establish input and output directories
+data_dir <- file.path(intro_r_dir, "data")
+plots_dir <- file.path(output_dir, "plots")
+
+# Create these output directories if they don't exist
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir)
+}
+if (!dir.exists(plots_dir)) {
+  dir.create(plots_dir)
+}
+
+# Install limma if not installed
 if (!("limma" %in% installed.packages())) {
   # Install limma
   BiocManager::install("limma", update = FALSE)
 }
 
-input_dir <- "data"
-output_dir <- "results"
-
-if (!dir.exists(output_dir)) {
-  dir.create(output_dir)
+# Install the Human annotation package
+if (!("org.Hs.eg.db" %in% installed.packages())) {
+  # Install org.Hs.eg.db
+  BiocManager::install("org.Hs.eg.db", update = FALSE)
 }
 
-plots_dir <- file.path(output_dir, "plots")
-
-if (!dir.exists(plots_dir)) {
-  dir.create(plots_dir)
-}
 # Read in the dataset
 gene_df <- readr::read_tsv(file.path(input_dir, 
                                      "GSE44971.tsv")) %>% 
@@ -49,7 +63,26 @@ fit <- limma::lmFit(gene_df, design = des_mat)
 fit <- limma::eBayes(fit)
 
 # Apply multiple testing correction and obtain stats
-stats_df <- limma::topTable(fit, number = nrow(gene_df)) 
-%>% 
-  readr::write_tsv(file.path(output_dir, "gene_results_GSE44971.tsv"))
+stats_df <- limma::topTable(fit, number = nrow(gene_df)) %>% 
+  # Move ensembl IDs to their own column
+  tibble::rownames_to_column("ensembl_ids") %>%
+  # Map ensembl IDs to their associated gene symbols
+  dplyr::mutate("gene_symbols" = AnnotationDbi::mapIds(
+    org.Hs.eg.db::org.Hs.eg.db, 
+    keys = ensembl_ids, 
+    column = "SYMBOL", 
+    keytype = "ENSEMBL")) %>%  
+  # Clean up column names and reorder 
+  dplyr::select(
+    ensembl_ids, 
+    gene_symbols,
+    avg_expression = AveExpr,
+    log_fold_change = logFC, 
+    t_value = t, 
+    p_value = P.Value, 
+    adj_p_value = adj.P.Val, 
+    log_odds = B
+    ) %>% 
+  # Write this to TSV
+  readr::write_tsv(file.path(data_dir, "gene_results_GSE44971.tsv"))
 
