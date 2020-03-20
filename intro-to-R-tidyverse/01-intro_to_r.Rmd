@@ -112,10 +112,31 @@ stats_df %>%
 
 Let's make a volcano plot with this data. 
 
+First let's take a look at only the tumor vs normal data. 
+
 ```{r}
 stats_df %>% 
-  dplyr::filter(contrast == "male_female") %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, y = neg_log_p_val)) + 
+  dplyr::filter(contrast == "astrocytoma_normal") 
+```
+
+We can send this data.frame directly into a `ggplot` function. 
+
+```{r}
+stats_df %>% 
+  dplyr::filter(contrast == "astrocytoma_normal") %>% 
+ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
+                             y = neg_log_p_val))
+```
+
+You'll notice this plot doesn't have anything on it because we haven't 
+specified a plot type yet. 
+To do that, we will add another ggplot layer with `+`. 
+
+```{r}
+stats_df %>% 
+  dplyr::filter(contrast == "astrocytoma_normal") %>% 
+ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
+                             y = neg_log_p_val)) + 
   ggplot2::geom_point()
 ```
 
@@ -125,7 +146,7 @@ We can adjust the color points using `color`.
 
 ```{r}
 stats_df %>% 
-  dplyr::filter(contrast == "male_female") %>% 
+  dplyr::filter(contrast == "astrocytoma_normal") %>% 
 ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
                              y = neg_log_p_val, 
                              color = avg_expression)) + 
@@ -136,12 +157,28 @@ We can also change the background and aesthetics by adding a `theme`.
 
 ```{r}
 stats_df %>% 
-  dplyr::filter(contrast == "male_female") %>% 
+  dplyr::filter(contrast == "astrocytoma_normal") %>% 
+ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
+                             y = neg_log_p_val, 
+                             color = avg_expression)) + 
+  ggplot2::geom_point() +
+  ggplot2::theme_classic()
+```
+
+We can change the x and y labels by using `ylab` and `xlab` functions and add a
+title using `ggplot2::ggtitle`.
+
+```{r}
+stats_df %>% 
+  dplyr::filter(contrast == "astrocytoma_normal") %>% 
 ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
                              y = neg_log_p_val, 
                              color = avg_expression)) + 
   ggplot2::geom_point() + 
-  ggplot2::theme_classic()
+  ggplot2::theme_classic() + 
+  ggplot2::xlab("log10 Fold Change") +
+  ggplot2::ylab("-log10 Adjusted p value")
+  ggplot2::ggtitle("Astrocytoma Tumor vs Normal Cerebellum")
 ```
 
 We can add all the contrasts to the plot by getting rid of the filter step
@@ -154,7 +191,9 @@ ggplot2::ggplot(ggplot2::aes(x = log_fold_change,
                              color = avg_expression)) + 
   ggplot2::geom_point() + 
   ggplot2::theme_classic() + 
-  ggplot2::facet_wrap(~ contrast)
+  ggplot2::facet_wrap(~ contrast) + 
+  ggplot2::xlab("log10 Fold Change") +
+  ggplot2::ylab("-log10 Adjusted p value")
 ```
 
 We can store the plot as an object. 
@@ -167,7 +206,9 @@ ggplot2::ggplot(ggplot2::aes(x = log_fold_change,
                              color = avg_expression)) + 
   ggplot2::geom_point() + 
   ggplot2::theme_classic() + 
-  ggplot2::facet_wrap(~ contrast) 
+  ggplot2::facet_wrap(~ contrast) + 
+  ggplot2::xlab("log10 Fold Change") +
+  ggplot2::ylab("-log10 Adjusted p value")
 ```
 
 When we are happy with our plot, we can save the plot using `ggsave`. 
