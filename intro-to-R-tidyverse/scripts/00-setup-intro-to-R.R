@@ -48,16 +48,25 @@ metadata <- readr::read_tsv(file.path(data_dir,
 gene_df <- gene_df %>% 
   dplyr::select(metadata$geo_accession)
 
-# This set up is based on the sum to zero parametrization example from 9.5.4 Classic Interaction Models in 
+############# Set up combined sex and tissue variable for model
+# This set up is based on the sum to zero parametrization example from 
+# 9.5.4 Classic Interaction Models in this manual:
 # https://bioconductor.org/packages/3.1/bioc/vignettes/limma/inst/doc/usersguide.pdf
 
-# Set up combined sex and tissue variable for model
+# We will test for sex and tissue variables.
+# We need these to be factor variables
 sex <- factor(metadata$sex)
 tissue <- factor(metadata$tissue)
+
+# Here we are declaring our interaction model, this will give us a matrix
+# of zeroes and ones that corresponds to which samples belong to which group
 design <- model.matrix(~sex*tissue)
 
 # Neaten up column names
-colnames(design) <- c("intercept", "male_female", "astrocytoma_normal", "interaction")
+colnames(design) <- c("intercept", 
+                      "male_female", 
+                      "astrocytoma_normal", 
+                      "interaction")
 
 # Apply linear model to data
 fit <- limma::lmFit(gene_df, design)
@@ -65,20 +74,49 @@ fit <- limma::lmFit(gene_df, design)
 # Apply empirical Bayes to smooth standard errors
 fit2 <- limma::eBayes(fit)
 
-# collect results for each contrast
+########## Extract a results table for each contrast we care about
+# limma::topTable function will apply multiple testing correction and obtain 
+# summary statistics on each
+
+# This first table extracts the results for male_female contrast
+male_female <- limma::topTable(fit2, 
+                               coef = "male_female", # This is what we named this contrast
+                                                     # in the test
+                               number = Inf, # We can tell limma how many results we want back. 
+                                             # we want them all, so we said `Inf``
+                               sort = "none" # We don't want the data sorted, but default is to sort
+                               ) %>% 
+  tibble::rownames_to_column("ensembl_id") # We want the ensembl_id to be its own column 
+                                           # for each of these tables, its easier for storage
+
+# Extract test results for astrocytoma tumor and normal
+astrocytoma_normal <- limma::topTable(fit2, 
+                                      coef = "astrocytoma_normal", 
+                                      number = Inf, 
+                                      sort = "none") %>% 
+  tibble::rownames_to_column("ensembl_id")
+
+# Extract test results for the interaction of sex and tissue
+interaction <- limma::topTable(fit2, 
+                               coef = "interaction", 
+                               number = Inf, 
+                               sort = "none") %>% 
+  tibble::rownames_to_column("ensembl_id")
+
+# Bind together the 3 results tables for each contrast into one big table
+# dplyr::bind_rows will match by column names and bind the rows.
 stats_df <- dplyr::bind_rows(
-  male_female = limma::topTable(fit2, coef = "male_female", number = Inf, sort = "none" ) %>% 
-    tibble::rownames_to_column("ensembl_id"),
-  astrocytoma_normal = limma::topTable(fit2, coef = "astrocytoma_normal", number = Inf, sort = "none")%>% 
-    tibble::rownames_to_column("ensembl_id"),
-  interaction = limma::topTable(fit2, coef = "interaction", number = Inf, sort = "none")%>% 
-    tibble::rownames_to_column("ensembl_id"),
-  .id = "contrast"
+  male_female,
+  astrocytoma_normal,
+  interaction,
+  .id = "contrast" # This argument will create a column that labels for us which results 
+                   # data.frame it is originally from
 )
 
-# Apply multiple testing correction and obtain stats
+# Neaten up this data.frame in preparation for saving to a TSV file
 stats_df <- stats_df %>% 
-  # Map ensembl IDs to their associated gene symbols
+  # Map ensembl IDs to their associated gene symbols by default we are only 
+  # taking the first mapped value. Can change this with the multiVals argument.
   dplyr::mutate("gene_symbol" = AnnotationDbi::mapIds(
     org.Hs.eg.db::org.Hs.eg.db, 
     keys = ensembl_id, 
@@ -89,8 +127,8 @@ stats_df <- stats_df %>%
     ensembl_id, 
     gene_symbol,
     contrast,
-    avg_expression = AveExpr,
-    t,
+    avg_expression = AveExpr, # We want our column names to be consistent format
+    t_statistic = t, # There is a function called `t` so for disambiguation purposes, we will name this t_value
     p_value = P.Value, 
     adj_p_value = adj.P.Val, 
     ) %>% 
