@@ -128,10 +128,9 @@ stats_df <- stats_df %>%
     gene_symbol,
     contrast,
     avg_expression = AveExpr, # We want our column names to be consistent format
-    t_statistic = t, # There is a function called `t` so for disambiguation purposes, we will name this t_value
+    t_statistic = t, # There is a function called `t` so for disambiguation purposes, we will name this t_statistic
     p_value = P.Value, 
     adj_p_value = adj.P.Val, 
     ) %>% 
   # Write this to TSV
   readr::write_tsv(file.path(data_dir, "gene_results_GSE44971.tsv"))
-
