@@ -72,12 +72,22 @@ If we want to see less values at once, we can use brackets with the indices of t
 stats_df$avg_expression[1:10]
 ```
 
+Let's checkout how many rows of data there are per each contrast.
+
+```{r}
+summary(as.factor(stats_df$contrast))
+```
+
 ## Tidyverse brief intro 
+
+Make a new variable of -log10 adjusted p values. 
 
 ```{r}
 stats_df <- stats_df %>% 
   dplyr::mutate(neg_log_p_val = -log10(adj_p_value))
 ```
+
+Let's filter to only `male_female` contrast data. 
 
 ```{r}
 stats_df %>% 
@@ -96,6 +106,17 @@ ggplot2::ggplot(ggplot2::aes(x = log_fold_change, y = neg_log_p_val)) +
 ```
 
 [ggplot2 structure](diagrams/ggplot_structure.png)
+
+We can adjust the color points using `color`. 
+
+```{r}
+stats_df %>% 
+  dplyr::filter(contrast == "male_female") %>% 
+ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
+                             y = neg_log_p_val, 
+                             color = avg_expression)) + 
+  ggplot2::geom_point()
+```
 
 ```{r}
 # Print out the versions and packages we are using in this session
