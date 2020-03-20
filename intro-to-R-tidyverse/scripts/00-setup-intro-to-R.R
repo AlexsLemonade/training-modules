@@ -106,9 +106,9 @@ interaction <- limma::topTable(fit2,
 # Bind together the 3 results tables for each contrast into one big table
 # dplyr::bind_rows will match by column names and bind the rows.
 stats_df <- dplyr::bind_rows(
-  male_female,
-  astrocytoma_normal,
-  interaction,
+  "male_female" = male_female,
+  "astrocytoma_normal" = astrocytoma_normal,
+  "interaction" = interaction,
   .id = "contrast" # This argument will create a column that labels for us which results 
                    # data.frame it is originally from
 )
