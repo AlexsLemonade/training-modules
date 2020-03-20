@@ -45,6 +45,20 @@ Magrittr pipe
 `%>%` <- dplyr::`%>%`
 ```
 
+Let's declare our output folder name as its own object. 
+
+```{r}
+plots_dir <- "plots"
+```
+
+We can also create a directory if it doesn't already exist. 
+
+```{r}
+if(!dir.exists(plots_dir)) {
+  dir.create(plots_dir)
+}
+```
+
 ## Read in the differential expression analysis results file
 
 Here we are using a function `read_tsv` from a library of functions called `readr`. 
@@ -117,6 +131,54 @@ ggplot2::ggplot(ggplot2::aes(x = log_fold_change,
                              color = avg_expression)) + 
   ggplot2::geom_point()
 ```
+
+We can also change the background and aesthetics by adding a `theme`.
+
+```{r}
+stats_df %>% 
+  dplyr::filter(contrast == "male_female") %>% 
+ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
+                             y = neg_log_p_val, 
+                             color = avg_expression)) + 
+  ggplot2::geom_point() + 
+  ggplot2::theme_classic()
+```
+
+We can add all the contrasts to the plot by getting rid of the filter step
+and then add a `facet_wrap` to make each contrast its own plot. 
+
+```{r}
+stats_df %>% 
+ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
+                             y = neg_log_p_val, 
+                             color = avg_expression)) + 
+  ggplot2::geom_point() + 
+  ggplot2::theme_classic() + 
+  ggplot2::facet_wrap(~ contrast)
+```
+
+We can store the plot as an object. 
+Here we will call it `volcano_plot`. 
+
+```{r}
+volcano_plot <- stats_df %>% 
+ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
+                             y = neg_log_p_val, 
+                             color = avg_expression)) + 
+  ggplot2::geom_point() + 
+  ggplot2::theme_classic() + 
+  ggplot2::facet_wrap(~ contrast) 
+```
+
+When we are happy with our plot, we can save the plot using `ggsave`. 
+
+```{r}
+ggplot2::ggsave(plot = volcano_plot, 
+                filename = file.path(plots_dir, "volcano_plot.png"))
+```
+
+When we are done with the notebook, we want to print out the packages we've been using here so
+we can reproduce this if we need. 
 
 ```{r}
 # Print out the versions and packages we are using in this session
