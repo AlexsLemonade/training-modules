@@ -127,6 +127,7 @@ stats_df <- stats_df %>%
     ensembl_id, 
     gene_symbol,
     contrast,
+    log_fold_change = logFC,
     avg_expression = AveExpr, # We want our column names to be consistent format
     t_statistic = t, # There is a function called `t` so for disambiguation purposes, we will name this t_value
     p_value = P.Value, 
