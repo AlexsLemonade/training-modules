@@ -48,46 +48,36 @@ metadata <- readr::read_tsv(file.path(data_dir,
 gene_df <- gene_df %>% 
   dplyr::select(metadata$geo_accession)
 
-# This set up is based on the example 8.7 Factorial Experiment in 
-# https://bioc.ism.ac.jp/packages/2.9/bioc/vignettes/limma/inst/doc/usersguide.pdf
+# This set up is based on the sum to zero parametrization example from 9.5.4 Classic Interaction Models in 
+# https://bioconductor.org/packages/3.1/bioc/vignettes/limma/inst/doc/usersguide.pdf
 
 # Set up combined sex and tissue variable for model
-sex_tissue <- paste0(metadata$tissue, metadata$sex, sep = "_")
-
-# Set variable levels
-sex_tissue <- factor(sex_tissue,
-                     labels = c("control_female", 
-                                "control_male", 
-                                "tumor_female", 
-                                "tumor_male")
-                    )
-
-# Create the design matrix from the genotype information
-des_mat <- model.matrix(~ 0 + sex_tissue)
+sex <- factor(metadata$sex)
+tissue <- factor(metadata$tissue)
+design <- model.matrix(~sex*tissue)
 
 # Neaten up column names
-colnames(des_mat) <- levels(sex_tissue)
+colnames(design) <- c("intercept", "male_female", "astrocytoma_normal", "interaction")
 
 # Apply linear model to data
-fit <- limma::lmFit(gene_df, design = des_mat)
-
-# Set up a contrast matrix that focuses on tumors
-contrast_mat <- limma::makeContrasts(
-  control_v_tumor_female = control_female-tumor_female,
-  control_v_tumor_male = control_male-tumor_male,
-  interaction = (control_female-tumor_female)-(control_male-tumor_male),
-  levels = des_mat)
-
-# Do final fitting
-fit2 <- contrasts.fit(fit, contrast_mat)
+fit <- limma::lmFit(gene_df, design)
 
 # Apply empirical Bayes to smooth standard errors
-fit2 <- eBayes(fit2)
+fit2 <- limma::eBayes(fit)
+
+# collect results for each contrast
+stats_df <- dplyr::bind_rows(
+  male_female = limma::topTable(fit2, coef = "male_female", number = Inf, sort = "none" ) %>% 
+    tibble::rownames_to_column("ensembl_id"),
+  astrocytoma_normal = limma::topTable(fit2, coef = "astrocytoma_normal", number = Inf, sort = "none")%>% 
+    tibble::rownames_to_column("ensembl_id"),
+  interaction = limma::topTable(fit2, coef = "interaction", number = Inf, sort = "none")%>% 
+    tibble::rownames_to_column("ensembl_id"),
+  .id = "contrast"
+)
 
 # Apply multiple testing correction and obtain stats
-stats_df <- limma::topTable(fit2, number = nrow(gene_df)) %>% 
-  # Move ensembl IDs to their own column
-  tibble::rownames_to_column("ensembl_id") %>%
+stats_df <- stats_df %>% 
   # Map ensembl IDs to their associated gene symbols
   dplyr::mutate("gene_symbol" = AnnotationDbi::mapIds(
     org.Hs.eg.db::org.Hs.eg.db, 
@@ -98,11 +88,9 @@ stats_df <- limma::topTable(fit2, number = nrow(gene_df)) %>%
   dplyr::select(
     ensembl_id, 
     gene_symbol,
-    control_v_tumor_female,
-    control_v_tumor_male, 
-    interaction,
+    contrast,
     avg_expression = AveExpr,
-    f_value = "F",
+    t,
     p_value = P.Value, 
     adj_p_value = adj.P.Val, 
     ) %>% 
