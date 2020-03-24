@@ -153,6 +153,18 @@ ggplot2::ggplot(ggplot2::aes(x = log_fold_change,
   ggplot2::geom_point()
 ```
 
+Because we have so many points overlapping one another, we will want to adjust 
+the transparency, which we can do with an `alpha` argument. 
+
+```{r}
+stats_df %>% 
+  dplyr::filter(contrast == "astrocytoma_normal") %>% 
+ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
+                             y = neg_log_p_val, 
+                             color = avg_expression)) + 
+  ggplot2::geom_point(alpha = 0.2)
+```
+
 We can also change the background and aesthetics by adding a `theme`.
 
 ```{r}
@@ -161,7 +173,7 @@ stats_df %>%
 ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
                              y = neg_log_p_val, 
                              color = avg_expression)) + 
-  ggplot2::geom_point() +
+  ggplot2::geom_point(alpha = 0.2) +
   ggplot2::theme_classic()
 ```
 
@@ -174,7 +186,7 @@ stats_df %>%
 ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
                              y = neg_log_p_val, 
                              color = avg_expression)) + 
-  ggplot2::geom_point() + 
+  ggplot2::geom_point(alpha = 0.2) + 
   ggplot2::theme_classic() + 
   ggplot2::xlab("log10 Fold Change") +
   ggplot2::ylab("-log10 Adjusted p value")
@@ -189,7 +201,7 @@ stats_df %>%
 ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
                              y = neg_log_p_val, 
                              color = avg_expression)) + 
-  ggplot2::geom_point() + 
+  ggplot2::geom_point(alpha = 0.2) + 
   ggplot2::theme_classic() + 
   ggplot2::facet_wrap(~ contrast) + 
   ggplot2::xlab("log10 Fold Change") +
@@ -204,7 +216,7 @@ volcano_plot <- stats_df %>%
 ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
                              y = neg_log_p_val, 
                              color = avg_expression)) + 
-  ggplot2::geom_point() + 
+  ggplot2::geom_point(alpha = 0.2) + 
   ggplot2::theme_classic() + 
   ggplot2::facet_wrap(~ contrast) + 
   ggplot2::xlab("log10 Fold Change") +
@@ -216,34 +228,6 @@ When we are happy with our plot, we can save the plot using `ggsave`.
 ```{r}
 ggplot2::ggsave(plot = volcano_plot, 
                 filename = file.path(plots_dir, "volcano_plot.png"))
-```
-
-We can notice that some of these values with low p values seem very high for very log fold change. 
-
-## Apply some cutoffs. 
-
-Lets take a look at filtering genes by their average expression. 
-Genes that are detected at too low of levels cannot be trusted to be accurately measured for differential expression. 
-
-Let's get a summary of average expression of this dataset. 
-
-```{r}
-summary(stats_df$avg_expression)
-```
-
-Filter out expression values that are lower than the 1st Quartile and re-make the plot.
-
-```{r}
-stats_df %>% 
-  dplyr::filter(avg_expression > 0.1754) %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
-                             y = neg_log_p_val, 
-                             color = avg_expression)) + 
-  ggplot2::geom_point() + 
-  ggplot2::theme_classic() + 
-  ggplot2::facet_wrap(~ contrast) + 
-  ggplot2::xlab("log10 Fold Change") +
-  ggplot2::ylab("-log10 Adjusted p value")
 ```
 
 When we are done with the notebook, we want to print out the packages we've been using here so
