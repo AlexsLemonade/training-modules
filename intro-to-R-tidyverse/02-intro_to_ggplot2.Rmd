@@ -1,5 +1,5 @@
 ---
-title: "Intro to R"
+title: "Intro to ggplot2"
 output:   
   html_notebook: 
     toc: true
@@ -10,6 +10,7 @@ output:
 
 ## Objective for this notebook analysis: 
 
+We'll use real gene expression dataset to get comfortable making visualizations using ggplot2. 
 We've [performed differential expression analyses](./scripts/00-setup-intro-to-R.R) on a pre-processed [astrocytoma microarray dataset](https://www.refine.bio/experiments/GSE44971/gene-expression-data-from-pilocytic-astrocytoma-tumour-samples-and-normal-cerebellum-controls).
 We performed three sets of contrasts:  
 
@@ -17,14 +18,11 @@ We performed three sets of contrasts:
 2) `tissue` category contrasting : Pilocytic astrocytoma tumor samples vs normal cerebellum samples  
 3) An interaction of both `sex` and `tissue`. 
 
-*Resources for learning R* 
-
-  - [Swirl, an interactive tutorial](https://swirlstats.com/)  
-  - [R Markdown](http://rmarkdown.rstudio.com)
-  - [R for Data Science](https://r4ds.had.co.nz/)  
-  - [Tutorial on R, RStudio and R Markdown](https://ismayc.github.io/rbasics-book/)  
-  - [Handy R cheatsheets](https://www.rstudio.com/resources/cheatsheets/)  
-  - [R Notebooks tutorial](https://bookdown.org/yihui/rmarkdown/)  
+**More ggplot2 resources:**  
++ [handy cheatsheet for ggplot2](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)  
++ A list of [ggplot2 courses and books from Tidyverse](https://ggplot2.tidyverse.org/)  
++ The [ggplot2 data viz chapter of R for Data Science](https://r4ds.had.co.nz/data-visualisation.html)  
++ A [ggplot2 online tutorial](http://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html)  
 
 ## Set Up
 
@@ -37,12 +35,6 @@ data directory name.
 
 ```{r}
 data_dir <- "data"
-```
-
-Magrittr pipe
-
-```{r}
-`%>%` <- dplyr::`%>%`
 ```
 
 Let's declare our output folder name as its own object. 
@@ -59,13 +51,19 @@ if(!dir.exists(plots_dir)) {
 }
 ```
 
-## Read in the differential expression analysis results file
-
-Here we are using a function `read_tsv` from a library of functions called `readr`. 
+In this notebook we will be using functions from the tidyverse set of packages, so we need to load in those functions using `library()`.
 
 ```{r}
-stats_df <- readr::read_tsv(file.path(data_dir, 
-                                      "gene_results_GSE44971.tsv"))
+library(tidyverse)
+```
+
+## Read in the differential expression analysis results file
+
+Here we are using a `tidyverse` function `read_tsv` from a library of functions called `readr`. 
+
+```{r}
+stats_df <- read_tsv(file.path(data_dir, 
+                               "gene_results_GSE44971.tsv"))
 ```
 
 Let's take a look at what this data.frame looks like: 
@@ -75,9 +73,10 @@ stats_df
 ```
 
 We can take a look at a column individually by using a `$`. 
+Note we are using `head()` so the whole thing doesn' print out. 
 
 ```{r}
-stats_df$contrast
+head(stats_df$contrast)
 ```
 
 If we want to see less values at once, we can use brackets with the indices of the values we'd like returned.
@@ -92,40 +91,49 @@ Let's checkout how many rows of data there are per each contrast.
 summary(as.factor(stats_df$contrast))
 ```
 
-## Tidyverse brief intro 
+## Set up the dataset
 
 Make a new variable of -log10 adjusted p values. 
 
 ```{r}
-stats_df <- stats_df %>% 
-  dplyr::mutate(neg_log_p_val = -log10(adj_p_value))
+stats_df <- mutate(stats_df, neg_log_p_val = -log10(adj_p_value))
 ```
 
 Let's filter to only `male_female` contrast data. 
+First let's try out a logical expression: 
 
 ```{r}
-stats_df %>% 
-  dplyr::filter(contrast == "male_female")
+stats_df$contrast == "male_female"
+```
+
+Notice that we are not reassigning here, so this filtered dataset will not be saved to the environment
+
+```{r}
+dplyr::filter(stats_df, contrast == "male_female")
 ```
 
 ## Plotting this data
 
 Let's make a volcano plot with this data. 
-
 First let's take a look at only the tumor vs normal data. 
 
 ```{r}
-stats_df %>% 
-  dplyr::filter(contrast == "astrocytoma_normal") 
+dplyr::filter(stats_df, contrast == "astrocytoma_normal") 
 ```
 
-We can send this data.frame directly into a `ggplot` function. 
+Let's save this as a separate data.frame by assigning it a new name. 
 
 ```{r}
-stats_df %>% 
-  dplyr::filter(contrast == "astrocytoma_normal") %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
-                             y = neg_log_p_val))
+tumor_normal_df <- dplyr::filter(stats_df, contrast == "astrocytoma_normal") 
+```
+
+We will use this data.frame in `ggplot` function. 
+
+```{r}
+ggplot(tumor_normal_df, # This first part has the data.frame of data we want to plot
+       aes(x = log_fold_change, # This is the column name of the data we want to be the x-axis
+           y = neg_log_p_val) # This is the column name of the data we want for the y-axis
+       )
 ```
 
 You'll notice this plot doesn't have anything on it because we haven't 
@@ -133,105 +141,110 @@ specified a plot type yet.
 To do that, we will add another ggplot layer with `+`. 
 
 ```{r}
-stats_df %>% 
-  dplyr::filter(contrast == "astrocytoma_normal") %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
-                             y = neg_log_p_val)) + 
-  ggplot2::geom_point()
+# This first part is the same as before
+ggplot(tumor_normal_df,
+       aes(x = log_fold_change, 
+           y = neg_log_p_val)) + 
+  # Now we are adding on a layer to specify what kind of plot we want
+  geom_point()
 ```
 
+Here's a brief summary of ggplot2 structure. 
 [ggplot2 structure](diagrams/ggplot_structure.png)
 
+### Adjust our ggplot
+
+Now that we have a base plot that shows our data, we can add layers on to it and adjust it.
 We can adjust the color points using `color`. 
 
 ```{r}
-stats_df %>% 
-  dplyr::filter(contrast == "astrocytoma_normal") %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
-                             y = neg_log_p_val, 
-                             color = avg_expression)) + 
-  ggplot2::geom_point()
+ggplot(tumor_normal_df, 
+       aes(x = log_fold_change,
+           y = neg_log_p_val,
+           color = avg_expression) # We added this argument to color code the points!
+       ) + 
+  geom_point()
 ```
 
 Because we have so many points overlapping one another, we will want to adjust 
 the transparency, which we can do with an `alpha` argument. 
 
 ```{r}
-stats_df %>% 
-  dplyr::filter(contrast == "astrocytoma_normal") %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
-                             y = neg_log_p_val, 
-                             color = avg_expression)) + 
-  ggplot2::geom_point(alpha = 0.2)
+ggplot(tumor_normal_df, 
+       aes(x = log_fold_change,
+           y = neg_log_p_val,
+           color = avg_expression)
+       ) + 
+  geom_point(alpha = 0.2) # We are using the `alpha` argument to make our points transparent
 ```
 
 We can also change the background and aesthetics by adding a `theme`.
 
 ```{r}
-stats_df %>% 
-  dplyr::filter(contrast == "astrocytoma_normal") %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
-                             y = neg_log_p_val, 
-                             color = avg_expression)) + 
-  ggplot2::geom_point(alpha = 0.2) +
-  ggplot2::theme_classic()
+ggplot(tumor_normal_df, 
+       aes(x = log_fold_change, 
+           y = neg_log_p_val,
+           color = avg_expression)
+       ) + 
+  geom_point(alpha = 0.2) +
+  theme_classic() # Add on this set of aesthetics
 ```
 
 We can change the x and y labels by using `ylab` and `xlab` functions and add a
-title using `ggplot2::ggtitle`.
+title using `ggtitle`.
 
 ```{r}
-stats_df %>% 
-  dplyr::filter(contrast == "astrocytoma_normal") %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
-                             y = neg_log_p_val, 
-                             color = avg_expression)) + 
-  ggplot2::geom_point(alpha = 0.2) + 
-  ggplot2::theme_classic() + 
-  ggplot2::xlab("log10 Fold Change") +
-  ggplot2::ylab("-log10 Adjusted p value")
-  ggplot2::ggtitle("Astrocytoma Tumor vs Normal Cerebellum")
+ggplot(tumor_normal_df, 
+       aes(x = log_fold_change, 
+           y = neg_log_p_val,
+           color = avg_expression)
+       ) + 
+  geom_point(alpha = 0.2) +
+  theme_classic() + 
+  xlab("log10 Fold Change") + # Add an x label
+  ylab("-log10 Adjusted p value") # Add a y label
+  ggtitle("Astrocytoma Tumor vs Normal Cerebellum") # Add main title
 ```
 
 We can add all the contrasts to the plot by getting rid of the filter step
 and then add a `facet_wrap` to make each contrast its own plot. 
+Note we have to switch back to `stats_df` which contains the stats for all three contrasts. 
 
 ```{r}
-stats_df %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
-                             y = neg_log_p_val, 
-                             color = avg_expression)) + 
-  ggplot2::geom_point(alpha = 0.2) + 
-  ggplot2::theme_classic() + 
-  ggplot2::facet_wrap(~ contrast) + 
-  ggplot2::xlab("log10 Fold Change") +
-  ggplot2::ylab("-log10 Adjusted p value")
+ggplot(stats_df, # Switch to the bigger data.frame with all three contrasts' data
+       aes(x = log_fold_change, 
+           y = neg_log_p_val, 
+           color = avg_expression)) + 
+  geom_point(alpha = 0.2) + 
+  theme_classic() + 
+  facet_wrap(~ contrast) + 
+  xlab("log10 Fold Change") +
+  ylab("-log10 Adjusted p value")
 ```
 
-We can store the plot as an object. 
+We can store the plot as an object in the global environment by using `<-` operator. 
 Here we will call it `volcano_plot`. 
 
 ```{r}
-volcano_plot <- stats_df %>% 
-ggplot2::ggplot(ggplot2::aes(x = log_fold_change, 
-                             y = neg_log_p_val, 
-                             color = avg_expression)) + 
-  ggplot2::geom_point(alpha = 0.2) + 
-  ggplot2::theme_classic() + 
-  ggplot2::facet_wrap(~ contrast) + 
-  ggplot2::xlab("log10 Fold Change") +
-  ggplot2::ylab("-log10 Adjusted p value")
+volcano_plot <- ggplot(stats_df, # We are calling this plot `volcano_plot`
+       aes(x = log_fold_change, 
+           y = neg_log_p_val, 
+           color = avg_expression)) + 
+  geom_point(alpha = 0.2) + 
+  theme_classic() + 
+  facet_wrap(~ contrast) + 
+  xlab("log10 Fold Change") +
+  ylab("-log10 Adjusted p value")
 ```
 
 When we are happy with our plot, we can save the plot using `ggsave`. 
 
 ```{r}
-ggplot2::ggsave(plot = volcano_plot, 
-                filename = file.path(plots_dir, "volcano_plot.png"))
+ggsave(plot = volcano_plot,
+       filename = file.path(plots_dir, "volcano_plot.png"))
 ```
 
-When we are done with the notebook, we want to print out the packages we've been using here so
-we can reproduce this if we need. 
+### Session Info
 
 ```{r}
 # Print out the versions and packages we are using in this session
