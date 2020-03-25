@@ -109,22 +109,23 @@ stats_df$contrast == "male_female"
 Notice that we are not reassigning here, so this filtered dataset will not be saved to the environment
 
 ```{r}
-dplyr::filter(stats_df, contrast == "male_female")
+filter(stats_df, contrast == "male_female")
+```
+
+Now we can reassign to `male_female_df`. 
+
+```{r}
+male_female_df <- filter(stats_df, contrast == "male_female")
 ```
 
 ## Plotting this data
 
 Let's make a volcano plot with this data. 
 First let's take a look at only the tumor vs normal data. 
-
-```{r}
-dplyr::filter(stats_df, contrast == "astrocytoma_normal") 
-```
-
 Let's save this as a separate data.frame by assigning it a new name. 
 
 ```{r}
-tumor_normal_df <- dplyr::filter(stats_df, contrast == "astrocytoma_normal") 
+tumor_normal_df <- filter(stats_df, contrast == "astrocytoma_normal") 
 ```
 
 We will use this data.frame in `ggplot` function. 
@@ -187,7 +188,7 @@ ggplot(tumor_normal_df,
            color = avg_expression)
        ) + 
   geom_point(alpha = 0.2) +
-  theme_classic() # Add on this set of aesthetics
+  theme_bw() # Add on this set of aesthetics
 ```
 
 We can change the x and y labels by using `ylab` and `xlab` functions and add a
@@ -200,15 +201,19 @@ ggplot(tumor_normal_df,
            color = avg_expression)
        ) + 
   geom_point(alpha = 0.2) +
-  theme_classic() + 
+  theme_bw() + 
   xlab("log10 Fold Change") + # Add an x label
   ylab("-log10 Adjusted p value") # Add a y label
   ggtitle("Astrocytoma Tumor vs Normal Cerebellum") # Add main title
 ```
 
-We can add all the contrasts to the plot by getting rid of the filter step
-and then add a `facet_wrap` to make each contrast its own plot. 
-Note we have to switch back to `stats_df` which contains the stats for all three contrasts. 
+Use this chunk to make the same kind of plot as the previous chunk but instead plot the male female contrast data, that is stored in `male_female_df`. 
+
+```{r}
+# Use this chunk to make the same kind of volcano plot, but with the male-female contrast data. 
+```
+
+Turns out, we don't have to plot each contrast separately, instead, we can use the originally data.frame that contains all three contrasts' data, `stats_df`, and add a `facet_wrap` to make each contrast its own plot. 
 
 ```{r}
 ggplot(stats_df, # Switch to the bigger data.frame with all three contrasts' data
@@ -216,7 +221,7 @@ ggplot(stats_df, # Switch to the bigger data.frame with all three contrasts' dat
            y = neg_log_p_val, 
            color = avg_expression)) + 
   geom_point(alpha = 0.2) + 
-  theme_classic() + 
+  theme_bw() + 
   facet_wrap(~ contrast) + 
   xlab("log10 Fold Change") +
   ylab("-log10 Adjusted p value")
@@ -231,7 +236,7 @@ volcano_plot <- ggplot(stats_df, # We are calling this plot `volcano_plot`
            y = neg_log_p_val, 
            color = avg_expression)) + 
   geom_point(alpha = 0.2) + 
-  theme_classic() + 
+  theme_bw() + 
   facet_wrap(~ contrast) + 
   xlab("log10 Fold Change") +
   ylab("-log10 Adjusted p value")
