@@ -33,7 +33,7 @@ But there is also rich additional functionality provided by **external packages*
 
 In the next notebook and subsequent modules, we will be using a suite of packages collectively known as [**The Tidyverse**](http://tidyverse.org). 
 The `tidyverse` is geared towards intuitive data science applications that follow a shared data philosophy.
-But, there are still certain core features of base R which are important to be aware of.
+But there are still many core features of base R which are important to be aware of, and we will be using concepts from both base R and the tidyverse in our analyses, as well as task specific packages for analyses such as gene expression. 
 
 ### What is RStudio?
 
@@ -44,23 +44,24 @@ For more information about RStudio than you ever wanted to know, see this [RStud
 
 ## The RStudio Environment
 
-The RStudio environment has four main **panes** (their specific location can be changed under Tools -> Global Options -> Pane Layout).
+The RStudio environment has four main **panes**, each of which may have a number of tabs that display different information or functionality. (their specific location can be changed under Tools -> Global Options -> Pane Layout).
 ![RStudio Appearance](screenshots/rstudio-panes.png) 
 
-1. The **editor** pane is where you can write R scripts and other documents. 
+1. The **Editor** pane is where you can write R scripts and other documents. Each tab here is its own document.
 This is your _text editor_, which will allow you to save your R code for future use. 
 Note that change code here will not run automatically until you runu it. 
 
-2. The **console** pane is where you can _interactively_ run R code. 
+2. The **Console** pane is where you can _interactively_ run R code. 
+  + There is also a **Terminal** tab here which can be used for running programs outside R on your computer
+  
+3. The **Environment** pane primarily displays the variables, sometimes known as _objects_ that are defined during a given R session, and what data or values they might hold.
 
-3. The **environment** pane primarily displays the variables, sometimes known as _objects_ you define during a given R session. 
-
-4. The **help viewer** pane has several tabs all of which are pretty important:
-    + The **files** tab shows the structure and contents of your _current directory_ (i.e. folder).
-    + The **plots** tab will reveal plots when you make them
-    + The **packages** tab shows which installed packages have been loaded into your R session
-    + The **help** tab will show the help page when you look up a function
-    + The **viewer** pane will reveal compiled RMarkdown documents 
+4. The **Help viewer** pane has several tabs all of which are pretty important:
+    + The **Files** tab shows the structure and contents of files and folders (also known as directories) on your computer.
+    + The **Plots** tab will reveal plots when you make them
+    + The **Packages** tab shows which installed packages have been loaded into your R session
+    + The **Help** tab will show the help page when you look up a function
+    + The **Viewer** pane will reveal compiled RMarkdown documents 
 
 ### Comments
 
@@ -86,7 +87,9 @@ The most basic use of R is as a regular calculator:
 | Exponentiate | `^` or `**` | 
 
 For example, we can do some simple multiplication like this. 
-In this and following code chunks, the section with the gray background is R code, and the following white-background chunk is the code's output.
+When you execute code within the notebook, the results appear beneath the code. 
+Try executing this chunk by clicking the *Run* button within the chunk or by 
+placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 
 ```{r}
 5 * 6
@@ -95,12 +98,13 @@ In this and following code chunks, the section with the gray background is R cod
 ### Defining and using variables 
 
 To define a variable, we use the _assignment operator_ which looks like an arrow: `<-`, for example `x <- 7` takes the value on the right-hand side of the operator and assigns it to the variable name on the left-hand side. 
-The opposite is also possible, e.g. ` 7 -> x`, as long as the arrow is pointing towards the variable name.
 
 ```{r}
 # Define a variable x to equal 7, and print out the value of x
 x <- 7
-print(x)
+
+# We can have R repeat back to us what `x` is by just using `x`
+x
 ```
 
 Some features of variables, considering the example `x <- 7`:
@@ -115,11 +119,10 @@ x
 ```
 
 ### Variable naming note:
-As best you can, it is a good idea to make your variable names informative (e.g. `x` doesn't mean anything, but `cost_of_sandwich` is meaningful... if we're talking about sandwich prices, that is..). 
+As best you can, it is a good idea to make your variable names informative (e.g. `x` doesn't mean anything, but `sandwich_price` is meaningful... if we're talking about the cost of sandwiches, that is..). 
 
 ## Functions
 We can use pre-built computation methods called "functions" for other operations. 
-In fact, we've already seen and used one - the `print()` function.
 Functions have the following format, where the _argument_ is the information we are providing to the function for it to run.
 
 ```{r, eval=FALSE}
@@ -138,7 +141,38 @@ In particular, documentation tells about how what argument(s) to provide:
 + The first _required_ argument is the value we'd like to take the log of, by default its _natural log_
 + The second _optional_ argument can specify a different base rather than the default `e`.
 
-Functions also _return_ values for us to use. In the case of `log()`, the returned value is the log'd value the function computed.
+Functions also _return_ values for us to use. 
+In the case of `log()`, the returned value is the log'd value the function computed.
+
+```{r}
+log(73)
+```
+
+Here we can specify an _argument_ of `base` to make this base 3 log. 
+
+```{r}
+log(81, base = 3)
+```
+
+If we don't specify the _argument_ names exactly, it assumes they are in order of what `log` has them. 
+See `?log` to see more about its arguments. 
+
+```{r}
+log(8, 2)
+```
+
+We can switch the order if we specify the argument names. 
+
+```{r}
+log(base = 10, x = 4342)
+```
+
+We can provide named objects just the same. 
+
+```{r}
+meaning <- 42
+log(meaning)
+```
 
 ## Working with variables
 
@@ -207,16 +241,17 @@ x
 
 R is telling us it doesn't know how to convert this to a numeric variable, so it has returned `NA` instead.
 
-### Logical variables and operators
+### Comparing values
 
-One of the most important variable types are _logical variables_ (known as "boolean" in many other languages). 
-They help us to compare different quantities and there is a special set of operators for performing comparisons that _return logical values_:
+We often want to compare different quantities, and to do this we will use a special set of comparison operators. 
+Each of these operators asks a particular question about the values on either side of it, such as "Are these equal?" or "Is the left greater than the right?". 
+They answer with a _logical variable_ (known as "boolean" in many other languages), which is either `TRUE`, `FALSE` or `NA` (for when the question can't be answered).
 
 | Operator | What it does |
 |----------|--------------|
  `==`           |  Tests if two quantities are equal |
   `>` and `<`   |  Tests if one quantity is greater than or less than another |
-  `>=` and `<=` |  Tests if one quantity is _greater than or equal to_ or _less than or equal to_ another |
+  `>` and `<`   |  Tests if the left quantity is greater than or less than the one on the right |
 `!`             |  Negates an operation |  
 
 Let's examine their usage:
@@ -224,11 +259,13 @@ Let's examine their usage:
 ```{r, error=TRUE}
 5 == 5
 
-7 >= 9
+count <- 7
 
-4 < 8
+count >= 9
 
-!(4 > 8)  ## 4 is not greater than 8. Parenthesis part is FALSE, but the `!` changes it to TRUE
+4 < count
+
+!(4 > count)  ## 4 is not greater than 8. Parenthesis part is FALSE, but the `!` changes it to TRUE
 ```
 
 While `==` is a question, a single `=` is a declaration. 
@@ -319,6 +356,7 @@ mean(values_1_to_20)
 ```
 
 ### A note on variable naming
+
 We have learned functions such as `c`, `length`, `sum`, and etc. 
 Imagine defining a variable called `c`: This will work, but it will lead to a 
 lot of unintended bugs, so its best to avoid this. 
@@ -352,7 +390,7 @@ Each column is a variable which behaves as a _vector_, and each row is an observ
 We will begin our exploration with the old trusted dataset `iris`, which comes with R. 
 Learn about this dataset using the standard help approach of `?iris`.
 
-### Exploring and indexing data frames
+### Exploring data frames
 
 The first step to using any data is to look at it!!! 
 RStudio contains a special function `View()` which allows you to literally view a variable.
@@ -374,7 +412,7 @@ This provides summary statistics for each column:
 summary(iris)
 ```
 
-This provides a short view of the contents of the data frame
+This provides a short view of the **str**ucture and contents of the data frame.
 
 ```{r}
 str(iris)
@@ -383,11 +421,14 @@ str(iris)
 You'll notice that the column `Species` is a _factor_: This is a special type of character variable that represents distinct categories known as "levels". 
 We have learned here that there are three levels in the `Species` column: setosa, versicolor, and virginica. 
 We might want to explore individual columns of the data frame more in-depth. 
-We can _index_ these columns using the dollar sign `$`:
+We can examine individual columns using the dollar sign `$` to select one by name:
 
 ```{r}
 # Extract Sepal.Length as a vector
-iris$Sepal.Length[1:10]
+iris$Sepal.Length
+
+# indexing operators can be used too
+iris$Sepal.Width[1:10]
 ```
 
 We can perform our regular vector operations on columns directly.
@@ -396,7 +437,7 @@ We can perform our regular vector operations on columns directly.
 mean(iris$Sepal.Length)
 ```
 
-We can also achieve summary statistics for a single column directly. 
+We can also calculate the full summary statistics for a single column directly. 
 
 ```{r}
 summary(iris$Sepal.Length)
