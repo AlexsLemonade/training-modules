@@ -45,9 +45,9 @@ plots_dir <- "plots"
 We can also create a directory if it doesn't already exist. 
 
 ```{r}
-# The if statement here tests whether the plot directory exists and 
+# The if statement here tests whether the plot directory exists and
 # only executes the  expressions between the braces if it does not.
-if(!dir.exists(plots_dir)) { 
+if (!dir.exists(plots_dir)) {
   dir.create(plots_dir)
 }
 ```
@@ -67,8 +67,10 @@ We are also using `file.path()`, which allows us to specify file locations that 
 The resulting data.frame will be stored in a variable named `stats_df`.
 
 ```{r}
-stats_df <- read_tsv(file.path(data_dir, 
-                               "gene_results_GSE44971.tsv"))
+stats_df <- read_tsv(file.path(
+  data_dir,
+  "gene_results_GSE44971.tsv"
+))
 ```
 
 Let's take a look at what this data.frame looks like: 
@@ -103,7 +105,8 @@ To do this we will use a function from the `dplyr` package called `mutate()` to 
 
 ```{r}
 stats_df <- mutate(stats_df, # data.frame we'd like to add a variable to
-                   neg_log_p_val = -log10(p_value))
+  neg_log_p_val = -log10(p_value)
+)
 ```
 
 Let's filter to only `male_female` contrast data. 
@@ -132,7 +135,7 @@ First let's take a look at only the tumor vs. normal comparison.
 Let's save this as a separate data.frame by assigning it a new name. 
 
 ```{r}
-tumor_normal_df <- filter(stats_df, contrast == "astrocytoma_normal") 
+tumor_normal_df <- filter(stats_df, contrast == "astrocytoma_normal")
 ```
 
 To make this plot we will be using functions from the `ggplot2` package, the main plotting package of the tidyverse.
@@ -144,11 +147,14 @@ We use the first function, `ggplot()` to define the data that will be plotted.
 (If you find calling things like the x and y coordinates "aesthetics" confusing, don't worry, you are not alone.)  
 
 ```{r}
-ggplot(tumor_normal_df, # This first argument is the data.frame with the data we want to plot
-       aes(x = log_fold_change, # This is the column name of the values we want to use 
-                                # for the x coordinates
-           y = neg_log_p_val) # This is the column name of the data we want for the y-axis
-       )
+ggplot(
+  tumor_normal_df, # This first argument is the data.frame with the data we want to plot
+  aes(
+    x = log_fold_change, # This is the column name of the values we want to use
+    # for the x coordinates
+    y = neg_log_p_val
+  ) # This is the column name of the data we want for the y-axis
+)
 ```
 
 You'll notice this plot doesn't have anything on it because we haven't 
@@ -158,9 +164,13 @@ A volcano plot is a special kind of scatter plot, so to make that we will want t
 
 ```{r}
 # This first part is the same as before
-ggplot(tumor_normal_df,
-       aes(x = log_fold_change, 
-           y = neg_log_p_val)) + 
+ggplot(
+  tumor_normal_df,
+  aes(
+    x = log_fold_change,
+    y = neg_log_p_val
+  )
+) +
   # Now we are adding on a layer to specify what kind of plot we want
   geom_point()
 ```
@@ -174,11 +184,14 @@ Now that we have a base plot that shows our data, we can add layers on to it and
 We can adjust the color points using `color`. 
 
 ```{r}
-ggplot(tumor_normal_df, 
-       aes(x = log_fold_change,
-           y = neg_log_p_val,
-           color = avg_expression) # We added this argument to color code the points!
-       ) + 
+ggplot(
+  tumor_normal_df,
+  aes(
+    x = log_fold_change,
+    y = neg_log_p_val,
+    color = avg_expression
+  ) # We added this argument to color code the points!
+) +
   geom_point()
 ```
 
@@ -186,11 +199,14 @@ Because we have so many points overlapping one another, we will want to adjust
 the transparency, which we can do with an `alpha` argument. 
 
 ```{r}
-ggplot(tumor_normal_df, 
-       aes(x = log_fold_change,
-           y = neg_log_p_val,
-           color = avg_expression)
-       ) + 
+ggplot(
+  tumor_normal_df,
+  aes(
+    x = log_fold_change,
+    y = neg_log_p_val,
+    color = avg_expression
+  )
+) +
   geom_point(alpha = 0.2) # We are using the `alpha` argument to make our points transparent
 ```
 
@@ -199,11 +215,14 @@ We did this because we want all of the points to have the same level of transpar
 We can also change the background and appearance of the plot as a whole by adding a `theme`.
 
 ```{r}
-ggplot(tumor_normal_df, 
-       aes(x = log_fold_change, 
-           y = neg_log_p_val,
-           color = avg_expression)
-       ) + 
+ggplot(
+  tumor_normal_df,
+  aes(
+    x = log_fold_change,
+    y = neg_log_p_val,
+    color = avg_expression
+  )
+) +
   geom_point(alpha = 0.2) +
   theme_bw() # Add on this set of appearance presets to make it pretty
 ```
@@ -212,34 +231,41 @@ We can change the x and y labels by using `ylab` and `xlab` functions and add a
 title using `ggtitle`.
 
 ```{r}
-ggplot(tumor_normal_df, 
-       aes(x = log_fold_change, 
-           y = neg_log_p_val,
-           color = avg_expression)
-       ) + 
+ggplot(
+  tumor_normal_df,
+  aes(
+    x = log_fold_change,
+    y = neg_log_p_val,
+    color = avg_expression
+  )
+) +
   geom_point(alpha = 0.2) +
-  theme_bw() + 
+  theme_bw() +
   xlab("log10 Fold Change") + # Add an x label
   ylab("-log10 p value") # Add a y label
-  ggtitle("Astrocytoma Tumor vs Normal Cerebellum") # Add main title
+ggtitle("Astrocytoma Tumor vs Normal Cerebellum") # Add main title
 ```
 
 Use this chunk to make the same kind of plot as the previous chunk but instead plot the male female contrast data, that is stored in `male_female_df`. 
 
 ```{r}
-# Use this chunk to make the same kind of volcano plot, but with the male-female contrast data. 
+# Use this chunk to make the same kind of volcano plot, but with the male-female contrast data.
 ```
 
 Turns out, we don't have to plot each contrast separately, instead, we can use the original data frame that contains all three contrasts' data, `stats_df`, and add a `facet_wrap` to make each contrast its own plot. 
 
 ```{r}
-ggplot(stats_df, # Switch to the bigger data.frame with all three contrasts' data
-       aes(x = log_fold_change, 
-           y = neg_log_p_val, 
-           color = avg_expression)) + 
-  geom_point(alpha = 0.2) + 
-  theme_bw() + 
-  facet_wrap(~ contrast) + 
+ggplot(
+  stats_df, # Switch to the bigger data.frame with all three contrasts' data
+  aes(
+    x = log_fold_change,
+    y = neg_log_p_val,
+    color = avg_expression
+  )
+) +
+  geom_point(alpha = 0.2) +
+  theme_bw() +
+  facet_wrap(~contrast) +
   xlab("log10 Fold Change") +
   ylab("-log10 p value")
 ```
@@ -248,13 +274,17 @@ We can store the plot as an object in the global environment by using `<-` opera
 Here we will call it `volcano_plot`. 
 
 ```{r}
-volcano_plot <- ggplot(stats_df, # We are calling this plot `volcano_plot`
-       aes(x = log_fold_change, 
-           y = neg_log_p_val, 
-           color = avg_expression)) + 
-  geom_point(alpha = 0.2) + 
-  theme_bw() + 
-  facet_wrap(~ contrast) + 
+volcano_plot <- ggplot(
+  stats_df, # We are calling this plot `volcano_plot`
+  aes(
+    x = log_fold_change,
+    y = neg_log_p_val,
+    color = avg_expression
+  )
+) +
+  geom_point(alpha = 0.2) +
+  theme_bw() +
+  facet_wrap(~contrast) +
   xlab("log10 Fold Change") +
   ylab("-log10 p value")
 ```
@@ -262,8 +292,10 @@ volcano_plot <- ggplot(stats_df, # We are calling this plot `volcano_plot`
 When we are happy with our plot, we can save the plot using `ggsave`. 
 
 ```{r}
-ggsave(plot = volcano_plot,
-       filename = file.path(plots_dir, "volcano_plot.png"))
+ggsave(
+  plot = volcano_plot,
+  filename = file.path(plots_dir, "volcano_plot.png")
+)
 ```
 
 ### Session Info
