@@ -12,6 +12,7 @@ output:
 
 We'll use a real gene expression dataset to get comfortable making visualizations using ggplot2. 
 We've [performed differential expression analyses](./scripts/00-setup-intro-to-R.R) on a pre-processed [astrocytoma microarray dataset](https://www.refine.bio/experiments/GSE44971/gene-expression-data-from-pilocytic-astrocytoma-tumour-samples-and-normal-cerebellum-controls).
+We'll start by making a volcano plot of differential gene expression results from this experiment.
 We performed three sets of contrasts:  
 
 1) `sex` category contrasting: `Male` vs `Female`  
@@ -29,15 +30,13 @@ We performed three sets of contrasts:
 We saved these results to a tab separated values (TSV) file called `gene_results_GSE44971.tsv`.
 It's been saved to the `data` folder. 
 File paths are relative to where this notebook file (.Rmd) is saved.
-We saved our results file to a folder called `data`. 
-So we can reference it later, let's make a object in our environment with our 
-data directory name. 
+So we can reference it later, let's make a variable with our data directory name. 
 
 ```{r}
 data_dir <- "data"
 ```
 
-Let's declare our output folder name as its own object. 
+Let's declare our output folder name as its own variable. 
 
 ```{r}
 plots_dir <- "plots"
@@ -46,12 +45,16 @@ plots_dir <- "plots"
 We can also create a directory if it doesn't already exist. 
 
 ```{r}
-if(!dir.exists(plots_dir)) {
+# The if statement here tests whether the plot directory exists and 
+# only executes the  expressions between the braces if it does not.
+if(!dir.exists(plots_dir)) { 
   dir.create(plots_dir)
 }
 ```
 
 In this notebook we will be using functions from the Tidyverse set of packages, so we need to load in those functions using `library()`.
+We could load the individual packages we need one at a time, but it is convenient for now to load them all with the `tidyverse` package, which groups many of them together.
+Keep a look out for where we tell you which individual package different functions come from.
 
 ```{r}
 library(tidyverse)
@@ -59,7 +62,9 @@ library(tidyverse)
 
 ## Read in the differential expression analysis results file
 
-Here we are using a `tidyverse` function `read_tsv` from a library of functions called `readr`. 
+Here we are using a `tidyverse` function `read_tsv()` from the `readr` package.
+We are also using `file.path()`, which allows us to specify file locations that will work regardless of the operating system being used. 
+The resulting data.frame will be stored in a variable named `stats_df`.
 
 ```{r}
 stats_df <- read_tsv(file.path(data_dir, 
@@ -73,27 +78,28 @@ stats_df
 ```
 
 We can take a look at a column individually by using a `$`. 
-Note we are using `head()` so the whole thing doesn' print out. 
+Note we are using `head()` so the whole thing doesn't print out. 
 
 ```{r}
 head(stats_df$contrast)
 ```
 
-If we want to see less values at once, we can use brackets with the indices of the values we'd like returned.
+If we want to see a specific set of values, we can use brackets with the indices of the values we'd like returned.
 
 ```{r}
-stats_df$avg_expression[1:10]
+stats_df$avg_expression[6:10]
 ```
 
 Let's checkout how many rows of data there are per each contrast.
 
 ```{r}
-summary(as.factor(stats_df$contrast))
+summary(stats_df)
 ```
 
 ## Set up the dataset
 
-Make a new variable of -log10 p values and for that we'll use `dplyr::mutate`.
+Before we make our plot, we want to calculate a set of new values for each row; transformations of the raw statistics in our table.
+To do this we will use a function from the `dplyr` package called `mutate()` to make a new column of -log10 p values.
 
 ```{r}
 stats_df <- mutate(stats_df, # data.frame we'd like to add a variable to
@@ -107,13 +113,13 @@ First let's try out a logical expression:
 stats_df$contrast == "male_female"
 ```
 
-Notice that we are not reassigning here, so this filtered dataset will not be saved to the environment
+Notice that we are not assigning the results to a variable, so this filtered dataset will not be saved to the environment
 
 ```{r}
 filter(stats_df, contrast == "male_female")
 ```
 
-Now we can reassign to `male_female_df`. 
+Now we can assign the results to a new data.frame: `male_female_df`. 
 
 ```{r}
 male_female_df <- filter(stats_df, contrast == "male_female")
@@ -122,25 +128,33 @@ male_female_df <- filter(stats_df, contrast == "male_female")
 ## Plotting this data
 
 Let's make a volcano plot with this data. 
-First let's take a look at only the tumor vs normal data. 
+First let's take a look at only the tumor vs. normal comparison. 
 Let's save this as a separate data.frame by assigning it a new name. 
 
 ```{r}
 tumor_normal_df <- filter(stats_df, contrast == "astrocytoma_normal") 
 ```
 
-We will use this data.frame in `ggplot` function. 
+To make this plot we will be using functions from the `ggplot2` package, the main plotting package of the tidyverse.
+We use the first function, `ggplot()` to define the data that will be plotted.
+`ggplot()` takes two main arguments:  
+
+1. `data`, which is the data frame that contains the data we want to plot.  
+2. `mapping`, which is a special list made with the `aes()` function to describe which values will be used for each **aes**thetic component of the plot, such as the x and y coordinates of each point. 
+(If you find calling things like the x and y coordinates "aesthetics" confusing, don't worry, you are not alone.)  
 
 ```{r}
-ggplot(tumor_normal_df, # This first part has the data.frame of data we want to plot
-       aes(x = log_fold_change, # This is the column name of the data we want to be the x-axis
+ggplot(tumor_normal_df, # This first argument is the data.frame with the data we want to plot
+       aes(x = log_fold_change, # This is the column name of the values we want to use 
+                                # for the x coordinates
            y = neg_log_p_val) # This is the column name of the data we want for the y-axis
        )
 ```
 
 You'll notice this plot doesn't have anything on it because we haven't 
 specified a plot type yet. 
-To do that, we will add another ggplot layer with `+`. 
+To do that, we will add another ggplot layer with `+` which will specify exactly what we want to plot.
+A volcano plot is a special kind of scatter plot, so to make that we will want to plot individual points, which we can do with `geom_point()`.
 
 ```{r}
 # This first part is the same as before
@@ -180,7 +194,9 @@ ggplot(tumor_normal_df,
   geom_point(alpha = 0.2) # We are using the `alpha` argument to make our points transparent
 ```
 
-We can also change the background and aesthetics by adding a `theme`.
+Notice that we added the alpha within the `geom_point()` function, not to the `aes()`. 
+We did this because we want all of the points to have the same level of transparency, and it will not vary depending on any variable in the data.
+We can also change the background and appearance of the plot as a whole by adding a `theme`.
 
 ```{r}
 ggplot(tumor_normal_df, 
@@ -189,7 +205,7 @@ ggplot(tumor_normal_df,
            color = avg_expression)
        ) + 
   geom_point(alpha = 0.2) +
-  theme_bw() # Add on this set of aesthetics to make it pretty
+  theme_bw() # Add on this set of appearance presets to make it pretty
 ```
 
 We can change the x and y labels by using `ylab` and `xlab` functions and add a
@@ -214,7 +230,7 @@ Use this chunk to make the same kind of plot as the previous chunk but instead p
 # Use this chunk to make the same kind of volcano plot, but with the male-female contrast data. 
 ```
 
-Turns out, we don't have to plot each contrast separately, instead, we can use the originally data.frame that contains all three contrasts' data, `stats_df`, and add a `facet_wrap` to make each contrast its own plot. 
+Turns out, we don't have to plot each contrast separately, instead, we can use the original data frame that contains all three contrasts' data, `stats_df`, and add a `facet_wrap` to make each contrast its own plot. 
 
 ```{r}
 ggplot(stats_df, # Switch to the bigger data.frame with all three contrasts' data
