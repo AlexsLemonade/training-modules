@@ -10,21 +10,14 @@ output:
 
 ## Objective for this notebook analysis: 
 
-We'll use a real gene expression dataset to get comfortable making visualizations using ggplot2. 
-We've [performed differential expression analyses](./scripts/00-setup-intro-to-R.R) on a pre-processed [astrocytoma microarray dataset](https://www.refine.bio/experiments/GSE44971/gene-expression-data-from-pilocytic-astrocytoma-tumour-samples-and-normal-cerebellum-controls).
-We performed three sets of contrasts:  
-
-1) `sex` category contrasting: `Male` vs `Female`  
-2) `tissue` category contrasting : `Pilocytic astrocytoma tumor` samples vs `normal cerebellum` samples  
-3) An interaction of both `sex` and `tissue`. 
+We'll use the same gene expression dataset we used in the previous notebook. 
+It a pre-processed [astrocytoma microarray dataset](https://www.refine.bio/experiments/GSE44971/gene-expression-data-from-pilocytic-astrocytoma-tumour-samples-and-normal-cerebellum-controls) that we performed [differential expression analyses](./scripts/00-setup-intro-to-R.R).
 
 **More tidyverse resources:**  
-
-
-### III) Manipulating data.frames
-
-**Strategy:** 
-Borrow from sjspielman's [05-introduction-dplyr](http://htmlpreview.github.io/?https://github.com/sjspielman/datascience_for_biologists/blob/master/rmd_lessons/05-introduction-dplyr.html) and [06-more-wrangling](http://htmlpreview.github.io/?https://github.com/sjspielman/datascience_for_biologists/blob/master/rmd_lessons/06-more-wrangling.html) and our already existing [intro to tidyverse](https://github.com/AlexsLemonade/training-modules/blob/master/intro-to-R-tidyverse/02-intro_to_tidyverse.Rmd).
+- [R for Data Science](https://r4ds.had.co.nz/)
+- [Tidyverse documentation](https://dplyr.tidyverse.org/)
+- [Cheatsheet of Tidyverse data transformation](https://github.com/rstudio/cheatsheets/raw/master/data-transformation.pdf)
+- [Online Tidyverse book chapter](https://privefl.github.io/advr38book/tidyverse.html)
 
 **Concepts to cover (in order)** 
 - Referencing a library's function with `::`
@@ -36,72 +29,6 @@ Borrow from sjspielman's [05-introduction-dplyr](http://htmlpreview.github.io/?h
 
 ## Set Up
 
-We saved these results to a tab separated values (TSV) file called `gene_results_GSE44971.tsv`.
-It's been saved to the `data` folder. 
-File paths are relative to where this notebook file (.Rmd) is saved.
-We saved our results file to a folder called `data`. 
-So we can reference it later, let's make a object in our environment with our 
-data directory name. 
-
-```{r}
-data_dir <- "data"
-```
-
-Let's declare our output folder name as its own object. 
-
-```{r}
-plots_dir <- "plots"
-```
-
-We can also create a directory if it doesn't already exist. 
-
-```{r}
-if(!dir.exists(plots_dir)) {
-  dir.create(plots_dir)
-}
-```
-
-In this notebook we will be using functions from the Tidyverse set of packages, so we need to load in those functions using `library()`.
-
-```{r}
-library(tidyverse)
-```
-
-## Read in the differential expression analysis results file
-
-Here we are using a `tidyverse` function `read_tsv` from a library of functions called `readr`. 
-
-```{r}
-stats_df <- read_tsv(file.path(data_dir, 
-                               "gene_results_GSE44971.tsv"))
-```
-
-Let's take a look at what this data.frame looks like: 
-
-```{r}
-stats_df
-```
----
-title: "Intro to Tidyverse"
-output:   
-  html_notebook: 
-    toc: true
-    toc_float: true
----
-
-**CCDL 2019**
-
-In this notebook, we will take you through the basics of the tidyverse: 
-a collection of packages that make R easier to use and more convenient.  
-
-We recommend using the free books Hadley Wickham and friends have on 
-how to use the [tidyverse packages](https://r4ds.had.co.nz/index.html).
-
-## Set Up
-
-R packages are collections of functions. 
-Installing R on your computer installs `base` functions like statistical tests 
-and some plotting functionality.
 The `tidyverse` is a collection of packages that are handy for general data 
 wrangling, analysis, and visualization. 
 Other packages that are specifically handy for different biological analyses are 
@@ -195,7 +122,7 @@ if (!dir.exists("results")) {
 Note that the `dir.exists` function will not work on files themselves.
 In this case, there is an analogous function called `file.exists`.
 
-Try using the `file.exists` function to see if the file `metadata.tsv` file 
+Try using the `file.exists` function to see if the file `gene_results_GSE44971.tsv` file 
 exists in the current directory.
 Use the code chunk we set up for you below. 
 Note that in our notebooks (and sometimes elsewhere), wherever you see a 
@@ -208,19 +135,12 @@ with the correct phrase before you run the chunk (otherwise you will get an erro
 file.exists(<PUT_FILE_NAME_HERE>)
 ```
 
-Now that we've determined that `metadata.tsv` exists, we are ready to read it 
+Now that we've determined that `gene_results_GSE44971.tsv` exists, we are ready to read it 
 into our R environment.
 
 #### Read a TSV file
 
-This file `metadata.tsv` is from GSE30074 on [refine.bio](https://www.refine.bio/experiments/GSE30074/expression-data-from-30-medulloblastomas),
-a gene expression dataset from medulloblastoma ([Park et al. _Neuro Oncol._ 2011.](https://www.ncbi.nlm.nih.gov/pubmed/22090452)).
-  
-If `metadata.tsv` was not in our working directory, remember we can tell R to 
-look for `metadata.tsv` somewhere else using a relative directory path. 
 In R, we will use `file.path()` for this (more on this later in this notebook).  
-  
-Let's read in the data from `metadata.tsv` using the tidyverse package: `readr`.
 Although base R has read-in functions, the `readr` functions are faster and more
 straightforward to use so we are going to use those here. 
 Because the file we are reading in is a TSV (tab separated values) file we will 
@@ -228,9 +148,18 @@ be using the `read_tsv` function.
 But note that there are analogous functions for CSV (comma separated values) 
 files (`read_csv`) and other files types.
 
+## Read in the differential expression analysis results file
+
+Here we are using a `tidyverse` function `read_tsv` from a library of functions called `readr`. 
+
+```{r}
+stats_df <- readr::read_tsv(file.path("data",
+                                      "gene_results_GSE44971.tsv"))
+```
 ```{r}
 # The file we are reading in is our argument for read_tsv
-metadata <- read_tsv("metadata.tsv")
+metadata <- read_tsv(file.path("data",
+                               "metadata_GSE44971.tsv"))
 ```
 
 ## dplyr pipes
@@ -604,12 +533,6 @@ reimport_df <- <PUT_FUNCTION_NAME>(file.path("results", "metadata_clean.RDS"))
 ```
 
 As is good practice, we will end this session by printing out our session info. 
-
-#### Session Info: 
-
-```{r}
-sessionInfo()
-```
 
 ### Session Info
 
