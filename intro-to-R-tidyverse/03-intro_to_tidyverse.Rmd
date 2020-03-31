@@ -29,6 +29,12 @@ It a pre-processed [astrocytoma microarray dataset](https://www.refine.bio/exper
 
 ## Set Up
 
+Declare the name of the directory where we will read in the data. 
+
+```{r}
+data_dir <- "data"
+```
+
 The `tidyverse` is a collection of packages that are handy for general data 
 wrangling, analysis, and visualization. 
 Other packages that are specifically handy for different biological analyses are 
@@ -153,13 +159,13 @@ files (`read_csv`) and other files types.
 Here we are using a `tidyverse` function `read_tsv` from a library of functions called `readr`. 
 
 ```{r}
-stats_df <- readr::read_tsv(file.path("data",
+stats_df <- readr::read_tsv(file.path(data_dir,
                                       "gene_results_GSE44971.tsv"))
 ```
 ```{r}
 # The file we are reading in is our argument for read_tsv
-metadata <- read_tsv(file.path("data",
-                               "metadata_GSE44971.tsv"))
+metadata <- read_tsv(file.path(data_dir,
+                               "cleaned_metadata_GSE44971.tsv"))
 ```
 
 ## dplyr pipes
@@ -171,13 +177,13 @@ making your code a little more streamlined.
 For example, the output from this:  
 
 ```{r}
-filter(metadata, sex == "F")
+filter(metadata, sex == "female")
 ```  
 
 ...is the same as the output from this:  
 
 ```{r}
-metadata %>% filter(sex == "F")
+metadata %>% filter(sex == "female")
 ```  
   
 This makes it so your code is cleaner and easier to read. 
@@ -187,29 +193,29 @@ functions look with or without pipes:
 *Example 1:* without pipes: 
 
 ```{r}
-metadata_nopipe <- metadata
-metadata_nopipe <- arrange(metadata_nopipe, histology)
-metadata_nopipe <- filter(metadata_nopipe, follow_up_mths > 50)
-metadata_nopipe <- select(metadata_nopipe, sample_id, sex, organism)
+stats_nopipe <- stats_df
+stats_nopipe <- arrange(stats_nopipe, t_statistic)
+stats_nopipe <- filter(stats_nopipe, avg_expression > 5)
+stats_nopipe <- select(stats_nopipe, contrast, log_fold_change, p_value)
 ```
   
-UGH, we have to repeat and assign `metadata_nopipe` so many times here! 
+UGH, we have to repeat and assign `stats_nopipe` so many times here! 
 It's annoying and makes it harder for people to read. 
   
 *Example 2:* Same result as 1 but with pipes!
 
 ```{r}
 # Example of the same modifications as above but with pipes!
-metadata_pipe <- metadata %>%
-                 arrange(histology) %>%
-                 filter(follow_up_mths > 50) %>%
-                 select(sample_id, sex, organism)
+stats_pipe  <- stats_pipe %>%
+               arrange(t_statistic) %>%
+               filter(avg_expression > 5) %>%
+               select(contrast, log_fold_change, p_value)
 ```
 
 Let's double check that these are the same by using the function, all.equal: 
 
 ```{r}
-all.equal(metadata_nopipe, metadata_pipe)
+all.equal(stats_nopipe, stats_pipe)
 ```
 
 `all.equal` is letting us know that these two objects are the same. 
@@ -227,22 +233,21 @@ groups.
 In order to do this, we would use the function `filter` as well as a logic statement.
 
 ```{r}
-# Here let's filter the data to have only females
-metadata %>% filter(sex == "F")
+# Here let's filter the data to a particular gene
+stats_df %>% filter(gene_symbol == "SNCA")
 ```
 
 We can use filter similarly for numeric statements.  
 
 ```{r}
-# Here let's filter the data to have people only older than 100 months
-metadata %>% filter(age_mths > 100)
+# Here let's filter the data to have average expression values above 5
+stats_df %>% filter(avg_expression > 5)
 ```
 
-What if we wanted filter this dataset to females who are older than 100 months? 
-Let's add another filtering argument to this filter.
+We can apply multiple filters at once:
 
 ```{r }
-metadata %>% filter(age_mths > 100, sex == "F")
+stats_df %>% filter(contrast == "male_female", avg_expression > 5)
 ```
 
 When we are filtering, the `%in%` operator can come in handy if we have multiple
@@ -250,23 +255,24 @@ items we would like to match.
 Let's take a look at what using `%in%` does.
 
 ```{r}
-metadata$histology %in% c("Anaplastic", "Desmoplastic")
+stats_df$gene_symbol %in% c("SNCA", "CDKN1A")
 ```
 
 `%in%` returns a logical vector that now we can use in `dplyr::filter`.
 
 ```{r }
-metadata %>% filter(histology %in% c("Anaplastic", "Desmoplastic"))
+stats_df %>% filter(gene_symbol %in% c("SNCA", "CDKN1A"))
 ```
 
 Let's return to our first `filter` and build on to it. 
 This time, let's keep only some of these variables with the `select` function. 
-Let's also save this as a new data.frame called `metadata_filtered`.
+Let's also save this as a new data.frame called `stats_filtered_df`.
 
 ```{r}
-metadata_filtered <- metadata %>% 
-  filter(age_mths > 100, sex == "F") %>%
-  select(sample_id, histology, metastasis)
+stats_filtered_df <- stats_df %>% 
+  filter(contrast == "male_female", 
+         avg_expression > 5) %>%
+  select(log_fold_change, t_statistic)
 ```
 
 Let's say we wanted to arrange this dataset so that the patients were arranged
@@ -275,33 +281,30 @@ In order to do this, we would use the function `arrange` as well as the variable
 we would like to sort by (in this case `age_mths`).
 
 ```{r}
-metadata %>% arrange(age_mths) 
+stats_df %>% arrange(p_value) 
 ```
 
 What if we want the the oldest patients at the top of this dataset instead? 
 We can use the same function, but instead use the `desc` function too. 
 
 ```{r}
-metadata %>% arrange(desc(age_mths))
+stats_df %>% arrange(desc(p_value))
 ``` 
 
 What if we would like to create new variables? 
 For that we use `mutate` function. 
-Let's convert the ages that are in months to years and make that into a new variable.
-Here we are also using the `round` function from base R to limit the number of 
-decimal points in our new variable to 2.
 
 ```{r}
-metadata %>% 
-  mutate(age_yrs = round(age_mths/12, 2))
+stats_df %>% 
+  mutate(log10 = -log10(p_value))
 ```
 
 What if we want to obtain summary statistics for a variable? 
 The `summarize` function allows us to calculate summary statistics for a column. 
-Here we will use summarize to obtain an overall mean age in months. 
+Here we will use summarize to obtain an average expression overall all genes. 
 
 ```{r}
-metadata %>% summarize(mean(age_mths))
+stats_df %>% summarize(mean(log_fold_change))
 ```
 
 What if we'd like to obtain a summary statistics but have them for various groups?
@@ -311,28 +314,26 @@ Also note that `group_by` allows us to group by multiple variables at a time if
 you want to.
 
 ```{r}
-metadata_summary <- metadata %>%
-      group_by(sex) %>% 
-      summarize(mean(age_mths))
+stats_summary_df <- stats_df %>%
+      group_by(contrast) %>% 
+      summarize(mean(log_fold_change))
 ```
 
-Let's use `head(metadata_summary)` so we can look at a preview of what we made:
+Let's look at a preview of what we made:
 
 ```{r}
-head(metadata_summary)
+stats_summary_df
 ```
 
 ### Chunking out your code: a technique for figuring out what's happening
 
-We did quite a few steps to get the object `metadata_summary`. 
+We did quite a few steps to get the object `stats_summary_df`. 
 If we needed to troubleshoot this step, or if we got confused on what's 
 happening, it could be difficult to figure this out by looking at the code chunk 
 all at once. 
 
 For these situations, we are going to introduce you to a technique called 
 "chunking".
-
-![](diagrams/chunking_code.png)
 
 Printing out smaller units of code at a time can help you learn what is happening
 at each step. 
@@ -342,7 +343,7 @@ Use this empty code chunk below to try chunking out this code chunk by following
 the figure above. 
 
 ```{r}
-# Try to chunk out lines of code we used to get `metadata_summary`
+# Try to chunk out lines of code we used to get `stats_summary_df`
 ```
 
 For more troubleshooting techniques or a breakdown of the most common R errors, 
@@ -364,58 +365,13 @@ We need to use the `by` argument to designate what column(s)
 should be used as a key to match the data.frames (in this case our `sample_id`s). 
 
 ```{r}
-metadata_filtered %>% inner_join(metadata_pipe, by = 'sample_id') 
+stats_df %>% inner_join(metadata, by = 'sample_id') 
 ```
 
 Note that if there are columns of the same name in both data.frames, the default 
 is to save both columns but a `x` or `y` is added to the name to note which 
 data.frame it originated from.
 In this case, `x` = `metadata_filtered` and `y` = `metadata_pipe`.
-
-## A brief intro to `ggplot2` data visualization
-
-`ggplot2` is a tidyverse package that is very useful for making publication ready 
-plots. 
-We will use `ggplot2` to create data visualization throughout our workshops. 
-For now, we will introduce you to the very basic structure of `ggplot2`. 
-
-The two basic arguments needed to start a ggplot are 1) `data` and 2) `aes` (short for
-aesthetics).
-Other aspects of the plot will be added after these two arguments are established. 
-
-For the `data` argument, `ggplot` needs a data.frame that is ["tidy"](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html)
-
-For the `aes` argument, we need to specify our variables. 
-The variables we specify should be named columns within the object we specified as 
-our `data`. 
-Here we will use `sex` and `age_mths` as our variables. 
-
-```{r}
-sex_by_age_plot <- ggplot(data = metadata, aes(x = sex, y = age_mths))
-
-# Let's print out this default plot so we see what it looks like
-sex_by_age_plot
-```
-
-Although we have the basic structure of our ggplot, we haven't yet added anything 
-to specify what kind of plot we would like, so this default plot is rather boring 
-and not sensible. 
-
-To add more to our plot, we will use the `+` operator. 
-
-```{r}
-sex_by_age_plot + geom_boxplot()
-```
-
-In this case, we will add `geom_boxplot` so that our data is displayed in 
-a way that tells us more information. 
-
-To break this down, here is a diagram illustrating the various parts of a ggplot.
-
-![**Basic Structure of a ggplot**](diagrams/ggplot_structure.png)
-
-There is a lot more we could do to further customize this plot, but for now
-we've covered the basic structure. 
 
 ## A brief intro to the `apply` family of functions
 
@@ -485,9 +441,9 @@ from examples below.
 ```{r}
 # Which of these file paths is what we want to use to save our data to the
 # results directory we created at the beginning of this notebook?
-file.path("docker-install", "metadata.tsv")
-file.path("results", "metadata_clean.tsv")
-file.path("metadata_clean.tsv", "results")
+file.path("docker-install", "stats_summary.tsv")
+file.path("results", "stats_summary.tsv")
+file.path("stats_summary.tsv", "results")
 ```
 
 Replace `<NEW_FILE_PATH>` below with the `file.path` from above that will 
@@ -495,7 +451,7 @@ successfully save our file to the `results` folder
 
 ```{r eval=FALSE}
 # Write our data.frame to a TSV file
-write_tsv(metadata_summary, <NEW_FILE_PATH>)
+write_tsv(stats_summary_df, <NEW_FILE_PATH>)
 ```
 
 Check in your `results` directory to see if your new file has successfully saved.
@@ -529,7 +485,7 @@ below.
 
 ```{r eval=FALSE}
 # Read in your RDS file
-reimport_df <- <PUT_FUNCTION_NAME>(file.path("results", "metadata_clean.RDS"))
+reimport_df <- <PUT_FUNCTION_NAME>(file.path("results", "stats_clean.RDS"))
 ```
 
 As is good practice, we will end this session by printing out our session info. 
