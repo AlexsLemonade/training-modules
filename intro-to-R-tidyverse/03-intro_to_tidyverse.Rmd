@@ -164,9 +164,16 @@ stats_df <- readr::read_tsv(file.path(data_dir,
 ```
 ```{r}
 # The file we are reading in is our argument for read_tsv
-metadata <- read_tsv(file.path(data_dir,
-                               "cleaned_metadata_GSE44971.tsv"))
+gene_df <- read_tsv(file.path(data_dir, "GSE44971.tsv"))
 ```
+
+Use this chunk to explore what `gene_df` looks like. 
+
+```{r}
+# Explore `gene_df`
+```
+
+What information is contained in `gene_df`?
 
 ## dplyr pipes
 
@@ -177,17 +184,17 @@ making your code a little more streamlined.
 For example, the output from this:  
 
 ```{r}
-filter(metadata, sex == "female")
+filter(stats_df, contrast == "male_female")
 ```  
 
 ...is the same as the output from this:  
 
 ```{r}
-metadata %>% filter(sex == "female")
+stats_df %>% filter(contrast == "male_female")
 ```  
   
 This makes it so your code is cleaner and easier to read. 
-Let's look at an example with our metadata of of how the same 
+Let's look at an example with our stats of of how the same 
 functions look with or without pipes:
 
 *Example 1:* without pipes: 
@@ -206,7 +213,7 @@ It's annoying and makes it harder for people to read.
 
 ```{r}
 # Example of the same modifications as above but with pipes!
-stats_pipe  <- stats_pipe %>%
+stats_pipe  <- stats_df %>%
                arrange(t_statistic) %>%
                filter(avg_expression > 5) %>%
                select(contrast, log_fold_change, p_value)
@@ -247,7 +254,8 @@ stats_df %>% filter(avg_expression > 5)
 We can apply multiple filters at once:
 
 ```{r }
-stats_df %>% filter(contrast == "male_female", avg_expression > 5)
+stats_df %>% filter(contrast == "male_female", 
+                    avg_expression > 5)
 ```
 
 When we are filtering, the `%in%` operator can come in handy if we have multiple
@@ -350,71 +358,33 @@ For more troubleshooting techniques or a breakdown of the most common R errors,
 check out the [debugging resources guide](https://github.com/AlexsLemonade/training-modules/blob/master/intro-to-R-tidyverse/00b-debugging_resources.md)
 in this repository.
 
-## The dplyr::join functions
-
-Let's say we have a scenario where we have two data.frames that we would like to 
-combine. 
-Recall that `metadata_pipe` and `metadata_filtered` are data.frames we've
-made with information about some of the same samples.
-The [`dplyr::join` family of functions](https://dplyr.tidyverse.org/reference/join.html) 
-are useful for various scenarios of combining data.frames. 
-
-For now, we will focus on `inner_join`, which will combine data.frames by only
-keeping information about the samples that are in both data.frames. 
-We need to use the `by` argument to designate what column(s) 
-should be used as a key to match the data.frames (in this case our `sample_id`s). 
-
-```{r}
-stats_df %>% inner_join(metadata, by = 'sample_id') 
-```
-
-Note that if there are columns of the same name in both data.frames, the default 
-is to save both columns but a `x` or `y` is added to the name to note which 
-data.frame it originated from.
-In this case, `x` = `metadata_filtered` and `y` = `metadata_pipe`.
-
 ## A brief intro to the `apply` family of functions
 
-Previously in this notebook, we used the `summarize` section to calculate summary
-statistics for variables. 
-However, in base R there the `apply` family of functions can be an alternative 
+In base R there the `apply` family of functions can be an alternative 
 methods for performing transformations across a data.frame, matrix or for other 
 object structures. 
-
-We will practice using `apply` here. 
-First, we are going to make a random matrix for us to practice `apply` functions 
-on.
-Question: What should we do before this step to make this *randomly* created 
-matrix reproducible? 
-
-```{r}
-# Right! We should set the seed!
-set.seed(12345)
-
-# Make a matrix for apply practice
-num_matrix <- matrix(rnorm(24), ncol = 4, nrow = 6)
-```
 
 The second argument in `apply` specifies whether we are applying something 
 across rows or across columns (1 for rows, 2 for columns).
 
 ```{r}
 # Calculate row means
-row_means <- apply(num_matrix, 1, mean) # Notice we are using 1 here
+gene_means <- apply(gene_df[, -1], 1, mean) # Notice we are using 1 here
 
-# What dimensions will row_means have? 
-str(row_means)
+# How long will `gene_means` be? 
+length(gene_means)
 ```
 
+Why do we have a `[, -1]` after `gene_df` in the above chunk?
 Now let's investigate the same set up, but use 2 to `apply` over the columns of
 our matrix.
 
 ```{r}
-# Calculate column means
-col_means <- apply(num_matrix, 2, mean) # Notice we use 2 here
+# Calculate sample means
+sample_means <- apply(gene_df[, -1], 2, mean) # Notice we use 2 here
 
-# What dimensions will col_means have? 
-str(col_means)
+# How long will `sample_means` be? 
+length(sample_means)
 ```
 
 Although the `apply` functions may not be as easy to use as the `tidyverse` 
@@ -422,6 +392,27 @@ functions, for some applications, `apply` methods can be better suited.
 In this workshop, we will not delve too deeply into the various other apply 
 functions (`tapply`, `lapply`, etc.) but you can read more examples 
 about them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
+## The dplyr::join functions
+
+Let's say we have a scenario where we have two data.frames that we would like to 
+combine. 
+Recall that `stats_pipe` and `gene_df` are data.frames that contain information about some of the same genes.
+The [`dplyr::join` family of functions](https://dplyr.tidyverse.org/reference/join.html) 
+are useful for various scenarios of combining data.frames. 
+
+For now, we will focus on `inner_join`, which will combine data.frames by only
+keeping information about the samples that are in both data.frames. 
+We need to use the `by` argument to designate what column(s) 
+should be used as a key to match the data.frames (in this case `ensembl_id`s). 
+
+```{r}
+stats_df %>% inner_join(gene_df, 
+                        by = c('ensembl_id' = 'Gene')) 
+```
+
+Note that if there are columns of the same name in both data.frames, the default 
+is to save both columns but a `x` or `y` is added to the name to note which 
+data.frame it originated from.
 
 ## Save data to files
 
@@ -472,7 +463,7 @@ determined as our `file.path` for the last chunk as your template.
 
 ```{r eval=FALSE}
 # Write your object to an RDS file
-write_rds(metadata_summary, <PUT_CORRECT_FILE_PATH_HERE>)
+write_rds(stats_summary, <PUT_CORRECT_FILE_PATH_HERE>)
 ```
 
 #### Read an RDS file
