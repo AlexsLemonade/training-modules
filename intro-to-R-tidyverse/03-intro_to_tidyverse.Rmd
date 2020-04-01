@@ -10,8 +10,9 @@ output:
 
 ## Objective for this notebook analysis: 
 
-We'll use the same gene expression dataset we used in the previous notebook. 
-It is a pre-processed [astrocytoma microarray dataset](https://www.refine.bio/experiments/GSE44971/gene-expression-data-from-pilocytic-astrocytoma-tumour-samples-and-normal-cerebellum-controls) that we performed a set of [differential expression analyses on](./scripts/00-setup-intro-to-R.R).  
+We'll use the same gene expression dataset we used in the [previous notebook]((./02-intro_to_ggplot2.Rmd).
+It is a pre-processed [astrocytoma microarray dataset](https://www.refine.bio/experiments/GSE44971/gene-expression-data-from-pilocytic-astrocytoma-tumour-samples-and-normal-cerebellum-controls) 
+that we performed a set of [differential expression analyses on](./scripts/00-setup-intro-to-R.R).  
 
 **More tidyverse resources:**  
 - [R for Data Science](https://r4ds.had.co.nz/)  
@@ -26,6 +27,9 @@ wrangling, analysis, and visualization.
 Other packages that are specifically handy for different biological analyses are 
 found on [Bioconductor](https://www.bioconductor.org/).
 If we want to use a package's functions we first need to install them.
+
+TODO: Language around Docker container may change depending on RStudio cloud stuff
+
 In our Docker container, we already have `tidyverse` and other packages we will
 use in this workshop installed for you. 
 But if you needed to install it or other packages available on CRAN, you 
@@ -233,21 +237,24 @@ In order to do this, we would use the function `filter` as well as a logic state
 
 ```{r}
 # Here let's filter the data to a particular gene
-stats_df %>% filter(gene_symbol == "SNCA")
+stats_df %>% 
+  filter(gene_symbol == "SNCA")
 ```
 
 We can use filter similarly for numeric statements.  
 
 ```{r}
 # Here let's filter the data to have average expression values above 5
-stats_df %>% filter(avg_expression > 5)
+stats_df %>% 
+  filter(avg_expression > 5)
 ```
 
 We can apply multiple filters at once:
 
 ```{r }
-stats_df %>% filter(contrast == "male_female", 
-                    avg_expression > 5)
+stats_df %>% 
+  filter(contrast == "male_female", 
+         avg_expression > 5)
 ```
 
 When we are filtering, the `%in%` operator can come in handy if we have multiple
@@ -261,7 +268,8 @@ stats_df$gene_symbol %in% c("SNCA", "CDKN1A")
 `%in%` returns a logical vector that now we can use in `dplyr::filter`.
 
 ```{r }
-stats_df %>% filter(gene_symbol %in% c("SNCA", "CDKN1A"))
+stats_df %>% 
+  filter(gene_symbol %in% c("SNCA", "CDKN1A"))
 ```
 
 Let's return to our first `filter` and build on to it. 
@@ -275,20 +283,24 @@ stats_filtered_df <- stats_df %>%
   select(log_fold_change, t_statistic)
 ```
 
-Let's say we wanted to arrange this dataset so that the patients were arranged
-youngest to oldest.
+Let's say we wanted to arrange this dataset so that the genes are arranged by 
+the smallest p values to the largest.
 In order to do this, we would use the function `arrange` as well as the variable
-we would like to sort by (in this case `age_mths`).
+we would like to sort by (in this case `p_value`).
 
 ```{r}
-stats_df %>% arrange(p_value) 
+stats_df %>% 
+  arrange(p_value) 
 ```
 
-What if we want the the oldest patients at the top of this dataset instead? 
-We can use the same function, but instead use the `desc` function too. 
+What if we want to sort from largest to smallest? Like if we want to see the genes
+with the highest average expression?
+We can use the same function, but instead use the `desc` function and now we are 
+using `avg_expression` column. 
 
 ```{r}
-stats_df %>% arrange(desc(p_value))
+stats_df %>% 
+  arrange(desc(avg_expression))
 ``` 
 
 What if we would like to create new variables? 
@@ -296,15 +308,16 @@ For that we use `mutate` function.
 
 ```{r}
 stats_df %>% 
-  mutate(log10 = -log10(p_value))
+  mutate(log10_p_value = -log10(p_value))
 ```
 
 What if we want to obtain summary statistics for a variable? 
 The `summarize` function allows us to calculate summary statistics for a column. 
-Here we will use summarize to obtain an average expression overall all genes. 
+Here we will use summarize to obtain an mean log folder change overall all genes. 
 
 ```{r}
-stats_df %>% summarize(mean(log_fold_change))
+stats_df %>% 
+  summarize(mean(log_fold_change))
 ```
 
 What if we'd like to obtain a summary statistics but have them for various groups?
@@ -325,30 +338,7 @@ Let's look at a preview of what we made:
 stats_summary_df
 ```
 
-### Chunking out your code: a technique for figuring out what's happening
-
-We did quite a few steps to get the object `stats_summary_df`. 
-If we needed to troubleshoot this step, or if we got confused on what's 
-happening, it could be difficult to figure this out by looking at the code chunk 
-all at once. 
-
-For these situations, we are going to introduce you to a technique called 
-"chunking".
-
-Printing out smaller units of code at a time can help you learn what is happening
-at each step. 
-This will help fast-track your troubleshooting attempts. 
-
-Use this empty code chunk below to try chunking out this code chunk by following
-the figure above. 
-
-```{r}
-# Try to chunk out lines of code we used to get `stats_summary_df`
-```
-
-For more troubleshooting techniques or a breakdown of the most common R errors, 
-check out the [debugging resources guide](https://github.com/AlexsLemonade/training-modules/blob/master/intro-to-R-tidyverse/00b-debugging_resources.md)
-in this repository.
+Here we have the mean log fold change expression per each contrast we made. 
 
 ## A brief intro to the `apply` family of functions
 
@@ -358,6 +348,8 @@ object structures.
 
 The second argument in `apply` specifies whether we are applying something 
 across rows or across columns (1 for rows, 2 for columns).
+
+Remember that `gene_df` is a gene x sample gene expression data frame. 
 
 ```{r}
 # Calculate row means
@@ -389,12 +381,13 @@ about them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
 
 Let's say we have a scenario where we have two data.frames that we would like to 
 combine. 
-Recall that `stats_pipe` and `gene_df` are data.frames that contain information about some of the same genes.
+Recall that `stats_pipe` and `gene_df` are data.frames that contain information 
+about some of the same genes.
 The [`dplyr::join` family of functions](https://dplyr.tidyverse.org/reference/join.html) 
 are useful for various scenarios of combining data.frames. 
 
 For now, we will focus on `inner_join`, which will combine data.frames by only
-keeping information about the samples that are in both data.frames. 
+keeping information about the genes that are in both data.frames. 
 We need to use the `by` argument to designate what column(s) 
 should be used as a key to match the data.frames (in this case `ensembl_id`s). 
 
@@ -411,7 +404,7 @@ data.frame it originated from.
 
 #### Save to TSV files
 
-Let's write this data we edited to a file.
+Let's write data we edited to a file.
 To do this, we can use the `readr` library of `write` functions. 
 Note that the second argument of `write_tsv` needs to be a character string that 
 contains our `file.path` to the new file we would like to create.
