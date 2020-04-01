@@ -134,8 +134,7 @@ stats_df <- stats_df %>%
     adj_p_value = adj.P.Val, 
     ) %>% 
   # Add filter 
-  dplyr::filter(avg_expression > 5, 
-                adj_p_value < 0.2) %>% 
+  dplyr::filter(avg_expression > 5) %>% 
   # Write this to TSV
   readr::write_tsv(file.path(data_dir, "gene_results_GSE44971.tsv"))
 
