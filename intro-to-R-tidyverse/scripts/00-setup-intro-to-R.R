@@ -60,28 +60,23 @@ tissue <- factor(metadata$tissue)
 
 # Here we are declaring our interaction model, this will give us a matrix
 # of zeroes and ones that corresponds to which samples belong to which group
-design <- model.matrix(~sex*tissue)
+sex_design <- model.matrix(~sex)
+tissue_design <- model.matrix(~tissue)
 
-# Neaten up column names
-colnames(design) <- c("intercept", 
-                      "male_female", 
-                      "astrocytoma_normal", 
-                      "interaction")
-
-# Apply linear model to data
-fit <- limma::lmFit(gene_df, design)
+# Apply linear model to data models
+sex_fit <- limma::lmFit(gene_df, sex_design)
+tissue_fit <- limma::lmFit(gene_df, tissue_design)
 
 # Apply empirical Bayes to smooth standard errors
-fit2 <- limma::eBayes(fit)
+sex_fit  <- limma::eBayes(sex_fit)
+tissue_fit  <- limma::eBayes(tissue_fit)
 
 ########## Extract a results table for each contrast we care about
 # limma::topTable function will apply multiple testing correction and obtain 
 # summary statistics on each
 
-# This first table extracts the results for male_female contrast
-male_female <- limma::topTable(fit2, 
-                               coef = "male_female", # This is what we named this contrast
-                                                     # in the test
+# Table for sex model 
+male_female <- limma::topTable(sex_fit , 
                                number = Inf, # We can tell limma how many results we want back. 
                                              # we want them all, so we said `Inf``
                                sort = "none" # We don't want the data sorted, but default is to sort
@@ -90,17 +85,9 @@ male_female <- limma::topTable(fit2,
                                            # for each of these tables, its easier for storage
 
 # Extract test results for astrocytoma tumor and normal
-astrocytoma_normal <- limma::topTable(fit2, 
-                                      coef = "astrocytoma_normal", 
+astrocytoma_normal <- limma::topTable(tissue_fit, 
                                       number = Inf, 
                                       sort = "none") %>% 
-  tibble::rownames_to_column("ensembl_id")
-
-# Extract test results for the interaction of sex and tissue
-interaction <- limma::topTable(fit2, 
-                               coef = "interaction", 
-                               number = Inf, 
-                               sort = "none") %>% 
   tibble::rownames_to_column("ensembl_id")
 
 # Bind together the 3 results tables for each contrast into one big table
@@ -108,7 +95,6 @@ interaction <- limma::topTable(fit2,
 stats_df <- dplyr::bind_rows(
   "male_female" = male_female,
   "astrocytoma_normal" = astrocytoma_normal,
-  "interaction" = interaction,
   .id = "contrast" # This argument will create a column that labels for us which results 
                    # data.frame it is originally from
 )
@@ -134,8 +120,7 @@ stats_df <- stats_df %>%
     adj_p_value = adj.P.Val, 
     ) %>% 
   # Add filter 
-  dplyr::filter(avg_expression > 5, 
-                adj_p_value < 0.2) %>% 
+  dplyr::filter(avg_expression > 5) %>% 
   # Write this to TSV
   readr::write_tsv(file.path(data_dir, "gene_results_GSE44971.tsv"))
 
