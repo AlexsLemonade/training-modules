@@ -106,9 +106,9 @@ interaction <- limma::topTable(fit2,
 # Bind together the 3 results tables for each contrast into one big table
 # dplyr::bind_rows will match by column names and bind the rows.
 stats_df <- dplyr::bind_rows(
-  male_female,
-  astrocytoma_normal,
-  interaction,
+  "male_female" = male_female,
+  "astrocytoma_normal" = astrocytoma_normal,
+  "interaction" = interaction,
   .id = "contrast" # This argument will create a column that labels for us which results 
                    # data.frame it is originally from
 )
@@ -127,10 +127,14 @@ stats_df <- stats_df %>%
     ensembl_id, 
     gene_symbol,
     contrast,
+    log_fold_change = logFC,
     avg_expression = AveExpr, # We want our column names to be consistent format
     t_statistic = t, # There is a function called `t` so for disambiguation purposes, we will name this t_statistic
     p_value = P.Value, 
     adj_p_value = adj.P.Val, 
     ) %>% 
+  # Add filter 
+  dplyr::filter(avg_expression > 5) %>% 
   # Write this to TSV
   readr::write_tsv(file.path(data_dir, "gene_results_GSE44971.tsv"))
+
