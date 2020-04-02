@@ -33,7 +33,8 @@ TODO: Language around Docker container may change depending on RStudio cloud stu
 In our Docker container, we already have `tidyverse` and other packages we will
 use in this workshop installed for you. 
 But if you needed to install it or other packages available on CRAN, you 
-do it using the `install.packages()` function like this: `install.packages("tidyverse")`.
+do it using the `install.packages()` function like this: 
+`install.packages("tidyverse")`.
 
 ```{r Load tidyverse}
 library(tidyverse)
@@ -90,16 +91,16 @@ use the `dir.exists()` function.
 dir.exists("results")
 ```
 
-If the above says `FALSE` that means we will need to create a `results` directory
-using the function `dir.create()`.
+If the above says `FALSE` that means we will need to create a `results` 
+directory using the function `dir.create()`.
 
 ```{r}
 # Make a directory within the working directory called 'results'
 dir.create("results")
 ```
 
-After creating the results directory above, let's re-run `dir.exists()` to see if 
-now it exists.
+After creating the results directory above, let's re-run `dir.exists()` to see 
+if now it exists.
 
 ```{r}
 # Re-check if the results directory exists
@@ -111,7 +112,8 @@ creating a directory by putting this together in an `if` statement like below.
 An `if` statement has two main parts: the test, which is an expression that will 
 result in either `TRUE` or `FALSE`.
 This is put in parenthesis immediately after the `if`.
-The next part is the body, which is the commands that will be executed *if* the test is `TRUE`.
+The next part is the body, which is the commands that will be executed *if* the 
+test is `TRUE`.
 These are placed within a set of braces `{ }`.
 Note that we put an exclamation point to signify that we want a directory to be
 created only *if* `dir.exists(results)` is NOT equal to `TRUE`.
@@ -127,8 +129,8 @@ if (!dir.exists("results")) {
 Note that the `dir.exists()` function will not work on files themselves.
 In that case, there is an analogous function called `file.exists()`.
 
-Try using the `file.exists()` function to see if the file `gene_results_GSE44971.tsv` 
-exists in the current directory.
+Try using the `file.exists()` function to see if the file 
+`gene_results_GSE44971.tsv` exists in the current directory.
 Use the code chunk we set up for you below. 
 Note that in our notebooks (and sometimes elsewhere), wherever you see a 
 `<FILL_IN_THE_BLANK>` like in the chunk below, that is meant for you to replace 
@@ -141,8 +143,8 @@ Note that in our notebooks (and sometimes elsewhere), wherever you see a
 file.exists(<PUT_FILE_NAME_HERE>)
 ```
 
-Now that we've determined that `gene_results_GSE44971.tsv` exists, we are ready to read it 
-into our R environment.
+Now that we've determined that `gene_results_GSE44971.tsv` exists, we are ready 
+to read it into our R environment.
 
 #### Read a TSV file
 
@@ -156,8 +158,8 @@ Although base R has functions to read in data files, the `readr` functions are
 faster and more straightforward to use so we are going to use those here. 
 Because the file we are reading in is a TSV (tab separated values) file we will 
 be using the `read_tsv` function. 
-There are analogous functions for CSV (comma separated values) files (`read_csv()`) 
-and other files types.
+There are analogous functions for CSV (comma separated values) files 
+(`read_csv()`) and other files types.
 
 ## Read in the differential expression analysis results file
 
@@ -199,7 +201,8 @@ filter(stats_df, contrast == "male_female")
 stats_df %>% filter(contrast == "male_female")
 ```  
   
-This can make your code cleaner and easier to follow a series of related commands. 
+This can make your code cleaner and easier to follow a series of related 
+commands. 
 Let's look at an example with our stats of of how the same 
 functions look with or without pipes:
 
@@ -211,9 +214,11 @@ stats_filtered <- filter(stats_arranged, avg_expression > 50)
 stats_nopipe <- select(stats_filtered, contrast, log_fold_change, p_value)
 ```
   
-UGH, we have to keep track of all of those different intermediate data frames and type their names so many times here! 
+UGH, we have to keep track of all of those different intermediate data frames 
+and type their names so many times here! 
 We could maybe streamline things by using the same variable name at each stage, 
-but even then there is a lot of extra typing, and it is easy to get confused about what has been done where.
+but even then there is a lot of extra typing, and it is easy to get confused 
+about what has been done where.
 It's annoying and makes it harder for people to read. 
   
 *Example 2:* Same result as 1 but with pipes!
@@ -226,12 +231,14 @@ stats_pipe  <- stats_df %>%
                select(contrast, log_fold_change, p_value)
 ```
 
-What the `%>%` (pipe) is doing here is feeding the result of the expression on its left into the 
-first argument of the next function (to its right, or on the next line here). 
-We can then skip that first argument (the data in these cases), and move right on to the 
-part we care about at that step: what we are arranging, filtering, or selecting  in this case.
+What the `%>%` (pipe) is doing here is feeding the result of the expression on 
+its left into the first argument of the next function (to its right, or on the 
+next line here). 
+We can then skip that first argument (the data in these cases), and move right 
+on to the part we care about at that step: what we are arranging, filtering, or 
+selecting  in this case.
 
-Let's double check that these are the same by using the function, `all.equal()`: 
+Let's double check that these are the same by using the function, `all.equal()`. 
 
 ```{r}
 all.equal(stats_nopipe, stats_pipe)
@@ -256,20 +263,21 @@ stats_df %>%
   filter(gene_symbol == "SNCA")
 ```
 
-We can use filter similarly for numeric statements.  
+We can use `filter()` similarly for numeric statements.  
 
 ```{r}
-# Here let's filter the data to have average expression values above 5
+# Here let's filter the data to have average expression values above 50
 stats_df %>% 
-  filter(avg_expression > 5)
+  filter(avg_expression > 50)
 ```
 
-We can apply multiple filters at once, which will require all of them to be satisfied in the results:
+We can apply multiple filters at once, which will require all of them to be 
+satisfied in the results:
 
 ```{r }
 stats_df %>% 
   filter(contrast == "male_female", 
-         avg_expression > 5)
+         avg_expression > 50)
 ```
 
 When we are filtering, the `%in%` operator can come in handy if we have multiple
@@ -295,7 +303,7 @@ Let's also save this as a new data frame called `stats_filtered_df`.
 ```{r}
 stats_filtered_df <- stats_df %>% 
   filter(contrast == "male_female", 
-         avg_expression > 5) %>%
+         avg_expression > 50) %>%
   select(log_fold_change, t_statistic)
 ```
 
@@ -309,8 +317,8 @@ stats_df %>%
   arrange(p_value) 
 ```
 
-What if we want to sort from largest to smallest? Like if we want to see the genes
-with the highest average expression?
+What if we want to sort from largest to smallest? 
+Like if we want to see the genes with the highest average expression?
 We can use the same function, but instead use the `desc()` function and now we 
 are using `avg_expression` column. 
 
@@ -329,18 +337,20 @@ stats_df %>%
 
 What if we want to obtain summary statistics for a column? 
 The `summarize` function allows us to calculate summary statistics for a column. 
-Here we will use summarize to obtain an mean log folder change overall all genes. 
+Here we will use summarize to obtain an mean log folder change over all the 
+genes. 
 
 ```{r}
 stats_df %>% 
   summarize(mean(log_fold_change))
 ```
 
-What if we'd like to obtain a summary statistics but have them for various groups?
+What if we'd like to obtain a summary statistics but have them for various 
+groups?
 Conveniently named, there's a function called `group_by()` that seamlessly 
 allows us to do this. 
-Also note that `group_by()` allows us to group by multiple variables at a time if 
-you want to.
+Also note that `group_by()` allows us to group by multiple variables at a time 
+if you want to.
 
 ```{r}
 stats_summary_df <- stats_df %>%
@@ -362,9 +372,11 @@ In base R there the `apply` family of functions can be an alternative
 methods for performing transformations across a data frame, matrix or for other 
 object structures. 
 
-One of this family is (shockingly) the function `apply()`, which operates on matrixes or data frames. 
+One of this family is (shockingly) the function `apply()`, which operates on 
+matrices or data frames. 
 The first argument to `apply()` is the data object we want to work on.
-The third argument is the function we will apply to each row or column of the data object.
+The third argument is the function we will apply to each row or column of the 
+data object.
 The second argument in specifies whether we are applying the function 
 across rows or across columns (1 for rows, 2 for columns).
 
@@ -401,9 +413,7 @@ them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
 
 Let's say we have a scenario where we have two data frames that we would like to 
 combine. 
-Let's say we have a scenario where we have two data frames that we would like to 
-combine. 
-Recall that `stats_pipe` and `gene_df` are data frames that contain information 
+Recall that `stats_df` and `gene_df` are data frames that contain information 
 about some of the same genes.
 The [`dplyr::join` family of functions](https://dplyr.tidyverse.org/reference/join.html) 
 are useful for various scenarios of combining data frames. 
@@ -416,8 +426,8 @@ In this case we want to match values in the `ensembl_id` column from `stats_df`
 to the `Gene` column from `gene_df`.
 
 ```{r}
-stats_df %>% inner_join(gene_df, 
-                        by = c('ensembl_id' = 'Gene')) 
+stats_df %>% 
+  inner_join(gene_df, by = c('ensembl_id' = 'Gene')) 
 ```
 
 ## Save data to files
@@ -425,7 +435,7 @@ stats_df %>% inner_join(gene_df,
 #### Save to TSV files
 
 Let's write data we edited to a file.
-To do this, we can use the `readr` library of `write` functions. 
+To do this, we can use the `readr` library of `_write()` functions. 
 The first argument of `write_tsv()` is the data we want to write, and the second 
 argument is a character string that describes the path to the new file we would 
 like to create.
@@ -457,9 +467,10 @@ Check in your `results` directory to see if your new file has successfully saved
 #### Save to RDS files
 
 For this example we have been working with data frames, which are conveniently 
-respresented as TSV or CSV tables. 
+represented as TSV or CSV tables. 
 However, in other situations we may want to save more complicated or very large 
-RDS (R Data Serialized/Single) files may be a better option in these instances.
+data structures, RDS (R Data Serialized/Single) files may be a better option for
+saving our data.
 RDS is R's special file format for holding data exactly as you have it in your 
 R environment. 
 RDS files can also be compressed, meaning they will take up less space on your 
@@ -475,8 +486,9 @@ readr::write_rds(stats_summary, <PUT_CORRECT_FILE_PATH_HERE>)
 
 #### Read an RDS file
 
-Since now you have learned the `readr` functions: `read_tsv()`, `write_tsv()`, and now, `write_rds()`, what do you suppose the function you will need to read your 
-RDS file is called? 
+Since now you have learned the `readr` functions: `read_tsv()`, `write_tsv()`, 
+and now, `write_rds()`, what do you suppose the function you will need to read 
+your RDS file is called? 
 Use that function here to re-import your data in the chunk we set up for you
 below.
 
