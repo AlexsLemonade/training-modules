@@ -40,7 +40,7 @@ metadata <- readr::read_tsv(file.path(data_dir,
                 -which(apply(is.na(.), 2, all)),
                 sex = refinebio_sex, 
                 tissue, 
-                "brain location", 
+                brain_location = "brain location", 
                 title) %>%
   dplyr::mutate(
     # Clean up character names
