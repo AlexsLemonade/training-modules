@@ -1,0 +1,508 @@
+---
+title: "Intro to tidyverse"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+**CCDL 2020**
+
+## Objective for this notebook analysis: 
+
+We'll use the same gene expression dataset we used in the [previous notebook](./02-intro_to_ggplot2.Rmd).
+It is a pre-processed [astrocytoma microarray dataset](https://www.refine.bio/experiments/GSE44971/gene-expression-data-from-pilocytic-astrocytoma-tumour-samples-and-normal-cerebellum-controls) 
+that we performed a set of [differential expression analyses on](./scripts/00-setup-intro-to-R.R).  
+
+**More tidyverse resources:**  
+- [R for Data Science](https://r4ds.had.co.nz/)  
+- [tidyverse documentation](https://dplyr.tidyverse.org/)  
+- [Cheatsheet of tidyverse data transformation](https://github.com/rstudio/cheatsheets/raw/master/data-transformation.pdf)  
+- [Online tidyverse book chapter](https://privefl.github.io/advr38book/tidyverse.html)  
+
+## Set Up
+
+The tidyverse is a collection of packages that are handy for general data 
+wrangling, analysis, and visualization. 
+Other packages that are specifically handy for different biological analyses are 
+found on [Bioconductor](https://www.bioconductor.org/).
+If we want to use a package's functions we first need to install them.
+
+TODO: Language around Docker container may change depending on RStudio cloud stuff
+
+In our Docker container, we already have the `tidyverse` and other packages we will
+use in this workshop installed for you. 
+But if you needed to install it or other packages available on CRAN, you 
+do it using the `install.packages()` function like this: 
+`install.packages("tidyverse")`.
+
+```{r Load the tidyverse}
+library(tidyverse)
+```
+
+### Referencing a library's function with `::`
+
+Note that if we had not imported the tidyverse set of packages using `library()` 
+like above, and we wanted to use a tidyverse function like `read_tsv()`, we 
+would need to tell R what package to find this function in.
+To do this, we would use `::` to tell R to load in this function from the 
+`readr` package by using `readr::read_tsv()`.
+You will see this `::` method of referencing libraries within packages 
+throughout the course. 
+We like to use it in part to remove any ambiguity in which version of a 
+function we are using; it is not too uncommon for different packages to use the 
+same name for very different functions!
+
+## Managing directories
+
+Before we can import the data we need, we should double check where R is 
+looking for files, aka the current **working directory**. 
+We can do this by using the `getwd()` function, which will tell us what folder
+we are in. 
+
+```{r}
+# Let's check what directory we are in:
+getwd()
+```
+
+For Rmd files, the working directory is wherever the file is located, but 
+commands executed in the console may have a different working directory.
+
+We will want to make a directory for our output and we will call this directory: 
+`results`. 
+But before we create the directory, we should check if it already exists. 
+We will show two ways that we can do this. 
+
+First, we can use the `dir()` function to have R list the files in our working 
+directory. 
+
+```{r}
+# Let's check what files are here
+dir()
+```
+
+This shows us there is no folder called "results" yet. 
+
+If we want to more pointedly look for "results" in our working directory we can 
+use the `dir.exists()` function.
+
+```{r}
+# Check if the results directory exists
+dir.exists("results")
+```
+
+If the above says `FALSE` that means we will need to create a `results` 
+directory using the function `dir.create()`.
+
+```{r}
+# Make a directory within the working directory called 'results'
+dir.create("results")
+```
+
+After creating the results directory above, let's re-run `dir.exists()` to see 
+if now it exists.
+
+```{r}
+# Re-check if the results directory exists
+dir.exists("results")
+```
+
+We can use the output of `dir.exists()` to automatically create or hold off on 
+creating a directory by putting this together in an `if` statement like below. 
+An `if` statement has two main parts:
+First, the test, which is an expression that will result in either `TRUE` or `FALSE`.
+This is put in parenthesis immediately after the `if`.
+The next part is the body, which is the commands that will be executed *if* the 
+test is `TRUE`.
+These are placed within a set of braces `{ }`.
+Note that we used an exclamation point in the test to signify that we want a 
+directory to be created only *if* `dir.exists(results)` is NOT equal to `TRUE`.
+
+```{r}
+# If 'results' directory doesn't exist...
+if (!dir.exists("results")) {
+  # ... create a 'results' directory
+  dir.create("results")
+}
+```
+
+The `dir.exists()` function will not work on files themselves.
+In that case, there is an analogous function called `file.exists()`.
+
+Try using the `file.exists()` function to see if the file 
+`gene_results_GSE44971.tsv` exists in the current directory.
+Use the code chunk we set up for you below. 
+Note that in our notebooks (and sometimes elsewhere), wherever you see a 
+`<FILL_IN_THE_BLANK>` like in the chunk below, that is meant for you to replace 
+(including the angle brackets) with the correct phrase before you run the chunk 
+(otherwise you will get an error).
+
+```{r eval=FALSE}
+# Replace the <PUT_FILE_NAME_HERE> with the name of the file you are looking for
+# Remember to use quotes to make it a character string
+file.exists(<PUT_FILE_NAME_HERE>)
+```
+
+Now that we've determined that `gene_results_GSE44971.tsv` exists, we are ready 
+to read it into our R environment.
+
+#### Read a TSV file
+
+Declare the name of the directory where we will read in the data. 
+
+```{r}
+data_dir <- "data"
+```
+
+Although base R has functions to read in data files, the functions in the 
+`readr` package (part of the tidyverse) are faster and more straightforward 
+to use so we are going to use those here. 
+Because the file we are reading in is a TSV (tab separated values) file we will 
+be using the `read_tsv` function. 
+There are analogous functions for CSV (comma separated values) files 
+(`read_csv()`) and other files types.
+
+## Read in the differential expression analysis results file
+
+```{r}
+stats_df <- readr::read_tsv(file.path(data_dir,
+                                      "gene_results_GSE44971.tsv"))
+```
+
+Following the template of the previous chunk, use this chunk to read in the file
+`GSE44971.tsv` that is in the `data` folder. 
+
+```{r}
+# Use this chunk to read in data from the file `GSE44971.tsv`
+```
+
+Use this chunk to explore what `gene_df` looks like. 
+
+```{r}
+# Explore `gene_df`
+```
+
+What information is contained in `gene_df`?
+
+## dplyr pipes
+
+One nifty feature of the tidyverse is pipes: `%>%`
+These handy things allows you to funnel the result of one expression to the next,
+making your code a little more streamlined.
+
+For example, the output from this:  
+
+```{r}
+filter(stats_df, contrast == "male_female")
+```  
+
+...is the same as the output from this:  
+
+```{r}
+stats_df %>% filter(contrast == "male_female")
+```  
+  
+This can make your code cleaner and easier to follow a series of related 
+commands. 
+Let's look at an example with our stats of of how the same 
+functions look with or without pipes:
+
+*Example 1:* without pipes: 
+
+```{r}
+stats_arranged <- arrange(stats_df, t_statistic)
+stats_filtered <- filter(stats_arranged, avg_expression > 50)
+stats_nopipe <- select(stats_filtered, contrast, log_fold_change, p_value)
+```
+  
+UGH, we have to keep track of all of those different intermediate data frames 
+and type their names so many times here! 
+We could maybe streamline things by using the same variable name at each stage, 
+but even then there is a lot of extra typing, and it is easy to get confused 
+about what has been done where.
+It's annoying and makes it harder for people to read. 
+  
+*Example 2:* Same result as 1 but with pipes!
+
+```{r}
+# Example of the same modifications as above but with pipes!
+stats_pipe  <- stats_df %>%
+               arrange(t_statistic) %>%
+               filter(avg_expression > 50) %>%
+               select(contrast, log_fold_change, p_value)
+```
+
+What the `%>%` (pipe) is doing here is feeding the result of the expression on 
+its left into the first argument of the next function (to its right, or on the 
+next line here). 
+We can then skip that first argument (the data in these cases), and move right 
+on to the part we care about at that step: what we are arranging, filtering, or 
+selecting  in this case.
+
+Let's double check that these are the same by using the function, `all.equal()`. 
+
+```{r}
+all.equal(stats_nopipe, stats_pipe)
+```
+
+`all.equal()` is letting us know that these two objects are the same. 
+
+Now that hopefully you are convinced that the tidyverse can help you make your 
+code neater and easier to use and read, let's go through some of the popular 
+tidyverse functions and so we can create pipelines like this. 
+
+## Common tidyverse functions
+
+Let's say we wanted to filter this gene expression dataset to particular sample
+groups.
+In order to do this, we would use the function `filter()` as well as a logic 
+statement (usually one that refers to a column or columns in the data frame).
+
+```{r}
+# Here let's filter the data to a particular gene
+stats_df %>% 
+  filter(gene_symbol == "SNCA")
+```
+
+We can use `filter()` similarly for numeric statements.  
+
+```{r}
+# Here let's filter the data to have average expression values above 50
+stats_df %>% 
+  filter(avg_expression > 50)
+```
+
+We can apply multiple filters at once, which will require all of them to be 
+satisfied for every row in the results:
+
+```{r }
+stats_df %>% 
+  filter(contrast == "male_female", 
+         avg_expression > 50)
+```
+
+When we are filtering, the `%in%` operator can come in handy if we have multiple
+items we would like to match.
+Let's take a look at what using `%in%` does.
+
+```{r}
+stats_df$gene_symbol %in% c("SNCA", "CDKN1A")
+```
+
+`%in%` returns a logical vector that now we can use in `dplyr::filter`.
+
+```{r }
+stats_df %>% 
+  filter(gene_symbol %in% c("SNCA", "CDKN1A"))
+```
+
+Let's return to our first `filter()` and build on to it. 
+This time, let's keep only some of the columns from the data frame using the 
+`select()` function. 
+Let's also save this as a new data frame called `stats_filtered_df`.
+
+```{r}
+stats_filtered_df <- stats_df %>% 
+  filter(contrast == "male_female", 
+         avg_expression > 50) %>%
+  select(log_fold_change, t_statistic)
+```
+
+Let's say we wanted to arrange this dataset so that the genes are arranged by 
+the smallest p values to the largest.
+In order to do this, we would use the function `arrange()` as well as the column
+we would like to sort by (in this case `p_value`).
+
+```{r}
+stats_df %>% 
+  arrange(p_value) 
+```
+
+What if we want to sort from largest to smallest? 
+Like if we want to see the genes with the highest average expression?
+We can use the same function, but instead use the `desc()` function and now we 
+are using `avg_expression` column. 
+
+```{r}
+stats_df %>% 
+  arrange(desc(avg_expression))
+``` 
+
+What if we would like to create a new column of values?
+For that we use `mutate()` function.
+
+```{r}
+stats_df %>% 
+  mutate(log10_p_value = -log10(p_value))
+```
+
+What if we want to obtain summary statistics for a column? 
+The `summarize` function allows us to calculate summary statistics for a column. 
+Here we will use summarize to obtain an mean log folder change over all the 
+genes. 
+
+```{r}
+stats_df %>% 
+  summarize(mean(log_fold_change))
+```
+
+What if we'd like to obtain a summary statistics but have them for various 
+groups?
+Conveniently named, there's a function called `group_by()` that seamlessly 
+allows us to do this. 
+Also note that `group_by()` allows us to group by multiple variables at a time 
+if you want to.
+
+```{r}
+stats_summary_df <- stats_df %>%
+      group_by(contrast) %>% 
+      summarize(mean(log_fold_change))
+```
+
+Let's look at a preview of what we made:
+
+```{r}
+stats_summary_df
+```
+
+Here we have the mean log fold change expression per each contrast we made. 
+
+## A brief intro to the `apply` family of functions
+
+In base R, the `apply` family of functions can be an alternative methods for 
+performing transformations across a data frame, matrix or other object structures. 
+
+One of this family is (shockingly) the function `apply()`, which operates on 
+matrices or data frames. 
+The first argument to `apply()` is the data object we want to work on.
+The third argument is the function we will apply to each row or column of the 
+data object.
+The second argument in specifies whether we are applying the function 
+across rows or across columns (1 for rows, 2 for columns).
+
+Remember that `gene_df` is a gene x sample gene expression data frame. 
+
+```{r}
+# Calculate row means
+gene_means <- apply(gene_df[, -1], 1, mean) # Notice we are using 1 here
+
+# How long will `gene_means` be? 
+length(gene_means)
+```
+
+Why do we have a `[, -1]` after `gene_df` in the above chunk?
+
+Now let's investigate the same set up, but use 2 to `apply` over the columns of
+our matrix.
+
+```{r}
+# Calculate sample means
+sample_means <- apply(gene_df[, -1], 2, mean) # Notice we use 2 here
+
+# How long will `sample_means` be? 
+length(sample_means)
+```
+
+Although the `apply` functions may not be as easy to use as the tidyverse 
+functions, for some applications, `apply` methods can be better suited.
+In this workshop, we will not delve too deeply into the various other apply 
+functions (`tapply()`, `lapply()`, etc.) but you can read more examples about 
+them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
+
+## The dplyr::join functions
+
+Let's say we have a scenario where we have two data frames that we would like to 
+combine. 
+Recall that `stats_df` and `gene_df` are data frames that contain information 
+about some of the same genes.
+The [`dplyr::join` family of functions](https://dplyr.tidyverse.org/reference/join.html) 
+are useful for various scenarios of combining data frames. 
+
+For now, we will focus on `inner_join()`, which will combine data frames by only
+keeping information about matching rows that are in both data frames.
+We need to use the `by` argument to designate what column(s) 
+should be used as a key to match the data frames.
+In this case we want to match the gene information between the two, so we will 
+specify that we want to compare values in the `ensembl_id` column from 
+`stats_df` to the `Gene` column from `gene_df`.
+
+```{r}
+stats_df %>% 
+  inner_join(gene_df, by = c('ensembl_id' = 'Gene')) 
+```
+
+## Save data to files
+
+#### Save to TSV files
+
+Let's write some of the data frames we created to a file.
+To do this, we can use the `readr` library of `_write()` functions. 
+The first argument of `write_tsv()` is the data we want to write, and the second 
+argument is a character string that describes the path to the new file we would 
+like to create.
+Remember that we created a `results` directory to put our output in, 
+but if we want to save our data to a directory other than our working directory, 
+we need to specify this. 
+This is what we will use the `file.path()` function for. 
+Let's look in a bit more detail what `file.path()` does, by examining the 
+results of the function in the examples below.
+
+```{r}
+# Which of these file paths is what we want to use to save our data to the
+# results directory we created at the beginning of this notebook?
+file.path("docker-install", "stats_summary.tsv")
+file.path("results", "stats_summary.tsv")
+file.path("stats_summary.tsv", "results")
+```
+
+Replace `<NEW_FILE_PATH>` below with the `file.path()` statement from above that 
+will successfully save our file to the `results` folder 
+
+```{r eval=FALSE}
+# Write our data frame to a TSV file
+readr::write_tsv(stats_summary_df, <NEW_FILE_PATH>)
+```
+
+Check in your `results` directory to see if your new file has successfully saved.
+
+#### Save to RDS files
+
+For this example we have been working with data frames, which are conveniently 
+represented as TSV or CSV tables. 
+However, in other situations we may want to save more complicated or very large 
+data structures, RDS (R Data Serialized/Single) files may be a better option for
+saving our data.
+RDS is R's special file format for holding data exactly as you have it in your 
+R environment. 
+RDS files can also be compressed, meaning they will take up less space on your 
+computer. 
+Let's save our data to an RDS file in our `results` folder.
+You will need to replace the `.tsv` with `.RDS`, but you can use what we 
+determined as our file path for the last chunk as your template. 
+
+```{r eval=FALSE}
+# Write your object to an RDS file
+readr::write_rds(stats_summary, <PUT_CORRECT_FILE_PATH_HERE>)
+```
+
+#### Read an RDS file
+
+Since now you have learned the `readr` functions: `read_tsv()`, `write_tsv()`, 
+and now, `write_rds()`, what do you suppose the function you will need to read 
+your RDS file is called? 
+Use that function here to re-import your data in the chunk we set up for you
+below.
+
+```{r eval=FALSE}
+# Read in your RDS file
+reimport_df <- <PUT_FUNCTION_NAME>(file.path("results", "stats_clean.RDS"))
+```
+
+As is good practice, we will end this session by printing out our session info. 
+
+### Session Info
+
+```{r}
+# Print out the versions and packages we are using in this session
+sessionInfo()
+```
