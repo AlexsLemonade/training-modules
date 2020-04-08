@@ -1,5 +1,5 @@
 ---
-title: "Intro to Tidyverse"
+title: "Intro to tidyverse"
 output:   
   html_notebook: 
     toc: true
@@ -16,13 +16,13 @@ that we performed a set of [differential expression analyses on](./scripts/00-se
 
 **More tidyverse resources:**  
 - [R for Data Science](https://r4ds.had.co.nz/)  
-- [Tidyverse documentation](https://dplyr.tidyverse.org/)  
-- [Cheatsheet of Tidyverse data transformation](https://github.com/rstudio/cheatsheets/raw/master/data-transformation.pdf)  
-- [Online Tidyverse book chapter](https://privefl.github.io/advr38book/tidyverse.html)  
+- [tidyverse documentation](https://dplyr.tidyverse.org/)  
+- [Cheatsheet of tidyverse data transformation](https://github.com/rstudio/cheatsheets/raw/master/data-transformation.pdf)  
+- [Online tidyverse book chapter](https://privefl.github.io/advr38book/tidyverse.html)  
 
 ## Set Up
 
-The `tidyverse` is a collection of packages that are handy for general data 
+The tidyverse is a collection of packages that are handy for general data 
 wrangling, analysis, and visualization. 
 Other packages that are specifically handy for different biological analyses are 
 found on [Bioconductor](https://www.bioconductor.org/).
@@ -30,13 +30,13 @@ If we want to use a package's functions we first need to install them.
 
 TODO: Language around Docker container may change depending on RStudio cloud stuff
 
-In our Docker container, we already have `tidyverse` and other packages we will
+In our Docker container, we already have the `tidyverse` and other packages we will
 use in this workshop installed for you. 
 But if you needed to install it or other packages available on CRAN, you 
 do it using the `install.packages()` function like this: 
 `install.packages("tidyverse")`.
 
-```{r Load tidyverse}
+```{r Load the tidyverse}
 library(tidyverse)
 ```
 
@@ -109,14 +109,14 @@ dir.exists("results")
 
 We can use the output of `dir.exists()` to automatically create or hold off on 
 creating a directory by putting this together in an `if` statement like below. 
-An `if` statement has two main parts: the test, which is an expression that will 
-result in either `TRUE` or `FALSE`.
+An `if` statement has two main parts:
+First, the test, which is an expression that will result in either `TRUE` or `FALSE`.
 This is put in parenthesis immediately after the `if`.
 The next part is the body, which is the commands that will be executed *if* the 
 test is `TRUE`.
 These are placed within a set of braces `{ }`.
-Note that we put an exclamation point to signify that we want a directory to be
-created only *if* `dir.exists(results)` is NOT equal to `TRUE`.
+Note that we used an exclamation point in the test to signify that we want a 
+directory to be created only *if* `dir.exists(results)` is NOT equal to `TRUE`.
 
 ```{r}
 # If 'results' directory doesn't exist...
@@ -126,7 +126,7 @@ if (!dir.exists("results")) {
 }
 ```
 
-Note that the `dir.exists()` function will not work on files themselves.
+The `dir.exists()` function will not work on files themselves.
 In that case, there is an analogous function called `file.exists()`.
 
 Try using the `file.exists()` function to see if the file 
@@ -154,8 +154,9 @@ Declare the name of the directory where we will read in the data.
 data_dir <- "data"
 ```
 
-Although base R has functions to read in data files, the `readr` functions are 
-faster and more straightforward to use so we are going to use those here. 
+Although base R has functions to read in data files, the functions in the 
+`readr` package (part of the tidyverse) are faster and more straightforward 
+to use so we are going to use those here. 
 Because the file we are reading in is a TSV (tab separated values) file we will 
 be using the `read_tsv` function. 
 There are analogous functions for CSV (comma separated values) files 
@@ -185,8 +186,8 @@ What information is contained in `gene_df`?
 
 ## dplyr pipes
 
-A nifty thing with the tidyverse is the pipes: `%>%`
-This handy thing allows you to funnel the result of one expression to the next,
+One nifty feature of the tidyverse is pipes: `%>%`
+These handy things allows you to funnel the result of one expression to the next,
 making your code a little more streamlined.
 
 For example, the output from this:  
@@ -246,9 +247,9 @@ all.equal(stats_nopipe, stats_pipe)
 
 `all.equal()` is letting us know that these two objects are the same. 
 
-Now that hopefully you are convinced that tidyverse helps your code to be neater 
-and easier to use and read, let's go through some of the popular tidyverse 
-functions and so we can create pipelines like this. 
+Now that hopefully you are convinced that the tidyverse can help you make your 
+code neater and easier to use and read, let's go through some of the popular 
+tidyverse functions and so we can create pipelines like this. 
 
 ## Common tidyverse functions
 
@@ -272,7 +273,7 @@ stats_df %>%
 ```
 
 We can apply multiple filters at once, which will require all of them to be 
-satisfied in the results:
+satisfied for every row in the results:
 
 ```{r }
 stats_df %>% 
@@ -368,9 +369,8 @@ Here we have the mean log fold change expression per each contrast we made.
 
 ## A brief intro to the `apply` family of functions
 
-In base R there the `apply` family of functions can be an alternative 
-methods for performing transformations across a data frame, matrix or for other 
-object structures. 
+In base R, the `apply` family of functions can be an alternative methods for 
+performing transformations across a data frame, matrix or other object structures. 
 
 One of this family is (shockingly) the function `apply()`, which operates on 
 matrices or data frames. 
@@ -403,7 +403,7 @@ sample_means <- apply(gene_df[, -1], 2, mean) # Notice we use 2 here
 length(sample_means)
 ```
 
-Although the `apply` functions may not be as easy to use as the `tidyverse` 
+Although the `apply` functions may not be as easy to use as the tidyverse 
 functions, for some applications, `apply` methods can be better suited.
 In this workshop, we will not delve too deeply into the various other apply 
 functions (`tapply()`, `lapply()`, etc.) but you can read more examples about 
@@ -419,11 +419,12 @@ The [`dplyr::join` family of functions](https://dplyr.tidyverse.org/reference/jo
 are useful for various scenarios of combining data frames. 
 
 For now, we will focus on `inner_join()`, which will combine data frames by only
-keeping information about the genes that are in both data frames. 
+keeping information about matching rows that are in both data frames.
 We need to use the `by` argument to designate what column(s) 
 should be used as a key to match the data frames.
-In this case we want to match values in the `ensembl_id` column from `stats_df` 
-to the `Gene` column from `gene_df`.
+In this case we want to match the gene information between the two, so we will 
+specify that we want to compare values in the `ensembl_id` column from 
+`stats_df` to the `Gene` column from `gene_df`.
 
 ```{r}
 stats_df %>% 
@@ -434,7 +435,7 @@ stats_df %>%
 
 #### Save to TSV files
 
-Let's write data we edited to a file.
+Let's write some of the data frames we created to a file.
 To do this, we can use the `readr` library of `_write()` functions. 
 The first argument of `write_tsv()` is the data we want to write, and the second 
 argument is a character string that describes the path to the new file we would 
