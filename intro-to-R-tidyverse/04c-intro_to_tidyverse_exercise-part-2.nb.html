@@ -7,7 +7,6 @@
 <meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
-<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
 <meta name="author" content="Candace Savonen" />
@@ -2560,7 +2559,7 @@ window.initializeCodeFolding = function(show) {
 
     // create a collapsable div to wrap the code in
     var div = $('<div class="collapse r-code-collapse"></div>');
-    if (show || $(this)[0].classList.contains('fold-show'))
+    if (show)
       div.addClass('in');
     var id = 'rcode-643E0F36' + currentIndex++;
     div.attr('id', id);
@@ -2690,6 +2689,7 @@ code {
 }
 img {
   max-width:100%;
+  height: auto;
 }
 .tabbed-pane {
   padding-top: 12px;
@@ -2787,12 +2787,57 @@ summary {
 }
 </style>
 
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
 <!-- code folding -->
 <style type="text/css">
 .code-folding-btn { margin-bottom: 4px; }
 </style>
+<script>
+$(document).ready(function () {
+  window.initializeSourceEmbed("04c-intro_to_tidyverse_exercise-part-2.Rmd");
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
 
 
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
 
 <style type="text/css">
 
@@ -2894,190 +2939,55 @@ div.tocify {
 
 
 <!-- rnb-text-begin -->
+<p>tidyverse exercises - part 2</p>
 <p>The goal of these exercises is to practice the visualization techniques and data frame manipulations we used in <a href="./01-intro_to_ggplot2.Rmd">02-intro_to_ggplot2</a> and <a href="./01-intro_to_tidyverse.Rmd">03-intro_to_tidyverse</a> notebooks.</p>
 <p>Here will use another <a href="https://www.refine.bio/experiments/GSE19578/integrated-molecular-genetic-profiling-of-pediatric-high-grade-gliomas-reveals-key-differences-with-adult-disease">microrarray dataset</a> that is <a href="http://docs.refine.bio/en/latest/main_text.html#processing-information">pre-processed for us by refine.bio</a>. This study from <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2903336/">Paugh et al, 2010</a> has glioblastoma samples from a range of patient ages.</p>
 <div id="set-up" class="section level3">
 <h3>Set Up</h3>
-<p>In this notebook, we will be needing the tidyverse library of functions. You can load the library with <code>library()</code> or use <code>::</code> strategy.</p>
+<p>In this notebook, we will be using tidyverse packages. You can load the <code>library()</code> or use the <code>::</code> strategy.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>It’s convenient to declare our directory names at the beginning so we can change it once and have it change throughout the notebook.</p>
+<p>It’s convenient to declare our directory names at the beginning so we can change it once and have it change throughout the notebook. Remember we need to be consistent with what we used in the previous notebook.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaW5wdXRfZGlyIDwtIFxub3V0cHV0X2RpciA8LSBcbmBgYCJ9 -->
-<pre class="r"><code>input_dir &lt;- 
-output_dir &lt;- </code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGF0YV9kaXIgPC0gXG5wbG90c19kaXIgPC0gXG5gYGAifQ== -->
+<pre class="r"><code>data_dir &lt;- 
+plots_dir &lt;- </code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
-<div id="read-in-the-gene-results-file" class="section level2">
-<h2>Read in the gene results file</h2>
-<p>Use <code>readr::read_tsv</code> to read in the gene expression matrix TSV, “GSE19578.tsv” and assign it the name <code>genes_df</code>.</p>
+<div id="read-in-the-cleaned-metadata" class="section level2">
+<h2>Read in the cleaned metadata</h2>
+<p>Use <code>readr::read_tsv()</code> to read in the filtered gene expression matrix TSV, “filtered_GSE19578.tsv” and assign it the name <code>genes_df</code>.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Use this chunk to explore what your data frame, <code>genes_df</code> looks like.</p>
+<p>Use <code>readr::read_tsv()</code> to read in the cleaned metadata TSV, “GSE19578.tsv” and assign it the name <code>metadata</code>.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-</div>
-<div id="read-in-the-metadata" class="section level2">
-<h2>Read in the metadata</h2>
-<p>Use the same function to read in the file “metadata_GSE19578.tsv” and assign it the name <code>metadata</code>.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Use this chunk to explore what your data frame, <code>metadata</code> looks like.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-</div>
-<div id="cleaning-the-metadata" class="section level2">
-<h2>Cleaning the metadata</h2>
-<p>As is common with metadata, we will need to do some cleaning. Although GEO gives us a lot of information, a lot of these fields are not informative for us at this stage.</p>
-<p><strong>Step 1 of cleaning</strong>: keep only informative columns.</p>
-<p>Use <code>dplyr::select</code> to keep the 3 columns with the following information: + The sample accession codes + age as a numeric variable + disease information</p>
-<p>Assign the <code>select</code>ed metadata as <code>metadata_clean</code>.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Look up details on <code>select</code> and figure out how we can (in the same step!) rename these columns to be shorter and more to the point like <code>sample_id</code>, <code>age</code> and <code>disease</code> for example.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p><strong>Step 2 of cleaning</strong>: format variables to the type they should be.</p>
-<p>Currently, our <code>disease</code> variable has repeated values, but using <code>summary</code> wouldn’t show us that. Try it out by subsetting the <code>disease</code> column.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>To avoid handling issues of this variable, let’s try to coerce it to a <code>factor</code> using <code>dplyr::mutate</code>. We’ll need to use <code>metadata_clean</code> and reassign it the same name.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Use <code>summary</code> on the re-factored <code>disease</code> column to see how many samples of each there are.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p><strong>Step 3 of cleaning</strong>: Create new grouping variables.</p>
-<p>Using the age variable, let’s create a new grouping variable that indicates a <code>TRUE/FALSE</code> of whether the patient is above <code>18</code>.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p><strong>Step 4 of cleaning</strong>: Arrange metdata in a sensible order</p>
-<p>Use <code>dplyr::arrange</code> to arrange the rows from youngest to oldest <code>age</code>.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p><strong>Step 5 of cleaning</strong>: Write the cleaned metadata to TSV</p>
-<p>Now that we’ve cleaned our metadata, let’s save it to a file using <code>readr::write_tsv</code>.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Now that we’ve determined all the steps that need to be taken to clean our data, we can assemble these steps into one set of piped (<code>%&gt;%</code>) transformations. Assemble steps 1-5 into one set where each step pipes (<code>%&gt;%</code>) into the next. You should also make sure to have comments (<code>#</code>) on each step so we know why we are doing it when we look back at this later!</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-</div>
-<div id="set-up-gene-data" class="section level2">
-<h2>Set up gene data</h2>
-<div id="order-sample-data" class="section level4">
-<h4>Order sample data</h4>
-<p>Commonly, the sample order for our metdata and gene expression matrix will not automatically match. This should be the first thing we check before we try to use them in tandem.</p>
-<p>Use <code>all.equal()</code> to see if the sample ids of columns of <code>gene_df</code> are in the same order as our <code>sample_id</code> column in <code>metadata_clean</code>. Hint: you will want to ignore the <code>Gene</code> column when checking this, try a negative index</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Before we reorder our samples, we should also check if all the samples list in <code>metadata_clean</code> also exist in <code>gene_df</code>. Use <code>all()</code> and <code>%&gt;%</code> to write a logical expression to check this.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Now let’s use <code>dplyr::select</code> to reorder the columns in <code>gene_df</code> to the order of <code>sample_id</code>s in <code>metadata_clean</code>. Hint: Don’t forget about accounting for the <code>Gene</code> column!</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Re-test the order of the samples the same way you did before, using <code>all.equal()</code></p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-</div>
-<div id="filter-out-low-value-genes" class="section level4">
-<h4>Filter out low value genes</h4>
-<p>For microarray data, lower expression value genes may be an indication of unreliable measurement.</p>
-<p>Let’s calculate the average expression per gene using <code>apply()</code>. Don’t forget to move <code>Gene</code> column out of the way. Store this vector as <code>gene_means</code>.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Use <code>summary</code> to get a overall view of the <code>gene_means</code> distribution.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>We’ve set up a <code>ggplot2::qplot</code> to take a look at the <code>gene_mean</code> distribution. <code>ggplot2::qplot</code> allows you to set up a vector as a <code>ggplot</code>. Add on layers with <code>+</code> to customize it. Have one of those layers be a <code>geom_vline()</code> that notes where you are making a minimum average expression cutoff.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGVuc2l0eV9wbG90IDwtIGdncGxvdDI6OnFwbG90KGdlbmVfbWVhbnMsIGdlb20gPSBcImRlbnNpdHlcIikgKyBcbiAgIyBBZGQgZ2VvbV9kZW5zaXR5XG4gIGdncGxvdDI6Omdlb21fZGVuc2l0eShmaWxsID0gXCJsaWdodGdyZWVuXCIpIFxuICAjIEFkZCBvbiBsYXllcnMgd2l0aCBgK2AgdG8gY3VzdG9taXplIHRoaXMgcGxvdFxuYGBgIn0= -->
-<pre class="r"><code>density_plot &lt;- ggplot2::qplot(gene_means, geom = &quot;density&quot;) + 
-  # Add geom_density
-  ggplot2::geom_density(fill = &quot;lightgreen&quot;) 
-  # Add on layers with `+` to customize this plot</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Print a preview of the plot.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGVuc2l0eV9wbG90XG5gYGAifQ== -->
-<pre class="r"><code>density_plot</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Apply the filter cutoff to <code>genes_df</code>. Use <code>dplyr::filter</code> to filter out the low expression genes based on your chosen cutoff. We’ll call this newly filtered data frame <code>filtered_genes_df</code>.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZmlsdGVyZWRfZ2VuZXNfZGYgPC0gXG5gYGAifQ== -->
-<pre class="r"><code>filtered_genes_df &lt;- </code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-</div>
 </div>
 <div id="set-up-grouped-summary-statistics-for-genes" class="section level2">
 <h2>Set up grouped summary statistics for genes</h2>
 <p>Let’s calculate some fold changes for our groups. We’ve set up a data frame that is transposed so you can use using <code>tidyverse</code> functions.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudHJhbnNwb3NlZF9nZW5lc19kZiA8LSBmaWx0ZXJlZF9nZW5lc19kZiAlPiUgXG4gICMgV2Ugd2FudCB0aGUgZ2VuZSBpbmZvcm1hdGlvbiB0byBiZSBzdG9yZWQgYXMgcm93bmFtZXMgZm9yIHRoZSBuZXh0IHNldCBvZiBcbiAgIyBzdGVwcyB3ZSBhcmUgZG9pbmdcbiAgdGliYmxlOjpjb2x1bW5fdG9fcm93bmFtZXMoXCJHZW5lXCIpICU+JSBcbiAgIyBUcmFuc3Bvc2luZyB0aGUgZGF0YSBmcmFtZSBzbyBpdCBpcyBzYW1wbGUgeCBnZW5lc1xuICB0KCkgJT4lIFxuICAjIHQoKSBmdW5jdGlvbiB0dXJucyBvdXIgZGF0YSBmcmFtZSBpbnRvIGEgbWF0cml4IHNvIGxldCdzIHR1cm4gaXQgYmFjayB0byBcbiAgIyBhIGRhdGEuZnJhbWUgc28gd2UgY2FuIHVzZSBpdCB3aXRoIHRpZHl2ZXJzZSBmdW5jdGlvbnNcbiAgYXMuZGF0YS5mcmFtZSgpICU+JSBcbiAgIyBCeSBkZWZhdWx0IG91ciBzYW1wbGUgaWRzIHdpbGwgYmUgc3RvcmVkIGFzIHJvd25hbWVzLCBsZXQncyBicmluZyBpdCBvdXQgYXMgXG4gICMgaXRzIG93biBjb2x1bW5zIFxuICB0aWJibGU6OnJvd25hbWVzX3RvX2NvbHVtbihcInNhbXBsZV9pZFwiKVxuYGBgIn0= -->
-<pre class="r"><code>transposed_genes_df &lt;- filtered_genes_df %&gt;% 
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudHJhbnNwb3NlZF9nZW5lc19kZiA8LSBnZW5lc19kZiAlPiUgXG4gICMgV2Ugd2FudCB0aGUgZ2VuZSBpbmZvcm1hdGlvbiB0byBiZSBzdG9yZWQgYXMgcm93bmFtZXMgZm9yIHRoZSBuZXh0IHNldCBvZiBcbiAgIyBzdGVwcyB3ZSBhcmUgZG9pbmdcbiAgdGliYmxlOjpjb2x1bW5fdG9fcm93bmFtZXMoXCJHZW5lXCIpICU+JSBcbiAgIyBUcmFuc3Bvc2luZyB0aGUgZGF0YSBmcmFtZSBzbyBpdCBpcyBzYW1wbGUgeCBnZW5lc1xuICB0KCkgJT4lIFxuICAjIHQoKSBmdW5jdGlvbiB0dXJucyBvdXIgZGF0YSBmcmFtZSBpbnRvIGEgbWF0cml4IHNvIGxldCdzIHR1cm4gaXQgYmFjayB0byBcbiAgIyBhIGRhdGEuZnJhbWUgc28gd2UgY2FuIHVzZSBpdCB3aXRoIHRpZHl2ZXJzZSBmdW5jdGlvbnNcbiAgYXMuZGF0YS5mcmFtZSgpICU+JSBcbiAgIyBCeSBkZWZhdWx0IG91ciBzYW1wbGUgaWRzIHdpbGwgYmUgc3RvcmVkIGFzIHJvd25hbWVzLCBsZXQncyBicmluZyBpdCBvdXQgYXMgXG4gICMgaXRzIG93biBjb2x1bW5zIFxuICB0aWJibGU6OnJvd25hbWVzX3RvX2NvbHVtbihcInNhbXBsZV9pZFwiKVxuYGBgIn0= -->
+<pre class="r"><code>transposed_genes_df &lt;- genes_df %&gt;% 
   # We want the gene information to be stored as rownames for the next set of 
   # steps we are doing
   tibble::column_to_rownames(&quot;Gene&quot;) %&gt;% 
   # Transposing the data frame so it is sample x genes
   t() %&gt;% 
-  # t() function turns our data frame into a matrix so let&#39;s turn it back to 
+  # t() function turns our data frame into a matrix so let's turn it back to 
   # a data.frame so we can use it with tidyverse functions
   as.data.frame() %&gt;% 
-  # By default our sample ids will be stored as rownames, let&#39;s bring it out as 
+  # By default our sample ids will be stored as rownames, let's bring it out as 
   # its own columns 
   tibble::rownames_to_column(&quot;sample_id&quot;)</code></pre>
 <!-- rnb-source-end -->
@@ -3086,6 +2996,12 @@ output_dir &lt;- </code></pre>
 <p>Use <code>dplyr::select()</code> and an <code>%in%</code> statement to choose ~2-5 genes of interest. Can use <a href="https://www.genecards.org/">GeneCard</a> to find the corresponding Ensembl ID to your favorite genes.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ2VuZXNfb2kgPC0gYyhcIkVOU0cwMDAwMDEzNDMyM1wiLCBcbiAgICAgICAgICAgICAgXCJFTlNHMDAwMDAxMjQ3NjJcIiwgXG4gICAgICAgICAgICAgIFwiRU5TRzAwMDAwMTE1NDE0XCIpXG5cbmBgYCJ9 -->
+<pre class="r"><code>genes_oi &lt;- c(&quot;ENSG00000134323&quot;, 
+              &quot;ENSG00000124762&quot;, 
+              &quot;ENSG00000115414&quot;)
+</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p>Use <code>dplyr::inner_join()</code> to join the <code>metadata_clean</code> columns to <code>transposed_genes_df</code> by the <code>sample_id</code>.</p>
@@ -3093,7 +3009,7 @@ output_dir &lt;- </code></pre>
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Calculate the group means of your <code>select</code>ed genes.</p>
+<p>Calculate the group means of your <code>select()</code>ed genes.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
@@ -3102,14 +3018,14 @@ output_dir &lt;- </code></pre>
 <h3>Plot the data</h3>
 <p>Now that we have our data set up, we will make some plots!</p>
 <p><strong>Plot 1) Scatterplot</strong></p>
-<p>Set up a ggplot scatterplot with either one or two of the selected genes in <code>genes_of_interest_df</code> and/or with <code>age</code>. (Remember we didn’t load the <code>ggplot2</code> library, so you’ll need to use <code>::</code> to reference it at each step).</p>
+<p>Set up a ggplot scatterplot with either one or two of the selected genes in <code>genes_of_interest_df</code> and/or with <code>age</code>.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p><strong>Plot 2) Facet wrapped jitter</strong></p>
-<p>Create a jitter plot of each gene where each <code>disease</code> group has its own plot using <code>facet_wrap</code>.</p>
-<p>We’ve done the first step for you. Your data will need to be in a long format. Explore the <code>long_form_genes_oi_df</code> data frame to see how we’ve transformed it with <code>tidyr::gather</code>.</p>
+<p>Create a jitter plot of each gene where each <code>disease</code> group has its own plot using <code>facet_wrap()</code>.</p>
+<p>We’ve done the first step for you. Your data will need to be in a long format. Explore the <code>long_form_genes_oi_df</code> data frame to see how we’ve transformed it with <code>tidyr::gather()</code>.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBSZWZvcm1hdCB0byBsb25nIGZvcm1hdCBkYXRhIGZyYW1lIFxubG9uZ19mb3JtX2dlbmVzX29pX2RmIDwtIGdlbmVzX29mX2ludGVyZXN0X2RmICU+JSBcbiAgdGlkeXI6OmdhdGhlcihnZW5lLCBleHByZXNzaW9uX3ZhbHVlLCAtc2FtcGxlX2lkLCAtYWdlLCAtZGlzZWFzZSwgLWFkdWx0KVxuXG4jIFByaW50IHByZXZpZXdcbmxvbmdfZm9ybV9nZW5lc19vaV9kZiBcbmBgYCJ9 -->
@@ -3122,7 +3038,7 @@ long_form_genes_oi_df </code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Make a <code>facet_wrap</code>ped plot of the genes’ expression levels.</p>
+<p>Make a <code>facet_wrap()</code>ped plot of the genes’ expression levels.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
@@ -3145,7 +3061,7 @@ long_form_genes_oi_df </code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>When you are happy with your plot, save your plot as a <code>PNG</code> using <code>ggplot2::ggsave()</code>.</p>
+<p>When you are happy with your plot, save your plot to the <code>plots_dir</code> as a <code>PNG</code> using <code>ggplot2::ggsave()</code>.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
@@ -3164,7 +3080,7 @@ long_form_genes_oi_df </code></pre>
 </div>
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiSW50cm9kdWN0aW9uIHRvIFRpZHl2ZXJzZSAtIEV4ZXJjaXNlcyBQYXJ0IDIiCmF1dGhvcjogIkNhbmRhY2UgU2F2b25lbiIKZGF0ZTogIjIwMjAiCm91dHB1dDoKICBodG1sX25vdGVib29rOgogICAgdG9jOiB0cnVlCiAgICB0b2NfZmxvYXQ6IHRydWUKLS0tCgpUaGUgZ29hbCBvZiB0aGVzZSBleGVyY2lzZXMgaXMgdG8gcHJhY3RpY2UgdGhlIHZpc3VhbGl6YXRpb24gdGVjaG5pcXVlcyBhbmQgCmRhdGEgZnJhbWUgbWFuaXB1bGF0aW9ucyB3ZSB1c2VkIGluIFswMi1pbnRyb190b19nZ3Bsb3QyXSguLzAxLWludHJvX3RvX2dncGxvdDIuUm1kKSAKYW5kIFswMy1pbnRyb190b190aWR5dmVyc2VdKC4vMDEtaW50cm9fdG9fdGlkeXZlcnNlLlJtZCkgbm90ZWJvb2tzLiAKCkhlcmUgd2lsbCB1c2UgYW5vdGhlciBbbWljcm9yYXJyYXkgZGF0YXNldF0oaHR0cHM6Ly93d3cucmVmaW5lLmJpby9leHBlcmltZW50cy9HU0UxOTU3OC9pbnRlZ3JhdGVkLW1vbGVjdWxhci1nZW5ldGljLXByb2ZpbGluZy1vZi1wZWRpYXRyaWMtaGlnaC1ncmFkZS1nbGlvbWFzLXJldmVhbHMta2V5LWRpZmZlcmVuY2VzLXdpdGgtYWR1bHQtZGlzZWFzZSkgdGhhdCBpcyBbcHJlLXByb2Nlc3NlZCBmb3IgdXMgYnkgcmVmaW5lLmJpb10oaHR0cDovL2RvY3MucmVmaW5lLmJpby9lbi9sYXRlc3QvbWFpbl90ZXh0Lmh0bWwjcHJvY2Vzc2luZy1pbmZvcm1hdGlvbikuClRoaXMgc3R1ZHkgZnJvbSBbUGF1Z2ggZXQgYWwsIDIwMTBdKGh0dHBzOi8vd3d3Lm5jYmkubmxtLm5paC5nb3YvcG1jL2FydGljbGVzL1BNQzI5MDMzMzYvKSBoYXMgZ2xpb2JsYXN0b21hIHNhbXBsZXMgZnJvbSBhIHJhbmdlIG9mIHBhdGllbnQgYWdlcy4gCgojIyMgU2V0IFVwIAoKSW4gdGhpcyBub3RlYm9vaywgd2Ugd2lsbCBiZSBuZWVkaW5nIHRoZSB0aWR5dmVyc2UgbGlicmFyeSBvZiBmdW5jdGlvbnMuIApZb3UgY2FuIGxvYWQgdGhlIGxpYnJhcnkgd2l0aCBgbGlicmFyeSgpYCBvciB1c2UgYDo6YCBzdHJhdGVneS4gCgpgYGB7cn0KCmBgYAoKSXQncyBjb252ZW5pZW50IHRvIGRlY2xhcmUgb3VyIGRpcmVjdG9yeSBuYW1lcyBhdCB0aGUgYmVnaW5uaW5nIHNvIHdlIGNhbiBjaGFuZ2UKaXQgb25jZSBhbmQgaGF2ZSBpdCBjaGFuZ2UgdGhyb3VnaG91dCB0aGUgbm90ZWJvb2suIAoKYGBge3J9CmlucHV0X2RpciA8LSAKb3V0cHV0X2RpciA8LSAKYGBgCgojIyBSZWFkIGluIHRoZSBnZW5lIHJlc3VsdHMgZmlsZQoKVXNlIGByZWFkcjo6cmVhZF90c3ZgIHRvIHJlYWQgaW4gdGhlIGdlbmUgZXhwcmVzc2lvbiBtYXRyaXggVFNWLCAiR1NFMTk1NzgudHN2IiAKYW5kIGFzc2lnbiBpdCB0aGUgbmFtZSBgZ2VuZXNfZGZgLiAKCmBgYHtyfQoKYGBgCgpVc2UgdGhpcyBjaHVuayB0byBleHBsb3JlIHdoYXQgeW91ciBkYXRhIGZyYW1lLCBgZ2VuZXNfZGZgIGxvb2tzIGxpa2UuIAoKYGBge3J9CgpgYGAKCiMjIFJlYWQgaW4gdGhlIG1ldGFkYXRhCgpVc2UgdGhlIHNhbWUgZnVuY3Rpb24gdG8gcmVhZCBpbiB0aGUgZmlsZSAibWV0YWRhdGFfR1NFMTk1NzgudHN2IiBhbmQgYXNzaWduIAppdCB0aGUgbmFtZSBgbWV0YWRhdGFgLiAKCmBgYHtyfQoKYGBgCgpVc2UgdGhpcyBjaHVuayB0byBleHBsb3JlIHdoYXQgeW91ciBkYXRhIGZyYW1lLCBgbWV0YWRhdGFgIGxvb2tzIGxpa2UuIAoKYGBge3J9CgpgYGAKCiMjIENsZWFuaW5nIHRoZSBtZXRhZGF0YQoKQXMgaXMgY29tbW9uIHdpdGggbWV0YWRhdGEsIHdlIHdpbGwgbmVlZCB0byBkbyBzb21lIGNsZWFuaW5nLiAKQWx0aG91Z2ggR0VPIGdpdmVzIHVzIGEgbG90IG9mIGluZm9ybWF0aW9uLCBhIGxvdCBvZiB0aGVzZSBmaWVsZHMgYXJlIG5vdCBpbmZvcm1hdGl2ZSBmb3IgdXMgYXQgdGhpcyBzdGFnZS4gCgoqKlN0ZXAgMSBvZiBjbGVhbmluZyoqOiBrZWVwIG9ubHkgaW5mb3JtYXRpdmUgY29sdW1ucy4gCgpVc2UgYGRwbHlyOjpzZWxlY3RgIHRvIGtlZXAgdGhlIDMgY29sdW1ucyB3aXRoIHRoZSBmb2xsb3dpbmcgaW5mb3JtYXRpb246IAorIFRoZSBzYW1wbGUgYWNjZXNzaW9uIGNvZGVzCisgYWdlIGFzIGEgbnVtZXJpYyB2YXJpYWJsZQorIGRpc2Vhc2UgaW5mb3JtYXRpb24KCkFzc2lnbiB0aGUgYHNlbGVjdGBlZCBtZXRhZGF0YSBhcyBgbWV0YWRhdGFfY2xlYW5gLiAKCmBgYHtyfQoKYGBgCgpMb29rIHVwIGRldGFpbHMgb24gYHNlbGVjdGAgYW5kIGZpZ3VyZSBvdXQgaG93IHdlIGNhbiAoaW4gdGhlIHNhbWUgc3RlcCEpIApyZW5hbWUgdGhlc2UgY29sdW1ucyB0byBiZSBzaG9ydGVyIGFuZCBtb3JlIHRvIHRoZSBwb2ludCBsaWtlIGBzYW1wbGVfaWRgLCAKYGFnZWAgYW5kIGBkaXNlYXNlYCBmb3IgZXhhbXBsZS4gCgpgYGB7cn0KCmBgYAoKKipTdGVwIDIgb2YgY2xlYW5pbmcqKjogZm9ybWF0IHZhcmlhYmxlcyB0byB0aGUgdHlwZSB0aGV5IHNob3VsZCBiZS4KCkN1cnJlbnRseSwgb3VyIGBkaXNlYXNlYCB2YXJpYWJsZSBoYXMgcmVwZWF0ZWQgdmFsdWVzLCBidXQgdXNpbmcgYHN1bW1hcnlgIAp3b3VsZG4ndCBzaG93IHVzIHRoYXQuIApUcnkgaXQgb3V0IGJ5IHN1YnNldHRpbmcgdGhlIGBkaXNlYXNlYCBjb2x1bW4uIAoKYGBge3J9CgpgYGAKClRvIGF2b2lkIGhhbmRsaW5nIGlzc3VlcyBvZiB0aGlzIHZhcmlhYmxlLCBsZXQncyB0cnkgdG8gY29lcmNlIGl0IHRvIGEgYGZhY3RvcmAKdXNpbmcgYGRwbHlyOjptdXRhdGVgLiAKV2UnbGwgbmVlZCB0byB1c2UgYG1ldGFkYXRhX2NsZWFuYCBhbmQgcmVhc3NpZ24gaXQgdGhlIHNhbWUgbmFtZS4gCgpgYGB7cn0KCmBgYAoKVXNlIGBzdW1tYXJ5YCBvbiB0aGUgcmUtZmFjdG9yZWQgYGRpc2Vhc2VgIGNvbHVtbiB0byBzZWUgaG93IG1hbnkgc2FtcGxlcyBvZiBlYWNoCnRoZXJlIGFyZS4gCgpgYGB7cn0KCmBgYAoKKipTdGVwIDMgb2YgY2xlYW5pbmcqKjogQ3JlYXRlIG5ldyBncm91cGluZyB2YXJpYWJsZXMuIAoKVXNpbmcgdGhlIGFnZSB2YXJpYWJsZSwgbGV0J3MgY3JlYXRlIGEgbmV3IGdyb3VwaW5nIHZhcmlhYmxlIHRoYXQgaW5kaWNhdGVzIGEgCmBUUlVFL0ZBTFNFYCBvZiB3aGV0aGVyIHRoZSBwYXRpZW50IGlzIGFib3ZlIGAxOGAuIAoKYGBge3J9CgpgYGAKCioqU3RlcCA0IG9mIGNsZWFuaW5nKio6IEFycmFuZ2UgbWV0ZGF0YSBpbiBhIHNlbnNpYmxlIG9yZGVyCgpVc2UgYGRwbHlyOjphcnJhbmdlYCB0byBhcnJhbmdlIHRoZSByb3dzIGZyb20geW91bmdlc3QgdG8gb2xkZXN0IGBhZ2VgLiAKCmBgYHtyfQoKYGBgCgoqKlN0ZXAgNSBvZiBjbGVhbmluZyoqOiBXcml0ZSB0aGUgY2xlYW5lZCBtZXRhZGF0YSB0byBUU1YKCk5vdyB0aGF0IHdlJ3ZlIGNsZWFuZWQgb3VyIG1ldGFkYXRhLCBsZXQncyBzYXZlIGl0IHRvIGEgZmlsZSB1c2luZyAKYHJlYWRyOjp3cml0ZV90c3ZgLgoKYGBge3J9CgpgYGAKCk5vdyB0aGF0IHdlJ3ZlIGRldGVybWluZWQgYWxsIHRoZSBzdGVwcyB0aGF0IG5lZWQgdG8gYmUgdGFrZW4gdG8gY2xlYW4gb3VyIGRhdGEsIAp3ZSBjYW4gYXNzZW1ibGUgdGhlc2Ugc3RlcHMgaW50byBvbmUgc2V0IG9mIHBpcGVkIChgJT4lYCkgdHJhbnNmb3JtYXRpb25zLiAKQXNzZW1ibGUgc3RlcHMgMS01IGludG8gb25lIHNldCB3aGVyZSBlYWNoIHN0ZXAgcGlwZXMgKGAlPiVgKSBpbnRvIHRoZSBuZXh0LiAKWW91IHNob3VsZCBhbHNvIG1ha2Ugc3VyZSB0byBoYXZlIGNvbW1lbnRzIChgI2ApIG9uIGVhY2ggc3RlcCBzbyB3ZSBrbm93IHdoeSB3ZQphcmUgZG9pbmcgaXQgd2hlbiB3ZSBsb29rIGJhY2sgYXQgdGhpcyBsYXRlciEKCmBgYHtyfQoKYGBgCgojIyBTZXQgdXAgZ2VuZSBkYXRhCgojIyMjIE9yZGVyIHNhbXBsZSBkYXRhCgpDb21tb25seSwgdGhlIHNhbXBsZSBvcmRlciBmb3Igb3VyIG1ldGRhdGEgYW5kIGdlbmUgZXhwcmVzc2lvbiBtYXRyaXggd2lsbCBub3QgCmF1dG9tYXRpY2FsbHkgbWF0Y2guIApUaGlzIHNob3VsZCBiZSB0aGUgZmlyc3QgdGhpbmcgd2UgY2hlY2sgYmVmb3JlIHdlIHRyeSB0byB1c2UgdGhlbSBpbiB0YW5kZW0uIAoKVXNlIGBhbGwuZXF1YWwoKWAgdG8gc2VlIGlmIHRoZSBzYW1wbGUgaWRzIG9mIGNvbHVtbnMgb2YgYGdlbmVfZGZgIGFyZSBpbiB0aGUgCnNhbWUgb3JkZXIgYXMgb3VyIGBzYW1wbGVfaWRgIGNvbHVtbiBpbiBgbWV0YWRhdGFfY2xlYW5gLiAKSGludDogeW91IHdpbGwgd2FudCB0byBpZ25vcmUgdGhlIGBHZW5lYCBjb2x1bW4gd2hlbiBjaGVja2luZyB0aGlzLCB0cnkgYSBuZWdhdGl2ZSAKaW5kZXgKCmBgYHtyfQoKYGBgCgpCZWZvcmUgd2UgcmVvcmRlciBvdXIgc2FtcGxlcywgd2Ugc2hvdWxkIGFsc28gY2hlY2sgaWYgYWxsIHRoZSBzYW1wbGVzIGxpc3QgaW4gCmBtZXRhZGF0YV9jbGVhbmAgYWxzbyBleGlzdCBpbiBgZ2VuZV9kZmAuIApVc2UgYGFsbCgpYCBhbmQgYCU+JWAgdG8gd3JpdGUgYSBsb2dpY2FsIGV4cHJlc3Npb24gdG8gY2hlY2sgdGhpcy4KCmBgYHtyfQoKYGBgCgpOb3cgbGV0J3MgdXNlIGBkcGx5cjo6c2VsZWN0YCB0byByZW9yZGVyIHRoZSBjb2x1bW5zIGluIGBnZW5lX2RmYCB0byB0aGUgb3JkZXIgCm9mIGBzYW1wbGVfaWRgcyBpbiBgbWV0YWRhdGFfY2xlYW5gLiAKSGludDogRG9uJ3QgZm9yZ2V0IGFib3V0IGFjY291bnRpbmcgZm9yIHRoZSBgR2VuZWAgY29sdW1uISAKCmBgYHtyfQoKYGBgCgpSZS10ZXN0IHRoZSBvcmRlciBvZiB0aGUgc2FtcGxlcyB0aGUgc2FtZSB3YXkgeW91IGRpZCBiZWZvcmUsIHVzaW5nIGBhbGwuZXF1YWwoKWAKCmBgYHtyfQoKYGBgCgojIyMjIEZpbHRlciBvdXQgbG93IHZhbHVlIGdlbmVzCgpGb3IgbWljcm9hcnJheSBkYXRhLCBsb3dlciBleHByZXNzaW9uIHZhbHVlIGdlbmVzIG1heSBiZSBhbiBpbmRpY2F0aW9uIG9mIAp1bnJlbGlhYmxlIG1lYXN1cmVtZW50LgoKTGV0J3MgY2FsY3VsYXRlIHRoZSBhdmVyYWdlIGV4cHJlc3Npb24gcGVyIGdlbmUgdXNpbmcgYGFwcGx5KClgLiAKRG9uJ3QgZm9yZ2V0IHRvIG1vdmUgYEdlbmVgIGNvbHVtbiBvdXQgb2YgdGhlIHdheS4gClN0b3JlIHRoaXMgdmVjdG9yIGFzIGBnZW5lX21lYW5zYC4gCgpgYGB7cn0KCmBgYAoKVXNlIGBzdW1tYXJ5YCB0byBnZXQgYSBvdmVyYWxsIHZpZXcgb2YgdGhlIGBnZW5lX21lYW5zYCBkaXN0cmlidXRpb24uIAoKYGBge3J9CgpgYGAKCldlJ3ZlIHNldCB1cCBhIGBnZ3Bsb3QyOjpxcGxvdGAgdG8gdGFrZSBhIGxvb2sgYXQgdGhlIGBnZW5lX21lYW5gIGRpc3RyaWJ1dGlvbi4KYGdncGxvdDI6OnFwbG90YCBhbGxvd3MgeW91IHRvIHNldCB1cCBhIHZlY3RvciBhcyBhIGBnZ3Bsb3RgLiAKQWRkIG9uIGxheWVycyB3aXRoIGArYCB0byBjdXN0b21pemUgaXQuIApIYXZlIG9uZSBvZiB0aG9zZSBsYXllcnMgYmUgYSBgZ2VvbV92bGluZSgpYCB0aGF0IG5vdGVzIHdoZXJlIHlvdSBhcmUgbWFraW5nIAphIG1pbmltdW0gYXZlcmFnZSBleHByZXNzaW9uIGN1dG9mZi4gCgpgYGB7cn0KZGVuc2l0eV9wbG90IDwtIGdncGxvdDI6OnFwbG90KGdlbmVfbWVhbnMsIGdlb20gPSAiZGVuc2l0eSIpICsgCiAgIyBBZGQgZ2VvbV9kZW5zaXR5CiAgZ2dwbG90Mjo6Z2VvbV9kZW5zaXR5KGZpbGwgPSAibGlnaHRncmVlbiIpIAogICMgQWRkIG9uIGxheWVycyB3aXRoIGArYCB0byBjdXN0b21pemUgdGhpcyBwbG90CmBgYAoKUHJpbnQgYSBwcmV2aWV3IG9mIHRoZSBwbG90LiAKCmBgYHtyfQpkZW5zaXR5X3Bsb3QKYGBgCgpBcHBseSB0aGUgZmlsdGVyIGN1dG9mZiB0byBgZ2VuZXNfZGZgLiAKVXNlIGBkcGx5cjo6ZmlsdGVyYCB0byBmaWx0ZXIgb3V0IHRoZSBsb3cgZXhwcmVzc2lvbiBnZW5lcyBiYXNlZCBvbiB5b3VyIGNob3NlbiAKY3V0b2ZmLiAKV2UnbGwgY2FsbCB0aGlzIG5ld2x5IGZpbHRlcmVkIGRhdGEgZnJhbWUgYGZpbHRlcmVkX2dlbmVzX2RmYC4gCgpgYGB7cn0KZmlsdGVyZWRfZ2VuZXNfZGYgPC0gCmBgYAoKIyMgU2V0IHVwIGdyb3VwZWQgc3VtbWFyeSBzdGF0aXN0aWNzIGZvciBnZW5lcwoKTGV0J3MgY2FsY3VsYXRlIHNvbWUgZm9sZCBjaGFuZ2VzIGZvciBvdXIgZ3JvdXBzLiAKV2UndmUgc2V0IHVwIGEgZGF0YSBmcmFtZSB0aGF0IGlzIHRyYW5zcG9zZWQgc28geW91IGNhbiB1c2UgdXNpbmcgYHRpZHl2ZXJzZWAgZnVuY3Rpb25zLiAKCmBgYHtyfQp0cmFuc3Bvc2VkX2dlbmVzX2RmIDwtIGZpbHRlcmVkX2dlbmVzX2RmICU+JSAKICAjIFdlIHdhbnQgdGhlIGdlbmUgaW5mb3JtYXRpb24gdG8gYmUgc3RvcmVkIGFzIHJvd25hbWVzIGZvciB0aGUgbmV4dCBzZXQgb2YgCiAgIyBzdGVwcyB3ZSBhcmUgZG9pbmcKICB0aWJibGU6OmNvbHVtbl90b19yb3duYW1lcygiR2VuZSIpICU+JSAKICAjIFRyYW5zcG9zaW5nIHRoZSBkYXRhIGZyYW1lIHNvIGl0IGlzIHNhbXBsZSB4IGdlbmVzCiAgdCgpICU+JSAKICAjIHQoKSBmdW5jdGlvbiB0dXJucyBvdXIgZGF0YSBmcmFtZSBpbnRvIGEgbWF0cml4IHNvIGxldCdzIHR1cm4gaXQgYmFjayB0byAKICAjIGEgZGF0YS5mcmFtZSBzbyB3ZSBjYW4gdXNlIGl0IHdpdGggdGlkeXZlcnNlIGZ1bmN0aW9ucwogIGFzLmRhdGEuZnJhbWUoKSAlPiUgCiAgIyBCeSBkZWZhdWx0IG91ciBzYW1wbGUgaWRzIHdpbGwgYmUgc3RvcmVkIGFzIHJvd25hbWVzLCBsZXQncyBicmluZyBpdCBvdXQgYXMgCiAgIyBpdHMgb3duIGNvbHVtbnMgCiAgdGliYmxlOjpyb3duYW1lc190b19jb2x1bW4oInNhbXBsZV9pZCIpCmBgYAoKVXNlIGBkcGx5cjo6c2VsZWN0KClgIGFuZCBhbiBgJWluJWAgc3RhdGVtZW50IHRvIGNob29zZSB+Mi01IGdlbmVzIG9mIGludGVyZXN0LiAKQ2FuIHVzZSBbR2VuZUNhcmRdKGh0dHBzOi8vd3d3LmdlbmVjYXJkcy5vcmcvKSB0byBmaW5kIHRoZSBjb3JyZXNwb25kaW5nIEVuc2VtYmwKSUQgdG8geW91ciBmYXZvcml0ZSBnZW5lcy4gCgpgYGB7cn0KCmBgYAoKVXNlIGBkcGx5cjo6aW5uZXJfam9pbigpYCB0byBqb2luIHRoZSBgbWV0YWRhdGFfY2xlYW5gIGNvbHVtbnMgdG8gCmB0cmFuc3Bvc2VkX2dlbmVzX2RmYCBieSB0aGUgYHNhbXBsZV9pZGAuIAoKYGBge3J9CgpgYGAKCkNhbGN1bGF0ZSB0aGUgZ3JvdXAgbWVhbnMgb2YgeW91ciBgc2VsZWN0YGVkIGdlbmVzLiAKCmBgYHtyfQoKYGBgCgojIyMgUGxvdCB0aGUgZGF0YQoKTm93IHRoYXQgd2UgaGF2ZSBvdXIgZGF0YSBzZXQgdXAsIHdlIHdpbGwgbWFrZSBzb21lIHBsb3RzIQoKKipQbG90IDEpIFNjYXR0ZXJwbG90KioKClNldCB1cCBhIGdncGxvdCBzY2F0dGVycGxvdCB3aXRoIGVpdGhlciBvbmUgb3IgdHdvIG9mIHRoZSBzZWxlY3RlZCBnZW5lcyBpbgpgZ2VuZXNfb2ZfaW50ZXJlc3RfZGZgIGFuZC9vciB3aXRoIGBhZ2VgLiAKKFJlbWVtYmVyIHdlIGRpZG4ndCBsb2FkIHRoZSBgZ2dwbG90MmAgbGlicmFyeSwgc28geW91J2xsIG5lZWQgdG8gdXNlIGA6OmAgdG8gCnJlZmVyZW5jZSBpdCBhdCBlYWNoIHN0ZXApLgoKYGBge3J9IAoKYGBgCgoqKlBsb3QgMikgRmFjZXQgd3JhcHBlZCBqaXR0ZXIqKgoKQ3JlYXRlIGEgaml0dGVyIHBsb3Qgb2YgZWFjaCBnZW5lIHdoZXJlIGVhY2ggYGRpc2Vhc2VgIGdyb3VwIGhhcyBpdHMgb3duIHBsb3QgCnVzaW5nIGBmYWNldF93cmFwYC4gCgpXZSd2ZSBkb25lIHRoZSBmaXJzdCBzdGVwIGZvciB5b3UuIApZb3VyIGRhdGEgd2lsbCBuZWVkIHRvIGJlIGluIGEgbG9uZyBmb3JtYXQuIApFeHBsb3JlIHRoZSBgbG9uZ19mb3JtX2dlbmVzX29pX2RmYCBkYXRhIGZyYW1lIHRvIHNlZSBob3cgd2UndmUgdHJhbnNmb3JtZWQgaXQgCndpdGggYHRpZHlyOjpnYXRoZXJgLiAKCmBgYHtyfQojIFJlZm9ybWF0IHRvIGxvbmcgZm9ybWF0IGRhdGEgZnJhbWUgCmxvbmdfZm9ybV9nZW5lc19vaV9kZiA8LSBnZW5lc19vZl9pbnRlcmVzdF9kZiAlPiUgCiAgdGlkeXI6OmdhdGhlcihnZW5lLCBleHByZXNzaW9uX3ZhbHVlLCAtc2FtcGxlX2lkLCAtYWdlLCAtZGlzZWFzZSwgLWFkdWx0KQoKIyBQcmludCBwcmV2aWV3CmxvbmdfZm9ybV9nZW5lc19vaV9kZiAKYGBgCgpNYWtlIGEgYGZhY2V0X3dyYXBgcGVkIHBsb3Qgb2YgdGhlIGdlbmVzJyBleHByZXNzaW9uIGxldmVscy4gCgpgYGB7cn0KCmBgYAoKTWFrZSBvdGhlciBjdXN0b21pemF0aW9ucyB0byB0aGlzIHBsb3QgYnkgYWRkaW5nIG1vcmUgbGF5ZXJzIHdpdGggYCtgIG9yIGNoYW5nZSAKdGhlIHBsb3QgY29tcGxldGVseSB0byBzb21ldGhpbmcgZWxzZSEKCioqZ2dwbG90MiByZXNvdXJjZXMgdG8gZ2V0IHlvdSBnb2luZzoqKiAgCi0gW1RvcCA1MCBnZ3Bsb3RzXShodHRwOi8vci1zdGF0aXN0aWNzLmNvL1RvcDUwLUdncGxvdDItVmlzdWFsaXphdGlvbnMtTWFzdGVyTGlzdC1SLUNvZGUuaHRtbCkKKyBbaGFuZHkgY2hlYXRzaGVldCBmb3IgZ2dwbG90Ml0oaHR0cHM6Ly9yc3R1ZGlvLmNvbS93cC1jb250ZW50L3VwbG9hZHMvMjAxNS8wMy9nZ3Bsb3QyLWNoZWF0c2hlZXQucGRmKSAgCisgW2dncGxvdDIgY291cnNlcyBhbmQgYm9va3MgZnJvbSBUaWR5dmVyc2VdKGh0dHBzOi8vZ2dwbG90Mi50aWR5dmVyc2Uub3JnLykgIAorIFtnZ3Bsb3QyIGRhdGEgdml6IGNoYXB0ZXIgb2YgUiBmb3IgRGF0YSBTY2llbmNlXShodHRwczovL3I0ZHMuaGFkLmNvLm56L2RhdGEtdmlzdWFsaXNhdGlvbi5odG1sKSAgCisgW2dncGxvdDIgb25saW5lIHR1dG9yaWFsXShodHRwOi8vci1zdGF0aXN0aWNzLmNvL0NvbXBsZXRlLUdncGxvdDItVHV0b3JpYWwtUGFydDEtV2l0aC1SLUNvZGUuaHRtbCkgIAoKYGBge3J9CiMgUGxheSB3aXRoIHlvdXIgcGxvdCBhbmQgZGF0YSEKIyBJZGVhcyB0byBnZXQgeW91ciBqdWljZXMgZmxvd2luZzogCiMgLSBBZGQgYSBqaXR0ZXIgbGF5ZXIgb3ZlciB0aGUgYm94cGxvdAojIC0gUGxheSB3aXRoIHRoZSBjb2xvciBvZiB0aGUgcG9pbnRzIQojIC0gVXNlIGdndGhlbWVzIHRvIHBsYXkgd2l0aCB0aGUgYWVzdGhldGljcwojIC0gZmFjZXRfd3JhcCBieSBhbm90aGVyIHZhcmlhYmxlCmBgYAoKV2hlbiB5b3UgYXJlIGhhcHB5IHdpdGggeW91ciBwbG90LCBzYXZlIHlvdXIgcGxvdCBhcyBhIGBQTkdgIHVzaW5nIGBnZ3Bsb3QyOjpnZ3NhdmUoKWAuCgpgYGB7cn0KCmBgYAoKIyMjIFNlc3Npb24gSW5mbwoKYGBge3J9CnNlc3Npb25JbmZvKCkKYGBgCgo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiSW50cm9kdWN0aW9uIHRvIFRpZHl2ZXJzZSAtIEV4ZXJjaXNlcyBQYXJ0IDIiCmF1dGhvcjogIkNhbmRhY2UgU2F2b25lbiIKZGF0ZTogIjIwMjAiCm91dHB1dDoKICBodG1sX25vdGVib29rOgogICAgdG9jOiB0cnVlCiAgICB0b2NfZmxvYXQ6IHRydWUKLS0tCgp0aWR5dmVyc2UgZXhlcmNpc2VzIC0gcGFydCAyCgpUaGUgZ29hbCBvZiB0aGVzZSBleGVyY2lzZXMgaXMgdG8gcHJhY3RpY2UgdGhlIHZpc3VhbGl6YXRpb24gdGVjaG5pcXVlcyBhbmQgCmRhdGEgZnJhbWUgbWFuaXB1bGF0aW9ucyB3ZSB1c2VkIGluIFswMi1pbnRyb190b19nZ3Bsb3QyXSguLzAxLWludHJvX3RvX2dncGxvdDIuUm1kKSAKYW5kIFswMy1pbnRyb190b190aWR5dmVyc2VdKC4vMDEtaW50cm9fdG9fdGlkeXZlcnNlLlJtZCkgbm90ZWJvb2tzLiAKCkhlcmUgd2lsbCB1c2UgYW5vdGhlciBbbWljcm9yYXJyYXkgZGF0YXNldF0oaHR0cHM6Ly93d3cucmVmaW5lLmJpby9leHBlcmltZW50cy9HU0UxOTU3OC9pbnRlZ3JhdGVkLW1vbGVjdWxhci1nZW5ldGljLXByb2ZpbGluZy1vZi1wZWRpYXRyaWMtaGlnaC1ncmFkZS1nbGlvbWFzLXJldmVhbHMta2V5LWRpZmZlcmVuY2VzLXdpdGgtYWR1bHQtZGlzZWFzZSkgdGhhdCBpcyBbcHJlLXByb2Nlc3NlZCBmb3IgdXMgYnkgcmVmaW5lLmJpb10oaHR0cDovL2RvY3MucmVmaW5lLmJpby9lbi9sYXRlc3QvbWFpbl90ZXh0Lmh0bWwjcHJvY2Vzc2luZy1pbmZvcm1hdGlvbikuClRoaXMgc3R1ZHkgZnJvbSBbUGF1Z2ggZXQgYWwsIDIwMTBdKGh0dHBzOi8vd3d3Lm5jYmkubmxtLm5paC5nb3YvcG1jL2FydGljbGVzL1BNQzI5MDMzMzYvKSBoYXMgZ2xpb2JsYXN0b21hIHNhbXBsZXMgZnJvbSBhIHJhbmdlIG9mIHBhdGllbnQgYWdlcy4gCgojIyMgU2V0IFVwIAoKSW4gdGhpcyBub3RlYm9vaywgd2Ugd2lsbCBiZSB1c2luZyB0aWR5dmVyc2UgcGFja2FnZXMuIApZb3UgY2FuIGxvYWQgdGhlIGBsaWJyYXJ5KClgIG9yIHVzZSB0aGUgYDo6YCBzdHJhdGVneS4gCgpgYGB7cn0KCmBgYAoKSXQncyBjb252ZW5pZW50IHRvIGRlY2xhcmUgb3VyIGRpcmVjdG9yeSBuYW1lcyBhdCB0aGUgYmVnaW5uaW5nIHNvIHdlIGNhbiBjaGFuZ2UKaXQgb25jZSBhbmQgaGF2ZSBpdCBjaGFuZ2UgdGhyb3VnaG91dCB0aGUgbm90ZWJvb2suIApSZW1lbWJlciB3ZSBuZWVkIHRvIGJlIGNvbnNpc3RlbnQgd2l0aCB3aGF0IHdlIHVzZWQgaW4gdGhlIHByZXZpb3VzIG5vdGVib29rLiAKCmBgYHtyfQpkYXRhX2RpciA8LSAKcGxvdHNfZGlyIDwtIApgYGAKCiMjIFJlYWQgaW4gdGhlIGNsZWFuZWQgbWV0YWRhdGEKClVzZSBgcmVhZHI6OnJlYWRfdHN2KClgIHRvIHJlYWQgaW4gdGhlIGZpbHRlcmVkIGdlbmUgZXhwcmVzc2lvbiBtYXRyaXggVFNWLCAKImZpbHRlcmVkX0dTRTE5NTc4LnRzdiIgYW5kIGFzc2lnbiBpdCB0aGUgbmFtZSBgZ2VuZXNfZGZgLiAKCmBgYHtyfQoKYGBgCgpVc2UgYHJlYWRyOjpyZWFkX3RzdigpYCB0byByZWFkIGluIHRoZSBjbGVhbmVkIG1ldGFkYXRhIFRTViwgIkdTRTE5NTc4LnRzdiIgCmFuZCBhc3NpZ24gaXQgdGhlIG5hbWUgYG1ldGFkYXRhYC4gCgpgYGB7cn0KCmBgYAoKIyMgU2V0IHVwIGdyb3VwZWQgc3VtbWFyeSBzdGF0aXN0aWNzIGZvciBnZW5lcwoKTGV0J3MgY2FsY3VsYXRlIHNvbWUgZm9sZCBjaGFuZ2VzIGZvciBvdXIgZ3JvdXBzLiAKV2UndmUgc2V0IHVwIGEgZGF0YSBmcmFtZSB0aGF0IGlzIHRyYW5zcG9zZWQgc28geW91IGNhbiB1c2UgdXNpbmcgYHRpZHl2ZXJzZWAgZnVuY3Rpb25zLiAKCmBgYHtyfQp0cmFuc3Bvc2VkX2dlbmVzX2RmIDwtIGdlbmVzX2RmICU+JSAKICAjIFdlIHdhbnQgdGhlIGdlbmUgaW5mb3JtYXRpb24gdG8gYmUgc3RvcmVkIGFzIHJvd25hbWVzIGZvciB0aGUgbmV4dCBzZXQgb2YgCiAgIyBzdGVwcyB3ZSBhcmUgZG9pbmcKICB0aWJibGU6OmNvbHVtbl90b19yb3duYW1lcygiR2VuZSIpICU+JSAKICAjIFRyYW5zcG9zaW5nIHRoZSBkYXRhIGZyYW1lIHNvIGl0IGlzIHNhbXBsZSB4IGdlbmVzCiAgdCgpICU+JSAKICAjIHQoKSBmdW5jdGlvbiB0dXJucyBvdXIgZGF0YSBmcmFtZSBpbnRvIGEgbWF0cml4IHNvIGxldCdzIHR1cm4gaXQgYmFjayB0byAKICAjIGEgZGF0YS5mcmFtZSBzbyB3ZSBjYW4gdXNlIGl0IHdpdGggdGlkeXZlcnNlIGZ1bmN0aW9ucwogIGFzLmRhdGEuZnJhbWUoKSAlPiUgCiAgIyBCeSBkZWZhdWx0IG91ciBzYW1wbGUgaWRzIHdpbGwgYmUgc3RvcmVkIGFzIHJvd25hbWVzLCBsZXQncyBicmluZyBpdCBvdXQgYXMgCiAgIyBpdHMgb3duIGNvbHVtbnMgCiAgdGliYmxlOjpyb3duYW1lc190b19jb2x1bW4oInNhbXBsZV9pZCIpCmBgYAoKVXNlIGBkcGx5cjo6c2VsZWN0KClgIGFuZCBhbiBgJWluJWAgc3RhdGVtZW50IHRvIGNob29zZSB+Mi01IGdlbmVzIG9mIGludGVyZXN0LiAKQ2FuIHVzZSBbR2VuZUNhcmRdKGh0dHBzOi8vd3d3LmdlbmVjYXJkcy5vcmcvKSB0byBmaW5kIHRoZSBjb3JyZXNwb25kaW5nIEVuc2VtYmwKSUQgdG8geW91ciBmYXZvcml0ZSBnZW5lcy4gCgpgYGB7cn0KZ2VuZXNfb2kgPC0gYygiRU5TRzAwMDAwMTM0MzIzIiwgCiAgICAgICAgICAgICAgIkVOU0cwMDAwMDEyNDc2MiIsIAogICAgICAgICAgICAgICJFTlNHMDAwMDAxMTU0MTQiKQoKYGBgCgpVc2UgYGRwbHlyOjppbm5lcl9qb2luKClgIHRvIGpvaW4gdGhlIGBtZXRhZGF0YV9jbGVhbmAgY29sdW1ucyB0byAKYHRyYW5zcG9zZWRfZ2VuZXNfZGZgIGJ5IHRoZSBgc2FtcGxlX2lkYC4gCgpgYGB7cn0KCmBgYAoKQ2FsY3VsYXRlIHRoZSBncm91cCBtZWFucyBvZiB5b3VyIGBzZWxlY3QoKWBlZCBnZW5lcy4gCgpgYGB7cn0KCmBgYAoKIyMjIFBsb3QgdGhlIGRhdGEKCk5vdyB0aGF0IHdlIGhhdmUgb3VyIGRhdGEgc2V0IHVwLCB3ZSB3aWxsIG1ha2Ugc29tZSBwbG90cyEKCioqUGxvdCAxKSBTY2F0dGVycGxvdCoqCgpTZXQgdXAgYSBnZ3Bsb3Qgc2NhdHRlcnBsb3Qgd2l0aCBlaXRoZXIgb25lIG9yIHR3byBvZiB0aGUgc2VsZWN0ZWQgZ2VuZXMgaW4KYGdlbmVzX29mX2ludGVyZXN0X2RmYCBhbmQvb3Igd2l0aCBgYWdlYC4gCgpgYGB7cn0gCgpgYGAKCioqUGxvdCAyKSBGYWNldCB3cmFwcGVkIGppdHRlcioqCgpDcmVhdGUgYSBqaXR0ZXIgcGxvdCBvZiBlYWNoIGdlbmUgd2hlcmUgZWFjaCBgZGlzZWFzZWAgZ3JvdXAgaGFzIGl0cyBvd24gcGxvdCAKdXNpbmcgYGZhY2V0X3dyYXAoKWAuIAoKV2UndmUgZG9uZSB0aGUgZmlyc3Qgc3RlcCBmb3IgeW91LiAKWW91ciBkYXRhIHdpbGwgbmVlZCB0byBiZSBpbiBhIGxvbmcgZm9ybWF0LiAKRXhwbG9yZSB0aGUgYGxvbmdfZm9ybV9nZW5lc19vaV9kZmAgZGF0YSBmcmFtZSB0byBzZWUgaG93IHdlJ3ZlIHRyYW5zZm9ybWVkIGl0IAp3aXRoIGB0aWR5cjo6Z2F0aGVyKClgLiAKCmBgYHtyfQojIFJlZm9ybWF0IHRvIGxvbmcgZm9ybWF0IGRhdGEgZnJhbWUgCmxvbmdfZm9ybV9nZW5lc19vaV9kZiA8LSBnZW5lc19vZl9pbnRlcmVzdF9kZiAlPiUgCiAgdGlkeXI6OmdhdGhlcihnZW5lLCBleHByZXNzaW9uX3ZhbHVlLCAtc2FtcGxlX2lkLCAtYWdlLCAtZGlzZWFzZSwgLWFkdWx0KQoKIyBQcmludCBwcmV2aWV3CmxvbmdfZm9ybV9nZW5lc19vaV9kZiAKYGBgCgpNYWtlIGEgYGZhY2V0X3dyYXAoKWBwZWQgcGxvdCBvZiB0aGUgZ2VuZXMnIGV4cHJlc3Npb24gbGV2ZWxzLiAKCmBgYHtyfQoKYGBgCgpNYWtlIG90aGVyIGN1c3RvbWl6YXRpb25zIHRvIHRoaXMgcGxvdCBieSBhZGRpbmcgbW9yZSBsYXllcnMgd2l0aCBgK2Agb3IgY2hhbmdlIAp0aGUgcGxvdCBjb21wbGV0ZWx5IHRvIHNvbWV0aGluZyBlbHNlIQoKKipnZ3Bsb3QyIHJlc291cmNlcyB0byBnZXQgeW91IGdvaW5nOioqICAKLSBbVG9wIDUwIGdncGxvdHNdKGh0dHA6Ly9yLXN0YXRpc3RpY3MuY28vVG9wNTAtR2dwbG90Mi1WaXN1YWxpemF0aW9ucy1NYXN0ZXJMaXN0LVItQ29kZS5odG1sKQorIFtoYW5keSBjaGVhdHNoZWV0IGZvciBnZ3Bsb3QyXShodHRwczovL3JzdHVkaW8uY29tL3dwLWNvbnRlbnQvdXBsb2Fkcy8yMDE1LzAzL2dncGxvdDItY2hlYXRzaGVldC5wZGYpICAKKyBbZ2dwbG90MiBjb3Vyc2VzIGFuZCBib29rcyBmcm9tIFRpZHl2ZXJzZV0oaHR0cHM6Ly9nZ3Bsb3QyLnRpZHl2ZXJzZS5vcmcvKSAgCisgW2dncGxvdDIgZGF0YSB2aXogY2hhcHRlciBvZiBSIGZvciBEYXRhIFNjaWVuY2VdKGh0dHBzOi8vcjRkcy5oYWQuY28ubnovZGF0YS12aXN1YWxpc2F0aW9uLmh0bWwpICAKKyBbZ2dwbG90MiBvbmxpbmUgdHV0b3JpYWxdKGh0dHA6Ly9yLXN0YXRpc3RpY3MuY28vQ29tcGxldGUtR2dwbG90Mi1UdXRvcmlhbC1QYXJ0MS1XaXRoLVItQ29kZS5odG1sKSAgCgpgYGB7cn0KIyBQbGF5IHdpdGggeW91ciBwbG90IGFuZCBkYXRhIQojIElkZWFzIHRvIGdldCB5b3VyIGp1aWNlcyBmbG93aW5nOiAKIyAtIEFkZCBhIGppdHRlciBsYXllciBvdmVyIHRoZSBib3hwbG90CiMgLSBQbGF5IHdpdGggdGhlIGNvbG9yIG9mIHRoZSBwb2ludHMhCiMgLSBVc2UgZ2d0aGVtZXMgdG8gcGxheSB3aXRoIHRoZSBhZXN0aGV0aWNzCiMgLSBmYWNldF93cmFwIGJ5IGFub3RoZXIgdmFyaWFibGUKYGBgCgpXaGVuIHlvdSBhcmUgaGFwcHkgd2l0aCB5b3VyIHBsb3QsIHNhdmUgeW91ciBwbG90IHRvIHRoZSBgcGxvdHNfZGlyYCBhcyBhIGBQTkdgIAp1c2luZyBgZ2dwbG90Mjo6Z2dzYXZlKClgLgoKYGBge3J9CgpgYGAKCiMjIyBTZXNzaW9uIEluZm8KCmBgYHtyfQpzZXNzaW9uSW5mbygpCmBgYAoK</div>
 
 
 </div>
@@ -3194,55 +3110,6 @@ $(document).ready(function () {
   });
 });
 
-</script>
-
-<!-- tabsets -->
-
-<script>
-$(document).ready(function () {
-  window.buildTabsets("TOC");
-});
-
-$(document).ready(function () {
-  $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
-  });
-});
-</script>
-
-<!-- code folding -->
-<script>
-$(document).ready(function () {
-  window.initializeSourceEmbed("04c-intro_to_tidyverse_exercise-part2.Rmd");
-  window.initializeCodeFolding("show" === "show");
-});
-</script>
-
-<script>
-$(document).ready(function ()  {
-
-    // move toc-ignore selectors from section div to header
-    $('div.section.toc-ignore')
-        .removeClass('toc-ignore')
-        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
-
-    // establish options
-    var options = {
-      selectors: "h1,h2,h3",
-      theme: "bootstrap3",
-      context: '.toc-content',
-      hashGenerator: function (text) {
-        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
-      },
-      ignoreSelector: ".toc-ignore",
-      scrollTo: 0
-    };
-    options.showAndHide = true;
-    options.smoothScroll = true;
-
-    // tocify
-    var toc = $("#TOC").tocify(options).data("toc-tocify");
-});
 </script>
 
 <!-- dynamically load mathjax for compatibility with self-contained -->

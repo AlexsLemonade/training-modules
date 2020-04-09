@@ -1,0 +1,167 @@
+---
+title: "Introduction to Tidyverse - Exercises Part 2"
+author: "Candace Savonen"
+date: "2020"
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+tidyverse exercises - part 2
+
+The goal of these exercises is to practice the visualization techniques and 
+data frame manipulations we used in [02-intro_to_ggplot2](./01-intro_to_ggplot2.Rmd) 
+and [03-intro_to_tidyverse](./01-intro_to_tidyverse.Rmd) notebooks. 
+
+Here will use another [microrarray dataset](https://www.refine.bio/experiments/GSE19578/integrated-molecular-genetic-profiling-of-pediatric-high-grade-gliomas-reveals-key-differences-with-adult-disease) that is [pre-processed for us by refine.bio](http://docs.refine.bio/en/latest/main_text.html#processing-information).
+This study from [Paugh et al, 2010](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2903336/) has glioblastoma samples from a range of patient ages. 
+
+### Set Up 
+
+In this notebook, we will be using tidyverse packages. 
+You can load the `library()` or use the `::` strategy. 
+
+```{r}
+
+```
+
+It's convenient to declare our directory names at the beginning so we can change
+it once and have it change throughout the notebook. 
+Remember we need to be consistent with what we used in the previous notebook. 
+
+```{r}
+data_dir <- 
+plots_dir <- 
+```
+
+## Read in the cleaned metadata
+
+Use `readr::read_tsv()` to read in the filtered gene expression matrix TSV, 
+"filtered_GSE19578.tsv" and assign it the name `genes_df`. 
+
+```{r}
+
+```
+
+Use `readr::read_tsv()` to read in the cleaned metadata TSV, "GSE19578.tsv" 
+and assign it the name `metadata`. 
+
+```{r}
+
+```
+
+## Set up grouped summary statistics for genes
+
+Let's calculate some fold changes for our groups. 
+We've set up a data frame that is transposed so you can use using `tidyverse` functions. 
+
+```{r}
+transposed_genes_df <- genes_df %>% 
+  # We want the gene information to be stored as rownames for the next set of 
+  # steps we are doing
+  tibble::column_to_rownames("Gene") %>% 
+  # Transposing the data frame so it is sample x genes
+  t() %>% 
+  # t() function turns our data frame into a matrix so let's turn it back to 
+  # a data.frame so we can use it with tidyverse functions
+  as.data.frame() %>% 
+  # By default our sample ids will be stored as rownames, let's bring it out as 
+  # its own columns 
+  tibble::rownames_to_column("sample_id")
+```
+
+Use `dplyr::select()` and an `%in%` statement to choose ~2-5 genes of interest. 
+Can use [GeneCard](https://www.genecards.org/) to find the corresponding Ensembl
+ID to your favorite genes. 
+
+```{r}
+genes_oi <- c("ENSG00000134323", 
+              "ENSG00000124762", 
+              "ENSG00000115414")
+
+```
+
+Use `dplyr::inner_join()` to join the `metadata_clean` columns to 
+`transposed_genes_df` by the `sample_id`. 
+
+```{r}
+
+```
+
+Calculate the group means of your `select()`ed genes. 
+
+```{r}
+
+```
+
+### Plot the data
+
+Now that we have our data set up, we will make some plots!
+
+**Plot 1) Scatterplot**
+
+Set up a ggplot scatterplot with either one or two of the selected genes in
+`genes_of_interest_df` and/or with `age`. 
+
+```{r} 
+
+```
+
+**Plot 2) Facet wrapped jitter**
+
+Create a jitter plot of each gene where each `disease` group has its own plot 
+using `facet_wrap()`. 
+
+We've done the first step for you. 
+Your data will need to be in a long format. 
+Explore the `long_form_genes_oi_df` data frame to see how we've transformed it 
+with `tidyr::gather()`. 
+
+```{r}
+# Reformat to long format data frame 
+long_form_genes_oi_df <- genes_of_interest_df %>% 
+  tidyr::gather(gene, expression_value, -sample_id, -age, -disease, -adult)
+
+# Print preview
+long_form_genes_oi_df 
+```
+
+Make a `facet_wrap()`ped plot of the genes' expression levels. 
+
+```{r}
+
+```
+
+Make other customizations to this plot by adding more layers with `+` or change 
+the plot completely to something else!
+
+**ggplot2 resources to get you going:**  
+- [Top 50 ggplots](http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html)
++ [handy cheatsheet for ggplot2](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)  
++ [ggplot2 courses and books from Tidyverse](https://ggplot2.tidyverse.org/)  
++ [ggplot2 data viz chapter of R for Data Science](https://r4ds.had.co.nz/data-visualisation.html)  
++ [ggplot2 online tutorial](http://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html)  
+
+```{r}
+# Play with your plot and data!
+# Ideas to get your juices flowing: 
+# - Add a jitter layer over the boxplot
+# - Play with the color of the points!
+# - Use ggthemes to play with the aesthetics
+# - facet_wrap by another variable
+```
+
+When you are happy with your plot, save your plot to the `plots_dir` as a `PNG` 
+using `ggplot2::ggsave()`.
+
+```{r}
+
+```
+
+### Session Info
+
+```{r}
+sessionInfo()
+```
+
