@@ -1,4 +1,4 @@
-## Set up for virtual workshops
+## Setup for virtual workshops
 
 The `virtual-setup` module houses instructions specifically for CCDL virtual training workshops.
 
