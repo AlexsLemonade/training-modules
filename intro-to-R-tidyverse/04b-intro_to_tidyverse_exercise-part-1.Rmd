@@ -1,5 +1,5 @@
 ---
-title: "Introduction to Tidyverse - Exercises Part 1"
+title: "Introduction to Tidyverse - Exercises Part 2"
 author: "Candace Savonen"
 date: "2020"
 output:
@@ -8,22 +8,21 @@ output:
     toc_float: true
 ---
 
-tidyverse exercises - part 1
+**tidyverse exercises - part 1**
 
 The goal of these exercises is to practice the visualization techniques and 
 data frame manipulations we used in [02-intro_to_ggplot2](./01-intro_to_ggplot2.Rmd) 
 and [03-intro_to_tidyverse](./01-intro_to_tidyverse.Rmd) notebooks. 
 
-Here will use another [microrarray dataset](https://www.refine.bio/experiments/GSE19578/integrated-molecular-genetic-profiling-of-pediatric-high-grade-gliomas-reveals-key-differences-with-adult-disease) that is [pre-processed for us by refine.bio](http://docs.refine.bio/en/latest/main_text.html#processing-information).
+Here we will use another [microrarray dataset](https://www.refine.bio/experiments/GSE19578/integrated-molecular-genetic-profiling-of-pediatric-high-grade-gliomas-reveals-key-differences-with-adult-disease) that is [pre-processed for us by refine.bio](http://docs.refine.bio/en/latest/main_text.html#processing-information).
 This study from [Paugh et al, 2010](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2903336/) has glioblastoma samples from a range of patient ages. 
 
 ### Set Up 
 
 In this notebook, we will be using tidyverse packages. 
-Load the library here, or you can use the `::` strategy.
 
 ```{r}
-
+library(tidyverse)
 ```
 
 It's convenient to declare our directory names at the beginning so we can change
@@ -72,32 +71,33 @@ Although GEO gives us a lot of information, a lot of these fields are not inform
 
 **Step 1 of cleaning**: keep only informative columns. 
 
-Use `dplyr::select` to keep the 3 columns with the following information: 
+Use `dplyr::select()` to keep the 3 columns with the following information: 
 + The sample accession codes
 + age as a numeric variable
 + disease information
 
-Assign the `select()`ed metadata as `metadata_clean`. 
+Note that all the columns we want start with `refinebio_`. 
+Assign the `dplyr::select()`ed metadata as `metadata_clean`. 
 
 ```{r}
-
+metadata_clean <- 
 ```
 
-Look up details on `select()` and figure out how we can (in the same step!) 
+Look up details on `dplyr::select()` and figure out how we can (in the same step!) 
 rename these columns to be shorter and more to the point like `sample_id`, 
 `age` and `disease` for example. 
 
 ```{r}
-
+metadata_clean <- 
 ```
 
 **Step 2 of cleaning**: format variables to the type they should be.
 
-Currently, our `disease` variable has repeated values, but using `summary()` 
-wouldn't show us that: 
+Currently, our `disease` variable from `metadata_clean` has repeated values, 
+but using `summary()` wouldn't show us that: 
 
 ```{r}
-
+summary(metadata_clean$disease)
 ```
 
 To avoid handling issues of this variable, let's try to coerce it to a `factor`
@@ -105,7 +105,7 @@ using `dplyr::mutate()`.
 We'll need to use `metadata_clean` and reassign it the same name. 
 
 ```{r}
-
+metadata_clean <- metadata_clean %>% 
 ```
 
 Use `summary()` on the re-factored `disease` column to see how many samples of each
@@ -121,20 +121,21 @@ Using the age variable, let's create a new grouping variable that indicates a
 `TRUE/FALSE` of whether the patient is above `18`. 
 
 ```{r}
-
+metadata_clean <-
 ```
 
-**Step 4 of cleaning**: Arrange metdata in a sensible order
+**Step 4 of cleaning**: Arrange metadata in a sensible order
 
 Use `dplyr::arrange()` to arrange the rows from youngest to oldest `age`. 
 
 ```{r}
-
+metadata_clean <- 
 ```
 
 **Step 5 of cleaning**: Write the cleaned metadata to TSV
 
-Now that we've cleaned our metadata, let's save it to a file called "cleaned_metadata_GSE19578.tsv" using `readr::write_tsv()`.
+Now that we've cleaned our metadata, let's save it to a file using 
+`readr::write_tsv()`.
 
 ```{r}
 
@@ -147,18 +148,18 @@ You should also make sure to have comments (`#`) on each step so we know why we
 are doing it when we look back at this later!
 
 ```{r}
-# Reconstruct `metadata_clean` in one set of piped steps!
+
 ```
 
 ## Set up gene data
 
 #### Order sample data
 
-Commonly, the sample order for our metdata and gene expression matrix will not 
+Commonly, the sample order for our metadata and gene expression matrix will not 
 automatically match. 
 This should be the first thing we check before we try to use them in tandem. 
 
-Use `all.equal()` to see if the sample ids of columns of `gene_df` are in the 
+Use `all.equal()` to see if the sample ids of columns of `genes_df` are in the 
 same order as our `sample_id` column in `metadata_clean`. 
 Hint: you will want to ignore the `Gene` column when checking this, try a negative 
 index
@@ -168,24 +169,20 @@ index
 ```
 
 Before we reorder our samples, we should also check if all the samples list in 
-`metadata_clean` also exist in `gene_df`. 
-Use `all()` and `%>%` to write a logical expression to check this.
+`metadata_clean` also exist in `genes_df`. 
+Use `all()` and `%in%` to write a logical expression to check this.
 
 ```{r}
 
 ```
 
-Now let's use `dplyr::select()` to reorder the columns in `gene_df` to the order 
+Now let's use `dplyr::select()` to reorder the columns in `genes_df` to the order 
 of `sample_id`s in `metadata_clean`. 
-We've gotten you part of the way there by setting up a vector (`cols_to_keep`) you will use in 
-`dplyr::select()`.
+You will need to also keep `Gene` column so add `"Gene"` into your 
+`dplyr::select()` expresion! 
 
 ```{r}
-# Use this vector inside of a `dplyr::select()` to select the columns we want from
-# gene_df 
-cols_to_keep <- c("Gene", metadata_clean$sample_id)
-
-
+genes_df <- 
 ```
 
 Re-test the order of the samples the same way you did before, using `all.equal()`
@@ -200,11 +197,11 @@ For microarray data, lower expression value genes may be an indication of
 unreliable measurement.
 
 Let's calculate the median expression per gene using `apply()`. 
-Don't forget to move `Gene` column out of the way. 
-Store this vector as `gene_medians`. 
+Don't forget to move `Gene` column out of the way (can use `genes_df[, -1]`). 
+Store this vector as `gene_means`. 
 
 ```{r}
-
+gene_medians <- 
 ```
 
 Use `summary()` to get a overall view of the `gene_medians` distribution. 
@@ -220,13 +217,12 @@ Use the function `as.data.frame()` to do so.
 gene_medians_df <- 
 ```
 
-Now that our data is in a data.frame format, we can use `ggplot2::ggplot` to 
+Now that our data is in a data.frame format, we can use `ggplot2::ggplot()` to 
 plot it and add layers with `+`.
 Add a layer with `geom_density()` to make a density plot of the medians. 
 
 ```{r}
-density_plot <- ggplot2::ggplot(gene_medians_df, 
-                               ggplot2::aes(x = <VARIABLE_NAME>)) + 
+density_plot <- 
 
 # Print a preview of the plot
 density_plot
@@ -235,14 +231,11 @@ density_plot
 If you haven't, don't forget to add `xlab()` and `ylab()` to your plot so your 
 plot is appropriately labeled and easier to read. 
 
-When you have your plot finalized, save it to a PNG to our `plots_dir` using 
+When you have your plot finalized, save it to a PNG to our `results_dir` using 
 `ggplot2::ggsave()`.
 
 ```{r}
-ggplot2::ggsave(
-  plot = density_plot,
-  filename = file.path(plots_dir, "gene_median_density_plot.png")
-)
+
 ```
 
 Now that we've seen what our distribution looks like, let's apply it as filter
@@ -255,7 +248,7 @@ We'll call this newly filtered data frame `filtered_genes_df`.
 filtered_genes_df <- 
 ```
 
-Let's write our newly filtered and arraged dataset to TSV file. 
+Let's write our newly filtered and arranged dataset to TSV file. 
 Save this TSV file back to our `data_dir` and call it "filtered_GSE19578.tsv".
 
 ```{r}
