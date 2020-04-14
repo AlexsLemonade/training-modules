@@ -48,7 +48,8 @@ You can use the training-specific private channel to do the following:
 
 If you have a question, it's very likely someone else in the course has the same question! 
 
-**Responses to questions should be in [threads](https://slack.com/help/articles/115000769927-Use-threads-to-organize-discussions-) as much as possible**, including any screenshots or images. To start a thread, hover over the message you want to respond to and click the start a thread icon that appears on the top right of the message:
+**Responses to questions should be in [threads](https://slack.com/help/articles/115000769927-Use-threads-to-organize-discussions-) as much as possible**, including any screenshots or images. 
+To start a thread, hover over the message you want to respond to and click the start a thread icon that appears on the top right of the message:
 
 <img src = screenshots/slack-start-a-thread.png width = 300>
 
