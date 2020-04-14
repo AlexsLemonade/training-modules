@@ -1,5 +1,5 @@
 ---
-title: "Introduction to Tidyverse - Exercises Part 2"
+title: "Introduction to Tidyverse - Exercises Part 1"
 author: "Candace Savonen"
 date: "2020"
 output:
@@ -7,8 +7,6 @@ output:
     toc: true
     toc_float: true
 ---
-
-**tidyverse exercises - part 1**
 
 The goal of these exercises is to practice the visualization techniques and 
 data frame manipulations we used in [02-intro_to_ggplot2](./01-intro_to_ggplot2.Rmd) 
@@ -22,7 +20,7 @@ This study from [Paugh et al, 2010](https://www.ncbi.nlm.nih.gov/pmc/articles/PM
 In this notebook, we will be using tidyverse packages. 
 
 ```{r}
-library(tidyverse)
+
 ```
 
 It's convenient to declare our directory names at the beginning so we can change
@@ -34,13 +32,20 @@ results_dir <- "results"
 plots_dir <- "plots"
 ```
 
+Let's set up an `if` statement that will create our plots directory with 
+`dir.create()` if it does not currently exist. 
+
+```{r}
+
+```
+
 ## Read in the gene results file
 
 Use `readr::read_tsv()` to read in the gene expression matrix TSV, "GSE19578.tsv" 
 and assign it the name `genes_df`. 
 
 ```{r}
-genes_df <- 
+genes_df <-
 ```
 
 Use this chunk to explore what your data frame, `genes_df` looks like. 
@@ -52,10 +57,10 @@ Use this chunk to explore what your data frame, `genes_df` looks like.
 ## Read in the metadata
 
 Use the same function to read in the file "metadata_GSE19578.tsv" and assign 
-it the name `metadata`. 
+it to a variable named `metadata`. 
 
 ```{r}
-metadata <- 
+metadata <-
 ```
 
 Use this chunk to explore what your data frame, `metadata` looks like. 
@@ -67,7 +72,8 @@ Use this chunk to explore what your data frame, `metadata` looks like.
 ## Cleaning the metadata
 
 As is common with metadata, we will need to do some cleaning. 
-Although GEO gives us a lot of information, a lot of these fields are not informative for us at this stage. 
+Although refine.bio and GEO give us a lot of information, a lot of these fields 
+are not informative for us at this stage. 
 
 **Step 1 of cleaning**: keep only informative columns. 
 
@@ -80,15 +86,15 @@ Note that all the columns we want start with `refinebio_`.
 Assign the `dplyr::select()`ed metadata as `metadata_clean`. 
 
 ```{r}
-metadata_clean <- 
+
 ```
 
 Look up details on `dplyr::select()` and figure out how we can (in the same step!) 
-rename these columns to be shorter and more to the point like `sample_id`, 
-`age` and `disease` for example. 
+rename these columns to be shorter and more to the point. 
+Rename the three columns `sample_id`, `age`, and `disease`, respectively.
 
 ```{r}
-metadata_clean <- 
+
 ```
 
 **Step 2 of cleaning**: format variables to the type they should be.
@@ -97,19 +103,19 @@ Currently, our `disease` variable from `metadata_clean` has repeated values,
 but using `summary()` wouldn't show us that: 
 
 ```{r}
-summary(metadata_clean$disease)
+
 ```
 
-To avoid handling issues of this variable, let's try to coerce it to a `factor`
-using `dplyr::mutate()`. 
+To avoid handling issues of this variable, let's coerce it to a `factor` using
+`dplyr::mutate()`. 
 We'll need to use `metadata_clean` and reassign it the same name. 
 
 ```{r}
-metadata_clean <- metadata_clean %>% 
+
 ```
 
 Use `summary()` on the re-factored `disease` column to see how many samples of each
-there are. 
+disease there are. 
 
 ```{r}
 
@@ -121,7 +127,7 @@ Using the age variable, let's create a new grouping variable that indicates a
 `TRUE/FALSE` of whether the patient is above `18`. 
 
 ```{r}
-metadata_clean <-
+
 ```
 
 **Step 4 of cleaning**: Arrange metadata in a sensible order
@@ -129,7 +135,7 @@ metadata_clean <-
 Use `dplyr::arrange()` to arrange the rows from youngest to oldest `age`. 
 
 ```{r}
-metadata_clean <- 
+
 ```
 
 **Step 5 of cleaning**: Write the cleaned metadata to TSV
@@ -178,11 +184,10 @@ Use `all()` and `%in%` to write a logical expression to check this.
 
 Now let's use `dplyr::select()` to reorder the columns in `genes_df` to the order 
 of `sample_id`s in `metadata_clean`. 
-You will need to also keep `Gene` column so add `"Gene"` into your 
-`dplyr::select()` expresion! 
+Hint: Don't forget about keepting the `Gene` column! 
 
 ```{r}
-genes_df <- 
+
 ```
 
 Re-test the order of the samples the same way you did before, using `all.equal()`
@@ -197,11 +202,11 @@ For microarray data, lower expression value genes may be an indication of
 unreliable measurement.
 
 Let's calculate the median expression per gene using `apply()`. 
-Don't forget to move `Gene` column out of the way (can use `genes_df[, -1]`). 
-Store this vector as `gene_means`. 
+Don't forget to skip the `Gene` column (you can use `genes_df[, -1]`). 
+Store this vector as `gene_medians`. 
 
 ```{r}
-gene_medians <- 
+
 ```
 
 Use `summary()` to get a overall view of the `gene_medians` distribution. 
@@ -222,10 +227,7 @@ plot it and add layers with `+`.
 Add a layer with `geom_density()` to make a density plot of the medians. 
 
 ```{r}
-density_plot <- 
 
-# Print a preview of the plot
-density_plot
 ```
 
 If you haven't, don't forget to add `xlab()` and `ylab()` to your plot so your 
@@ -238,14 +240,16 @@ When you have your plot finalized, save it to a PNG to our `results_dir` using
 
 ```
 
-Now that we've seen what our distribution looks like, let's apply it as filter
+Now that we've seen what our distribution looks like, let's apply a filter 
 cutoff to `genes_df`. 
-Use `dplyr::filter()` to filter out the low expression genes based on your chosen 
-cutoff. 
+Choose a minimum gene expression cutoff and use `dplyr::filter()` to filter out 
+the low expression genes based on that cutoff. 
+Recall that `dplyr::filter()` will *keep* rows where your logical expression is 
+`TRUE`. 
 We'll call this newly filtered data frame `filtered_genes_df`. 
 
 ```{r}
-filtered_genes_df <- 
+
 ```
 
 Let's write our newly filtered and arranged dataset to TSV file. 
