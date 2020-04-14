@@ -97,7 +97,7 @@ In this section, we include a collection of tips that you may find helpful for u
 
 #### Attaching a file or image
 
-You can [add a file or image to Slack](https://slack.com/help/articles/201330736-Add-files-to-Slack) using the paper clip icon next to the message field:
+You can [add a file or image to Slack](https://slack.com/help/articles/201330736-Add-files-to-Slack) by dragging a file to the Slack window or by using the paper clip icon next to the message field:
 
 <img src = screenshots/slack-add-a-file.png width = 500> 
 
