@@ -84,6 +84,10 @@ Use the `Submit Response` button in a Polly message to enter your feedback:
 ### Using Slack calling during training
 
 If you need help on consultation days, a course instructor may initiate a [Slack call](https://slack.com/help/articles/216771908-Make-calls-in-Slack).
+To answer a Slack call, hit the button with the phone icon on the prompt.
+
+<img src = screenshots/slack-call-prompt.png height = 300>
+
 _Note: Where possible please utilize headphones throughout the training workshop to minimize audio feedback._
 
 <!--
