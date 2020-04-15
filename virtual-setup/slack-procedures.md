@@ -7,7 +7,6 @@ We use Slack for communication during CCDL virtual workshops.
 <p>Specifically, we use the <b>Cancer Data Science Slack</b> team administered by the CCDL.
 You can join Cancer Data Science Slack by following this link: <a href="https://www.ccdatalab.org/slack">ccdatalab.org/slack</a>
 <br>
-<br>
 
 All Slack communications must adhere to our [code of conduct](https://github.com/AlexsLemonade/2020-may-training/blob/master/code-of-conduct.md).
 
