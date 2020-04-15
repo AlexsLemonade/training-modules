@@ -77,6 +77,9 @@ Your instructor will ask you to [share your screen](https://slack.com/help/artic
 
 <img src = screenshots/slack-call-control.png width = 300>
 
+When you share your screen in Slack, please note that the **entire screen** will be displayed.
+You can not select a specific window to share.
+
 _Note: Where possible please utilize headphones throughout the training workshop to minimize audio feedback._
 
 ### Using direct messages during training
