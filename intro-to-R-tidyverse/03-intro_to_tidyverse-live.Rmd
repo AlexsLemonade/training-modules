@@ -62,7 +62,7 @@ we are in.
 
 ```{r}
 # Let's check what directory we are in:
-getwd()
+
 ```
 
 For Rmd files, the working directory is wherever the file is located, but 
@@ -88,7 +88,7 @@ use the `dir.exists()` function.
 
 ```{r}
 # Check if the results directory exists
-dir.exists("results")
+
 ```
 
 If the above says `FALSE` that means we will need to create a `results` 
@@ -96,7 +96,7 @@ directory using the function `dir.create()`.
 
 ```{r}
 # Make a directory within the working directory called 'results'
-dir.create("results")
+
 ```
 
 After creating the results directory above, let's re-run `dir.exists()` to see 
@@ -104,7 +104,7 @@ if now it exists.
 
 ```{r}
 # Re-check if the results directory exists
-dir.exists("results")
+
 ```
 
 We can use the output of `dir.exists()` to automatically create or hold off on 
@@ -176,12 +176,14 @@ Following the template of the previous chunk, use this chunk to read in the file
 
 ```{r}
 # Use this chunk to read in data from the file `GSE44971.tsv`
+
 ```
 
 Use this chunk to explore what `gene_df` looks like. 
 
 ```{r}
 # Explore `gene_df`
+
 ```
 
 What information is contained in `gene_df`?
@@ -229,9 +231,7 @@ It's annoying and makes it harder for people to read.
 ```{r}
 # Example of the same modifications as above but with pipes!
 stats_pipe  <- stats_df %>%
-               arrange(t_statistic) %>%
-               filter(avg_expression > 50) %>%
-               select(contrast, log_fold_change, p_value)
+
 ```
 
 What the `%>%` (pipe) is doing here is feeding the result of the expression on 
@@ -262,7 +262,7 @@ statement (usually one that refers to a column or columns in the data frame).
 
 ```{r}
 # Here let's filter stats_df to the gene_symbol "SNCA"
-stats_df %>% 
+stats_df %>%
   filter(gene_symbol == "SNCA")
 ```
 
@@ -270,8 +270,7 @@ We can use `filter()` similarly for numeric statements.
 
 ```{r}
 # Here let's filter the data to rows with average expression values above 50
-stats_df %>%
-  filter(avg_expression > 50)
+
 ```
 
 We can apply multiple filters at once, which will require all of them to be 
@@ -279,9 +278,7 @@ satisfied for every row in the results:
 
 ```{r }
 # filter to highly expressed genes with contrast "male_female"
-stats_df %>%
-  filter(contrast == "male_female", 
-         avg_expression > 50)
+
 ```
 
 When we are filtering, the `%in%` operator can come in handy if we have multiple
@@ -297,8 +294,7 @@ stats_df$gene_symbol %in% genes_of_interest
 
 ```{r }
 # filter to genes of interest
-stats_df %>% 
-  filter(gene_symbol %in% c("SNCA", "CDKN1A"))
+
 ```
 
 Let's return to our first `filter()` and build on to it. 
@@ -310,9 +306,7 @@ Let's also save this as a new data frame called `stats_filtered_df`.
 # filter to highly expressed "male_female"
 # and select gene_symbol, log_fold_change and t_statistic
 stats_filtered_df <- stats_df %>%
-  filter(contrast == "male_female", 
-         avg_expression > 50) %>%
-  select(log_fold_change, t_statistic)
+  
 ```
 
 Let's say we wanted to arrange this dataset so that the genes are arranged by 
@@ -332,8 +326,7 @@ are using `avg_expression` column.
 
 ```{r}
 # arrange descending by avg_expression
-stats_df %>%
-  arrange(desc(avg_expression))
+
 ``` 
 
 What if we would like to create a new column of values?
@@ -346,7 +339,7 @@ stats_df %>%
 
 What if we want to obtain summary statistics for a column or columns?
 The `summarize` function allows us to calculate summary statistics for a column. 
-Here we will use summarize to obtain an mean log folder change over all the
+Here we will use summarize to obtain an mean log folder change over all the 
 genes, and its standard deviation.
 
 ```{r}
@@ -363,16 +356,8 @@ Also note that `group_by()` allows us to group by multiple variables at a time
 if you want to.
 
 ```{r}
-stats_summary_df <- stats_df %>%
-      group_by(contrast) %>% 
-      summarize(mean(log_fold_change),
-                sd(log_fold_change))
-```
+# summarize log_fold_change by group
 
-Let's look at a preview of what we made:
-
-```{r}
-stats_summary_df
 ```
 
 Here we have the mean log fold change expression per each contrast we made. 
@@ -389,11 +374,6 @@ The third argument is the function we will apply to each row or column of the
 data object.
 The second argument in specifies whether we are applying the function 
 across rows or across columns (1 for rows, 2 for columns).
-
-```{r echo = FALSE, results= "hide"}
-# in case gene_df was not loaded earlier
-gene_df <- readr::read_tsv(file.path(data_dir, "GSE44971.tsv"))
-```
 
 Remember that `gene_df` is a gene x sample gene expression data frame. 
 
@@ -421,7 +401,7 @@ length(sample_means)
 Although the `apply` functions may not be as easy to use as the tidyverse 
 functions, for some applications, `apply` methods can be better suited.
 In this workshop, we will not delve too deeply into the various other apply 
-functions (`tapply()`, `lapply()`, etc.) but you can read more information about 
+functions (`tapply()`, `lapply()`, etc.) but you can read more information about
 them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
 
 ## The dplyr::join functions
