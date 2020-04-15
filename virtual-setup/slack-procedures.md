@@ -41,7 +41,6 @@ You can use the training-specific private channel to do the following:
 
 * Post questions during lectures
 * Post errors and get help with debugging
-``
 * Treat the channel as a study group – if you get stuck on an exercise notebook or your own data, post something so other participants and instructors can help you.
 
 If you have a question, it's very likely someone else in the course has the same question! 
