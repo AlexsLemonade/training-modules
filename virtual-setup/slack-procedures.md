@@ -73,6 +73,7 @@ Use the `Submit Response` button in a Polly message to enter your feedback:
 
 If you need help during instruction or on consultation days and it is helpful to share your screen, a course instructor will initiate a [Slack call](https://slack.com/help/articles/216771908-Make-calls-in-Slack).
 Your instructor will ask you to [share your screen](https://slack.com/help/articles/115003501303-Share-your-screen-with-Slack-Calls) using the share your screen icon circled in yellow below.
+It is located at the bottom middle of your Slack call window.
 
 <img src = screenshots/slack-call-control.png width = 300>
 
@@ -83,7 +84,7 @@ _Note: Where possible please utilize headphones throughout the training workshop
 
 ### Using direct messages during training
 
-If you have a question that is _highly specific_ to your own data, you may [direct message](https://slack.com/help/articles/212281468-What-is-a-direct-message) a CCDL staff member. 
+If you have a question that is **_highly specific_** to your own data, you may [direct message](https://slack.com/help/articles/212281468-What-is-a-direct-message) a CCDL staff member. 
 
 First, use the new message button in the top right side corner of the Slack interface.
 
@@ -115,3 +116,5 @@ Or you can type three backticks <code>```</code> into the message field and form
 <img src = screenshots/slack-backticks.gif width = 500 >
 
 You are then ready to paste your code or error message into the grey code block.
+
+**If you have questions or are having trouble with Slack features, please reach out to us via direct message or, if direct messaging is not working, please email [training@ccdatalab.org](mailto:training@ccdatalab.org).**
