@@ -23,6 +23,9 @@ We have instructions for setting up Slack for your operation system available.
 
 - [How we use Slack during workshops](#how-we-use-slack-during-workshops)
   - [Using the training-specific channel](#using-the-training-specific-channel)
+     - [Introduce yourself!](#introduce-yourself)
+     - [General use](#general-use)
+     - [Collecting feedback](#collecting-feedback)
   - [Using Slack calling during training](#using-slack-calling-during-training)
   - [Using direct messages during training](#using-direct-messages-during-training)
 - [General Slack use](#general-slack-use)
@@ -36,6 +39,16 @@ Course instructors will add you to a private channel specific to your training a
 If you are not added to the training specific channel by 3 days prior to the start of training or are having trouble getting started with Slack, please [direct message](#using-direct-messages-during-training) a CCDL staff member (`Chante Bethell`, `Candace Savonen`, `Josh Shapiro` or `Jaclyn N. Taroni`) in Cancer Data Science Slack or email [training@ccdatalab.org](mailto:training@ccdatalab.org).
 
 ### Using the training-specific channel
+
+#### Introduce yourself!
+
+When you are added to the training-specific channel, please introduce yourself to others by messaging the channel with the following:
+
+* Your name
+* Your institution and position
+* A brief summary of your research interests and what you are hoping to learn during training
+
+#### General use
 
 You can use the training-specific private channel to do the following:
 
