@@ -83,7 +83,10 @@ Use the `Submit Response` button in a Polly message to enter your feedback:
 
 ### Using Slack calling during training
 
-If you need help during instruction or on consultation days and it is helpful to share your screen, a course instructor will initiate a [Slack call](https://slack.com/help/articles/216771908-Make-calls-in-Slack).
+If you need help on consultation days, a course instructor may initiate a [Slack call](https://slack.com/help/articles/216771908-Make-calls-in-Slack).
+_Note: Where possible please utilize headphones throughout the training workshop to minimize audio feedback._
+
+<!--
 Your instructor will ask you to [share your screen](https://slack.com/help/articles/115003501303-Share-your-screen-with-Slack-Calls) using the share your screen icon circled in yellow below.
 It is located at the bottom middle of your Slack call window.
 
@@ -91,8 +94,7 @@ It is located at the bottom middle of your Slack call window.
 
 When you share your screen in Slack, please note that the **entire screen** will be displayed.
 You can not select a specific window to share.
-
-_Note: Where possible please utilize headphones throughout the training workshop to minimize audio feedback._
+-->
 
 ### Using direct messages during training
 
