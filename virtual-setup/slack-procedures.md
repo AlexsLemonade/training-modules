@@ -103,7 +103,7 @@ You can [add a file or image to Slack](https://slack.com/help/articles/201330736
 
 #### Adding code blocks to messages 
 
-Code or errors are usually easier to read when you use code formatting in Slack.
+Code and error messages are usually easier to read when you use code formatting in Slack.
 You can either select the code block icon below the message field:
 
 <img src = screenshots/slack-code-block-icon.png width = 500>
