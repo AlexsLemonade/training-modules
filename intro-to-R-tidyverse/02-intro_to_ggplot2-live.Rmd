@@ -78,14 +78,14 @@ Let's take a look at what this data frame looks like:
 
 ```{r}
 # display stats_df
-stats_df
+
 ```
 
 We can take a look at a column individually by using a `$`. 
 Note we are using `head()` so the whole thing doesn't print out. 
 
 ```{r}
-head(stats_df$contrast)
+head(<YOUR_CODE_HERE>)
 ```
 
 If we want to see a specific set of values, we can use brackets with the indices of the values we'd like returned.
@@ -98,13 +98,13 @@ Let's look at some basic statistics from the data set using `summary()`
 
 ```{r}
 # summary of stats_df
-summary(stats_df)
+
 ```
 
 The statistics for `contrast` are not very informative, so let's do that again with just the `contrast` column after converting it to a `factor`
 ```{r}
 # summary of `stats_df$contrast` as a factor
-summary(as.factor(stats_df$contrast))
+
 ```
 
 ## Set up the dataset
@@ -113,6 +113,7 @@ Before we make our plot, we want to calculate a set of new values for each row; 
 To do this we will use a function from the `dplyr` package called `mutate()` to make a new column of -log10 p values.
 
 ```{r}
+# add a `neg_log10_p` column to the data frame
 stats_df <- mutate(stats_df, # data frame we'd like to add a variable to
   neg_log10_p = -log10(p_value) # column name and values
 )
@@ -121,7 +122,7 @@ stats_df <- mutate(stats_df, # data frame we'd like to add a variable to
 Let's filter to only `male_female` contrast data. 
 First let's try out a logical expression: 
 
-```{r eval = FALSE}
+```{r eval=FALSE}
 stats_df$contrast == "male_female"
 ```
 
@@ -129,14 +130,14 @@ Now we can try out the `filter()` function.Notice that we are not assigning the 
 
 ```{r}
 # filter stats_df to "male_female" only
-filter(stats_df, contrast == "male_female")
+
 ```
 
 Now we can assign the results to a new data frame: `male_female_df`. 
 
 ```{r}
 # filter and save to male_female_df
-male_female_df <- filter(stats_df, contrast == "male_female")
+
 ```
 
 ## Plotting this data
@@ -175,15 +176,9 @@ A volcano plot is a special kind of scatter plot, so to make that we will want t
 
 ```{r}
 # This first part is the same as before
-ggplot(
-  tumor_normal_df,
-  aes(
-    x = log_fold_change,
-    y = neg_log10_p
-  )
-) +
+
   # Now we are adding on a layer to specify what kind of plot we want
-  geom_point()
+
 ```
 
 Here's a brief summary of ggplot2 structure. 
@@ -195,30 +190,16 @@ Now that we have a base plot that shows our data, we can add layers on to it and
 We can adjust the color of points using the `color` aesthetic.
 
 ```{r}
-ggplot(
-  tumor_normal_df,
-  aes(
-    x = log_fold_change,
-    y = neg_log10_p,
-    color = avg_expression
-  ) # We added this argument to color code the points!
-) +
-  geom_point()
+# color code the points by avg_expression
+
 ```
 
 Because we have so many points overlapping one another, we will want to adjust 
 the transparency, which we can do with an `alpha` argument. 
 
 ```{r}
-ggplot(
-  tumor_normal_df,
-  aes(
-    x = log_fold_change,
-    y = neg_log10_p,
-    color = avg_expression
-  )
-) +
-  geom_point(alpha = 0.2) # We are using the `alpha` argument to make our points transparent
+# Add in transparency with alpha
+
 ```
 
 Notice that we added the alpha within the `geom_point()` function, not to the `aes()`. 
@@ -243,16 +224,8 @@ For example, if we want to add a horizontal line to indicate a significance cuto
 For now, we will choose the value of 5.5 (that is close to a Bonferonni correction) and add that to the plot.
 
 ```{r}
-ggplot(
-  tumor_normal_df,
-  aes(
-    x = log_fold_change,
-    y = neg_log10_p,
-    color = avg_expression
-  )
-) +
-  geom_point(alpha = 0.2) + 
-  geom_hline(yintercept = 5.5, color = "darkgreen") # we can specify colors by names here
+# add a horizontal line
+
 ```
 
 We can also change the background and appearance of the plot as a whole by adding a `theme`.
@@ -280,6 +253,7 @@ Use this chunk to make the same kind of plot as the previous chunk but instead p
 
 ```{r}
 # Use this chunk to make the same kind of volcano plot, but with the male-female contrast data.
+
 ```
 
 Turns out, we don't have to plot each contrast separately, instead, we can use the original data frame that contains all three contrasts' data, `stats_df`, and add a `facet_wrap` to make each contrast its own plot. 
@@ -320,8 +294,8 @@ volcano_plot <- ggplot(
   theme_bw() +
   facet_wrap(~contrast) +
   xlab("log2 Fold Change") +
-  ylab("-log10 p value") +
-  coord_cartesian(xlim = c(-25, 25))
+  ylab("-log10 p value") + 
+  coord_cartesian(xlim = c(-25, 25)) 
 ```
 
 When we are happy with our plot, we can save the plot using `ggsave`. 
