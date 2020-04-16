@@ -96,11 +96,17 @@ On the first day of instruction, we will ask you to introduce yourself on the Zo
 
 Follow the Zoom link you've received.
 It should open in your browser.
-If you have Zoom installed on your computer, you will be prompted to start the call from the Zoom application and can click the `Open link` or `OK` button. (_Note: these screen shots were taken on a Mac using Firefox, your interface may look slightly different._)
+If you have Zoom installed on your computer, you will be prompted to start the call from the Zoom application and can click the `Open link` or `Open zoom.us` or `OK` button. (_Note: these screen shots were taken on a Mac using Firefox, your interface may look slightly different._)
 
 <img src = screenshots/zoom-launching-from-browser.png width = 500>
 
+In Firefox, the prompt to launch Zoom looks like this:
+
 <img src = screenshots/zoom-launch-prompt.png width = 300>
+
+In Chrome, the prompt to launch Zoom looks like this:
+
+<img src = screenshots/zoom-chrome-launch.png width = 400>
 
 You will also see links that allow you to `download & run Zoom` and to `start from your browswer`.
 
