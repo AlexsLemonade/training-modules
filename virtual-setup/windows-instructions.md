@@ -8,7 +8,7 @@
   - [Zoom Installation and Setup](#zoom-installation-and-setup)
     - [New Installation](#new-installation)
     - [Set Up Preferences](#set-up-preferences)
-    - [Slack](#slack)
+  - [Slack](#slack)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -21,7 +21,7 @@ To do so, go to https://zoom.us/download and click the button to download the la
 
 <img src="screenshots/windows-zoom-download.png" width=500 alt="Zoom Download Page">
 
-The `Zoominstaller.exe` installer package will most likely be saved to your Downloads folder or you can click on it in the lower left corner.
+The `Zoominstaller.exe` installer package will most likely be saved to your `Downloads` folder or you can click on it in the lower left corner.
 Click `Run` when asked what you would like to do with `Zoominstaller.exe`
 
 Windows will ask you if you would like to allow Zoom to make changes to your device. Click `Yes`.
@@ -50,14 +50,14 @@ If you want to further test your microphone and speaker settings, you can click 
 
 We recommend that you select the checkbox to "Automatically join audio by computer when joining a meeting." to save you the future annoyance of having to do this every time you join a meeting.
 
-### Slack
+## Slack
 
-Download 64 bit Slack application from:
+Download 64-bit Slack application from:
 https://slack.com/downloads/instructions/windows
 
 <img src="screenshots/windows-slack-download.png" alt="Slack download" width=1000>
 
-Click on the `SlackSetUp.exe` file this downloads.
+Click on the `SlackSetUp.exe` file this downloads when it pops up in the lower left corner.
 Or find it most likely in the `Downloads` folder and click on it there.
 
 Sign in with your Slack account if you have one, or create a new account.
@@ -70,9 +70,9 @@ Or when prompted, you can type in `cancer-data-science.slack.com` as your worksp
 
 <img src="screenshots/windows-slack-workspace.png" width=500 alt="Slack sign in page">
 
-When you sign in for the first time, Windows may ask `Did you mean to switch apps`, say `Yes`.
+When you sign in for the first time, Windows may ask `Did you mean to switch apps?`; say `Yes`.
 
-Please use a login name that allows us to know who you are, whatever you would like to be called. (as opposed to something like a twitter handle).
+Please use a login name that allows us to know who you are, whatever you would like to be called. (as opposed to something like a Twitter handle).
 
 Feel free to say hi in the `2020-may-training` channel.
 That's where we will be centering our communications for this training.
