@@ -65,11 +65,9 @@ To bring up the participant pane, click the participants icon in the middle of t
 
 The participant pane will appear on the side of the main Zoom window and look something like this:
 
-<img src = screenshots/zoom-participant-panel.png height = 500>
+<img src = screenshots/zoom-participant-panel.png height = 400>
 
-There are feedback controls on the bottom of the participant pane that will allow you to answer yes or no questions, give feedback on the speed of instruction, and under `more` you can indicate if you need a break.
-
-<img src = screenshots/zoom-participant-feedback.png width = 400>
+There are feedback controls on the bottom of the participant pane that will allow you to raise your hand, answer yes or no questions, give feedback on the speed of instruction, and under `more` you can indicate if you need a break.
 
 #### Chat
 
