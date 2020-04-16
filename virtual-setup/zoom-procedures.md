@@ -1,4 +1,4 @@
-## Zoom Procedures for CCDL Virtual Workshops
+# Zoom Procedures for CCDL Virtual Workshops
 
 We use [Zoom](https://zoom.us/) meetings for conducting CCDL virtual workshops.
 In this document, we will cover the procedures for joining a Zoom call and using various features for instruction and consultation days.
@@ -13,7 +13,26 @@ We have instructions for setting up Zoom for your operating system available.
 
 #### Table of Contents
 
-TOC!
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [General tips for using Zoom during workshops](#general-tips-for-using-zoom-during-workshops)
+  - [Audio](#audio)
+  - [Video](#video)
+  - [Interacting with instructors and providing feedback](#interacting-with-instructors-and-providing-feedback)
+    - [Participant pane](#participant-pane)
+    - [Chat](#chat)
+- [Joining a Zoom call](#joining-a-zoom-call)
+  - [To join a call](#to-join-a-call)
+- [Zoom recordings](#zoom-recordings)
+- [Using Zoom breakout rooms](#using-zoom-breakout-rooms)
+  - [Asking for 1:1 help during instruction](#asking-for-11-help-during-instruction)
+  - [Joining a breakout room](#joining-a-breakout-room)
+  - [Sharing your screen in Zoom breakout rooms](#sharing-your-screen-in-zoom-breakout-rooms)
+  - [Returning to the main session](#returning-to-the-main-session)
+  - [Consultation days](#consultation-days)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## General tips for using Zoom during workshops
 
