@@ -9,7 +9,6 @@
     - [New Installation](#new-installation)
     - [Set Up Preferences](#set-up-preferences)
     - [Slack](#slack)
-    - [New Installation](#new-installation-1)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -52,8 +51,6 @@ If you want to further test your microphone and speaker settings, you can click 
 We recommend that you select the checkbox to "Automatically join audio by computer when joining a meeting." to save you the future annoyance of having to do this every time you join a meeting.
 
 ### Slack
-
-### New Installation
 
 Download 64 bit Slack application from:
 https://slack.com/downloads/instructions/windows
