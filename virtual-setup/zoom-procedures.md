@@ -85,11 +85,6 @@ In general, the "host" will not be the instructor, but another member of the CCD
 
 <img src = screenshots/zoom-chat-dropdown.png width = 300> 
 
-Alternatively, you can hover over the Host's name in the participant list and click `More` and select `Chat` from the dropdown menu.
-
-<img src = screenshots/zoom-participant-hover-more.png width = 400>
-
-<img src = screenshots/zoom-participant-more-chat.png width = 300>
 
 ## Joining a Zoom call
 
