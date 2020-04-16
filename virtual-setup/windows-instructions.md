@@ -75,5 +75,4 @@ When you sign in for the first time, Windows may ask `Did you mean to switch app
 Please use a login name that allows us to know who you are, whatever you would like to be called. (as opposed to something like a twitter handle).
 
 Feel free to say hi in the `2020-may-training` channel.
-That's where we will be
-centering our communications for this training.
+That's where we will be centering our communications for this training.
