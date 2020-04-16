@@ -123,10 +123,15 @@ Please use your full name in your profile, and don't forget to set a unique pass
 After you login, you will see the Slack interface in the browser, but you probably want to open the app for ease of use and the complete feature set.
 In the upper left of the window, click on the words **Cancer Data Science** to open the menu, then select "Open the Slack App"
 
-<img src="screenshots/slack-open-app.png" alt="Slack email confirmation" width = 200>
+<img src="screenshots/slack-open-app.png" alt="Slack open app menu" width = 200>
 
 The Slack app you installed should open to the Cancer Data Science Community workspace and you should be all set.
 After you have been added to the training-specific channel, say "Hi" and introduce yourself to everyone!
+
+If you are new to Slack, you can get familiar with the interface and features by having a conversation with Slackbot (Slack's resident chatbot) or with yourself.
+You can find Slackbot (and yourself) in the left panel, under "Direct Messages".
+
+<img src="screenshots/slack-dm-slackbot.png" alt="DM Slackbot" width = 200>
 
 One more thing: if you end up using the voice or video calling functionality that Slack provides, you may be asked to grant the app permission to use your microphone and videocamera, as you did with Zoom.
 
