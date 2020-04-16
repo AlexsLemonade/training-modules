@@ -8,7 +8,7 @@ In this document, we will cover the procedures for joining a Zoom call and using
 We have instructions for setting up Zoom for your operating system available.
 
 * [Linux](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/linux-instructions.md#zoom)
-* [Mac](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/mac-instructions.md#zoom-installation-and-setup)
+* [Mac](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/mac-instructions.md#zoom)
 * [Windows](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/windows-instructions.md#zoom)
 
 #### Table of Contents
