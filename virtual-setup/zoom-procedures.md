@@ -81,6 +81,7 @@ The chat pane will appear below the participant pane.
 <img src = screenshots/zoom-chat-pane.png height = 500>
 
 **You should direct your questions to the host of the meeting** by selecting their name from the dropdown menu of the Chat window.
+In general, the "host" will not be the instructor, but another member of the CCDL who will coordinate questions and feedback.
 
 <img src = screenshots/zoom-chat-dropdown.png width = 300> 
 
