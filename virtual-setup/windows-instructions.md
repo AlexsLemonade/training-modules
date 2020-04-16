@@ -1,6 +1,17 @@
 # Windows set up instructions for virtual workshops
 
-TOC
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Windows set up instructions for virtual workshops](#windows-set-up-instructions-for-virtual-workshops)
+  - [Zoom Installation and Setup](#zoom-installation-and-setup)
+    - [New Installation](#new-installation)
+    - [Set Up Preferences](#set-up-preferences)
+    - [Slack](#slack)
+    - [New Installation](#new-installation-1)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Zoom Installation and Setup
 
@@ -15,7 +26,6 @@ The `Zoominstaller.exe` installer package will most likely be saved to your Down
 Click `Run` when asked what you would like to do with `Zoominstaller.exe`
 
 Windows will ask you if you would like to allow Zoom to make changes to your device. Click `Yes`.
-You will likely need to enter your (or an administrator) password to allow the installation to proceed.
 
 When the installation is completed, Zoom should automatically open.
 Click `Join with Video` if asked.
