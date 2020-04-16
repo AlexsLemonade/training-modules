@@ -48,6 +48,7 @@ Where possible, please use headphones throughout training to minimize audio feed
 ### Video
 
 If you are experiencing issues with the call quality, turning off your video may help.
+This will not affect your ability to see the instructors or content, only outgoing video.
 You can toggle video on and off using the Stop Video icon (or Start Video if video is off) on the left side of the controls at the bottom of the Zoom window.
 
 <img src = screenshots/zoom-participant-video.png>
