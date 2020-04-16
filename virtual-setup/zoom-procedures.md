@@ -8,7 +8,7 @@ In this document, we will cover the procedures for joining a Zoom call and using
 We have instructions for setting up Zoom for your operating system available.
 
 * [Linux](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/linux-instructions.md#zoom)
-* [Mac](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/mac-instructions.md#zoom-installation-and-setup)
+* [Mac](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/mac-instructions.md#zoom)
 * [Windows](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/windows-instructions.md#zoom)
 
 #### Table of Contents
@@ -38,16 +38,17 @@ We have instructions for setting up Zoom for your operating system available.
 
 ### Audio
 
-Please make sure your microphone is muted when joining the call and when you are to minimize background noise during instruction.
+Please make sure your microphone is muted when joining the call and when you are not speaking to minimize background noise during instruction.
 You can toggle mute on and off using the `Mute` (or `Unmute` if you are muted) icon on the left side of the controls at the bottom of the Zoom window.
 
 <img src = screenshots/zoom-participant-mute.png>
 
-Where possible, please utilize headphones throughout training to minimize audio feedback.
+Where possible, please use headphones throughout training to minimize audio feedback.
 
 ### Video
 
 If you are experiencing issues with the call quality, turning off your video may help.
+This will not affect your ability to see the instructors or content, only outgoing video.
 You can toggle video on and off using the Stop Video icon (or Start Video if video is off) on the left side of the controls at the bottom of the Zoom window.
 
 <img src = screenshots/zoom-participant-video.png>
