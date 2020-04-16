@@ -43,7 +43,7 @@ You can toggle mute on and off using the `Mute` (or `Unmute` if you are muted) i
 
 <img src = screenshots/zoom-participant-mute.png>
 
-Where possible, please utilize headphones throughout training to minimize audio feedback.
+Where possible, please use headphones throughout training to minimize audio feedback.
 
 ### Video
 
