@@ -38,7 +38,7 @@ We have instructions for setting up Zoom for your operating system available.
 
 ### Audio
 
-Please make sure your microphone is muted when joining the call and when you are to minimize background noise during instruction.
+Please make sure your microphone is muted when joining the call and when you are not speaking to minimize background noise during instruction.
 You can toggle mute on and off using the `Mute` (or `Unmute` if you are muted) icon on the left side of the controls at the bottom of the Zoom window.
 
 <img src = screenshots/zoom-participant-mute.png>
