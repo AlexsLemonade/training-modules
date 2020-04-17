@@ -70,6 +70,22 @@ Or if you already have a Slack account, when prompted, you can type in `cancer-d
 
 <img src="screenshots/windows-slack-workspace.png" width=500 alt="Slack sign in page">
 
-When you sign in for the first time, Windows may ask `Did you mean to switch apps?`; say `Yes`.
+Please use your full name in your profile, and don't forget to set a unique password!
 
-When you create your Slack name, please use your first and last name so we know who you are. 
+<img src="screenshots/slack-join-email.png" alt="Slack email confirmation" width = 300>
+
+After you login, you will see the Slack interface in the browser, but you probably want to open the app for ease of use and the complete feature set.
+In the upper left of the window, click on the words **Cancer Data Science** to open the menu, then select "Open the Slack App"
+Windows may ask `Did you mean to switch apps?`; say `Yes`.
+
+<img src="screenshots/slack-open-app.png" alt="Slack open app menu" width = 200>
+
+The Slack app you installed should open to the Cancer Data Science Community workspace and you should be all set.
+After you have been added to the training-specific channel, say "Hi" and introduce yourself to everyone!
+
+If you are new to Slack, you can get familiar with the interface and features by having a conversation with Slackbot (Slack's resident chatbot) or with yourself.
+You can find Slackbot (and yourself) in the left panel, under "Direct Messages".
+
+<img src="screenshots/slack-dm-slackbot.png" alt="DM Slackbot" width = 200>
+
+For more information about how we will be using Slack, please read about our [Slack Procedures](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/slack-procedures.md)
