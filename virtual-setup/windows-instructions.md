@@ -58,10 +58,6 @@ https://slack.com/downloads/instructions/windows
 Click on the `SlackSetUp.exe` file this downloads when it pops up in the lower left corner.
 Or find it most likely in the `Downloads` folder and click on it there.
 
-Sign in with your Slack account if you have one, or create a new account.
-
-<img src="screenshots/windows-slack-sign-in.png" width=500 alt="Slack sign in page">
-
 Join Cancer Data Science Slack by using [this link](https://ccdatalab.org/slack)
 
 Please use your full name in your profile, and don't forget to set a unique password!
