@@ -96,9 +96,9 @@ For more information about how we will be using Zoom, please read about our [Zoo
 
 
 
-### Slack
+## Slack
 
-#### New Slack Installation
+### New Slack Installation
 
 If you do not already have Slack, you can download it at https://slack.com/downloads/mac.
 You have the option to directly download the app from the Slack website there, or install it via the Mac App Store.
@@ -110,7 +110,7 @@ Open Slack from your Applications folder.
 If you downloaded directly, there may be a warning about opening a file that was downloaded from the internet, so give the required permission.
 You may be prompted to login, but ignore that for the moment.
 
-#### Logging in to the Cancer Data Science workspace
+### Logging in to the Cancer Data Science workspace
 
 Open http://ccdatalab.org/slack in your browser.
 If you have not created an account, follow the prompts to do so.
