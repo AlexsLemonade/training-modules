@@ -64,8 +64,6 @@ Sign in with your Slack account if you have one, or create a new account.
 
 Join Cancer Data Science Slack by using [this link](https://ccdatalab.org/slack)
 
-<img src="screenshots/windows-slack-workspace.png" width=500 alt="Slack sign in page">
-
 Please use your full name in your profile, and don't forget to set a unique password!
 
 <img src="screenshots/slack-join-email.png" alt="Slack email confirmation" width = 300>
