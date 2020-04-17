@@ -50,7 +50,7 @@ We recommend that you select the checkbox to "Automatically join audio by comput
 
 ## Slack
 
-Download 64-bit Slack application from:
+Download the 64-bit Slack application from:
 https://slack.com/downloads/instructions/windows
 
 <img src="screenshots/windows-slack-download.png" alt="Slack download" width=1000>
@@ -63,8 +63,6 @@ Sign in with your Slack account if you have one, or create a new account.
 <img src="screenshots/windows-slack-sign-in.png" width=500 alt="Slack sign in page">
 
 Join Cancer Data Science Slack by using [this link](https://ccdatalab.org/slack)
-
-Or if you already have a Slack account, when prompted, you can type in `cancer-data-science.slack.com` as your workspace URL.
 
 <img src="screenshots/windows-slack-workspace.png" width=500 alt="Slack sign in page">
 
