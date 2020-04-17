@@ -12,9 +12,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## Zoom Installation and Setup
-
-### New Installation
+## Zoom
 
 If you do not have Zoom installed yet, you will need to download the client.
 To do so, go to https://zoom.us/download and click the button to download the latest version of **Zoom Client for Meetings**
@@ -75,7 +73,7 @@ Please use your full name in your profile, and don't forget to set a unique pass
 <img src="screenshots/slack-join-email.png" alt="Slack email confirmation" width = 300>
 
 After you login, you will see the Slack interface in the browser, but you probably want to open the app for ease of use and the complete feature set.
-In the upper left of the window, click on the words **Cancer Data Science** to open the menu, then select "Open the Slack App"
+In the upper left of the window, click on the words **Cancer Data Science** to open the menu, then select "Open the Slack App".
 Windows may ask `Did you mean to switch apps?`; say `Yes`.
 
 <img src="screenshots/slack-open-app.png" alt="Slack open app menu" width = 200>
