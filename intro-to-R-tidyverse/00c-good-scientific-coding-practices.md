@@ -27,7 +27,7 @@ set.seed(54321)
 ```
 
 Setting the seed makes it so what ever results you get, are reproducible *exactly*.
-Want more explanation on this, [here's a StackOverflow post](https://stackoverflow.com/questions/13605271/reasons-for-using-the-set-seed-function) and a [mini tutorial on seed setting in R](https://rpubs.com/Mentors_Ubiqum/Set_Seed).
+For more explanation on this: [here's a StackOverflow post](https://stackoverflow.com/questions/13605271/reasons-for-using-the-set-seed-function) and a [mini tutorial on seed setting in R](https://rpubs.com/Mentors_Ubiqum/Set_Seed).
 
 #### R Notebooks are helpful for documenting your science
 
