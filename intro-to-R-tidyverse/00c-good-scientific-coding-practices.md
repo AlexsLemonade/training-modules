@@ -1,0 +1,55 @@
+# An Introductory Guide to Reproducible Code
+
+Through our curriculum we attempt to model good scientific coding practices.
+But in this guide, we will lay out some advice for writing scientific code that is reproducible.
+
+## Why is reproducibility important
+
+
+## Tips for good scientific coding practices
+
+#### 1) Style guides help people read your code
+
+Just like how incorrect punctuation and grammar can be distracting for a reader
+to grasp your message in your writing, code that doesn't follow a style is
+difficult for others to understand and be able to use.
+Your code is not useful if it isn't easily readable, which is why naming
+conventions, code style, and consistency are important.
+
+We suggest following a style guide like one of these:  
+- [Hadley Wickham's R Style Guide](http://adv-r.had.co.nz/Style.html)  
+- [Google's R Style Guide](https://google.github.io/styleguide/Rguide.xml).   
+
+#### 2) `set.seed` helps people reproduce your results
+
+When performing any kind of analyses that use random sampling, or something that
+may vary each time you re-run it.
+
+# How to set the seed:
+# 1) Put any number as your argument for the function and run set.seed like below
+# 2) Run your analyses like normal
+# 3) If you run your analyses again, they give exactly the same numbers.
+set.seed(54321)
+
+Setting the seed makes it so what ever results you get, are reproducible *exactly*.
+
+#### 3) R Notebooks are helpful for documenting your science
+
+As we've seen in this notebook, R Markdowns are helpful for scientific code by
+allowing you to keep detailed notes, code, and output in one place.
+
+They also have the added benefit of having HTML file output that is styled and
+easy to read.
+Saving your R Markdown will create an HTML file containing the code and output to be
+saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview
+the HTML file).
+The preview shows you a rendered HTML copy of the contents of the editor.
+Consequently, unlike *Knit*, *Preview* does not run any R code chunks.
+Instead, the output of the chunk when it was last run in the editor is displayed.
+
+#### 4) `sessionInfo` tells people what packages you used
+
+The `sessionInfo` function prints out what packages and versions you used in your
+analysis.
+This way, when others try to reproduce your research, they know what packages
+you have loaded and how things were set for the code you ran.
