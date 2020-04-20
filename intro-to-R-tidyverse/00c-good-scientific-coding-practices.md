@@ -48,15 +48,15 @@ set.seed(2020)
 # These 'results' will be different now
 sample(1:10, 5)
 ```
-Output: `> [1]  7  6  8  1 10`
+Output: `[1]  7  6  8  1 10`
 
 ```
-# Go back the original seed number we used
+# Go back to the original seed number we used
 set.seed(54321)
 # These 'results' go back to being what they were before
 sample(1:10, 5)
 ```
-Output: `> [1]  4  7  2 10  6`
+Output: `[1]  4  7  2 10  6`
 
 Setting the seed makes so your results are *exactly* reproducible.
 Note that sometimes functions have built in arguments for setting the seed and will not respond to setting the seed in the global environment (like we are showing here).
