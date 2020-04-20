@@ -11,7 +11,7 @@ We suggest following a style guide like one of these:
 
 ### `set.seed()` helps people reproduce your results
 
-Setting the seed is needed, when performing any kind of analyses that use random sampling, or something that may vary each time you re-run it.
+Setting the seed is needed when performing any kind of analyses that use random sampling or something that may vary each time you re-run it.
 
 *How to set the seed:*
 
@@ -59,12 +59,15 @@ sample(1:10, 5)
 Output: `[1]  4  7  2 10  6`
 
 Setting the seed makes so your results are *exactly* reproducible.
-Note that sometimes functions have built in arguments for setting the seed and will not respond to setting the seed in the global environment (like we are showing here).
-For more explanation on this: [here's a StackOverflow post](https://stackoverflow.com/questions/13605271/reasons-for-using-the-set-seed-function) and a [mini tutorial on seed setting in R](https://rpubs.com/Mentors_Ubiqum/Set_Seed).
+For more explanation on `set.seed`, [here's a StackOverflow post](https://stackoverflow.com/questions/13605271/reasons-for-using-the-set-seed-function) and a [mini tutorial on seed setting in R](https://rpubs.com/Mentors_Ubiqum/Set_Seed).
+
+Note that sometimes functions have built-in arguments for setting the seed or do not respect setting the seed in the global environment like we showed above.
+We suggest running a step, script, or notebook multiple times in different sessions and comparing the output to ensure that you get the same result.
 
 ### R Notebooks are helpful for documenting your science
 
-As we've seen in this notebook, R Markdowns are helpful for scientific code by allowing you to keep detailed notes, code, and output in one place.
+We use R Markdown throughout our training workshop.
+R Markdown documents are helpful for scientific code by allowing you to keep detailed notes, code, and output in one place.
 
 They also have the added benefit of having HTML file output that is styled and easy to read.
 Saving your R Markdown will create an HTML file containing the code and output to be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
