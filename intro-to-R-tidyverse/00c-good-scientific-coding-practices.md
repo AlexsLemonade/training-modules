@@ -48,3 +48,9 @@ The `sessionInfo` function prints out what packages and versions you used in you
 analysis.
 This way, when others try to reproduce your research, they know what packages
 you have loaded and how things were set for the code you ran.
+
+#### More reading on good scientific code:
+
+- ['Ten rules' for reproducible computational research- PLoS](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003285)
+- ['Ten simple rules' for documenting scientific software](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006561)
+- [Guide to reproducible code](https://github.com/crazyhottommy/getting-started-with-genomics-tools-and-resources/blob/master/guide-to-reproducible-code.pdf)
