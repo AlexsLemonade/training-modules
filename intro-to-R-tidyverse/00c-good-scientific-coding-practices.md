@@ -2,8 +2,8 @@
 
 #### Style guides help people read your code
 
-Just like how incorrect punctuation and grammar can be distracting for a reader to grasp your message in your writing, code that doesn't follow a style is difficult for others to understand and be able to use.
-Your code is not useful if it isn't easily readable, which is why naming conventions, code style, and consistency are important.
+Just how incorrect punctuation and grammar can distract a reader from the message in your writing, code that doesn't follow a style can be difficult for others to understand and use.
+Your code is not as useful if it isn't easily readable, which is why naming conventions, code style, and consistency are important.
 
 We suggest following a style guide like one of these:  
 - [Hadley Wickham's R Style Guide](http://adv-r.had.co.nz/Style.html)  
@@ -11,22 +11,53 @@ We suggest following a style guide like one of these:
 
 #### `set.seed` helps people reproduce your results
 
-When performing any kind of analyses that use random sampling, or something that may vary each time you re-run it.
+Setting the seed is needed, when performing any kind of analyses that use random sampling, or something that may vary each time you re-run it.
 
 *How to set the seed:*
+
 1) Put any number as your argument for the function and run `set.seed` like below.
+The number *itself* that you use doesn't matter.
+
 ```
 set.seed(54321)
 ```
 
 2) Run your analyses like normal.
+Here we are sampling five numbers using the function, `sample()` and sampling `5` numbers in the set of numbers, 1:10.
 
-3) If you run your analyses again, and still have the seed set to the same number, you will get exactly the same results.
 ```
 set.seed(54321)
+sample(1:10, 5)
 ```
+Output: `[1]  4  7  2 10  6`
 
-Setting the seed makes it so what ever results you get, are reproducible *exactly*.
+3) If you run your analyses again, and still have the seed set to the same number, you will get exactly the same results.
+But if you change the number, the results will also change.
+
+```
+set.seed(54321)
+sample(1:10, 5)
+```
+Output: `[1]  4  7  2 10  6`
+
+```
+# Change the seed to something else
+set.seed(2020)
+# These 'results' will be different now
+sample(1:10, 5)
+```
+Output: `> [1]  7  6  8  1 10`
+
+```
+# Go back the original seed number we used
+set.seed(54321)
+# These 'results' go back to being what they were before
+sample(1:10, 5)
+```
+Output: `> [1]  4  7  2 10  6`
+
+Setting the seed makes so your results are *exactly* reproducible.
+Note that sometimes functions have built in arguments for setting the seed and will not respond to setting the seed in the global environment (like we are showing here).
 For more explanation on this: [here's a StackOverflow post](https://stackoverflow.com/questions/13605271/reasons-for-using-the-set-seed-function) and a [mini tutorial on seed setting in R](https://rpubs.com/Mentors_Ubiqum/Set_Seed).
 
 #### R Notebooks are helpful for documenting your science
