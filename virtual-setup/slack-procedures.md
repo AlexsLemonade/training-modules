@@ -12,7 +12,7 @@ All Slack communications must adhere to our [code of conduct](https://github.com
 
 #### Instructions for setting up Slack
 
-We have instructions for setting up Slack for your operation system available.
+We have instructions for setting up Slack for your operating system available.
 
 * [Linux](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/linux-instructions.md#slack)
 * [Mac](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/mac-instructions.md#slack)
