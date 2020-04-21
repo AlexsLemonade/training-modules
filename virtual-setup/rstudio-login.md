@@ -23,7 +23,7 @@ Also press `Enter`.
 
 ## Navigating the RStudio Server
 
-In the upper left corner of the session page, you should see these buttons:
+In the upper right corner of the session page, you should see these buttons:
 
 ![RStudio Navigation](screenshots/rstudio-session-buttons.png)
 
@@ -40,7 +40,10 @@ Clicking on the house button will bring you to the RStudio server workspaces pag
 ![RStudio Navigation](screenshots/rstudio-workspaces.png)
 
 
+## Package installation and dependencies
+
 * How do we handle dependencies – my intention here is to give a bit of context for how messy things _could be_
+
 
 * Introduction to your home folder – this should be general enough to apply to multiple workshops and workshop configurations (e.g., which modules are combined into a workshop)
 
