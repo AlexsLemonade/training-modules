@@ -249,5 +249,11 @@ It should be noted that this is only appropriate for use with paired-end reads, 
 
 With this option enabled, Salmon will attempt to correct for the bias that occurs when using random hexamer priming (preferential sequencing of reads when certain motifs appear at the beginning).
 
+#### `--threads` 
+
+The `--threads` argument controls the number of threads that are available to Salmon during quantification.
+This in essence controls how much of the mapping can occur in parallel.
+If you had access to a computer with many cores, you could increase the number of threads to make quantification go faster.
+
 **Navigate to** `data/quant/gastric_cancer/SRR585571/aux_info` **and open** `meta_info.json`**.
 Look for a field called** `percent_mapped` **-- what value does this sample have?**
