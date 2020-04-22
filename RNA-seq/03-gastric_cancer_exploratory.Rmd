@@ -72,11 +72,13 @@ txi <- readr::read_rds(txi_file)
 ```
 
 ```{r}
-head(txi$counts)  # gene-level counts
+# Let's look at the first few rows of the gene-level counts
+head(txi$counts)  
 ```
 
 ```{r}
-head(txi$abundance)  # gene-level TPM
+# Let's look at the first few rows of the gene-level TPM
+head(txi$abundance) 
 ```
 
 And now we'll read in the sample metadata.
@@ -136,15 +138,17 @@ tissue source) affect our dataset and help us spot any technical effects
 `DESeq2` has built-in functionality for performing PCA.
 
 ```{r}
+# DESeq2 built in function is called plotPCA and we want to color points by
+# tissue
 plotPCA(vst_data, intgroup = "tissue")
 ```
 
 Save the most recent plot to file with `ggsave` from `ggplot2`
 
 ```{r}
+# Save the PDF file 
 ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
 ```
-
 
 ## A note on technical effects
 
@@ -161,15 +165,19 @@ sample_meta_df$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2",
 Let's rerun the `DESeq2` steps.
 
 ```{r}
+# Rerun the dataset creation step
 # Note: if we were using this for differential expression AND we truly knew
 # the batch, we'd likely use design = ~ batch + tissue
 ddset_batch <- DESeqDataSetFromTximport(txi = txi,
                                         colData = sample_meta_df,
                                         design = ~ tissue)
+# variance stabilizing transformation
 vst_batch <- vst(ddset_batch)
 ```
 
 ```{r}
+# PCA plot - tissue *and* batch
+# We want plotPCA to return the data so we can have more control about the plot
 pca_data <- plotPCA(vst_batch, intgroup = c("tissue", "batch"), 
                     returnData = TRUE)
 
@@ -180,6 +188,7 @@ percent_var <- round(100 * attr(pca_data, "percentVar"))
 Let's use ggplot to vizualize the first two principal components. 
 
 ```{r}
+# Color points by "batch" and use shape to indicate the tissue of origin
 ggplot2::ggplot(pca_data, ggplot2::aes(PC1, PC2, color = batch, 
                                        shape = tissue)) +
   ggplot2::geom_point(size = 3) +
