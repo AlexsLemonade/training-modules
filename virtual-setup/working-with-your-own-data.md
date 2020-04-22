@@ -4,9 +4,9 @@ The goal of our workshop is to equip you to do initial analyses with your own da
 This guide will take you through how to get your data onto our RStudio server so you can begin analyzing your own data!
 
 ### Things to know before uploading your data:
-- If you are uploading data from human samples, **please be sure that you are doing so in a manner that is consistent with participant consents and your institution’s rules**.
+- If you are uploading data from human patient sequencing samples, **please be sure that you are doing so in a manner that is consistent with participant consents and your institution’s rules**. The only human data that is permissible for upload to our server is non-identifiable and has been summarized to non-sequence level.
 
-- Initially, we have equipped you with **50 GB of space** (if the data you would like to upload is larger than this, please consult on of the CCDL team members through Slack for assistance).
+- Initially, we have equipped you with **50 GB of space** (if the data you would like to upload is larger than this, please consult one of the CCDL team members through Slack for assistance).
 
 - If you don't have your own data that you are looking to analyze, but would like real transcriptomic datasets to practice with, see our recommended list here:
 TODO: Add info about recommended datasets.
@@ -19,16 +19,18 @@ If you are retrieving your data from online, perhaps from a publicly available r
 
 **Step 1)** Go to the Terminal tab in your RStudio session.
 
+![Terminal tab](screenshots/rstudio-session.png)
+
 **Step 2)** Set up your `wget` command in a script (or notebook) using this template.
 
 The most simple `wget` command just needs the URL to pull the file from.
 
-**Template:**
+*Template:*
 ```
 wget <URL>
 ```
 
-**Specific example:** Here's an example of us downloading a file from ArrayExpress
+*Specific example:* Here's an example of us downloading a file from ArrayExpress
 ```
 wget https://www.ebi.ac.uk/arrayexpress/files/E-GEOD-67851/E-GEOD-67851.processed.1.zip
 ```
@@ -38,12 +40,12 @@ By default, the file will be saved to the current directory and the file name it
 Likely you will want to be more specific about where you are saving the file to and what you are calling it.
 For that, we can use the `-O`, or `output` option with our `wget` command and specify a file path.  
 
-**Template:**
+*Template:*
 ```
 wget -O <FILE_PATH_TO_SAVE_TO> <URL>
 ```
 
-**Specific example:** Here's an example where we will download that same array express file, but instead save it to the `data` folder and call it `some_array_data.zip`.
+*Specific example:* Here's an example where we will download that same array express file, but instead save it to the `data` folder and call it `some_array_data.zip`.
 (Best to keep the file extension consistent to avoid troubles!)
 
 ```
@@ -94,4 +96,52 @@ Plus, for reproducibility purposes, you should write the data reading step into 
 
 ## Downloading files
 
-- Where in their folders do we want our participants to be storing their data?
+Any files on the RStudio server you would like to save to your computer you can export.
+
+**Step 1)** We recommend you compress the files you want copied to your computer into a zip file.
+
+For this, you can go to the `Terminal tab` and use the `zip` command (which is installed on the server).
+To `zip` a file (you can use `zip -h` to see all the options), you need to provide at least two arguments.
+
+- `<NAME_FOR_NEW_ZIP_FILE>` should end in `.zip` and its whatever you would like your new zip file to be called.
+- `<FILE_TO_ZIP>` should be the file path to the file you'd like to `zip`
+- `-r` if the `<FILE_TO_ZIP>` you specified is a folder of multiple files, you need to also put this in your command
+
+*Template for single file*
+```
+zip <NAME_FOR_NEW_ZIP_FILE> <FILE_TO_ZIP>
+```
+*Template for folder of multiple files*
+```
+zip -r <NAME_FOR_NEW_ZIP_FILE> <FOLDER_TO_ZIP>
+```
+
+*Example 1:*
+This first example is a single file, `results.tsv`, that is stored in the `results` folder.
+(Notice we aren't using `-r` here for a single file).
+
+```
+zip results.zip results/results.tsv
+```
+
+*Example 2:*
+This second example shows a folder, `results/`, that we would like to zip up all of its contents.  
+Notice we are using `-r` now!
+
+```
+zip -r results.zip results/
+```
+
+**Step 2)** Use the Export button!
+
+Click on the `More` button with a gear next to it in the lower right pane.
+
+![Export button](screenshots/export-button.png)
+
+**Step 3)** Specify the zipped file you'd like to download.
+
+![Export window](![Export button](screenshots/export-window.png))
+
+**Step 4)** Find where the file downloaded
+You computer may show the file in the bottom left of your browser window.
+You can are likely to find your zip file in your `Downloads` folder!
