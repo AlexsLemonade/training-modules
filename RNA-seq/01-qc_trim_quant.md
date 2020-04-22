@@ -195,7 +195,8 @@ salmon quant -i index/Homo_sapiens/short_index \
 	-2 data/fastq/gastric_cancer/SRR585570/SRR585570_fastp_2.fastq.gz \
 	-o data/quant/gastric_cancer/SRR585570 \
 	--validateMappings --rangeFactorizationBins 4 \
-	--gcBias --seqBias
+	--gcBias --seqBias \
+	--threads 4
 ```
 
 Below, we'll walk through the arguments/options we used to run `salmon quant`.
