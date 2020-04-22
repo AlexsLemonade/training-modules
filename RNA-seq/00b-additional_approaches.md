@@ -34,7 +34,7 @@ Run the following steps in the `Terminal` tab of RStudio.
 Set your working directory to the top-level of the RNA-seq folder:
 
 ```bash
-cd training-modules/RNA-seq
+cd ~/training-modules/RNA-seq
 ```
 
 **Now you're ready to run MultiQC.**
