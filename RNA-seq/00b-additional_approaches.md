@@ -2,7 +2,7 @@
 
 Our modules are designed to take up approximately half a day.
 As a result, we do not cover every tool or method that would complement what is included in our main bulk RNA-seq module.
-For your reference, we've put together what we might teach if we had more time or if they required less computational resources.
+For your reference, we've put together what we might teach if we had more time or if they required fewer computational resources.
 This is intended to be an introduction to these approaches and a "jumping off point" for further reading or experimentation.
 We present them in order of increasing difficulty and/or departure from what is presented in training.
  
