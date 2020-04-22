@@ -34,14 +34,20 @@ You will want to do this each time you switch to notebooks.
 For more help on navigating the session page, see these
 [RStudio guide instructions](../intro-to-R-tidyverse/00a-rstudio_guide.md)
 
-### Navigating RStudio Server sessions
+### About RStudio Server sessions
 
 Clicking on the house button will bring you to the RStudio server workspaces page.
+Here, you will be able to see and manage all your currently running sessions.
 
 ![RStudio Navigation](screenshots/rstudio-workspaces.png)
 
-Introduction to your home folder – this should be general enough to apply to multiple workshops and workshop configurations (e.g., which modules are combined into a workshop)
+You can start a new Session with the `+ Session` button.
+We kindly ask you shut down any sessions you aren't using so we conserve computing power.
 
-#### Next steps:
-- [Guide to RStudio](../intro-to-R-tidyverse/00a-rstudio_guide.md)
-- [Guide to working with your own data](working-with-your-data.md) on the RStudio server.
+You are able to see the current files in your `home` directory in the `Files` tab in the lower right panel in your session.
+The same data seen in these folders is accessible in each session you start.
+Restarting R sessions will refresh what is in your `Environment` tab in the upper right panel.
+
+We go into more detail on this and other RStudio navigating tidbits in our [guide to RStudio](../intro-to-R-tidyverse/00a-rstudio_guide.md) as well as our first [Intro to R notebook](intro-to-R-tidyverse/01-intro_to_base_R.Rmd).
+
+As always, please reach out to our CCDL team through Slack if you have any questions!
