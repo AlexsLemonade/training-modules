@@ -18,15 +18,15 @@ Later, we will use the full dataset (n = 8) to explore how to summarize estimate
 
 ---
 
-For these exercises, we'll want to set our **LOCAL FOLDER** in Kitematic to the `RNA-seq` folder.
+We'll first want to set our working directory to the top-level of the RNA-seq folder.
 
 Copy and paste the text in the code blocks below into your `Terminal` window in RStudio.
 It should be in the lower left hand corner as a tab next to `Console`.
 
-We'll first want to set our working directory to the top-level of the RNA-seq folder like so:
+**Set current directory to the top-level of the RNA-seq module:**
 
 ```bash
-cd kitematic
+cd ~/training-modules/RNA-seq
 ```
 
 **Because these steps are computationally time intensive, we've prepared a script to start running things.**
