@@ -1,6 +1,7 @@
 ## RStudio Server Set Up
 
-We will send you your Username and temporary password by <HOW WE ARE SENDING THEM THIS>.
+We will send you your Username and temporary password by a direct message on Slack, after you are logged in on [Cancer Data Science](http://ccdatalab.org/slack).
+
 Go to https://rstudio.ccdatalab.org (You may want to bookmark this) and type in your username and temporary password, and click `Sign in`.
 
 ![RStudio Login](screenshots/rstudio-server-login.png)
@@ -33,18 +34,14 @@ You will want to do this each time you switch to notebooks.
 For more help on navigating the session page, see these
 [RStudio guide instructions](../intro-to-R-tidyverse/00a-rstudio_guide.md)
 
-### Navigating Rstudio Server sessions
+### Navigating RStudio Server sessions
 
 Clicking on the house button will bring you to the RStudio server workspaces page.
 
 ![RStudio Navigation](screenshots/rstudio-workspaces.png)
 
+Introduction to your home folder – this should be general enough to apply to multiple workshops and workshop configurations (e.g., which modules are combined into a workshop)
 
-## Package installation and dependencies
-
-* How do we handle dependencies – my intention here is to give a bit of context for how messy things _could be_
-
-
-* Introduction to your home folder – this should be general enough to apply to multiple workshops and workshop configurations (e.g., which modules are combined into a workshop)
-
-* Working with your own data (TBD)
+#### Next steps:
+- [Guide to RStudio](../intro-to-R-tidyverse/00a-rstudio_guide.md)
+- [Guide to working with your own data](working-with-your-data.md) on the RStudio server.
