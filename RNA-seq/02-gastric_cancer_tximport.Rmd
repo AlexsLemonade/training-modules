@@ -23,6 +23,7 @@ organism.
 ## Libraries and functions
 
 ```{r}
+# Load the tximport package
 library(tximport)
 ```
 
@@ -32,14 +33,17 @@ library(tximport)
 # directory where the quant files are located, each sample is its own
 # directory
 quant_dir <- file.path("data", "quant", "gastric_cancer")
-# tximport directory
+
+# create a directory to hold the tximport results if it doesn't exist yet
 txi_dir <- file.path("data", "tximport", "gastric_cancer")
 if (!dir.exists(txi_dir)) {
   dir.create(txi_dir, recursive = TRUE)
 }
+
 # the quant files themselves
 sf_files <- list.files(quant_dir, recursive = TRUE, full.names = TRUE,
                        pattern = "quant.sf")
+
 # file that contains the gene to transcript mapping from refine.bio
 tx2gene_file <- file.path("index", "Homo_sapiens",
                           "Homo_sapiens.GRCh38.95_tx2gene.tsv")
@@ -48,6 +52,8 @@ tx2gene_file <- file.path("index", "Homo_sapiens",
 **Output**
 
 ```{r}
+# Name the output gastric_cancer_tximport.RDS and get ready to save it in the 
+# directory created above
 txi_out_file <- file.path(txi_dir, "gastric_cancer_tximport.RDS")
 ```
 
@@ -96,13 +102,67 @@ For example, the second version of a human Ensembl transcript ID follows this pa
 We need to use the `ignoreTxVersion = TRUE` argument to `tximport` here or else we'll get an error.
 
 ```{r}
-txi <- tximport::tximport(sf_files, type = "salmon", tx2gene = tx2gene_df,
-                          countsFromAbundance = "no", ignoreTxVersion = TRUE)
+txi <- tximport(sf_files, type = "salmon", tx2gene = tx2gene_df,
+                countsFromAbundance = "no", ignoreTxVersion = TRUE)
 ```
 
-Let's look at the structure of `txi`.
+We can use the `class` function to see what type of object the `tximport`
+function returns.
 
 ```{r}
+# Check what type of object txi is
+class(txi)
+```
+
+A list is a type of R data structure that is essentially a vector that can be
+made up of different object types, similar to how data frames can have different
+types of columns.
+Lists can be made up of vectors, data frames, or even other lists.
+
+If we try to combine different object types into a vector, what happens?
+
+```{r}
+# Add a 
+mixed_vector <- c(1, "apple", TRUE)
+
+# Check what kind of vector is created
+class(mixed_vector)
+```
+
+Using the `list` function to create a list allows us to mix different types in,
+as the name suggests, a list!
+
+```{r}
+# Create a list that includes a numeric vector, a character vector of letters,
+# a logical vector, and a data frame
+mixed_list <- list(
+  number = 1:3,
+  letter = c("a", "b", "c"),
+  logical = c(TRUE, FALSE),
+  tx2gene = tx2gene_df
+)
+
+# Check the class of the new mixed type list
+class(mixed_list)
+```
+
+We can use `$` to access different elements of the list by their names.
+
+```{r}
+# Get the letters portion of the mixed type list
+mixed_list$letter
+```
+
+```{r}
+# Let's look at the first few rows of the data frame we added
+head(mixed_list$tx2gene)
+```
+
+Now that we've seen what we can do with lists, let's look at the structure of 
+`txi` -- the object returned by `tximport`.
+
+```{r}
+# Look at the structure of txi
 str(txi)
 ```
 
@@ -112,6 +172,7 @@ Now, here's a breakdown of the `txi` object.
 Save to file -- we'll import this with the `DESeq2` package.
 
 ```{r}
+# Write txi to RDS object
 readr::write_rds(txi, path = txi_out_file)
 ```
 
