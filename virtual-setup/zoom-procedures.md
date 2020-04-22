@@ -136,7 +136,7 @@ You may find it helpful to check the `Automatically join audio by computer when 
 When we are recording, you will be notified by a banner in the top corner of the Zoom interface.
 We plan to distribute these recordings only to other course participants in your specific training session.
 
-_Note: Consent for video recordings is included in the [CCDL training workshop waiver](https://github.com/AlexsLemonade/training-modules/blob/master/ccdl-training-waiver.DOCX) signed prior to the start of the training workshop._
+_Note: Consent for video recordings is included in the [CCDL training workshop waiver](https://github.com/AlexsLemonade/training-modules/blob/master/ccdl-training-waiver.docx) signed prior to the start of the training workshop._
 
 ## Using Zoom breakout rooms
 
