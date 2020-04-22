@@ -4,6 +4,7 @@ The goal of our workshop is to equip you to do initial analyses with your own da
 This guide will take you through how to get your data onto our RStudio server so you can begin analyzing your own data!
 
 ### Things to know before uploading your data:
+
 - If you are uploading data from human patient sequencing samples, **please be sure that you are doing so in a manner that is consistent with participant consents and your institution’s rules**. The only human data that is permissible for upload to our server is non-identifiable and has been summarized to non-sequence level.
 
 - Initially, we have equipped you with **50 GB of space** (if the data you would like to upload is larger than this, please consult one of the CCDL team members through Slack for assistance).
