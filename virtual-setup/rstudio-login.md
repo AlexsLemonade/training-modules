@@ -6,12 +6,16 @@ In this tutorial, we will get you set up with our server.
 In our [RStudio guide](../intro-to-R-tidyverse/00a-rstudio_guide.md) and our [`intro-to-R-tidyverse` module](../intro-to-R-tidyverse) we will work on becoming more comfortable with R and RStudio for programing.
 RStudio by itself is an [integrated development environment](https://en.wikipedia.org/wiki/Integrated_development_environment) or IDE that makes it easier to program in R.
 
+### Logging in
+
 To give you access to our RStudio server, we will send you a username and temporary password by direct message in Slack, after you are logged in on [Cancer Data Science](http://ccdatalab.org/slack).
 
 Go to https://rstudio.ccdatalab.org and type in your username and temporary password, and click `Sign in`.
 You may want to bookmark https://rstudio.ccdatalab.org for the duration of the workshop.
 
 <img src = "screenshots/rstudio-server-login.png" width = 500>
+<br>
+<br>
 
 Signing in should bring you to the RStudio session page.
 Click on the `Terminal` tab.
@@ -60,14 +64,20 @@ If you have no sessions running, use the `+ Sessions` button.
 You can stop your current R session with the orange circular on/off button in the upper right corner:
 
 <img src = "screenshots/rstudio-session-buttons.png" width = 300>
+<br>
+<br>
 
 Stopping your R Session with the orange button will briefly show you this screen:
 
 <img src = "screenshots/rstudio-session-ended.png" width = 500>
+<br>
+<br>
 
-Then re-route you to the workspaces page, where you will the session you were using, no longer listed.
+Then re-route you to the workspaces page, where you will see the session you were using, is no longer listed.
 
 <img src = "screenshots/rstudio-workspaces-empty.png" width = 500>
+<br>
+<br>
 
 You will want to do this each time you switch to notebooks, more on this in the
 [RStudio guide instructions](../intro-to-R-tidyverse/00a-rstudio_guide.md).
@@ -77,6 +87,8 @@ You will want to do this each time you switch to notebooks, more on this in the
 Back on the session page, you are able to see the current files in your `home` directory in the `Files` tab in the lower right panel in your session.
 
 <img src = "screenshots/rstudio-files.png" width = 500>
+<br>
+<br>
 
 In your `home` directory, you will find the `training-modules` folder that contains our course materials and the `shared-data` that contains the data we will be using in the modules.
 The files in these folders are accessible in each R session you start.
