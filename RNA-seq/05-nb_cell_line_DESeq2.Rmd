@@ -30,6 +30,7 @@ DESeq2 takes unnormalized counts or estimated counts and does the following:
 ## Libraries and functions
 
 ```{r}
+# Load the DESeq2 library
 library(DESeq2)
 ```
 
@@ -49,6 +50,7 @@ txi_file <- file.path(txi_dir, "NB_cell_line_tximport.RDS")
 We'll create a results directory to hold our results.
 
 ```{r}
+# Create a results directory if it doesn't already exist
 results_dir <- "results"
 if (!dir.exists(results_dir)) {
   dir.create(results_dir, recursive = TRUE)
@@ -82,12 +84,14 @@ deseq_df_file <-
 First, let's read in the data we processed with `tximport`.
 
 ```{r}
+# Read the RDS file for the NB cell line data
 txi <- readr::read_rds(txi_file)
 ```
 
 Now, the sample metadata.
 
 ```{r}
+# Read in the sample metadata TSV file and check it out
 sample_meta_df <- readr::read_tsv(meta_file)
 sample_meta_df
 ```
@@ -96,6 +100,7 @@ We're most interested in _MYCN_ amplification, which is in the `Status` column
 of `sample_meta_df`
 
 ```{r}
+# Look at the first few entries in the Status column
 head(sample_meta_df$Status)
 ```
 
@@ -121,6 +126,7 @@ It worked!
 #### Dataset creation
 
 ```{r}
+# Create a DESeq2 dataset - remember Status is the variable of interest here
 ddset <- DESeqDataSetFromTximport(txi = txi,
                                   colData = sample_meta_df,
                                   design = ~ Status)
@@ -151,6 +157,8 @@ We can use the `relevel` function to remedy this.
 
 ```{r}
 ddset$Status <- relevel(ddset$Status, ref = "Nonamplified")
+
+# Check what the levels are now
 levels(ddset$Status)
 ```
 
@@ -166,6 +174,7 @@ deseq_object <- DESeq(ddset)
 Let's save this to our results file.
 
 ```{r}
+# Save the results as an RDS
 readr::write_rds(deseq_object, path = deseq_file)
 ```
 
@@ -218,6 +227,7 @@ We will use variance stabilizing transformation from DESeq2 to do this.
 Refer to the help page or the DESeq2 docs for more information. 
 
 ```{r}
+# Use the vst function to transform the data
 vst_data <- vst(ddset)
 ```
 
@@ -231,6 +241,7 @@ We will make a heatmap of only the significant genes, so let's obtain the gene
 IDs that have an adjusted p-value less than 0.05.
 
 ```{r}
+# Filter to padj < 0.05 and then only extract the Genes
 signif_genes <- deseq_df %>%
   dplyr::filter(padj < 0.05) %>%
   dplyr::pull(Gene)
