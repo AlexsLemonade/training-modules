@@ -3,6 +3,17 @@
 The goal of our workshop is to equip you to do initial analyses with your own data!
 This guide will take you through how to get your data onto our RStudio server so you can begin analyzing your own data!
 
+### Things to know before uploading your data:
+
+- If you are uploading data from human patient sequencing samples, **please be sure that you are doing so in a manner that is consistent with participant consents and your institution’s rules**. The only human data that is permissible for upload to our server is non-identifiable and has been summarized to non-sequence level.
+
+- Initially, we have equipped you with **50 GB of space** (if the data you would like to upload is larger than this, please consult one of the CCDL team members through Slack for assistance).
+
+- If you don't have your own data that you are looking to analyze, but would like real transcriptomic datasets to practice with, see our recommended list here:
+TODO: Add info about recommended datasets.
+
+- As always, please Slack one of the CCDL team members if you need help (that is what we are here for!).
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -20,17 +31,6 @@ This guide will take you through how to get your data onto our RStudio server so
   - [More resources on package installation strategies](#more-resources-on-package-installation-strategies)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-### Things to know before uploading your data:
-
-- If you are uploading data from human patient sequencing samples, **please be sure that you are doing so in a manner that is consistent with participant consents and your institution’s rules**. The only human data that is permissible for upload to our server is non-identifiable and has been summarized to non-sequence level.
-
-- Initially, we have equipped you with **50 GB of space** (if the data you would like to upload is larger than this, please consult one of the CCDL team members through Slack for assistance).
-
-- If you don't have your own data that you are looking to analyze, but would like real transcriptomic datasets to practice with, see our recommended list here:
-TODO: Add info about recommended datasets.
-
-- As always, please Slack one of the CCDL team members if you need help (that is what we are here for!).
 
 ### Upload data that is online (from a url)
 
