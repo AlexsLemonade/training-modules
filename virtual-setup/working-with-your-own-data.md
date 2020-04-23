@@ -3,6 +3,20 @@
 The goal of our workshop is to equip you to do initial analyses with your own data!
 This guide will take you through how to get your data onto our RStudio server so you can begin analyzing your own data!
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Working with your own data](#working-with-your-own-data)
+  - [Things to know before uploading your data:](#things-to-know-before-uploading-your-data)
+  - [Upload data that is online (from a url)](#upload-data-that-is-online-from-a-url)
+  - [Upload data from your own computer](#upload-data-from-your-own-computer)
+  - [Reading the data into your R environment.](#reading-the-data-into-your-r-environment)
+- [Downloading files](#downloading-files)
+- [Installing packages](#installing-packages)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ### Things to know before uploading your data:
 
 - If you are uploading data from human patient sequencing samples, **please be sure that you are doing so in a manner that is consistent with participant consents and your institution’s rules**. The only human data that is permissible for upload to our server is non-identifiable and has been summarized to non-sequence level.
@@ -20,7 +34,7 @@ If you are retrieving your data from online, perhaps from a publicly available r
 
 **Step 1)** Go to the Terminal tab in your RStudio session.
 
-![Terminal tab](screenshots/rstudio-session.png)
+![Terminal tab](screenshots/rstudio-session-terminal.png)
 
 **Step 2)** Set up your `wget` command in a script (or notebook) using this template.
 
@@ -146,3 +160,70 @@ Click on the `More` button with a gear next to it in the lower right pane.
 **Step 4)** Find where the file downloaded
 You computer may show the file in the bottom left of your browser window.
 You can are likely to find your zip file in your `Downloads` folder!
+
+## Installing packages
+
+As you are working with your own data, you may find you want functionality from a package not yet installed to the RStudio server.
+Here, we'll take you through some basics of how to install new packages.
+
+### Finding what packages are installed
+
+The RStudio Server has a list of packages installed for you already.
+You can see this list of installed R packages by looking in the `Packages` tab:
+
+![R Studio packages](screenshots/rstudio-packages.png)
+
+Or, by using the `installed.packages()` command in the `Console` tab.
+
+Note that the checkmarks in the `Packages` tab indicate which packages are loaded currently in the environment.
+
+### Installing a new package
+
+Here we will take you through the most common R package installation steps and the most common roadblocks.
+However, [*package dependencies*](http://r-pkgs.had.co.nz/description.html#dependencies), packages needing other packages to work (and specific versions of them!), can make this a [hairy process](https://en.wikipedia.org/wiki/Dependency_hell).
+Because of this, we encourage you to reach out to one of the CCDL team members for assistance if you encounter problems beyond the scope of this brief introduction!
+
+#### install.packages()
+
+The Comprehensive R Archive Network or CRAN is a repository of packages that can all be installed with the `install.packages()` command.
+
+In this example, we'll install `ggforce` which is a companion tool to `ggplot2` and is on CRAN.
+
+We'll need to put quotes around `ggforce`!
+
+```
+install.packages("ggforce")
+```
+
+You should see output in the Console that shows some download bars, and finally some output that looks like this:
+
+![ggforce installed](screenshots/ggforce-package.png)
+
+If your package installation is NOT successful, you'll see some sort of message like :
+
+```
+Warning in install.packages :
+installation of package ‘ggforce’ had non-zero exit status
+```
+
+#### Bioconductor packages
+
+Bioconductor has a collection of bioinformatics-relevant packages but requires different steps for installation.
+These steps depend on `BiocManager` to be installed.
+
+We have already installed `BiocManager` for you on the RStudio server, but on your computer you could install it by using `install.packages("BiocManager")` like we did in the previous section (Its on CRAN).
+
+Since `BiocManager` is installed, (which you can check by using the [strategies in the above section](#finding-what-packages-are-installed)) then you can use the following command to install a package.
+In this example, we'll install a package called `GenomicFeatures`.
+```
+BiocManager::install("GenomicFeatures")
+```
+
+You should get a similar successful installation message as in the previous section.  
+
+Or if it failed to install, it will give you a `non-zero exit status` message.
+
+#### More resources on package installation strategies
+- [Stack Overflow: Non-zero exit status](https://stackoverflow.com/questions/35666638/cant-access-user-library-in-r-non-zero-exit-status-warning)
+- [Installing R packages](https://www.r-bloggers.com/installing-r-packages/)
+- [Installing GitHub R Packages](https://cran.r-project.org/web/packages/githubinstall/vignettes/githubinstall.html)
