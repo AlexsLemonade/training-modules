@@ -13,11 +13,11 @@ Click on the `Terminal` tab.
 
 Type in the `passwd` command in the `Terminal` tab.
 
-![RStudio change password](screenshots/rstudio-change-password.png)
+![RStudio change password](screenshots/rstudio-password-change-1.png)
 
 ...and press `Enter`.
 
-![RStudio change password](screenshots/rstudio-change-password-2.png)
+![RStudio change password](screenshots/rstudio-password-change-2.png)
 
 Type in your new password once, and press `Enter`, then it will ask you to confirm by typing it in again.
 Also press `Enter`.
