@@ -117,53 +117,19 @@ Plus, for reproducibility purposes, you should write the data reading step into 
 
 Any files on the RStudio server you would like to save to your computer you can export.
 
-**Step 1)** We recommend you compress the files you want copied to your computer into a zip file.
-
-For this, you can go to the `Terminal tab` and use the `zip` command (which is installed on the server).
-To `zip` a file (you can use `zip -h` to see all the options), you need to provide at least two arguments.
-
-- `<NAME_FOR_NEW_ZIP_FILE>` should end in `.zip` and its whatever you would like your new zip file to be called.
-- `<FILE_TO_ZIP>` should be the file path to the file you'd like to `zip`
-- `-r` if the `<FILE_TO_ZIP>` you specified is a folder of multiple files, you need to also put this in your command
-
-*Template for single file*
-```
-zip <NAME_FOR_NEW_ZIP_FILE> <FILE_TO_ZIP>
-```
-*Template for folder of multiple files*
-```
-zip -r <NAME_FOR_NEW_ZIP_FILE> <FOLDER_TO_ZIP>
-```
-
-*Example 1:*
-This first example is a single file, `results.tsv`, that is stored in the `results` folder.
-(Notice we aren't using `-r` here for a single file).
-
-```
-zip results.zip results/results.tsv
-```
-
-*Example 2:*
-This second example shows a folder, `results/`, that we would like to zip up all of its contents.  
-Notice we are using `-r` now!
-
-```
-zip -r results.zip results/
-```
-
-**Step 2)** Use the Export button!
+**Step 1)** Use the Export button!
 
 Click on the `More` button with a gear next to it in the lower right pane.
 
 ![Export button](screenshots/export-button.png)
 
-**Step 3)** Specify the zipped file you'd like to download.
+**Step 2)** Specify the file you'd like to download.
 
 ![Export window](![Export button](screenshots/export-window.png))
 
-**Step 4)** Find where the file downloaded
+**Step 3)** Find where the file downloaded
 You computer may show the file in the bottom left of your browser window.
-You can are likely to find your zip file in your `Downloads` folder!
+You can are likely to find your files in your `Downloads` folder!
 
 ## Installing packages
 
