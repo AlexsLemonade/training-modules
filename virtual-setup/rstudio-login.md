@@ -15,12 +15,14 @@ Type in the `passwd` command in the `Terminal` tab.
 
 ![RStudio change password](screenshots/rstudio-password-change-1.png)
 
-...and press `Enter`.
+...and press `Enter`. Then type in the password you were given in Slack.
 
 ![RStudio change password](screenshots/rstudio-password-change-2.png)
 
-Type in your new password once, and press `Enter`, then it will ask you to confirm by typing it in again.
+Type in the new password you've chosen once, and press `Enter`, then it will ask you to confirm by typing it in again.
 Also press `Enter`.
+
+If you forget your password at anytime, Slack on of the CCDL team members to assist you. 
 
 ## Navigating the RStudio Server
 
