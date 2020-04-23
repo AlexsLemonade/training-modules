@@ -3,7 +3,7 @@
 For this training, we've set up a server that hosts RStudio and allows you to run computations more quickly with our machines.
 
 In this tutorial, we will get you set up with our server.
-In upcoming guides and our `intro-to-R-tidyverse` module we will work on becoming more comfortable with R and RStudio for programing.
+In our [RStudio guide](../intro-to-R-tidyverse/00a-rstudio_guide.md) and our [`intro-to-R-tidyverse` module](../intro-to-R-tidyverse) we will work on becoming more comfortable with R and RStudio for programing.
 RStudio by itself is an [integrated development environment](https://en.wikipedia.org/wiki/Integrated_development_environment) or IDE that makes it easier to program in R.
 
 To give you access to our RStudio server, we will send you a username and temporary password by direct message in Slack, after you are logged in on [Cancer Data Science](http://ccdatalab.org/slack).
