@@ -12,7 +12,9 @@ This guide will take you through how to get your data onto our RStudio server so
 - If you don't have your own data that you are looking to analyze, but would like real transcriptomic datasets to practice with, see our recommended list here:
 TODO: Add info about recommended datasets.
 
-- As always, please Slack one of the CCDL team members if you need help (that is what we are here for!).
+- Note that uploading datasets that are larger than 1GB may require splitting it up into smaller sizes. Contact a CCDL team member if you need help splitting up any large files!
+
+- As always, please Slack one of the CCDL team members if you need help with anything (that is what we are here for!).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -103,6 +105,7 @@ Choose your compressed data file, and click `OK`.
 This may take some time, particularly if you have a large dataset.  
 
 When the server is finished uploading your data, you should see your file in your `home` directory!
+It will automatically be uncompressed.
 
 ### Reading the data into your R environment.
 
