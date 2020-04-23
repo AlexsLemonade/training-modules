@@ -42,8 +42,9 @@ Here, you will be able to see and manage all your currently running sessions.
 
 You can start a new Session with the `+ Session` button.
 We kindly ask you shut down any sessions you aren't using so we conserve computing power.
+Click on a Session in the list to return to it.
 
-You are able to see the current files in your `home` directory in the `Files` tab in the lower right panel in your session.
+Back on the session page, you are able to see the current files in your `home` directory in the `Files` tab in the lower right panel in your session.
 
 ![RStudio Files](screenshots/rstudio-files.png)
 
