@@ -17,7 +17,7 @@ This guide will take you through how to get your data onto our RStudio server so
   - [Installing a new package](#installing-a-new-package)
     - [install.packages()](#installpackages)
     - [Bioconductor packages](#bioconductor-packages)
-    - [More resources on package installation strategies](#more-resources-on-package-installation-strategies)
+  - [More resources on package installation strategies](#more-resources-on-package-installation-strategies)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -227,7 +227,7 @@ You should get a similar successful installation message as in the previous sect
 
 Or if it failed to install, it will give you a `non-zero exit status` message.
 
-#### More resources on package installation strategies
+### More resources on package installation strategies
 - [Stack Overflow: Non-zero exit status](https://stackoverflow.com/questions/35666638/cant-access-user-library-in-r-non-zero-exit-status-warning)
 - [Installing R packages](https://www.r-bloggers.com/installing-r-packages/)
 - [Installing GitHub R Packages](https://cran.r-project.org/web/packages/githubinstall/vignettes/githubinstall.html)
