@@ -29,8 +29,9 @@ It should be in the lower left hand corner as a tab next to `Console`.
 cd ~/training-modules/RNA-seq
 ```
 
-Here `~/` refers to your _home directory_ on the RStudio Server, which is where the materials for training live.
-A home directory is specific to you as a user on the RStudio Server and is where you will store your files.
+Here `~/` refers to your _home directory_ on the RStudio Server, which is the base folder in which your files live, including most of the materials for training.
+This is also the default working directory when you open a new RStudio session.
+A home directory is specific to you as a user on the RStudio Server; each user has their own folder to store their files.
 
 **Because these steps are computationally time intensive, we've prepared a script to start running things.**
 Once we start running the script, we will give a short lecture to introduce this module and then walk through and explain each of the individual steps that the script is executing.
