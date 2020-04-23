@@ -79,8 +79,7 @@ Then re-route you to the workspaces page, where you will see the session you wer
 <br>
 <br>
 
-You will want to do this each time you switch to notebooks, more on this in the
-[RStudio guide instructions](../intro-to-R-tidyverse/00a-rstudio_guide.md).
+You will want to do this each time you switch to notebooks.
 
 ## Files on the server
 
