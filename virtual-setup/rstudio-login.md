@@ -56,7 +56,7 @@ Or, you can start a new session with the `+ Session` button.
 We kindly ask you shut down any sessions you aren't using so we conserve computing power.
 You can do this by clicking the `Quit` button next to any session list.
 
-## Restarting RStudio sessions
+## Stopping/Starting RStudio sessions
 
 Click on a session in the list to return to it.
 If you have no sessions running, use the `+ Sessions` button.
@@ -91,7 +91,7 @@ Back on the session page, you are able to see the current files in your `home` d
 
 In your `home` directory, you will find the `training-modules` folder that contains our course materials and the `shared-data` that contains the data we will be using in the modules.
 The files in these folders are accessible in each R session you start.
-Restarting R sessions will refresh what is in your `Environment` tab in the upper right panel.
+Starting and stopping R sessions will refresh what is in your `Environment` tab in the upper right panel.
 We go into more detail on the R environment and other RStudio navigating tidbits in our [guide to RStudio](../intro-to-R-tidyverse/00a-rstudio_guide.md) as well as our [first intro to R notebook](../intro-to-R-tidyverse/01-intro_to_base_R.Rmd).
 
 As always, please reach out to our CCDL team through Slack if you have any questions!
