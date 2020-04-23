@@ -7,13 +7,17 @@ This guide will take you through how to get your data onto our RStudio server so
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Working with your own data](#working-with-your-own-data)
   - [Things to know before uploading your data:](#things-to-know-before-uploading-your-data)
   - [Upload data that is online (from a url)](#upload-data-that-is-online-from-a-url)
   - [Upload data from your own computer](#upload-data-from-your-own-computer)
   - [Reading the data into your R environment.](#reading-the-data-into-your-r-environment)
 - [Downloading files](#downloading-files)
 - [Installing packages](#installing-packages)
+  - [Finding what packages are installed](#finding-what-packages-are-installed)
+  - [Installing a new package](#installing-a-new-package)
+    - [install.packages()](#installpackages)
+    - [Bioconductor packages](#bioconductor-packages)
+    - [More resources on package installation strategies](#more-resources-on-package-installation-strategies)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
