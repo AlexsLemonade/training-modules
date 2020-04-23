@@ -9,7 +9,7 @@ Go to https://rstudio.ccdatalab.org (You may want to bookmark this) and type in 
 Signing in should bring you to the RStudio session page.
 Click on the `Terminal` tab.
 
-![RStudio Session](screenshots/rstudio-session.png)
+![RStudio Session](screenshots/rstudio-session-terminal.png)
 
 Type in the `passwd` command in the `Terminal` tab.
 
