@@ -72,6 +72,6 @@ Rscript files (`.R`) will also open in the **Source** pane.
 
 ## Other resources
 
-* [Download RStudio Desktop](https://www.rstudio.com/products/rstudio/#Desktop) if you're not using our RStudio server
+* [Download RStudio Desktop](https://www.rstudio.com/products/rstudio/#Desktop) if you're not using our RStudio Server
 * [RStudio Essentials](https://resources.rstudio.com/) from the folks at RStudio
 * [RStudio IDE Cheatsheet](https://resources.rstudio.com/rstudio-cheatsheets/rstudio-ide-cheat-sheet)
