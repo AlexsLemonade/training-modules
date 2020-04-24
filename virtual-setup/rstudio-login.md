@@ -73,6 +73,7 @@ You can stop your current R session with the orange circular on/off button in th
 RStudio may ask you if you would like to save your current workspace?
 What it means is that the objects in your current environment will be saved to a file and reloaded on your next session (more on the R environment in the upcoming guides).
 In general, we advise saying no to this so you can start fresh in your next session.
+
 <img src = "screenshots/rstudio-save-workspace-data.png" width = 300>
 <br>
 <br>
