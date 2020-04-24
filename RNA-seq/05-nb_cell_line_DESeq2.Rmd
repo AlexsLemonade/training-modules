@@ -55,6 +55,12 @@ results_dir <- "results"
 if (!dir.exists(results_dir)) {
   dir.create(results_dir, recursive = TRUE)
 }
+
+# Create a plots directory if it doesn't already exist
+plots_dir <- "plots"
+if (!dir.exists(plots_dir)) {
+  dir.create(plots_dir, recursive = TRUE)
+}
 ```
 
 ```{r}
@@ -74,8 +80,10 @@ deseq_file <- file.path(results_dir,
 deseq_df_file <- 
   file.path(results_dir,
             "NB_cell_line_DESeq_amplified_v_nonamplified_results.tsv")
-```
 
+# PNG of the heatmap of DEGs
+heatmap_file <- file.path(plots_dir, "NB_cell_line_heatmap.png")
+```
 
 ## DESeq2
 
@@ -269,6 +277,42 @@ pheatmap::pheatmap(signif_vst_data,
                    colorRampPalette(c("deepskyblue",
                                       "black",
                                       "yellow"))(25))
+```
+
+If we want to save this heatmap as a PNG, we have to use the `png` function that 
+is part of base R, run `pheatmap::pheatmap` again, and then use `dev.off()`.
+
+```{r}
+png(filename = heatmap_file)
+# Use the same command to create the heatmap
+pheatmap::pheatmap(signif_vst_data, 
+                   show_rownames = FALSE,
+                   scale = "row",
+                   colorRampPalette(c("deepskyblue",
+                                      "black",
+                                      "yellow"))(25))
+# This shuts down the current graphics device (the PNG we are saving)
+dev.off()
+```
+
+We can specify the dimensions and resolution of the PNG that is saved by 
+supplying different arguments to the `png` function.
+
+```{r}
+png(filename = heatmap_file, 
+    width = 7, 
+    height = 7, 
+    units = "in", 
+    res = 300)
+# Heatmap time!
+pheatmap::pheatmap(signif_vst_data, 
+                   show_rownames = FALSE,
+                   scale = "row",
+                   colorRampPalette(c("deepskyblue",
+                                      "black",
+                                      "yellow"))(25))
+# Shut down the current graphics device
+dev.off()
 ```
 
 ## Session Info
