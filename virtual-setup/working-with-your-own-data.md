@@ -74,7 +74,7 @@ wget -O data/some_array_data.zip https://www.ebi.ac.uk/arrayexpress/files/E-GEOD
 ```
 
 `-O` is one of many `wget` command options.
-To see the complete list of `wget` options, use the command: `wget -h` in bash.
+To see the complete list of `wget` options, use the command: `wget -h` in Terminal.
 
 [See more `wget` examples](https://www.tecmint.com/10-wget-command-examples-in-linux/)
 
@@ -130,9 +130,9 @@ Click on the `More` button with a gear next to it in the lower right pane.
 
 ![Export window](![Export button](screenshots/export-window.png))
 
-**Step 3)** Find where the file downloaded
-You computer may show the file in the bottom left of your browser window.
-You can are likely to find your files in your `Downloads` folder!
+**Step 3)** Find where the file downloaded.
+Your computer may show the file in the bottom left of your browser window.
+You are likely to find your files in your `Downloads` folder!
 
 ## Installing packages
 
