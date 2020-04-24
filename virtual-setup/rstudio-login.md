@@ -71,8 +71,7 @@ You can stop your current R session with the orange circular on/off button in th
 <br>
 
 RStudio may ask you if you would like to save your current workspace?
-What it means is that the objects in your current environment will be saved to a file and reloaded on your next session (more on the R environment in the upcoming guides).
-In general, we advise saying no to this so you can start fresh in your next session.
+In general, we advise saying `Don't Save` so you can start fresh in your next session (this will save your objects from the R environment to a file and reload them, more on the R environment later).
 
 <img src = "screenshots/rstudio-save-workspace-data.png" width = 300>
 <br>
@@ -118,9 +117,9 @@ A not uncommon problem, upon trying to re-login to RStudio Server, is to see thi
 What will *usually* remedy this, is quitting your internet browsing application completely and restarting it.
 
 To avoid this problem to begin with, it helps to logout of RStudio Server before leaving for the day.
-You can logout by going to the workspaces page (click on the house button) and clicking the `logout` button next to your username in the upper right corner.
+You can logout by going to the workspaces page (click on the house button) and clicking the `logout` button next to your username (here the username is `trainee`) in the upper right corner.
 
-<img src = "screenshots/rstudio-logout.png" width = 700>
+<img src = "screenshots/rstudio-logout.png" width = 200>
 <br>
 <br>
 
