@@ -120,7 +120,7 @@ What will *usually* remedy this, is quitting your internet browsing application 
 To avoid this problem to begin with, it helps to logout of RStudio Server before leaving for the day.
 You can logout by going to the workspaces page (click on the house button) and clicking the `logout` button next to your username in the upper right corner.
 
-<img src = "screenshots/logout.png" width = 300>
+<img src = "screenshots/rstudio-logout.png" width = 700>
 <br>
 <br>
 
