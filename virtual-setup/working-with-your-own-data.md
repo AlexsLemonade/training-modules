@@ -89,10 +89,8 @@ unzip -d <DIRECTORY_TO_UNZIP_TO> <FILE_TO_UNZIP>
 
 *Specific example:*
 Here we will unzip the contents of data/some_array_data.zip to be saved to the directory `data/`.
-First, however, we'll need to make the directory `data` using a command `mkdir`.
-```
-mkdir data
 
+```
 unzip -d data/ data/some_array_data.zip
 ```
 
