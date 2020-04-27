@@ -14,7 +14,7 @@ fastqc data/fastq/gastric_cancer/SRR585570/SRR585570_1.fastq.gz \
 # fastp ------------------------------------------------------------------------
 
 # Create a directory to hold the JSON and HTML output from Fastp
-mkdir QC/gastric_cancer/fastp_output/
+mkdir -p QC/gastric_cancer/fastp_output/
 
 # Run the adapter and quality trimming step -- also produces QC report
 fastp -i data/fastq/gastric_cancer/SRR585570/SRR585570_1.fastq.gz \

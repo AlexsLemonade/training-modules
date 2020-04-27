@@ -108,10 +108,11 @@ Below, we discuss the two commands we used in the script.
 
 ```bash
 # Create a directory to hold the JSON and HTML output from Fastp
-mkdir QC/gastric_cancer/fastp_output/
+mkdir -p QC/gastric_cancer/fastp_output/
 ```
 
 `mkdir` allows us to create a new folder in the `QC/gastric_cancer/` directory specifically to hold the _report_ information from fastp.
+The `-p` allows us to create _parent_ directories and will prevent an error if the directory we specify already exists.
 As we'll cover below, fastp essentially has two kinds of output: filtered FASTQ files (data) and reports (quality control).
 
 ### fastp
