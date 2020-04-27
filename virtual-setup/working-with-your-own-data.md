@@ -12,7 +12,7 @@ This guide will take you through how to get your data onto our RStudio server so
 - If you don't have your own data that you are looking to analyze, but would like real transcriptomic datasets to practice with, see our recommended list here:
 TODO: Add info about recommended datasets.
 
-- Note that uploading datasets that are larger than 1GB may require splitting it up into smaller sizes. Contact a CCDL team member if you need help splitting up any large files!
+- Note that uploading datasets that are larger than 1GB may require splitting it up into smaller files. Contact a CCDL team member if you need help splitting up any large files!
 
 - As always, please Slack one of the CCDL team members if you need help with anything (that is what we are here for!).
 
@@ -78,6 +78,26 @@ To see the complete list of `wget` options, use the command: `wget -h` in Termin
 
 [See more `wget` examples](https://www.tecmint.com/10-wget-command-examples-in-linux/)
 
+As is recommended and also shown with this example, this dataset is zipped.
+This means after you successfully `wget` the file, you will need to unzip it.
+To unzip the contents to a particular directory, we will use the `-d` option.
+
+*Template*
+```
+unzip -d <DIRECTORY_TO_UNZIP_TO> <FILE_TO_UNZIP>
+```
+
+*Specific example:*
+Here we will unzip the contents of data/some_array_data.zip to be saved to the directory `data/`.
+First, however, we'll need to make the directory `data` using a command `mkdir`.
+```
+mkdir data
+
+unzip -d data/ data/some_array_data.zip
+```
+
+[Go here](https://itsfoss.com/unzip-linux/) for more on the unzipping command.
+
 ### Upload data from your own computer
 
 If the data you want to use is stored locally on your computer, here's how we recommend uploading it to the RStudio Server.
@@ -120,17 +140,20 @@ Plus, for reproducibility purposes, you should write the data reading step into 
 
 Any files on the RStudio server you would like to save to your computer you can export.
 
-**Step 1)** Use the Export button!
+**Step 1)** Select the file(s) or folder(s) you would like to download
+Check the box(es) to the left of the files or folder(s) in the **Files** pane.
+
+**Step 2)** Use the Export button!
 
 Click on the `More` button with a gear next to it in the lower right pane.
 
 ![Export button](screenshots/export-button.png)
 
-**Step 2)** Specify the file you'd like to download.
+**Step 3)** Specify the name you would like the downloaded file to have.
 
 ![Export window](![Export button](screenshots/export-window.png))
 
-**Step 3)** Find where the file downloaded.
+**Step 4)** Find where the file downloaded.
 Your computer may show the file in the bottom left of your browser window.
 You are likely to find your files in your `Downloads` folder!
 
