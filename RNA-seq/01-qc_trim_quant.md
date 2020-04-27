@@ -18,16 +18,20 @@ Later, we will use the full dataset (n = 8) to explore how to summarize estimate
 
 ---
 
-For these exercises, we'll want to set our **LOCAL FOLDER** in Kitematic to the `RNA-seq` folder.
+We'll first want to set our working directory to the top-level of the RNA-seq folder.
 
 Copy and paste the text in the code blocks below into your `Terminal` window in RStudio.
 It should be in the lower left hand corner as a tab next to `Console`.
 
-We'll first want to set our working directory to the top-level of the RNA-seq folder like so:
+**Set current directory to the top-level of the RNA-seq module:**
 
 ```bash
-cd kitematic
+cd ~/training-modules/RNA-seq
 ```
+
+Here `~/` refers to your _home directory_ on the RStudio Server, which is the base folder in which your files live, including most of the materials for training.
+This is also the default working directory when you open a new RStudio session.
+A home directory is specific to you as a user on the RStudio Server; each user has their own folder to store their files.
 
 **Because these steps are computationally time intensive, we've prepared a script to start running things.**
 Once we start running the script, we will give a short lecture to introduce this module and then walk through and explain each of the individual steps that the script is executing.
@@ -195,7 +199,8 @@ salmon quant -i index/Homo_sapiens/short_index \
 	-2 data/fastq/gastric_cancer/SRR585570/SRR585570_fastp_2.fastq.gz \
 	-o data/quant/gastric_cancer/SRR585570 \
 	--validateMappings --rangeFactorizationBins 4 \
-	--gcBias --seqBias
+	--gcBias --seqBias \
+	--threads 4
 ```
 
 Below, we'll walk through the arguments/options we used to run `salmon quant`.
@@ -248,6 +253,12 @@ It should be noted that this is only appropriate for use with paired-end reads, 
 #### `--seqBias`
 
 With this option enabled, Salmon will attempt to correct for the bias that occurs when using random hexamer priming (preferential sequencing of reads when certain motifs appear at the beginning).
+
+#### `--threads` 
+
+The `--threads` argument controls the number of threads that are available to Salmon during quantification.
+This in essence controls how much of the mapping can occur in parallel.
+If you had access to a computer with many cores, you could increase the number of threads to make quantification go faster.
 
 **Navigate to** `data/quant/gastric_cancer/SRR585571/aux_info` **and open** `meta_info.json`**.
 Look for a field called** `percent_mapped` **-- what value does this sample have?**

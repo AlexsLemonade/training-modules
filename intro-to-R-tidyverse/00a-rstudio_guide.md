@@ -2,17 +2,12 @@
 
 Our course material uses [R Markdown Notebooks](https://bookdown.org/yihui/rmarkdown/notebook.html).
 Opening and running R Markdown (`.Rmd`) files requires [RStudio](https://www.rstudio.com/products/RStudio/).
-RStudio is an [integrated development environment](https://en.wikipedia.org/wiki/Integrated_development_environment) or IDE that makes it easier to program in R. 
-In our case, we use [Docker](https://www.docker.com/) containers with RStudio on them (specifically from the [Rocker Project](https://www.rocker-project.org/)) to ensure that all course participants have the same environment.
-A detailed discussion of Docker is outside the scope of this guide.
+RStudio is an [integrated development environment](https://en.wikipedia.org/wiki/Integrated_development_environment) or IDE that makes it easier to program in R.
 **Here, our objective is to provide a brief guide to getting started with RStudio.**
-We assume you have either installed R and RStudio locally or are using an appropriate Docker container.
 
 Note there is an excellent _Take a tour of RStudio’s IDE_ video from RStudio [here](https://www.rstudio.com/products/rstudio/).
 
 ## Anatomy of RStudio
-
-_These screenshots were generated using a Docker container._
 
 1. When you open an RStudio session for the first time, it will look like this.
 
@@ -22,7 +17,7 @@ _These screenshots were generated using a Docker container._
 
 ![console](screenshots/01-console.png)
 
-3. You can switch to a **Terminal** where commands will be carried out by clicking the `Terminal` tab to the right of the `Console` tab. 
+3. You can switch to a **Terminal** where commands will be carried out by clicking the `Terminal` tab to the right of the `Console` tab.
 This is a [command-line interface](https://en.wikipedia.org/wiki/Command-line_interface).
 Commands here are for programs on your system _other_ than R.
 
@@ -57,7 +52,7 @@ Clicking on a package name will bring up its documentation in the **Help** pane.
 
 ![history](screenshots/08-history.png)
 
-10. The **Files** pane displays files for whatever directory or folder it is currently pointed at. 
+10. The **Files** pane displays files for whatever directory or folder it is currently pointed at.
 Whatever the **Files** pane is pointed at is not automatically set as your working directory.
 Try typing `?setwd` and `?getwd` to learn more about working directories.
 
@@ -72,11 +67,11 @@ Rscript files (`.R`) will also open in the **Source** pane.
 
 12. If you want to adjust what is displayed or the pane layout, you can do so by clicking `View` > `Panes` > `Pane Layout` which will bring up an Options menu.
 
-![panes](screenshots/11-pane_layout.png) 
+![panes](screenshots/11-pane_layout.png)
 
 
 ## Other resources
 
-* [Download RStudio Desktop](https://www.rstudio.com/products/rstudio/#Desktop) if you're not using a Docker container
+* [Download RStudio Desktop](https://www.rstudio.com/products/rstudio/#Desktop) if you're not using our RStudio Server
 * [RStudio Essentials](https://resources.rstudio.com/) from the folks at RStudio
 * [RStudio IDE Cheatsheet](https://resources.rstudio.com/rstudio-cheatsheets/rstudio-ide-cheat-sheet)

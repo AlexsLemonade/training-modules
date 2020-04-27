@@ -57,10 +57,9 @@ if (!dir.exists(results_dir)) {
 }
 
 # Create a plots directory if it doesn't already exist
-plots_dir <- "plots"
-if (!dir.exists(plots_dir)) {
-  dir.create(plots_dir, recursive = TRUE)
-}
+
+
+
 ```
 
 ```{r}
@@ -85,6 +84,7 @@ deseq_df_file <-
 heatmap_file <- file.path(plots_dir, "NB_cell_line_heatmap.png")
 ```
 
+
 ## DESeq2
 
 ### Creating a DESeq2 dataset from tximport object
@@ -93,15 +93,15 @@ First, let's read in the data we processed with `tximport`.
 
 ```{r}
 # Read the RDS file for the NB cell line data
-txi <- readr::read_rds(txi_file)
+
 ```
 
 Now, the sample metadata.
 
 ```{r}
 # Read in the sample metadata TSV file and check it out
-sample_meta_df <- readr::read_tsv(meta_file)
-sample_meta_df
+
+
 ```
 
 We're most interested in _MYCN_ amplification, which is in the `Status` column
@@ -109,7 +109,7 @@ of `sample_meta_df`
 
 ```{r}
 # Look at the first few entries in the Status column
-head(sample_meta_df$Status)
+
 ```
 
 Let's check that the ordering of samples is the same.
@@ -135,9 +135,9 @@ It worked!
 
 ```{r}
 # Create a DESeq2 dataset - remember Status is the variable of interest here
-ddset <- DESeqDataSetFromTximport(txi = txi,
-                                  colData = sample_meta_df,
-                                  design = ~ Status)
+
+
+
 ```
 
 ### Differential expression
@@ -167,7 +167,7 @@ We can use the `relevel` function to remedy this.
 ddset$Status <- relevel(ddset$Status, ref = "Nonamplified")
 
 # Check what the levels are now
-levels(ddset$Status)
+
 ```
 
 #### Differential expression analysis
@@ -183,7 +183,7 @@ Let's save this to our results file.
 
 ```{r}
 # Save the results as an RDS
-readr::write_rds(deseq_object, path = deseq_file)
+
 ```
 
 Let's take a look at the results table.
@@ -236,7 +236,7 @@ Refer to the help page or the DESeq2 docs for more information.
 
 ```{r}
 # Use the vst function to transform the data
-vst_data <- vst(ddset)
+
 ```
 
 We need to extract the normalized gene matrix from the `vst_data` object. 
@@ -250,9 +250,9 @@ IDs that have an adjusted p-value less than 0.05.
 
 ```{r}
 # Filter to padj < 0.05 and then only extract the Genes
-signif_genes <- deseq_df %>%
-  dplyr::filter(padj < 0.05) %>%
-  dplyr::pull(Gene)
+
+
+
 ```
 
 Now we will use `signif_genes` to filter `vst_data` to only have significant 
@@ -285,12 +285,8 @@ is part of base R, run `pheatmap::pheatmap` again, and then use `dev.off()`.
 ```{r}
 png(filename = heatmap_file)
 # Use the same command to create the heatmap
-pheatmap::pheatmap(signif_vst_data, 
-                   show_rownames = FALSE,
-                   scale = "row",
-                   colorRampPalette(c("deepskyblue",
-                                      "black",
-                                      "yellow"))(25))
+
+
 # This shuts down the current graphics device (the PNG we are saving)
 dev.off()
 ```
@@ -305,14 +301,11 @@ png(filename = heatmap_file,
     units = "in", 
     res = 300)
 # Heatmap time!
-pheatmap::pheatmap(signif_vst_data, 
-                   show_rownames = FALSE,
-                   scale = "row",
-                   colorRampPalette(c("deepskyblue",
-                                      "black",
-                                      "yellow"))(25))
+
+
 # Shut down the current graphics device
-dev.off()
+
+
 ```
 
 ## Session Info
