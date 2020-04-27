@@ -1,0 +1,200 @@
+---
+title: "Gastric cancer: exploratory analysis"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+**CCDL 2018**
+
+In this notebook, we'll import the gastric cancer data and do some exploratory
+analyses and visual inspection.
+We'll use the [`DESeq2`](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) package for this.
+
+![](diagrams/rna-seq_6.png)
+
+`DESeq2` also has an 
+[excellent vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) 
+from Love, Anders, and Huber from which this is adapted 
+(see also: [Love, Anders, and Huber. _Genome Biology_. 2014.](https://doi.org/10.1186/s13059-014-0550-8)).
+
+## Libraries and functions
+
+```{r}
+# Load the DESeq2 library
+
+```
+
+```{r}
+# magrittr pipe
+`%>%` <- dplyr::`%>%`
+```
+
+## Directories and files
+
+```{r}
+# directory with the tximport processed data
+txi_dir <- file.path("data", "tximport", "gastric_cancer")
+txi_file <- file.path(txi_dir, "gastric_cancer_tximport.RDS")
+```
+
+We'll create a directory to hold our plots.
+
+```{r}
+# Create a plots directory if it does not exist yet
+
+```
+
+```{r}
+# sample metadata file
+meta_dir <- file.path("data", "sample_metadata")
+meta_file <- file.path(meta_dir, "gastric_cancer",
+                       "gastric_cancer_sample_metadata.tsv")
+```
+
+**Output**
+
+```{r}
+# We will save a PDF copy of the PCA plot to the plots directory
+# and name the file "gastric_cancer_PC_scatter.pdf"
+
+```
+
+## DESeq2
+
+### Creating a DESeq2 dataset from tximport object
+
+First, let's read in the data we processed with `tximport`.
+
+```{r}
+# Read in the RDS file we created in the last notebook
+
+```
+
+```{r}
+# Let's look at the first few rows of the gene-level counts
+ 
+```
+
+```{r}
+# Let's look at the first few rows of the gene-level TPM
+
+```
+
+And now we'll read in the sample metadata.
+
+```{r}
+# Read in the sample metadata TSV file and have a look
+
+```
+
+```{r}
+colnames(txi$counts)
+```
+
+We'll reorder the sample metadata to match the order in `txi`
+
+```{r}
+sample_meta_df <- sample_meta_df %>%
+  dplyr::arrange(accession)
+sample_meta_df
+```
+
+```{r}
+all.equal(colnames(txi$counts), sample_meta_df$accession)
+```
+
+We use the tissue of origin in the design formula because that will allow us
+to model this variable of interest.
+
+```{r}
+ddset <- DESeqDataSetFromTximport(txi = txi,
+                                  colData = sample_meta_df,
+                                  design = ~ tissue)
+```
+
+### Variance stabilizing transformation
+
+Before visualizing the data, we'll transform it such that it is on a `log2` 
+scale for large counts and library size is taken into account with the `DESeq2` 
+function for variance stabilizing transformation.
+See [this section of
+the `DESeq2` vignette](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization) 
+for more on this topic. 
+
+```{r}
+vst_data <- vst(ddset)
+```
+
+### Principal components analysis
+
+Principal components analysis (PCA) is a dimensionality reduction technique
+that captures the main sources of variation in our data in the first two 
+principal components (PC1 and PC2).
+Visualizing PC1 and PC2 can give us insight into how different variables (e.g.,
+tissue source) affect our dataset and help us spot any technical effects 
+(more on that below).
+
+`DESeq2` has built-in functionality for performing PCA.
+
+```{r}
+# DESeq2 built in function is called plotPCA and we want to color points by
+# tissue
+
+```
+
+Save the most recent plot to file with `ggsave` from `ggplot2`
+
+```{r}
+# Save the PDF file 
+ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
+```
+
+## A note on technical effects
+
+We don't have batch information (i.e., when the samples were run) for this 
+particular experiment, but let's imagine that `SRR585574` and `SRR585576` were
+run separately from all other samples.
+We'll put this in new "toy" column in `sample_meta_df`.
+
+```{r}
+sample_meta_df$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
+                          "batch1", "batch2", "batch1")
+```
+
+Let's rerun the `DESeq2` steps.
+
+```{r}
+# Rerun the dataset creation step
+# Note: if we were using this for differential expression AND we truly knew
+# the batch, we'd likely use design = ~ batch + tissue
+
+
+# variance stabilizing transformation
+
+```
+
+```{r}
+# PCA plot - tissue *and* batch
+# We want plotPCA to return the data so we can have more control about the plot
+
+
+# Here we are setting up the percent variance that we are extracting from the `pca_data` object
+percent_var <- round(100 * attr(pca_data, "percentVar"))
+```
+
+Let's use ggplot to vizualize the first two principal components. 
+
+```{r}
+# Color points by "batch" and use shape to indicate the tissue of origin
+
+```
+
+## Session Info
+
+Record session info for reproducibility & provenence purposes.
+
+```{r}
+sessionInfo()
+```
