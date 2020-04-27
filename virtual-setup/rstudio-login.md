@@ -77,6 +77,13 @@ In general, we advise choosing `Don't Save` so you can start fresh in your next 
 <br>
 <br>
 
+If you've made changes across multiple files, RStudio will ask you if you'd like to save your other files' changes.
+Check off which files' changes you'd like to keep.
+
+<img src = "screenshots/rstudio-multiple-changes.png" width = 300>
+<br>
+<br>
+
 Stopping your R Session with the orange button will briefly show you this screen:
 
 <img src = "screenshots/rstudio-session-ended.png" width = 500>
