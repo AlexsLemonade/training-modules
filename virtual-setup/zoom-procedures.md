@@ -23,14 +23,15 @@ We have instructions for setting up Zoom for your operating system available.
     - [Participant pane](#participant-pane)
     - [Chat](#chat)
 - [Joining a Zoom call](#joining-a-zoom-call)
-  - [To join a call](#to-join-a-call)
+  - [Joining a Zoom call via link](#joining-a-zoom-call-via-link)
+  - [Joining a Zoom call from Slack](#joining-a-zoom-call-from-slack)
 - [Zoom recordings](#zoom-recordings)
 - [Using Zoom breakout rooms](#using-zoom-breakout-rooms)
   - [Asking for 1:1 help during instruction](#asking-for-11-help-during-instruction)
   - [Joining a breakout room](#joining-a-breakout-room)
-  - [Sharing your screen in Zoom breakout rooms](#sharing-your-screen-in-zoom-breakout-rooms)
+  - [Sharing your screen in Zoom](#sharing-your-screen-in-zoom)
   - [Returning to the main session](#returning-to-the-main-session)
-  - [Consultation days](#consultation-days)
+- [Zoom on consultation days](#zoom-on-consultation-days)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -92,7 +93,7 @@ _Please do not share this link._
 
 On the first day of instruction, we will ask you to introduce yourself on the Zoom call so please be ready with computer audio (more on that below).
 
-### To join a call
+### Joining a Zoom call via link
 
 Follow the Zoom link you've received.
 It should open in your browser.
@@ -129,6 +130,16 @@ You will also have the option to test your audio and video set up.
 
 You may find it helpful to check the `Automatically join audio by computer when joining a meeting` checkbox for future Zoom calls during training.
 
+### Joining a Zoom call from Slack
+
+Instructors may use Zoom meetings during consultation days so you can share your screen.
+Instructors will initiate the call from Slack either in a thread or in a direct message.
+To join the call, click the `Join` button:
+
+<img src = screenshots/zoom-join-from-slack.png width = 400>
+
+When you click `Join`, the link should open in your browser and all steps should be the same as above.
+
 ## Zoom recordings
 
 **We will be recording instruction** to allow course participants to revisit instruction during consultation days or in case their connection is disrupted during instruction.
@@ -144,7 +155,6 @@ Zoom breakout rooms are a feature that allow us to assign course participants an
 We will use Zoom breakout rooms in the following capacities during training:
 
 * To provide 1:1 help during instruction as needed.
-* To provide 1:1 help during consultation days when screensharing is necessary.
 * _Optionally_ to group participants on consultation days who are working on similar tasks or the same exercise notebooks. 
 
 ### Asking for 1:1 help during instruction
@@ -152,7 +162,7 @@ We will use Zoom breakout rooms in the following capacities during training:
 If you need help from an instructor during instruction days, message the host of the Zoom meeting and let them know that you need help from an instructor.
 We will clearly identify the host of the meeting at the beginning of the session.
 
-To bring up chat, click the chat icon in the control bar or hover over the Host in the participant list 
+To bring up chat, click the chat icon in the control bar.
 
 ### Joining a breakout room
 
@@ -164,9 +174,9 @@ Click `Join Breakout Room`.
 
 If you are assigned to a Zoom breakout room during consultation days, the process for joining a breakout room is the same.
 
-### Sharing your screen in Zoom breakout rooms
+### Sharing your screen in Zoom
 
-Sharing your screen in a Zoom breakout room may be required to allow instructors to best provide assistance.
+Sharing your screen in a Zoom breakout room during instruction may be required to allow instructors to best provide assistance.
 
 To share your screen, select the `Share Screen` icon in the middle of the control bar at the bottom of the Zoom window.
 
@@ -191,8 +201,13 @@ To return to the main session, select `Leave Breakout Room` from the control pan
 
 You may receive messages from the host or a notification that the host is closing all breakout rooms while in a breakout room.
 
-### Consultation days
+## Zoom on consultation days
 
-At the end of each day preceding a consultation day, [instructors will poll course participants in the training-specific Slack channel](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/slack-procedures.md#collecting-feedback) to understand what they would like to work on during the next day.
+You will receive a link for a standing Zoom meeting on consultation days, but you do not need to join the meeting unless you intend you meet with other course participants in a breakout room.
 
-If you are interested, you may be invited to a Zoom call during consultation days and assigned to a breakout room with participants working through similar problems.
+At the end of each day preceding a consultation day, [instructors will poll you in the training-specific Slack channel](https://github.com/AlexsLemonade/training-modules/blob/master/virtual-setup/slack-procedures.md#collecting-feedback) to understand what they would like to work on during the next day.
+Instructors will reach out to you on consultation days to see if you are interested in being grouped with other participants working on similar tasks in a Zoom breakout room.
+
+If you need assistance during a consultation day and it would be helpful to share your screen, an instructor will initiate a Zoom call in Slack either in a thread or direct message.
+See [Joining a Zoom call from Slack](#joining-a-zoom-call-from-slack) for instructions for joining that call and [Sharing your screen in Zoom](#sharing-your-screen-in-zoom) for screen sharing instructions.
+
