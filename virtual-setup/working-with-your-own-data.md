@@ -17,7 +17,7 @@ TODO: Add info about recommended datasets.
 - As always, please Slack one of the CCDL team members if you need help with anything (that is what we are here for!).
 
 - You will have access to our RStudio Server for 6 months.
-We will email you with a warning 6 months from now so you make sure to remove any files from the Server before we revoke your access and delete them. 
+We will email you with a warning 6 months from now so you make sure to remove any files from our RStudio Server before we revoke your access and delete them. 
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
