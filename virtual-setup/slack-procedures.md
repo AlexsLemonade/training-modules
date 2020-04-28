@@ -102,7 +102,7 @@ You can not select a specific window to share.
 
 ### Using direct messages during training
 
-If you have a question that is **_highly specific_** to your own data, you may [direct message](https://slack.com/help/articles/212281468-What-is-a-direct-message) a CCDL staff member. 
+If you have a question that is **_highly specific_** to your own data or a problem with your RStudio credentials, you may [direct message](https://slack.com/help/articles/212281468-What-is-a-direct-message) a CCDL staff member. 
 
 First, use the new message button in the top right side corner of the Slack interface.
 
