@@ -145,7 +145,7 @@ When you click `Join`, the link should open in your browser and all steps should
 **We will be recording instruction** to allow course participants to revisit instruction during consultation days or in case their connection is disrupted during instruction.
 
 When we are recording, you will be notified by a banner in the top corner of the Zoom interface.
-We plan to distribute these recordings only to other course participants in your specific training session or as part of training for additional workshop instructors.
+We plan to distribute these recordings to other course participants in your specific training session or as part of training for additional workshop instructors.
 We will not post these videos publicly.
 
 _Note: Consent for video recordings is included in the [CCDL training workshop waiver](https://github.com/AlexsLemonade/training-modules/blob/master/ccdl-training-waiver.DOCX) signed prior to the start of the training workshop._
