@@ -41,6 +41,13 @@ Keep in mind, as you are typing in your password, it will remain blank, but it i
 Type in the new password you've chosen once, and press `Enter`, then it will ask you to confirm by typing it in again.
 Again, no text or dots will show as you are typing your new password.
 Also press `Enter`.
+
+To check that you have successfully changed your password, you may want to log out completely and log back in to the server.
+If you look in the upper right corner of the screen, you should see a series of icons; the box with an arrow pointing out of it is the "Sign Out" button, and if you click that you will be returned to the login screen.
+Re-enter your username and new password, and you should return to the session page.
+
+<img src = "screenshots/rstudio-signout.png" width = 300>
+
 If you forget your password at any time, Slack one of the CCDL team members to assist you.
 
 ### RStudio Server workspaces page
@@ -55,14 +62,14 @@ On the workspaces page, you will be able to see and manage all your currently ru
 <img src = "screenshots/rstudio-workspaces.png" width = 500>
 
 Click on any session to return to it.
-Or, you can start a new session with the `+ Session` button.
+Or, you can start a new session with the `+ New Session` button.
 We kindly ask you shut down any sessions you aren't using so we conserve computing power.
 You can do this by clicking the `Quit` button next to any session list.
 
 ## Stopping/Starting RStudio sessions
 
 Click on a session in the list to return to it.
-If you have no sessions running, use the `+ Sessions` button.
+If you have no sessions running, use the `+ New Session` button.
 
 You can stop your current R session with the orange circular on/off button in the upper right corner:
 
@@ -124,8 +131,12 @@ A not uncommon problem, upon trying to re-login to RStudio Server, is to see thi
 
 Quitting your internet browser completely and restarting it will *usually* remedy this.
 
-To avoid this problem to begin with, it helps to logout of RStudio Server before leaving for the day.
-You can logout by going to the workspaces page (click on the house button) and clicking the `logout` button next to your username (here the username is `trainee`) in the upper right corner.
+To avoid this problem to begin with, it helps to log out of RStudio Server before leaving for the day.
+You can log out either by clicking the "Sign Out" button in your session page:
+
+<img src = "screenshots/rstudio-signout.png" width = 300>
+
+or by going to the workspaces page (click on the house button) and clicking the `Logout` button next to your username (here the username is `trainee`) in the upper right corner.
 
 <img src = "screenshots/rstudio-logout.png" width = 200>
 <br>
