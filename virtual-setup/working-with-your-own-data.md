@@ -13,10 +13,10 @@ This guide will take you through how to get your data onto our RStudio server so
 
 - Note that uploading datasets that are larger than 1GB may require splitting it up into smaller files. Contact a CCDL team member if you need help splitting up any large files!
 
-- As always, please Slack one of the CCDL team members if you need help with anything (that is what we are here for!).
-
 - You will have access to our RStudio Server for 6 months.
-We will email you with a warning 6 months from now so you make sure to remove any files from our RStudio Server before we revoke your access and delete them.
+We will email you with a reminder 6 months from now so you can make sure to remove any files from our RStudio Server that you may find useful before your access is revoked and the files are deleted.
+
+- As always, please Slack one of the CCDL team members if you need help with anything (that is what we are here for!).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
