@@ -9,15 +9,14 @@ This guide will take you through how to get your data onto our RStudio server so
 
 - Initially, we have equipped you with **50 GB of space** (if the data you would like to upload is larger than this, please consult one of the CCDL team members through Slack for assistance).
 
-- If you don't have your own data that you are looking to analyze, but would like real transcriptomic datasets to practice with, see our recommended list here:
-TODO: Add info about recommended datasets.
+- If you don't have your own data that you are looking to analyze, but would like real transcriptomic datasets to practice with, see the [training wiki page](https://github.com/AlexsLemonade/2020-may-training/wiki) and/or ask a CCDL team member for recommendations.
 
 - Note that uploading datasets that are larger than 1GB may require splitting it up into smaller files. Contact a CCDL team member if you need help splitting up any large files!
 
 - As always, please Slack one of the CCDL team members if you need help with anything (that is what we are here for!).
 
 - You will have access to our RStudio Server for 6 months.
-We will email you with a warning 6 months from now so you make sure to remove any files from our RStudio Server before we revoke your access and delete them. 
+We will email you with a warning 6 months from now so you make sure to remove any files from our RStudio Server before we revoke your access and delete them.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
