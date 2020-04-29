@@ -59,7 +59,7 @@ Select **Video** from sidebar to make sure your camera is set up; you will likel
 
 <img src="screenshots/mac-zoom-09-video-prefs.png" alt="Video preferences" width=500>
 
-Select **Share Screen** from the sidebar and uncheck *Enter full screen when a participant share screen* and *Maximize Zoom window when a participant share screen*.
+Select **Share Screen** from the sidebar and uncheck *Enter full screen when a participant shares screen* and *Maximize Zoom window when a participant shares screen*.
 
 <img src = screenshots/mac-zoom-10-share-screen-prefs.png width = 500>
 
