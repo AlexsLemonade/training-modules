@@ -184,7 +184,8 @@ If you are assigned to a Zoom breakout room during consultation days, the proces
 
 ### Sharing your screen in Zoom
 
-Sharing your screen in a Zoom breakout room during instruction may be required to allow instructors to best provide assistance.
+Sharing your screen in a Zoom breakout room during instruction or one on one Zoom meetings may be required to allow instructors to best provide assistance.
+You will also want to share your screen during your presentation at the end of the workshop.
 
 To share your screen, select the `Share Screen` icon in the middle of the control bar at the bottom of the Zoom window.
 
@@ -218,4 +219,3 @@ Instructors will reach out to you on consultation days to see if you are interes
 
 If you need assistance during a consultation day and it would be helpful to share your screen, an instructor will initiate a Zoom call in Slack either in a thread or direct message.
 See [Joining a Zoom call from Slack](#joining-a-zoom-call-from-slack) for instructions for joining that call and [Sharing your screen in Zoom](#sharing-your-screen-in-zoom) for screen sharing instructions.
-
