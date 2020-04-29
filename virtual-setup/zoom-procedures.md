@@ -19,6 +19,7 @@ We have instructions for setting up Zoom for your operating system available.
 - [General tips for using Zoom during workshops](#general-tips-for-using-zoom-during-workshops)
   - [Audio](#audio)
   - [Video](#video)
+  - [Viewing Zoom while instructors are sharing their screen](#viewing-zoom-while-instructors-are-sharing-their-screen)
   - [Interacting with instructors and providing feedback](#interacting-with-instructors-and-providing-feedback)
     - [Participant pane](#participant-pane)
     - [Chat](#chat)
@@ -53,6 +54,12 @@ This will not affect your ability to see the instructors or content, only outgoi
 You can toggle video on and off using the Stop Video icon (or Start Video if video is off) on the left side of the controls at the bottom of the Zoom window.
 
 <img src = screenshots/zoom-participant-video.png>
+
+### Viewing Zoom while instructors are sharing their screen
+
+Because you will need to interact with your browser window to work in RStudio during instruction, you likely do not want Zoom to automatically maximize the window when the instructor shares their screen.
+This is a default setting in Zoom that can be turned off. 
+See the Zoom installation instructions for your operating system for more information.
 
 ### Interacting with instructors and providing feedback
 
