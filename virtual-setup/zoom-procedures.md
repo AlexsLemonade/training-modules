@@ -196,7 +196,7 @@ You most likely want to share the browser window with the RStudio interface only
 
 <img src = screenshots/zoom-screen-window.png>
 
-Other participants in the breakout room should now be able to see your screen.
+Other participants in the meeting (or just the breakout room if you are in one) should now be able to see your screen.
 
 To ask for help from the meeting host while in a breakout room, use the `Ask for Help` icon in the controls.
 
