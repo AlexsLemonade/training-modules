@@ -59,35 +59,41 @@ Select **Video** from sidebar to make sure your camera is set up; you will likel
 
 <img src="screenshots/mac-zoom-09-video-prefs.png" alt="Video preferences" width=500>
 
+Select **Share Screen** from the sidebar and uncheck *Enter full screen when a participant share screen* and *Maximize Zoom window when a participant share screen*.
+
+<img src = screenshots/mac-zoom-10-share-screen-prefs.png width = 500>
+
+Turning these settings off will make it easier to interact with other windows during training.
+
 ### Screen sharing permissions
 
 MacOS has gotten stricter and stricter about security, so you will have to grant a few more permissions from the **System Preferences** application to allow for screen sharing to work.
 Open **System Preferences** from the Apple menu or the Dock, and choose **Security & Privacy**, then click on the **Privacy** button at the top.
 Click on the lock icon in the lower left and enter your administrator password to allow changes.
-<img src="screenshots/mac-zoom-10-security-prefs.png" alt="Security preferences" width=400>
+<img src="screenshots/mac-zoom-11-security-prefs.png" alt="Security preferences" width=400>
 
 In the lect sidebar, select **Accessibility**, and make sure the checkbox next to **zoom.us** in the "Allow the aps below to control your computer" list is selected, as shown.
 
-<img src="screenshots/mac-zoom-11-accessibility-prefs.png" alt="Accessibility permissions" width=400>
+<img src="screenshots/mac-zoom-12-accessibility-prefs.png" alt="Accessibility permissions" width=400>
 
 If the Zoom Application does not appear in the list, click the "**+**" button  below the list and open the application from the dialog box that appears (it should be in your *Applications* folder).
 
-<img src="screenshots/mac-zoom-11a-accessibility-select.png" alt="Accessibility selection" width=500>
+<img src="screenshots/mac-zoom-12a-accessibility-select.png" alt="Accessibility selection" width=500>
 
 There is one more place where permissions will need to be given to Zoom to allow screen sharing, and that is the **Screen Recording** section of the same preferences pane.  
 
-<img src="screenshots/mac-zoom-12-recording-prefs.png" alt="Screen recording Preferences" width=400>
+<img src="screenshots/mac-zoom-13-recording-prefs.png" alt="Screen recording Preferences" width=400>
 
 You will probably have to wait for your first Zoom meeting to enable those permissions, as Zoom may not yet appear in that list, and there is no way to add it on your own.
 Our setup meetings are a great place to test this out.
 The first time you try to share your screen from Zoom, you will see a popup like the one below.
 Click **OK**
-<img src="screenshots/mac-zoom-13-recording-popup.png" alt="Recording popup" width=400>
+<img src="screenshots/mac-zoom-14-recording-popup.png" alt="Recording popup" width=400>
 
 You will then get a prompt that the Zoom app needs to be quit before this setting can be applied.
 Select **Quit Now**.
 
-<img src="screenshots/mac-zoom-14-recording-restart.png" alt="Recording restart prompt" width=400>
+<img src="screenshots/mac-zoom-15-recording-restart.png" alt="Recording restart prompt" width=400>
 
 Once Zoom has quit, you can click a meeting link to reopen it, rejoining the same meeting you were in, or any other meeting.
 
