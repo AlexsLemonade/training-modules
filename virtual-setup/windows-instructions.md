@@ -43,7 +43,7 @@ If it is not selected already, click on the **Audio** panel in the left sidebar.
 
 <img src="screenshots/windows-audio.png" alt="Microphone preferences" width=500>
 
-While in settings, go to **Share Screen** in the left sidebar and **uncheck** `Maximize Zoom window automatically when a participant shares screen`.
+While in settings, go to **Share Screen** in the left sidebar and **uncheck** `Maximize Zoom window when a participant share screen`.
 
 <img src="screenshots/windows-zoom-max.png" alt="Zoom splash screen" width=500>
 
