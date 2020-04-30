@@ -48,6 +48,12 @@ If you want to further test your microphone and speaker settings, you can click 
 
 We recommend that you select the checkbox to "Automatically join audio by computer when joining a meeting." to save you the future annoyance of having to do this every time you join a meeting.
 
+Now select **Share Screen** in the left sidebar and **uncheck** *Enter full screen when a participant shares screen* and *Maximize Zoom window when a participant share screen*.
+
+<img src="screenshots/windows-zoom-max.png" alt="Zoom splash screen" width=500>
+
+Turning these settings off will make it easier to interact with other windows during training.
+
 ## Slack
 
 Download the 64-bit Slack application from:
