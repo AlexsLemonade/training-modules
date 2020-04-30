@@ -57,9 +57,9 @@ You can toggle video on and off using the Stop Video icon (or Start Video if vid
 
 ### Viewing Zoom while instructors are sharing their screen
 
-Because you will need to interact with your browser window to work in RStudio during instruction, you likely do not want Zoom to automatically maximize the window when the instructor shares their screen.
-This is a default setting in Zoom that can be turned off. 
-See the Zoom installation instructions for your operating system for more information.
+Because you will need to interact with your browser window to work in RStudio during instruction, you likely do not want Zoom to automatically enter full screen mode or maximize the window when the instructor shares their screen.
+These are default settings in Zoom that can be turned off. 
+See the Zoom installation instructions for your operating system for more information, but typically the process involves navigating to Zoom settings or preferences, looking under the **Share Screen** settings, and making sure `Enter full screen when a participant shares screen` and `Maximize Zoom window when a participant shares screen` are unchecked.
 
 ### Interacting with instructors and providing feedback
 
