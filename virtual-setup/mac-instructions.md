@@ -70,6 +70,7 @@ Turning these settings off will make it easier to interact with other windows du
 MacOS has gotten stricter and stricter about security, so you will have to grant a few more permissions from the **System Preferences** application to allow for screen sharing to work.
 Open **System Preferences** from the Apple menu or the Dock, and choose **Security & Privacy**, then click on the **Privacy** button at the top.
 Click on the lock icon in the lower left and enter your administrator password to allow changes.
+
 <img src="screenshots/mac-zoom-11-security-prefs.png" alt="Security preferences" width=400>
 
 In the lect sidebar, select **Accessibility**, and make sure the checkbox next to **zoom.us** in the "Allow the aps below to control your computer" list is selected, as shown.
@@ -88,6 +89,7 @@ You will probably have to wait for your first Zoom meeting to enable those permi
 Our setup meetings are a great place to test this out.
 The first time you try to share your screen from Zoom, you will see a popup like the one below.
 Click **OK**
+
 <img src="screenshots/mac-zoom-14-recording-popup.png" alt="Recording popup" width=400>
 
 You will then get a prompt that the Zoom app needs to be quit before this setting can be applied.
