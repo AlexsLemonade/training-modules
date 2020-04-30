@@ -43,14 +43,16 @@ If it is not selected already, click on the **Audio** panel in the left sidebar.
 
 <img src="screenshots/windows-audio.png" alt="Microphone preferences" width=500>
 
-While in settings, go to **Share Screen** in the left sidebar and **uncheck** `Maximize Zoom window when a participant share screen`.
-
-<img src="screenshots/windows-zoom-max.png" alt="Zoom splash screen" width=500>
-
 If you have granted permission for Zoom to use the microphone, you should now see green and/or red bars in the *Input Level* section as you talk.
 If you want to further test your microphone and speaker settings, you can click the *Test Speaker* and *Test Mic* buttons.
 
 We recommend that you select the checkbox to "Automatically join audio by computer when joining a meeting." to save you the future annoyance of having to do this every time you join a meeting.
+
+Now select **Share Screen** in the left sidebar and **uncheck** *Enter full screen when a participant shares screen* and *Maximize Zoom window when a participant share screen*.
+
+<img src="screenshots/windows-zoom-max.png" alt="Zoom splash screen" width=500>
+
+Turning these settings off will make it easier to interact with other windows during training.
 
 ## Slack
 
