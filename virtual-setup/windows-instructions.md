@@ -45,6 +45,8 @@ If it is not selected already, click on the **Audio** panel in the left sidebar.
 
 While in settings, go to **Share Screen** in the left sidebar and uncheck `Maximize Zoom window automatically when a participant shares screen`.
 
+<img src="screenshots/windows-zoom-max.png" alt="Zoom splash screen" width=500>
+
 If you have granted permission for Zoom to use the microphone, you should now see green and/or red bars in the *Input Level* section as you talk.
 If you want to further test your microphone and speaker settings, you can click the *Test Speaker* and *Test Mic* buttons.
 
