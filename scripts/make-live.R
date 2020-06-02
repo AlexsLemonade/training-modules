@@ -17,4 +17,5 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
 
 outfiles <- stringr::str_replace(infiles, "(.*)\\.Rmd$", "\\1-live.Rmd")
 
-purrr::map2(infiles, outfiles, exrcise::exrcise, replace_flags = "live")
+# capture to avoid printing to stdout
+out <- purrr::map2(infiles, outfiles, exrcise::exrcise, replace_flags = "live")

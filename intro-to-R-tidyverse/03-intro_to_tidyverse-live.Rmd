@@ -4,6 +4,8 @@ output:
   html_notebook: 
     toc: true
     toc_float: true
+editor_options: 
+  chunk_output_type: inline
 ---
 
 **CCDL 2020**
@@ -33,7 +35,7 @@ But if you needed to install it or other packages available on CRAN, you
 do it using the `install.packages()` function like this: 
 `install.packages("tidyverse")`.
 
-```{r Load the tidyverse}
+```{r tidyverse}
 library(tidyverse)
 ```
 
@@ -57,7 +59,7 @@ looking for files, aka the current **working directory**.
 We can do this by using the `getwd()` function, which will tell us what folder
 we are in. 
 
-```{r}
+```{r workingdir, live = TRUE}
 # Let's check what directory we are in:
 
 ```
@@ -83,7 +85,7 @@ This shows us there is no folder called "results" yet.
 If we want to more pointedly look for "results" in our working directory we can 
 use the `dir.exists()` function.
 
-```{r}
+```{r check-dir, live = TRUE}
 # Check if the results directory exists
 
 ```
@@ -91,7 +93,7 @@ use the `dir.exists()` function.
 If the above says `FALSE` that means we will need to create a `results` 
 directory using the function `dir.create()`.
 
-```{r}
+```{r create-dir, live = TRUE}
 # Make a directory within the working directory called 'results'
 
 ```
@@ -99,7 +101,7 @@ directory using the function `dir.create()`.
 After creating the results directory above, let's re-run `dir.exists()` to see 
 if now it exists.
 
-```{r}
+```{r check-dir-again, live = TRUE}
 # Re-check if the results directory exists
 
 ```
@@ -115,7 +117,7 @@ These are placed within a set of braces `{ }`.
 Note that we used an exclamation point in the test to signify that we want a 
 directory to be created only *if* `dir.exists(results)` is NOT equal to `TRUE`.
 
-```{r}
+```{r create-if}
 # If 'results' directory doesn't exist...
 if (!dir.exists("results")) {
   # ... create a 'results' directory
@@ -134,7 +136,7 @@ Note that in our notebooks (and sometimes elsewhere), wherever you see a
 (including the angle brackets) with the correct phrase before you run the chunk 
 (otherwise you will get an error).
 
-```{r eval=FALSE}
+```{r file-check, eval=FALSE}
 # Replace the <PUT_FILE_NAME_HERE> with the name of the file you are looking for
 # Remember to use quotes to make it a character string
 file.exists(<PUT_FILE_NAME_HERE>)
@@ -161,7 +163,7 @@ There are analogous functions for CSV (comma separated values) files
 
 ## Read in the differential expression analysis results file
 
-```{r}
+```{r read-results}
 stats_df <- readr::read_tsv(
   file.path(data_dir,
             "gene_results_GSE44971.tsv")
@@ -171,14 +173,14 @@ stats_df <- readr::read_tsv(
 Following the template of the previous chunk, use this chunk to read in the file
 `GSE44971.tsv` that is in the `data` folder and save it in the variable `gene_df`. 
 
-```{r}
+```{r read-expr, live = TRUE}
 # Use this chunk to read in data from the file `GSE44971.tsv`
 
 ```
 
 Use this chunk to explore what `gene_df` looks like. 
 
-```{r}
+```{r explore}
 # Explore `gene_df`
 
 ```
@@ -193,13 +195,13 @@ making your code a little more streamlined.
 
 For example, the output from this:  
 
-```{r}
+```{r filter}
 filter(stats_df, contrast == "male_female")
 ```  
 
 ...is the same as the output from this:  
 
-```{r}
+```{r filter-pipe}
 stats_df %>% filter(contrast == "male_female")
 ```  
   
@@ -210,7 +212,7 @@ functions look with or without pipes:
 
 *Example 1:* without pipes: 
 
-```{r}
+```{r steps-nopipe}
 stats_arranged <- arrange(stats_df, t_statistic)
 stats_filtered <- filter(stats_arranged, avg_expression > 50)
 stats_nopipe <- select(stats_filtered, contrast, log_fold_change, p_value)
@@ -225,9 +227,8 @@ It's annoying and makes it harder for people to read.
   
 *Example 2:* Same result as 1 but with pipes!
 
-```{r}
+```{r steps-pipe, live = TRUE}
 # Example of the same modifications as above but with pipes!
-stats_pipe  <- stats_df %>%
 
 ```
 
@@ -240,7 +241,7 @@ selecting  in this case.
 
 Let's double check that these are the same by using the function, `all.equal()`. 
 
-```{r}
+```{r check-pipe}
 all.equal(stats_nopipe, stats_pipe)
 ```
 
@@ -257,15 +258,15 @@ groups.
 In order to do this, we would use the function `filter()` as well as a logic 
 statement (usually one that refers to a column or columns in the data frame).
 
-```{r}
+```{r filter-gene}
 # Here let's filter stats_df to the gene_symbol "SNCA"
-stats_df %>%
+stats_df %>% 
   filter(gene_symbol == "SNCA")
 ```
 
 We can use `filter()` similarly for numeric statements.  
 
-```{r}
+```{r filter-numeric, live = TRUE}
 # Here let's filter the data to rows with average expression values above 50
 
 ```
@@ -273,7 +274,7 @@ We can use `filter()` similarly for numeric statements.
 We can apply multiple filters at once, which will require all of them to be 
 satisfied for every row in the results:
 
-```{r }
+```{r filter-2, live = TRUE}
 # filter to highly expressed genes with contrast "male_female"
 
 ```
@@ -282,14 +283,14 @@ When we are filtering, the `%in%` operator can come in handy if we have multiple
 items we would like to match.
 Let's take a look at what using `%in%` does.
 
-```{r eval = FALSE}
+```{r in-example, eval = FALSE}
 genes_of_interest <- c("SNCA", "CDKN1A")
 stats_df$gene_symbol %in% genes_of_interest
 ```
 
 `%in%` returns a logical vector that now we can use in `dplyr::filter`.
 
-```{r }
+```{r filter-in, live = TRUE}
 # filter to genes of interest
 
 ```
@@ -299,11 +300,10 @@ This time, let's keep only some of the columns from the data frame using the
 `select()` function. 
 Let's also save this as a new data frame called `stats_filtered_df`.
 
-```{r}
+```{r filter-select, live = TRUE}
 # filter to highly expressed "male_female"
 # and select gene_symbol, log_fold_change and t_statistic
-stats_filtered_df <- stats_df %>%
-  
+
 ```
 
 Let's say we wanted to arrange this dataset so that the genes are arranged by 
@@ -311,7 +311,7 @@ the smallest p values to the largest.
 In order to do this, we would use the function `arrange()` as well as the column
 we would like to sort by (in this case `p_value`).
 
-```{r}
+```{r arrange}
 stats_df %>% 
   arrange(p_value) 
 ```
@@ -321,25 +321,26 @@ Like if we want to see the genes with the highest average expression?
 We can use the same function, but instead use the `desc()` function and now we 
 are using `avg_expression` column. 
 
-```{r}
+```{r arrange-desc}
 # arrange descending by avg_expression
-
+stats_df %>%
+  arrange(desc(avg_expression))
 ``` 
 
 What if we would like to create a new column of values?
 For that we use `mutate()` function.
 
-```{r}
+```{r mutate}
 stats_df %>% 
   mutate(log10_p_value = -log10(p_value))
 ```
 
 What if we want to obtain summary statistics for a column or columns?
 The `summarize` function allows us to calculate summary statistics for a column. 
-Here we will use summarize to obtain an mean log folder change over all the 
+Here we will use summarize to obtain an mean log folder change over all the
 genes, and its standard deviation.
 
-```{r}
+```{r summarize}
 stats_df %>% 
   summarize(mean(log_fold_change),
             sd(log_fold_change))
@@ -352,9 +353,14 @@ allows us to do this.
 Also note that `group_by()` allows us to group by multiple variables at a time 
 if you want to.
 
-```{r}
-# summarize log_fold_change by group
+```{r summarize-groups, live = TRUE}
 
+```
+
+Let's look at a preview of what we made:
+
+```{r}
+stats_summary_df
 ```
 
 Here we have the mean log fold change expression per each contrast we made. 
@@ -372,9 +378,9 @@ data object.
 The second argument in specifies whether we are applying the function 
 across rows or across columns (1 for rows, 2 for columns).
 
-Remember that `gene_df` is a gene x sample gene expression data frame. 
+Remember that `gene_df` is a gene x sample gene expression data frame.
 
-```{r}
+```{r rowmeans}
 # Calculate row means
 gene_means <- apply(gene_df[, -1], 1, mean) # Notice we are using 1 here
 
@@ -387,7 +393,7 @@ Why do we have a `[, -1]` after `gene_df` in the above chunk?
 Now let's investigate the same set up, but use 2 to `apply` over the columns of
 our matrix.
 
-```{r}
+```{r colmeans}
 # Calculate sample means
 sample_means <- apply(gene_df[, -1], 2, mean) # Notice we use 2 here
 
@@ -398,7 +404,7 @@ length(sample_means)
 Although the `apply` functions may not be as easy to use as the tidyverse 
 functions, for some applications, `apply` methods can be better suited.
 In this workshop, we will not delve too deeply into the various other apply 
-functions (`tapply()`, `lapply()`, etc.) but you can read more information about
+functions (`tapply()`, `lapply()`, etc.) but you can read more information about 
 them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
 
 ## The dplyr::join functions
@@ -418,7 +424,7 @@ In this case we want to match the gene information between the two, so we will
 specify that we want to compare values in the `ensembl_id` column from 
 `stats_df` to the `Gene` column from `gene_df`.
 
-```{r}
+```{r inner-join}
 stats_df %>% 
   inner_join(gene_df, by = c('ensembl_id' = 'Gene')) 
 ```
@@ -439,7 +445,7 @@ This is what we will use the `file.path()` function for.
 Let's look in a bit more detail what `file.path()` does, by examining the 
 results of the function in the examples below.
 
-```{r}
+```r
 # Which of these file paths is what we want to use to save our data to the
 # results directory we created at the beginning of this notebook?
 file.path("docker-install", "stats_summary.tsv")
