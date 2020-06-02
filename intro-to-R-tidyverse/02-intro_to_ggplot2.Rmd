@@ -44,7 +44,7 @@ plots_dir <- "plots"
 
 We can also create a directory if it doesn't already exist. 
 
-```{r}
+```{r createif}
 # The if statement here tests whether the plot directory exists and
 # only executes the  expressions between the braces if it does not.
 if (!dir.exists(plots_dir)) {
@@ -56,7 +56,7 @@ In this notebook we will be using functions from the Tidyverse set of packages, 
 We could load the individual packages we need one at a time, but it is convenient for now to load them all with the `tidyverse` package, which groups many of them together.
 Keep a look out for where we tell you which individual package different functions come from.
 
-```{r}
+```{r tidyverse}
 library(tidyverse)
 ```
 
@@ -66,7 +66,7 @@ Here we are using a `tidyverse` function `read_tsv()` from the `readr` package.
 We are also using `file.path()`, which allows us to specify file locations that will work regardless of the operating system being used. 
 The resulting data frame will be stored in a variable named `stats_df`.
 
-```{r}
+```{r read-stats}
 # read in the file `gene_results_GSE44971.tsv` from the data directory
 stats_df <- read_tsv(file.path(
   data_dir,
@@ -76,7 +76,7 @@ stats_df <- read_tsv(file.path(
 
 Let's take a look at what this data frame looks like: 
 
-```{r}
+```{r show-stats, live = TRUE}
 # display stats_df
 stats_df
 ```
@@ -84,7 +84,7 @@ stats_df
 We can take a look at a column individually by using a `$`. 
 Note we are using `head()` so the whole thing doesn't print out. 
 
-```{r}
+```{r column}
 head(stats_df$contrast)
 ```
 
@@ -96,13 +96,13 @@ stats_df$avg_expression[6:10]
 
 Let's look at some basic statistics from the data set using `summary()`
 
-```{r}
+```{r stats-summary, live = TRUE}
 # summary of stats_df
 summary(stats_df)
 ```
 
 The statistics for `contrast` are not very informative, so let's do that again with just the `contrast` column after converting it to a `factor`
-```{r}
+```{r factor-summary, live = TRUE}
 # summary of `stats_df$contrast` as a factor
 summary(as.factor(stats_df$contrast))
 ```
@@ -112,7 +112,8 @@ summary(as.factor(stats_df$contrast))
 Before we make our plot, we want to calculate a set of new values for each row; transformations of the raw statistics in our table.
 To do this we will use a function from the `dplyr` package called `mutate()` to make a new column of -log10 p values.
 
-```{r}
+```{r mutate}
+# add a `neg_log10_p` column to the data frame
 stats_df <- mutate(stats_df, # data frame we'd like to add a variable to
   neg_log10_p = -log10(p_value) # column name and values
 )
@@ -127,14 +128,14 @@ stats_df$contrast == "male_female"
 
 Now we can try out the `filter()` function.Notice that we are not assigning the results to a variable, so this filtered dataset will not be saved to the environment.
 
-```{r}
+```{r filter, live = TRUE}
 # filter stats_df to "male_female" only
 filter(stats_df, contrast == "male_female")
 ```
 
 Now we can assign the results to a new data frame: `male_female_df`. 
 
-```{r}
+```{r filter-save, live = TRUE}
 # filter and save to male_female_df
 male_female_df <- filter(stats_df, contrast == "male_female")
 ```
@@ -145,7 +146,7 @@ Let's make a volcano plot with this data.
 First let's take a look at only the tumor vs. normal comparison. 
 Let's save this as a separate data frame by assigning it a new name. 
 
-```{r}
+```{r filter-tumor}
 tumor_normal_df <- filter(stats_df, contrast == "astrocytoma_normal")
 ```
 
@@ -157,7 +158,7 @@ We use the first function, `ggplot()` to define the data that will be plotted.
 2. `mapping`, which is a special list made with the `aes()` function to describe which values will be used for each **aes**thetic component of the plot, such as the x and y coordinates of each point. 
 (If you find calling things like the x and y coordinates "aesthetics" confusing, don't worry, you are not alone.)  
 
-```{r}
+```{r ggplot-base}
 ggplot(
   tumor_normal_df, # This first argument is the data frame with the data we want to plot
   aes(
@@ -169,11 +170,11 @@ ggplot(
 ```
 
 You'll notice this plot doesn't have anything on it because we haven't 
-specified a plot type yet. 
+specified a plot type yet.
 To do that, we will add another ggplot layer with `+` which will specify exactly what we want to plot.
 A volcano plot is a special kind of scatter plot, so to make that we will want to plot individual points, which we can do with `geom_point()`.
 
-```{r}
+```{r ggplot-points, live = TRUE}
 # This first part is the same as before
 ggplot(
   tumor_normal_df,
@@ -194,7 +195,7 @@ Here's a brief summary of ggplot2 structure.
 Now that we have a base plot that shows our data, we can add layers on to it and adjust it.
 We can adjust the color of points using the `color` aesthetic.
 
-```{r}
+```{r ggplot-color, live = TRUE}
 ggplot(
   tumor_normal_df,
   aes(
@@ -209,7 +210,7 @@ ggplot(
 Because we have so many points overlapping one another, we will want to adjust 
 the transparency, which we can do with an `alpha` argument. 
 
-```{r}
+```{r ggplot-alpha, live = TRUE}
 ggplot(
   tumor_normal_df,
   aes(
@@ -225,7 +226,7 @@ Notice that we added the alpha within the `geom_point()` function, not to the `a
 We did this because we want all of the points to have the same level of transparency, and it will not vary depending on any variable in the data.
 We can also change the background and appearance of the plot as a whole by adding a `theme`.
 
-```{r}
+```{r ggplot-theme}
 ggplot(
   tumor_normal_df,
   aes(
@@ -242,7 +243,7 @@ We are not limited to a single plotting layer.
 For example, if we want to add a horizontal line to indicate a significance cutoff, we can do that with `geom_hline()`.
 For now, we will choose the value of 5.5 (that is close to a Bonferonni correction) and add that to the plot.
 
-```{r}
+```{r ggplot-hline, live = TRUE}
 ggplot(
   tumor_normal_df,
   aes(
@@ -259,7 +260,7 @@ We can also change the background and appearance of the plot as a whole by addin
 We can change the x and y labels by using `ylab` and `xlab` functions and add a
 title using `ggtitle`.
 
-```{r}
+```{r ggplot-label}
 ggplot(
   tumor_normal_df,
   aes(
@@ -278,13 +279,14 @@ ggplot(
 
 Use this chunk to make the same kind of plot as the previous chunk but instead plot the male female contrast data, that is stored in `male_female_df`. 
 
-```{r}
+```{r mf-volcano, live = TRUE}
 # Use this chunk to make the same kind of volcano plot, but with the male-female contrast data.
+
 ```
 
 Turns out, we don't have to plot each contrast separately, instead, we can use the original data frame that contains all three contrasts' data, `stats_df`, and add a `facet_wrap` to make each contrast its own plot. 
 
-```{r}
+```{r ggplot-facets}
 ggplot(
   stats_df, # Switch to the bigger data frame with all three contrasts' data
   aes(
@@ -306,7 +308,7 @@ ggplot(
 We can store the plot as an object in the global environment by using `<-` operator. 
 Here we will call it `volcano_plot`. 
 
-```{r}
+```{r ggplot-store-object}
 volcano_plot <- ggplot(
   stats_df, # We are calling this plot `volcano_plot`
   aes(
@@ -326,7 +328,7 @@ volcano_plot <- ggplot(
 
 When we are happy with our plot, we can save the plot using `ggsave`. 
 
-```{r}
+```{r ggsave}
 ggsave(
   plot = volcano_plot,
   filename = file.path(plots_dir, "volcano_plot.png")
