@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 #
-# Make live versions of Rmd files.
+# Make live versions of .Rmd files in training modules
 
-# Install exrcise package
+# Install exrcise package if needed.
 if (!"exrcise" %in% installed.packages()){
   remotes::install_github("AlexsLemonade/exrcise", dependencies = TRUE)
 }
@@ -17,4 +17,4 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
 
 outfiles <- stringr::str_replace(infiles, "(.*)\\.Rmd$", "\\1-live.Rmd")
 
-purrr::map2(infiles, outfiles, exrcise, replace_flags = "live")
+purrr::map2(infiles, outfiles, exrcise::exrcise, replace_flags = "live")
