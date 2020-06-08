@@ -19,8 +19,14 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
                          "02-intro_to_ggplot2.Rmd",
                          "03-intro_to_tidyverse.Rmd"))
 )
+
+# Rerender notebooks
+purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
+
+
 # new files will be made with -live.Rmd suffix
 outfiles <- stringr::str_replace(infiles, "(.*)\\.Rmd$", "\\1-live.Rmd")
 
+# Generate live versions
 # capture to avoid printing to stdout
 out <- purrr::map2(infiles, outfiles, exrcise::exrcise, replace_flags = "live")
