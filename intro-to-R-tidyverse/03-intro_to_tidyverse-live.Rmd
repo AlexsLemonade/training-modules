@@ -1,10 +1,13 @@
 ---
 title: "Introduction to tidyverse"
-output:   
-  html_notebook: 
-    toc: true
-    toc_float: true
-editor_options: 
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  html_notebook:
+    toc: yes
+    toc_float: yes
+editor_options:
   chunk_output_type: inline
 ---
 
@@ -391,7 +394,7 @@ length(gene_means)
 Why do we have a `[, -1]` after `gene_df` in the above chunk?
 
 Now let's investigate the same set up, but use 2 to `apply` over the columns of
-our matrix.
+our data frame.
 
 ```{r colmeans}
 # Calculate sample means
@@ -406,6 +409,40 @@ functions, for some applications, `apply` methods can be better suited.
 In this workshop, we will not delve too deeply into the various other apply 
 functions (`tapply()`, `lapply()`, etc.) but you can read more information about 
 them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
+
+## Matrices
+
+A matrix might at first appear similar to a data frame, but it has an additional constraint: rather than each column having a single type, ALL data in the matrix has the same type.
+
+The data frame above is made up of two different types, character and numeric, so converting it to a matrix would require us to make it all the same type.
+If we try to coerce it into a matrix using `as.matrix()`, R will have to pick a type that it can convert everything to. What does it choose?
+
+```{r matrix}
+gene_matrix <- as.matrix(gene_df)
+str(gene_matrix)
+```
+
+While that worked, it is rare that we want numbers converted to text, so we are going to select only the columns with numeric values.
+We can do this most easily by removing the first column, as we did in `apply()` function examples above.
+
+```{r matrix-numeric, live = TRUE}
+# Let's save a new matrix object names `gene_num_matrix` containing only the numeric values
+
+# Explore the structure of the `gene_num_matrix` object
+
+```
+
+Now that the matrix is all numbers, we can do things like calculate the column or row statistics using `apply()` as we did above.
+
+```{r matrix-rowmeans}
+# Calculate row means for our numeric matrix object
+gene_matrix_means <- apply(gene_num_matrix, 1, mean)
+length(gene_matrix_means)
+str(gene_matrix_means)
+```
+
+Note that the length and the structure of the `gene_matrix_means` object is the same as the length and structure of the `gene_means` object which we generated using the `gene_df` data frame.
+The difference here is that the `gene_means` data frame object would contain a combination of character and numeric data types if we did not remove the first column, while the `gene_matrix_means` object would contain only one data type, character, if we did not remove the first column because we coerced the object into a matrix.
 
 ## The dplyr::join functions
 
