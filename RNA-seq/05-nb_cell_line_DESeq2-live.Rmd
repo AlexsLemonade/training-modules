@@ -29,19 +29,19 @@ DESeq2 takes unnormalized counts or estimated counts and does the following:
 
 ## Libraries and functions
 
-```{r}
+```{r library}
 # Load the DESeq2 library
 library(DESeq2)
 ```
 
-```{r}
+```{r magrittr}
 # magrittr pipe
 `%>%` <- dplyr::`%>%`
 ```
 
 ## Directories and files
 
-```{r}
+```{r input-files}
 # directory with the tximport processed data
 txi_dir <- file.path("data", "tximport", "NB_cell_line")
 txi_file <- file.path(txi_dir, "NB_cell_line_tximport.RDS")
@@ -49,20 +49,20 @@ txi_file <- file.path(txi_dir, "NB_cell_line_tximport.RDS")
 
 We'll create a results directory to hold our results.
 
-```{r}
+```{r results-dir}
 # Create a results directory if it doesn't already exist
 results_dir <- "results"
 if (!dir.exists(results_dir)) {
   dir.create(results_dir, recursive = TRUE)
 }
+```
 
+```{r plots-dir, live = TRUE}
 # Create a plots directory if it doesn't already exist
-
-
 
 ```
 
-```{r}
+```{r meta-files}
 # sample metadata path and  file
 meta_dir <- file.path("data", "sample_metadata")
 meta_file <- file.path(meta_dir, "NB_cell_line",
@@ -71,7 +71,7 @@ meta_file <- file.path(meta_dir, "NB_cell_line",
 
 **Output**
 
-```{r}
+```{r output-files}
 # RDS for the output of DESeq function
 deseq_file <- file.path(results_dir, 
                         "NB_cell_line_DESeq_amplified_v_nonamplified.RDS")
@@ -84,48 +84,46 @@ deseq_df_file <-
 heatmap_file <- file.path(plots_dir, "NB_cell_line_heatmap.png")
 ```
 
-
 ## DESeq2
 
 ### Creating a DESeq2 dataset from tximport object
 
 First, let's read in the data we processed with `tximport`.
 
-```{r}
+```{r read-rds, live = TRUE}
 # Read the RDS file for the NB cell line data
 
 ```
 
 Now, the sample metadata.
 
-```{r}
+```{r sample_meta_df, live = TRUE}
 # Read in the sample metadata TSV file and check it out
-
 
 ```
 
 We're most interested in _MYCN_ amplification, which is in the `Status` column
 of `sample_meta_df`
 
-```{r}
+```{r Status, live = TRUE}
 # Look at the first few entries in the Status column
 
 ```
 
 Let's check that the ordering of samples is the same.
 
-```{r}
+```{r all.equal}
 all.equal(colnames(txi$counts), sample_meta_df$Sample_SRR_accession)
 ```
 
 Let's reorder by `Sample_SRR_accession` and see if that remedies the ordering.
 
-```{r}
+```{r arrange-sample_meta_df}
 sample_meta_df <- sample_meta_df %>%
   dplyr::arrange(Sample_SRR_accession)
 ```
 
-```{r}
+```{r all.equal-2}
 all.equal(colnames(txi$counts), sample_meta_df$Sample_SRR_accession)
 ```
 
@@ -133,10 +131,8 @@ It worked!
 
 #### Dataset creation
 
-```{r}
+```{r ddset, live = TRUE}
 # Create a DESeq2 dataset - remember Status is the variable of interest here
-
-
 
 ```
 
@@ -147,7 +143,7 @@ It worked!
 Let's do some [pre-filtering](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering) 
 to keep rows with 10 or more reads total.
 
-```{r}
+```{r rowSums}
 genes_to_keep <- rowSums(counts(ddset)) >= 10
 ddset <- ddset[genes_to_keep, ]
 ```
@@ -155,7 +151,7 @@ ddset <- ddset[genes_to_keep, ]
 We'll want to use the "Nonamplified" samples as our _reference_.
 Let's look at the `levels` of `Status`.
 
-```{r}
+```{r levels}
 levels(ddset$Status)
 ```
 
@@ -163,9 +159,11 @@ We can see that these are in alphabetical order, so "Amplified" samples would
 be the reference. 
 We can use the `relevel` function to remedy this.
 
-```{r}
+```{r relevel}
 ddset$Status <- relevel(ddset$Status, ref = "Nonamplified")
+```
 
+```{r check-levels, live = TRUE}
 # Check what the levels are now
 
 ```
@@ -175,25 +173,25 @@ ddset$Status <- relevel(ddset$Status, ref = "Nonamplified")
 We'll use the wrapper function `DESeq` to do our differential expression 
 analysis.
 
-```{r}
+```{r DESeq}
 deseq_object <- DESeq(ddset)
 ```
 
 Let's save this to our results file.
 
-```{r}
+```{r write_rds, live = TRUE}
 # Save the results as an RDS
 
 ```
 
 Let's take a look at the results table.
 
-```{r}
+```{r deseq_results}
 deseq_results <- results(deseq_object)
 deseq_results
 ```
 
-```{r}
+```{r arrange-deseq_results}
 # this is of class DESeqResults -- we want a data.frame
 deseq_df <- deseq_results %>%
   # make into data.frame
@@ -215,13 +213,13 @@ Let's take a look at what the two top genes are:
 
 How many genes were differentially expressed (FDR < 0.05)?
 
-```{r}
+```{r summary}
 summary(results(deseq_object), alpha = 0.05)
 ```
 
 **Write full data.frame to file**
 
-```{r}
+```{r write_tsv}
 readr::write_tsv(deseq_df, path = deseq_df_file)
 ```
 
@@ -234,34 +232,30 @@ interpretable.
 We will use variance stabilizing transformation from DESeq2 to do this.
 Refer to the help page or the DESeq2 docs for more information. 
 
-```{r}
+```{r vst, live = TRUE}
 # Use the vst function to transform the data
 
 ```
 
 We need to extract the normalized gene matrix from the `vst_data` object. 
 
-```{r}
+```{r vst-assay}
 vst_data <- assay(vst_data)
 ```
 
 We will make a heatmap of only the significant genes, so let's obtain the gene 
 IDs that have an adjusted p-value less than 0.05.
 
-```{r}
+```{r signif_genes, live = TRUE}
 # Filter to padj < 0.05 and then only extract the Genes
-
-
 
 ```
 
 Now we will use `signif_genes` to filter `vst_data` to only have significant 
 genes' data. 
 
-```{r}
-signif_vst_data <- vst_data %>%
-  as.data.frame() %>%
-  dplyr::filter(rownames(vst_data) %in% signif_genes)
+```{r signif_vst_data, live = TRUE}
+
 ```
 
 Let's make the results into a heatmap using the `pheatmap` package. 
@@ -270,7 +264,7 @@ gene (i.e., will be made into [z-scores](https://www.statisticshowto.datascience
 Standardizing the data by gene makes it so our heatmap is more easily 
 interpretable despite how different genes' distributions may be. 
 
-```{r}
+```{r pheatmap}
 pheatmap::pheatmap(signif_vst_data, 
                    show_rownames = FALSE,
                    scale = "row",
@@ -282,36 +276,38 @@ pheatmap::pheatmap(signif_vst_data,
 If we want to save this heatmap as a PNG, we have to use the `png` function that 
 is part of base R, run `pheatmap::pheatmap` again, and then use `dev.off()`.
 
-```{r}
-png(filename = heatmap_file)
+```{r png, live = TRUE}
+
 # Use the same command to create the heatmap
 
-
 # This shuts down the current graphics device (the PNG we are saving)
-dev.off()
+
 ```
 
 We can specify the dimensions and resolution of the PNG that is saved by 
 supplying different arguments to the `png` function.
 
-```{r}
+```{r png-adjust}
 png(filename = heatmap_file, 
     width = 7, 
     height = 7, 
     units = "in", 
     res = 300)
 # Heatmap time!
-
-
+pheatmap::pheatmap(signif_vst_data, 
+                   show_rownames = FALSE,
+                   scale = "row",
+                   colorRampPalette(c("deepskyblue",
+                                      "black",
+                                      "yellow"))(25))
 # Shut down the current graphics device
-
-
+dev.off()
 ```
 
 ## Session Info
 
 Record session info for reproducibility & provenence purposes.
 
-```{r}
+```{r sessioninfo}
 sessionInfo()
 ```
