@@ -21,19 +21,19 @@ from Love, Anders, and Huber from which this is adapted
 
 ## Libraries and functions
 
-```{r}
+```{r library, live = TRUE}
 # Load the DESeq2 library
 library(DESeq2)
 ```
 
-```{r}
+```{r magrittr}
 # magrittr pipe
 `%>%` <- dplyr::`%>%`
 ```
 
 ## Directories and files
 
-```{r}
+```{r input-files}
 # directory with the tximport processed data
 txi_dir <- file.path("data", "tximport", "gastric_cancer")
 txi_file <- file.path(txi_dir, "gastric_cancer_tximport.RDS")
@@ -41,7 +41,7 @@ txi_file <- file.path(txi_dir, "gastric_cancer_tximport.RDS")
 
 We'll create a directory to hold our plots.
 
-```{r}
+```{r plots-dir, live = TRUE}
 # Create a plots directory if it does not exist yet
 plots_dir <- "plots"
 if (!dir.exists(plots_dir)) {
@@ -49,7 +49,7 @@ if (!dir.exists(plots_dir)) {
 }
 ```
 
-```{r}
+```{r metadata-file}
 # sample metadata file
 meta_dir <- file.path("data", "sample_metadata")
 meta_file <- file.path(meta_dir, "gastric_cancer",
@@ -58,7 +58,7 @@ meta_file <- file.path(meta_dir, "gastric_cancer",
 
 **Output**
 
-```{r}
+```{r output-files, live = TRUE}
 # We will save a PDF copy of the PCA plot to the plots directory
 # and name the file "gastric_cancer_PC_scatter.pdf"
 pca_plot_file <- file.path(plots_dir, "gastric_cancer_PC_scatter.pdf")
@@ -70,49 +70,49 @@ pca_plot_file <- file.path(plots_dir, "gastric_cancer_PC_scatter.pdf")
 
 First, let's read in the data we processed with `tximport`.
 
-```{r}
+```{r read-rds, live = TRUE}
 # Read in the RDS file we created in the last notebook
 txi <- readr::read_rds(txi_file)
 ```
 
-```{r}
+```{r txi-counts, live = TRUE}
 # Let's look at the first few rows of the gene-level counts
 head(txi$counts)  
 ```
 
-```{r}
+```{r txi-abudance, live = TRUE}
 # Let's look at the first few rows of the gene-level TPM
 head(txi$abundance) 
 ```
 
 And now we'll read in the sample metadata.
 
-```{r}
+```{r sample_meta_df, live = TRUE}
 # Read in the sample metadata TSV file and have a look
 sample_meta_df <- readr::read_tsv(meta_file)
 sample_meta_df
 ```
 
-```{r}
+```{r col-names-txi}
 colnames(txi$counts)
 ```
 
 We'll reorder the sample metadata to match the order in `txi`
 
-```{r}
+```{r arrange-sample_meta_df}
 sample_meta_df <- sample_meta_df %>%
   dplyr::arrange(accession)
 sample_meta_df
 ```
 
-```{r}
+```{r all-equal}
 all.equal(colnames(txi$counts), sample_meta_df$accession)
 ```
 
 We use the tissue of origin in the design formula because that will allow us
 to model this variable of interest.
 
-```{r}
+```{r ddset}
 ddset <- DESeqDataSetFromTximport(txi = txi,
                                   colData = sample_meta_df,
                                   design = ~ tissue)
@@ -127,7 +127,7 @@ See [this section of
 the `DESeq2` vignette](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization) 
 for more on this topic. 
 
-```{r}
+```{r vst}
 vst_data <- vst(ddset)
 ```
 
@@ -142,7 +142,7 @@ tissue source) affect our dataset and help us spot any technical effects
 
 `DESeq2` has built-in functionality for performing PCA.
 
-```{r}
+```{r plotPCA, live = TRUE}
 # DESeq2 built in function is called plotPCA and we want to color points by
 # tissue
 plotPCA(vst_data, intgroup = "tissue")
@@ -150,7 +150,7 @@ plotPCA(vst_data, intgroup = "tissue")
 
 Save the most recent plot to file with `ggsave` from `ggplot2`
 
-```{r}
+```{r save-pdf}
 # Save the PDF file 
 ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
 ```
@@ -162,14 +162,14 @@ particular experiment, but let's imagine that `SRR585574` and `SRR585576` were
 run separately from all other samples.
 We'll put this in new "toy" column in `sample_meta_df`.
 
-```{r}
+```{r batches}
 sample_meta_df$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
                           "batch1", "batch2", "batch1")
 ```
 
 Let's rerun the `DESeq2` steps.
 
-```{r}
+```{r rerun-deseq2, live = TRUE}
 # Rerun the dataset creation step
 # Note: if we were using this for differential expression AND we truly knew
 # the batch, we'd likely use design = ~ batch + tissue
@@ -180,19 +180,21 @@ ddset_batch <- DESeqDataSetFromTximport(txi = txi,
 vst_batch <- vst(ddset_batch)
 ```
 
-```{r}
+```{r plotPCA-2, live = TRUE}
 # PCA plot - tissue *and* batch
 # We want plotPCA to return the data so we can have more control about the plot
 pca_data <- plotPCA(vst_batch, intgroup = c("tissue", "batch"), 
                     returnData = TRUE)
+```
 
+```{r percent_var}
 # Here we are setting up the percent variance that we are extracting from the `pca_data` object
 percent_var <- round(100 * attr(pca_data, "percentVar"))
 ```
 
 Let's use ggplot to vizualize the first two principal components. 
 
-```{r}
+```{r color-by-batch, live = TRUE}
 # Color points by "batch" and use shape to indicate the tissue of origin
 ggplot2::ggplot(pca_data, ggplot2::aes(PC1, PC2, 
                                        color = batch, 
@@ -207,6 +209,6 @@ ggplot2::ggplot(pca_data, ggplot2::aes(PC1, PC2,
 
 Record session info for reproducibility & provenence purposes.
 
-```{r}
+```{r sessioninfo}
 sessionInfo()
 ```
