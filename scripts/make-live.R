@@ -17,8 +17,12 @@ root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
 infiles <- c(file.path(root_dir, "intro-to-R-tidyverse", 
                        c("01-intro_to_base_R.Rmd", 
                          "02-intro_to_ggplot2.Rmd",
-                         "03-intro_to_tidyverse.Rmd"))
-)
+                         "03-intro_to_tidyverse.Rmd")), 
+             file.path(root_dir, "RNA-seq", 
+                       c("02-gastric_cancer_tximport.Rmd", 
+                         "03-gastric_cancer_exploratory.Rmd",
+                         "05-nb_cell_line_DESeq2.Rmd")))
+
 
 # Rerender notebooks
 purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
