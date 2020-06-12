@@ -384,9 +384,9 @@ The second argument in specifies whether we are applying the function
 across rows or across columns (1 for rows, 2 for columns).
 
 Remember that `gene_df` is a gene x sample gene expression data frame that has
-columns of two different types, character and numeric, but converting it to a
-matrix will require us to make them all the same type.
-We can still coerce it into a matrix using `as.matrix()`, in which case R will
+columns of two different types, character and numeric.
+Converting it to a matrix will require us to make them all the same type.
+We can coerce it into a matrix using `as.matrix()`, in which case R will
 pick a type that it can convert everything to.
 What does it choose?
 
@@ -401,9 +401,9 @@ gene_matrix <- as.matrix(gene_df)
 ```
 
 While that worked, it is rare that we want numbers converted to text, so we are
-going to select only the columns with numeric values.
-We can do this most easily by removing the first column, which contains character
-values.
+going to select only the columns with numeric values before converting it to a matrix.
+We can do this most easily by removing the first column, which contains the gene names 
+stored as character values.
 
 ```{r matrix-numeric, live = TRUE}
 # Let's save a new matrix object names `gene_num_matrix` containing only
@@ -412,6 +412,8 @@ values.
 # Explore the structure of the `gene_num_matrix` object
 
 ```
+
+Why do we have a `[, -1]` after `gene_df` in the above chunk?
 
 Now that the matrix is all numbers, we can do things like calculate the column
 or row statistics using `apply()`.
@@ -422,6 +424,19 @@ gene_means <- apply(gene_num_matrix, 1, mean) # Notice we are using 1 here
 
 # How long will `gene_means` be? 
 length(gene_means)
+```
+
+Note that we can obtain the same results using the columns with numeric values
+from the `gene_df` data frame.
+
+```{r rowmeans-dataframe}
+# Calculate row means using the `gene_df` object
+gene_means_from_df <- apply(gene_df[, -1], 1, mean) # Removing the character
+# column allows R to do the as.matrix() coercion automatically, which only works
+# if the rest of the data frame is numeric.
+
+# Let's check that the two gene means objects are equal
+all.equal(gene_means, gene_means_from_df)
 ```
 
 Now let's investigate the same set up, but use 2 to `apply` over the columns of
