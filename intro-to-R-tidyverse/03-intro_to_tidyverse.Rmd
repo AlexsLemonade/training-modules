@@ -387,49 +387,23 @@ In base R, the `apply` family of functions can be an alternative methods for
 performing transformations across a data frame, matrix or other object structures. 
 
 One of this family is (shockingly) the function `apply()`, which operates on 
-matrices or data frames. 
+matrices.
+
+A matrix is similar to a data frame in that it is a rectangular table of data,
+but it has an additional constraint: 
+rather than each column having a type, ALL data in a matrix has the same type.
+
 The first argument to `apply()` is the data object we want to work on.
 The third argument is the function we will apply to each row or column of the 
 data object.
 The second argument in specifies whether we are applying the function 
 across rows or across columns (1 for rows, 2 for columns).
 
-Remember that `gene_df` is a gene x sample gene expression data frame.
-
-```{r rowmeans}
-# Calculate row means
-gene_means <- apply(gene_df[, -1], 1, mean) # Notice we are using 1 here
-
-# How long will `gene_means` be? 
-length(gene_means)
-```
-
-Why do we have a `[, -1]` after `gene_df` in the above chunk?
-
-Now let's investigate the same set up, but use 2 to `apply` over the columns of
-our data frame.
-
-```{r colmeans}
-# Calculate sample means
-sample_means <- apply(gene_df[, -1], 2, mean) # Notice we use 2 here
-
-# How long will `sample_means` be? 
-length(sample_means)
-```
-
-Although the `apply` functions may not be as easy to use as the tidyverse 
-functions, for some applications, `apply` methods can be better suited.
-In this workshop, we will not delve too deeply into the various other apply 
-functions (`tapply()`, `lapply()`, etc.) but you can read more information about 
-them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
-
-## Matrices
-
-A matrix is similar to a data frame in that it is a rectangular table of data, but it has an additional constraint: 
-rather than each column having a type, ALL data in a matrix has the same type.
-
-The data frame above has  columns of two different types, character and numeric, but converting it to a matrix will require us to make them all the same type.
-We can still coerce it into a matrix using `as.matrix()`, in which case R will pick a type that it can convert everything to.
+Remember that `gene_df` is a gene x sample gene expression data frame that has
+columns of two different types, character and numeric, but converting it to a
+matrix will require us to make them all the same type.
+We can still coerce it into a matrix using `as.matrix()`, in which case R will
+pick a type that it can convert everything to.
 What does it choose?
 
 ```{r matrix}
@@ -444,8 +418,8 @@ str(gene_matrix)
 
 While that worked, it is rare that we want numbers converted to text, so we are
 going to select only the columns with numeric values.
-We can do this most easily by removing the first column, as we did in `apply()`
-function examples above.
+We can do this most easily by removing the first column, which contains character
+values.
 
 ```{r matrix-numeric, live = TRUE}
 # Let's save a new matrix object names `gene_num_matrix` containing only
@@ -456,25 +430,29 @@ gene_num_matrix <- as.matrix(gene_df[, -1])
 str(gene_num_matrix)
 ```
 
-Now that the matrix is all numbers, we can do things like calculate the column
-or row statistics using `apply()` as we did above.
+Why do we have a `[, -1]` after `gene_df` in the above chunk?
 
-```{r matrix-rowmeans}
-# Calculate row means for our numeric matrix object
-gene_matrix_means <- apply(gene_num_matrix, 1, mean)
-length(gene_matrix_means)
-str(gene_matrix_means)
+Now that the matrix is all numbers, we can do things like calculate the column
+or row statistics using `apply()`.
+
+```{r rowmeans}
+# Calculate row means
+gene_means <- apply(gene_num_matrix, 1, mean) # Notice we are using 1 here
+
+# How long will `gene_means` be? 
+length(gene_means)
 ```
 
-Note that the length and the structure of the `gene_matrix_means` object is the
-same as the length and structure of the `gene_means` object which we generated
-using the `gene_df` data frame.
+Now let's investigate the same set up, but use 2 to `apply` over the columns of
+our data frame.
 
-The difference here is that the `gene_means` data frame object would contain a
-combination of character and numeric data types if we did not remove the first
-column, while the `gene_matrix_means` object would contain only one data type,
-character, if we did not remove the first column because we coerced the object
-into a matrix.
+```{r colmeans}
+# Calculate sample means
+sample_means <- apply(gene_num_matrix, 2, mean) # Notice we use 2 here
+
+# How long will `sample_means` be? 
+length(sample_means)
+```
 
 We can put the gene names back into the numeric matrix object by
 assigning them as rownames.
@@ -488,6 +466,15 @@ rownames(gene_num_matrix) <- gene_df$Gene
 head(gene_num_matrix)
 ```
 
+Row names like this can be very convenient for keeping matrices organized, but
+row names (and column names) can be lost or misordered if you are not careful,
+especially during input and output, so treat them with care.
+
+Although the `apply` functions may not be as easy to use as the tidyverse 
+functions, for some applications, `apply` methods can be better suited.
+In this workshop, we will not delve too deeply into the various other apply 
+functions (`tapply()`, `lapply()`, etc.) but you can read more information about 
+them [here](https://www.guru99.com/r-apply-sapply-tapply.html).
 
 ## The dplyr::join functions
 
