@@ -1,0 +1,35 @@
+---
+title: "Tabula Muris setup"
+output: html_notebook
+---
+
+This notebook describes and implements the setup of the Tabula Muris data. Note that while this is an Rmarkdown file, it simply wraps the a bash script for most of the work.
+
+The files are placesd in a shared data directory: note that this will not work without appropriate privileges. Change `base_dir` as needed.
+
+
+```{bash}
+base_dir=/shared/data/training-data
+tabula_dir=${base_dir}/tabula_muris
+s3_base_url=s3://czbiohub-tabula-muris/10x_bam_files
+
+mkdir -p ${tabula_dir}/bam
+mkdir -p ${tabula_dir}/fastq
+
+# move to the relevant directory
+cd $tabula_dir
+
+# Get a list of the files we want from aws, selecting only bam files
+aws --no-sign-request s3 ls ${s3_base_url}/10X_P4_ \
+  | grep ".bam$" \
+  | awk '{print $4}' > file_list.txt
+
+for file in $(cat file_list.txt); do
+  echo "Downloading bam file: $file"
+  aws --no-sign-request s3 cp ${s3_base_url}/${file} bam
+  echo "Converting $file to fastq file"
+  bamtofastq bam/$file fastq/$file
+done
+
+```
+
