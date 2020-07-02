@@ -2,26 +2,60 @@
 configfile: "config.yaml"
 
 import pandas as pd
+basedir = config["base_dir"]
 
 rule all:
     input:
-        "sample_list.tsv"
+        os.path.join(basedir, "qc_reports/fastqc/fastqc_files.txt")
 
 checkpoint sample_list:
     output:
-        "sample_list.tsv"
+        "{base}/sample_list.csv"
     shell:
         "Rscript get_srp_table.R"
         " --srp {config[SRP]}"
         " --outfile {output}"
         " --paired"
 
+rule get_fastqs:
+    input: 
+        "{base}/sample_list.csv"
+    output:
+        R1 = "{base}/fastq/{run_id}/{run_id}_1.fastq.gz",
+        R2 = "{base}/fastq/{run_id}/{run_id}_2.fastq.gz"
+    run:
+        sample_df = pd.read_csv(input[0])
+        # filter to this sample
+        samples = sample_df[sample_df['run_accession'] == wildcards.run_id]
+        # create urls and fetch
+        for url in samples['fastq_ftp']:
+            shell(f"wget ftp://{url} -P {wildcards.base}/fastq/{wildcards.run_id} -q")
 
-def sample_fastqc(wildcards):
+rule fastqc:
+    input:
+        "{base}/fastq/{run}/{sample}.fastq.gz"
+    output:
+        "{base}/qc_reports/fastqc/{run}/{sample}_fastqc.html"
+    shell:
+        "fastqc {input} --outdir $(dirname {output}) -q"
+
+def aggregate_fastqc(wildcards):
     """
     Use the sample list file to generate the full fastqc file list
     """
-    with open(checkpoints.sample_list.get(**wildcards).output) as f:
-        fastqs = [line.rstrip() for line in f]
-    return expand("{config.base_dir}/fastqc_reports/{fq}_fastqc.html",
-        fq=fastqs)
+    with checkpoints.sample_list.get(**wildcards).output[0].open() as f:
+        sample_df = pd.read_csv(f)
+    run_fastq = [f.split("/")[-2:] for f in sample_df['fastq_ftp']]
+    qc_paths = [os.path.join(run, fastq.rstrip('.fastq.gz') + "_fastqc.html" )
+                for run, fastq in run_fastq]
+    qc_fullpaths = [os.path.join(wildcards.base, "qc_reports", "fastqc", qc) 
+                    for qc in qc_paths]
+    return(qc_fullpaths)
+
+rule fastqc_list:
+    input:
+        aggregate_fastqc
+    output:
+        "{base}/qc_reports/fastqc/fastqc_files.txt"
+    shell:
+        "printf '%s\n' {input} > {output}"
