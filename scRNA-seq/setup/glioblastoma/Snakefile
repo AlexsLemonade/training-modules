@@ -2,6 +2,7 @@
 configfile: "config.yaml"
 
 import pandas as pd
+
 basedir = config["base_dir"]
 
 rule all:
@@ -30,8 +31,8 @@ rule get_fastqs:
         # filter to this sample
         samples = sample_df[sample_df['run_accession'] == wildcards.run_id]
         # create urls and fetch
-        for url in samples['fastq_ftp']:
-            shell(f"wget ftp://{url} -P {wildcards.base}/fastq/{wildcards.run_id} -q")
+        urls = " ".join([f"ftp://{url}" for url in samples['fastq_ftp']])
+        shell(f"wget {urls} -P {wildcards.base}/fastq/{wildcards.run_id} -q")
 
 rule fastqc:
     input:
