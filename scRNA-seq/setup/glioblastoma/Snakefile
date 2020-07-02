@@ -6,7 +6,8 @@ basedir = config["base_dir"]
 
 rule all:
     input:
-        os.path.join(basedir, "qc_reports/fastqc/fastqc_files.txt")
+        os.path.join(basedir, "qc_reports/fastqc/fastqc_report_all.csv"),
+        os.path.join(basedir, "tximport/count_matrix.tsv")
 
 checkpoint sample_list:
     output:
@@ -21,8 +22,9 @@ rule get_fastqs:
     input: 
         "{base}/sample_list.csv"
     output:
-        R1 = "{base}/fastq/{run_id}/{run_id}_1.fastq.gz",
-        R2 = "{base}/fastq/{run_id}/{run_id}_2.fastq.gz"
+        # make these temporary to save space
+        R1 = temp("{base}/fastq/{run_id}/{run_id}_1.fastq.gz"),
+        R2 = temp("{base}/fastq/{run_id}/{run_id}_2.fastq.gz")
     run:
         sample_df = pd.read_csv(input[0])
         # filter to this sample
@@ -45,17 +47,76 @@ def aggregate_fastqc(wildcards):
     """
     with checkpoints.sample_list.get(**wildcards).output[0].open() as f:
         sample_df = pd.read_csv(f)
-    run_fastq = [f.split("/")[-2:] for f in sample_df['fastq_ftp']]
+    run_fastq = [f.split("/")[-2:] for f in sample_df['fastq_ftp']][:20]
     qc_paths = [os.path.join(run, fastq.rstrip('.fastq.gz') + "_fastqc.html" )
                 for run, fastq in run_fastq]
     qc_fullpaths = [os.path.join(wildcards.base, "qc_reports", "fastqc", qc) 
                     for qc in qc_paths]
     return(qc_fullpaths)
 
-rule fastqc_list:
+rule fastqc_summary:
     input:
         aggregate_fastqc
     output:
-        "{base}/qc_reports/fastqc/fastqc_files.txt"
+        report_table = "{base}/qc_reports/fastqc/fastqc_report_all.csv",
+        filtered = "{base}/qc_reports/fastqc/fastqc_report_filtered.csv"
+    params:
+        dir = "{base}/qc_reports/fastqc"
     shell:
-        "printf '%s\n' {input} > {output}"
+        "Rscript summarize_fastqc.R"
+        " -d {params.dir}"
+        " -t {output.report_table}"
+        " -f {output.filtered}"
+
+
+rule salmon_quant:
+    input:
+        index = config['salmon_index'],
+        R1 = "{base}/fastq/{run_id}/{run_id}_1.fastq.gz",
+        R2 = "{base}/fastq/{run_id}/{run_id}_2.fastq.gz"
+    output:
+        dir = directory("{base}/salmon_quant/{run_id}"), 
+        quant_file = "{base}/salmon_quant/{run_id}/quant.sf"
+    threads: 4
+    shell:
+        "salmon quant" 
+        " -i {input.index}"
+        " -l A"
+        " -1 {input.R1}"
+        " -2 {input.R2}"
+        " -o {output.dir}"
+        " --validateMappings"
+        " --rangeFactorizationBins 4"
+        " --gcBias"
+        " --seqBias"
+        " --threads {threads}"
+        " --quiet"
+
+def aggregate_salmon(wildcards):
+    """
+    Use the sample list file to generate the full quantsf file list
+    """
+    with checkpoints.sample_list.get(**wildcards).output[0].open() as f:
+        sample_df = pd.read_csv(f)
+    run_ids = sample_df['run_accession']
+    quant_paths = [os.path.join(wildcards.base, "salmon_quant", run, "quant.sf")
+                   for run in run_ids]
+    return(quant_paths)
+
+rule salmon_matrix:
+    input:
+        files = aggregate_salmon,
+        tx2gene = config['tx2gene']
+    output:
+        gene_matrix = "{base}/tximport/count_matrix.tsv",
+        txi_obj = "{base}/tximport/tximport_obj.RDS"
+    params:
+        quant_dir = "{base}/salmon_quant/",
+        map_cutoff = 0.3
+    shell:
+        "Rscript make_count_matrix.R"
+        " -d {params.quant_dir}"
+        " -t {input.tx2gene}"
+        " -m {params.map_cutoff}"
+        " -o {output.gene_matrix}"
+        " -r {output.txi_obj}"

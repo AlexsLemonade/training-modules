@@ -1,0 +1,51 @@
+# CCDL ALSF 2018
+# C. Savonen
+#
+# Purpose: Get a summary file of individual sequence quality reports
+# from the FASTQC files.
+#
+# Options:
+# "-d" - directory/path of where the fastqc reports have been placed.
+# "-o" - directory/path where the output summary of fastqc will be placed
+#
+# Example bash usage:
+#
+# Rscript scripts/2-get_fastqc_reports.R \
+# -d darmanis_data/fastqc_reports \
+# -r fastqc_report.csv
+#
+library(optparse)
+library(fastqcr)
+
+# Get options using optparse
+option_list <- list( 
+  make_option(opt_str = c("-d", "--dir"), type = "character",
+              help = "Directory containing the fastqc reports"),
+  make_option(opt_str = c("-t", "--table"), type = "character",
+              help = "Report table path (csv)"),
+  make_option(opt_str = c("-f", "--filtered"), type = "character",
+              help = "Report table for passing runs only (csv)")
+  )
+
+# Parse options
+opt <- parse_args(OptionParser(option_list = option_list))
+
+# Magrittr pipe
+`%>%` <- dplyr::`%>%`
+
+# Aggregate the reports
+qc <- fastqcr::qc_aggregate(qc.dir = opt$dir)
+
+
+
+# Write full report table to a csv file
+write.csv(qc_stats(qc), file = opt$table)
+
+# Filter out samples that have failed the quality tests
+qc_filtered <- data.frame(qc) %>%
+  dplyr::select(sample, module, status) %>%    
+  dplyr::filter(status %in% "PASS") %>%
+  dplyr::arrange(sample)
+
+# Write filtered results to a csv file
+write.csv(qc_filtered, file = opt$filtered)
