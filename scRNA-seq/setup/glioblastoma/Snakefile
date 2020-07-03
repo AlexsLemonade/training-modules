@@ -11,15 +11,19 @@ rule all:
         os.path.join(basedir, "tximport/count_matrix.tsv")
 
 checkpoint sample_list:
+    # create the sample list for the given SRP accession
     output:
         "{base}/sample_list.csv"
+    params:
+        srp = config['SRP']
     shell:
         "Rscript get_srp_table.R"
-        " --srp {config[SRP]}"
+        " --srp {params.srp}"
         " --outfile {output}"
         " --paired"
 
 rule get_fastqs:
+    # download fastqc files for a particular run
     input: 
         "{base}/sample_list.csv"
     output:
@@ -28,13 +32,15 @@ rule get_fastqs:
         R2 = temp("{base}/fastq/{run_id}/{run_id}_2.fastq.gz")
     run:
         sample_df = pd.read_csv(input[0])
-        # filter to this sample
+        # filter sample table to the sample required 
+        # to create a given output file (defined by run_id)
         samples = sample_df[sample_df['run_accession'] == wildcards.run_id]
         # create urls and fetch
         urls = " ".join([f"ftp://{url}" for url in samples['fastq_ftp']])
         shell(f"wget {urls} -P {wildcards.base}/fastq/{wildcards.run_id} -q")
 
 rule fastqc:
+    # run fastqc
     input:
         "{base}/fastq/{run}/{sample}.fastq.gz"
     output:
@@ -59,6 +65,7 @@ def aggregate_fastqc(wildcards):
     return(qc_fullpaths)
 
 rule fastqc_summary:
+    # join all fastqc results into a summary table
     input:
         aggregate_fastqc
     output:
@@ -74,6 +81,7 @@ rule fastqc_summary:
 
 
 rule salmon_quant:
+    # run salmon quantification
     input:
         index = config['salmon_index'],
         R1 = "{base}/fastq/{run_id}/{run_id}_1.fastq.gz",
@@ -109,6 +117,7 @@ def aggregate_salmon(wildcards):
     return(quant_paths)
 
 rule salmon_matrix:
+    # Join the salmon results into a single matrix with tximport
     input:
         files = aggregate_salmon,
         tx2gene = config['tx2gene']
