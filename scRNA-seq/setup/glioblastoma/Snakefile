@@ -48,9 +48,12 @@ def aggregate_fastqc(wildcards):
     """
     with checkpoints.sample_list.get(**wildcards).output[0].open() as f:
         sample_df = pd.read_csv(f)
+    # get the run and fastq filename from the last two elements of the ftp field
     run_fastq = [f.split("/")[-2:] for f in sample_df['fastq_ftp']]
-    qc_paths = [os.path.join(run, fastq.rstrip('.fastq.gz') + "_fastqc.html" )
+    # swap the fastq extension to make the fastqc file name and join back to partial paths 
+    qc_paths = [os.path.join(run, fastq.replace('.fastq.gz', '_fastqc.html') )
                 for run, fastq in run_fastq]
+    # create the full paths
     qc_fullpaths = [os.path.join(wildcards.base, "qc_reports", "fastqc", qc) 
                     for qc in qc_paths]
     return(qc_fullpaths)
@@ -100,6 +103,7 @@ def aggregate_salmon(wildcards):
     with checkpoints.sample_list.get(**wildcards).output[0].open() as f:
         sample_df = pd.read_csv(f)
     run_ids = sample_df['run_accession']
+    # create the quant.sf paths from the run_ids
     quant_paths = [os.path.join(wildcards.base, "salmon_quant", run, "quant.sf")
                    for run in run_ids]
     return(quant_paths)
