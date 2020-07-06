@@ -7,7 +7,9 @@
 
 # Options:
 # "-d" - Directory of where individual samples' salmon folders are located.(Optional)
-# "-o" - Directory of where the output gene matrix RDS file should go.(Optional)
+# "-o" - Outfile for count matrix
+# "-r" - Outfile for tximport RDS matrix
+# "-p" - Outfile for plot 
 # "-m" - Percent mapped reads (reported as a decimal) cutoff for filtering
 #        samples. Default is 0.5.
 #
@@ -16,7 +18,9 @@
 # Rscript scripts/make_count_matrix.R \
 # -d data/salmon_quants \
 # -o data/counts.tsv \
-# -m 0.5 \
+# -r data/txi.RDS \
+# -p data/mapping_plot.png \
+# -m 0.5 
 
 #-------------------------- Get necessary packages-----------------------------#
 # Attach needed libraries
@@ -42,19 +46,11 @@ option_list <- list(
     make_option(c("-m", "--mapped"), type = "numeric",
                 default = "0.5", 
                 help = "Cutoff for what percent mapped_reads samples should have. 
-                Any samples with less than the cutoff will be removed."),
-    make_option(c("-l", "--label"), type = "character",
-                default = "", 
-                help = "Optional label for output files")
+                Any samples with less than the cutoff will be removed.")
 )
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
-
-# Add an underscore if label is specified
-if (!is.null(opt$label)){
-  opt$label <- paste0(opt$label, "_")
-}
 
 #------------------------------Import Salmon reads-----------------------------#
 # Get quant files
