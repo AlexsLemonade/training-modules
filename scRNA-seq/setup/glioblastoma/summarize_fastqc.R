@@ -6,14 +6,16 @@
 #
 # Options:
 # "-d" - directory/path of where the fastqc reports have been placed.
-# "-o" - directory/path where the output summary of fastqc will be placed
+# "-t" - path for the output summary table
+# "-f" - path for the filtered output summary (only passing runs)
 #
 # Example bash usage:
 #
 # Rscript scripts/2-get_fastqc_reports.R \
-# -d darmanis_data/fastqc_reports \
-# -r fastqc_report.csv
-#
+# -d data/fastqc_reports \
+# -t fastqc_report.csv
+# -f fastqc_filtered.csv
+# 
 library(optparse)
 library(fastqcr)
 
