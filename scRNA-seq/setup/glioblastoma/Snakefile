@@ -132,17 +132,22 @@ rule salmon_matrix:
     # Join the salmon results into a single matrix with tximport
     input:
         files = aggregate_salmon,
+        sample_file = "{base}/sample_list.csv",
         tx2gene = config['tx2gene']
     output:
         gene_matrix = "{base}/tximport/count_matrix.tsv",
         txi_obj = "{base}/tximport/tximport_obj.RDS"
     params:
         quant_dir = "{base}/salmon_quant/",
+        sample_id = "sample_alias", # this is the GEO id for each sample 
         map_cutoff = 0.3
     shell:
         "Rscript make_count_matrix.R"
-        " -d {params.quant_dir}"
-        " -t {input.tx2gene}"
-        " -m {params.map_cutoff}"
-        " -o {output.gene_matrix}"
-        " -r {output.txi_obj}"
+        " --dir {params.quant_dir}"
+        " --sample-file {input.sample_file}"
+        " --sample-id {params.sample_id}"
+        " --tx2gene {input.tx2gene}"
+        " --mapped {params.map_cutoff}"
+        " --outfile {output.gene_matrix}"
+        " --rds {output.txi_obj}"
+
