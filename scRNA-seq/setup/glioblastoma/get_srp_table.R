@@ -21,7 +21,16 @@ opt <- parse_args(OptionParser(option_list = option_list))
 # gets a table of ENA ftp links from an SRA Project accession id
 # returns a data frame with columns: run_accession, fastq_ftp, fastq_md5, & fastq_bytes
 get_sample_df <- function(SRA_project){
-  ena_url <- stringr::str_interp("http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=${SRA_project}&result=read_run&fields=run_accession,fastq_ftp,fastq_md5,fastq_bytes")
+  fields <- paste("run_accession",
+                  "sample_accession",
+                  "sample_alias",
+                  "sample_title",
+                  "experiment_title",
+                  "fastq_ftp",
+                  "fastq_md5",
+                  "fastq_bytes",
+                  sep = ",")
+  ena_url <- stringr::str_interp("http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=${SRA_project}&result=read_run&fields=${fields}")
   ena_table <- readr::read_tsv(ena_url) %>%
     tidyr::separate_rows(fastq_ftp, fastq_md5, fastq_bytes, sep = ";")
 }
@@ -30,7 +39,7 @@ sample_df <- get_sample_df(opt$srp)
 if (opt$paired){
   sample_df <- sample_df %>%
     dplyr::group_by(run_accession) %>%
-    dplyr::mutate(n = n()) %>%
+    dplyr::mutate(n = dplyr::n()) %>%
     dplyr::filter(n == 2) %>%
     dplyr::select(-n) %>%
     dplyr::ungroup()
