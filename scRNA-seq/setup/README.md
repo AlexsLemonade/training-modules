@@ -1,6 +1,6 @@
 # Single Cell RNA-seq training data setup"
 
-This document describes how the training data is prepared for the single cell RNAseq training data.
+This document describes how the training data is prepared for the single cell RNAseq training data on the RStudio Server.
 
 The preprocessing for these steps is organized as snakemake workflows.
 Currently, these workflows do not include conda environments or docker, as those are not fully set up on this server.
@@ -47,4 +47,3 @@ snakemake --cores 8
 ```
 
 (Keep going options here did not seem necessary, but would be fine to include!)
-
