@@ -15,10 +15,10 @@ The files are then organized by dataset.
 ## SmartSeq Data
 
 The SmartSeq data we are using comes from the following study: <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465>, which corresponds to the SRA project SRP079058. 
-This is glioblastoma data that was Fluorescence-Activated Cell sorted and processed by paired end sequencing using Smart-seq2 protocol 
+This is glioblastoma data that was Fluorescence-Activated Cell sorted and processed by paired-end sequencing using Smart-seq2 protocol 
 [(Darmanis *et al.* 2017)](https://pubmed.ncbi.nlm.nih.gov/29091775/).
 
-The setup workflow for this data is in the  subdirectory of this module.
+The setup workflow for this data is in the subdirectory of this module.
 The files it creates will be stored in the `/shared/data/training-data/darmanis` directory.
 To run the workflow, use the terminal to change to the `setup/glioblastoma` directory and then run the following command:
 
@@ -47,5 +47,4 @@ snakemake --cores 8
 ```
 
 (Keep going options here did not seem necessary, but would be fine to include!)
-
 
