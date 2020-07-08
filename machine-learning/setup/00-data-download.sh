@@ -10,9 +10,9 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 URL=${OPENPBTA_URL:-https://s3.amazonaws.com/kf-openaccess-us-east-1-prd-pbta/data}
 RELEASE=${OPENPBTA_RELEASE:-release-v16-20200320}
 
-# All of the OpenPBTA data will be located in data/open-pbta folder (from root
-# of module directory) - we won't include the release in the folder structure
-data_dir=../data/open-pbta
+# All of the OpenPBTA data will be located in data/open-pbta/download folder
+# (from root of module directory) - we won't include the release in the folder structure
+data_dir=../data/open-pbta/download
 
 # The md5sum file provides our single point of truth for which files are in a release.
 curl --create-dirs $URL/$RELEASE/md5sum.txt -o ${data_dir}/md5sum.txt -z ${data_dir}/md5sum.txt
@@ -25,3 +25,8 @@ for file in "${FILES[@]}"
 do
   curl --create-dirs $URL/$RELEASE/$file -o ${data_dir}/$file -z ${data_dir}/$file
 done
+
+cd ${data_dir}
+echo "Checking MD5 hashes..."
+md5sum -c md5sum.txt
+
