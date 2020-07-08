@@ -51,10 +51,30 @@ rule get_fastqs:
         urls = " ".join([f"ftp://{url}" for url in samples['fastq_ftp']])
         shell(f"wget {urls} -P {wildcards.base}/fastq/{wildcards.run_id} -q")
 
+rule fastp:
+    input:
+        R1 = "{base}/fastq/{run_id}/{run_id}_1.fastq.gz",
+        R2 = "{base}/fastq/{run_id}/{run_id}_2.fastq.gz"
+    output:
+        R1 = temp("{base}/fastq-trimmed/{run_id}/{run_id}_1.fastq.gz"),
+        R2 = temp("{base}/fastq-trimmed/{run_id}/{run_id}_2.fastq.gz"),
+        json = "{base}/qc_reports/fastp/{run_id}_fastp.json",
+        html = "{base}/qc_reports/fastp/{run_id}_fastp.html"
+    threads: 4
+    shell:
+        "fastp -i {input.R1} -I {input.R2}"
+        " -o {output.R1} -O {output.R2}"
+        " --qualified_quality_phred 10"
+        " --length_required 20"
+        " --report_title '{wildcards.run_id}'"
+        " --json {output.json}"
+        " --html {output.html}"
+        " --thread {threads}"
+
 rule fastqc:
     # run fastqc
     input:
-        "{base}/fastq/{run}/{sample}.fastq.gz"
+        "{base}/fastq-trimmed/{run}/{sample}.fastq.gz"
     output:
         "{base}/qc_reports/fastqc/{run}/{sample}_fastqc.html"
     shell:
@@ -96,8 +116,8 @@ rule salmon_quant:
     # run salmon quantification
     input:
         index = config['salmon_index'],
-        R1 = "{base}/fastq/{run_id}/{run_id}_1.fastq.gz",
-        R2 = "{base}/fastq/{run_id}/{run_id}_2.fastq.gz"
+        R1 = "{base}/fastq-trimmed/{run_id}/{run_id}_1.fastq.gz",
+        R2 = "{base}/fastq-trimmed/{run_id}/{run_id}_2.fastq.gz"
     output:
         dir = directory("{base}/salmon_quant/{run_id}"), 
         quant_file = "{base}/salmon_quant/{run_id}/quant.sf"
