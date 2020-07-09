@@ -1,0 +1,91 @@
+---
+title: "Mitochondrial Gene Lists"
+output: html_notebook
+---
+
+This notebook generates a list of mitochondrial genes for use in scRNA-seq quality control.
+
+Most of the functionality of this notebook is accomplished via Bioconductor annotations. For more information about using Bioconductor annotation packages, see the
+[AnnotationDbi package vignette](http://bioconductor.org/packages/release/bioc/vignettes/AnnotationDbi/inst/doc/IntroToAnnotationPackages.pdf).
+
+To get current annotations, we will use [AnnotationHub](https://bioconductor.org/packages/release/bioc/html/AnnotationHub.html).
+
+## Setup
+
+First some locations for the gene lists we will be making. These are in reference to this notebook's location.
+
+```{r}
+data_dir = file.path("..", "data")
+
+# the human gene list will be in the glioblastoma subfolder.
+hs_mito_file <- file.path(data_dir, "glioblastoma", "hs_mitochondrial_genes.tsv")
+
+# the mouse list will be in the tabula-muris subfolder.
+mm_mito_file <- file.path(data_dir, "tabula-muris", "mm_mitochondrial_genes.tsv")
+```
+
+
+
+## Human Ensembl Annotation
+
+### Retrieving the db
+
+To get the annotations, we will first create an `AnnotationHub` object and then query it for available Ensdb packages. 
+
+```{r}
+ah <- AnnotationHub::AnnotationHub()
+```
+
+```{r}
+AnnotationHub::query(ah, c("Ensdb", "Homo sapiens"))
+```
+We are interested in the latest annotation package, which as of this writing is Ensembl 99. The AnnotationHub query for that is then `AH78783`, which we can now dowload and save to a new object that is a Bioconductor Annotation DB.
+```{r}
+ensdb_hs <- ah[['AH78783']] 
+```
+
+### Finding mitochondrial genes
+
+Now we can query the `ensdb_hs` with the standard AnnotationDBI functions.
+
+First we will get the genes
+```{r}
+ensg_hs <- genes(ensdb_hs)
+
+```
+
+Now we will select only those genes that are on the mitochrondria (`MT`)
+```{r}
+mitogenes_hs <- ensg_hs[seqnames(ensg_hs) == 'MT']
+as.data.frame(mitogenes_hs)
+```
+
+Now some quick reformatting and we'll save the output table.
+```{r}
+mitogenes_hs %>%
+  tibble::as_tibble() %>%
+  dplyr::select(gene_id, gene_name, dplyr::everything()) %>%
+  readr::write_tsv(hs_mito_file)
+```
+
+## Mouse Ensembl Annotation
+
+The procedure here is the same, starting with looking for mouse annotation files in AnnotationHub:
+
+```{r}
+AnnotationHub::query(ah, c("Ensdb", "Mus musculus"))
+```
+
+Again, we will pick Ensembl 99, but we will skip saving the whole db  as its own object this time.
+```{r}
+ensg_mm <- genes(ah[['AH78811']] )
+mitogenes_mm <- ensg_mm[seqnames(ensg_mm) == 'MT']
+as.data.frame(mitogenes_mm)
+```
+
+```{r}
+mitogenes_mm %>%
+  tibble::as_tibble() %>%
+  dplyr::select(gene_id, gene_name, dplyr::everything()) %>%
+  readr::write_tsv(mm_mito_file)
+```
