@@ -51,10 +51,30 @@ rule get_fastqs:
         urls = " ".join([f"ftp://{url}" for url in samples['fastq_ftp']])
         shell(f"wget {urls} -P {wildcards.base}/fastq/{wildcards.run_id} -q")
 
+rule fastp:
+    input:
+        R1 = "{base}/fastq/{run_id}/{run_id}_1.fastq.gz",
+        R2 = "{base}/fastq/{run_id}/{run_id}_2.fastq.gz"
+    output:
+        R1 = temp("{base}/fastq-trimmed/{run_id}/{run_id}_1.fastq.gz"),
+        R2 = temp("{base}/fastq-trimmed/{run_id}/{run_id}_2.fastq.gz"),
+        json = "{base}/qc_reports/fastp/{run_id}_fastp.json",
+        html = "{base}/qc_reports/fastp/{run_id}_fastp.html"
+    threads: 4
+    shell:
+        "fastp -i {input.R1} -I {input.R2}"
+        " -o {output.R1} -O {output.R2}"
+        " --qualified_quality_phred 10"
+        " --length_required 20"
+        " --report_title '{wildcards.run_id}'"
+        " --json {output.json}"
+        " --html {output.html}"
+        " --thread {threads}"
+
 rule fastqc:
     # run fastqc
     input:
-        "{base}/fastq/{run}/{sample}.fastq.gz"
+        "{base}/fastq-trimmed/{run}/{sample}.fastq.gz"
     output:
         "{base}/qc_reports/fastqc/{run}/{sample}_fastqc.html"
     shell:
@@ -96,8 +116,8 @@ rule salmon_quant:
     # run salmon quantification
     input:
         index = config['salmon_index'],
-        R1 = "{base}/fastq/{run_id}/{run_id}_1.fastq.gz",
-        R2 = "{base}/fastq/{run_id}/{run_id}_2.fastq.gz"
+        R1 = "{base}/fastq-trimmed/{run_id}/{run_id}_1.fastq.gz",
+        R2 = "{base}/fastq-trimmed/{run_id}/{run_id}_2.fastq.gz"
     output:
         dir = directory("{base}/salmon_quant/{run_id}"), 
         quant_file = "{base}/salmon_quant/{run_id}/quant.sf"
@@ -132,17 +152,22 @@ rule salmon_matrix:
     # Join the salmon results into a single matrix with tximport
     input:
         files = aggregate_salmon,
+        sample_file = "{base}/sample_list.csv",
         tx2gene = config['tx2gene']
     output:
         gene_matrix = "{base}/tximport/count_matrix.tsv",
         txi_obj = "{base}/tximport/tximport_obj.RDS"
     params:
         quant_dir = "{base}/salmon_quant/",
+        sample_id = "sample_alias", # this is the GEO id for each sample 
         map_cutoff = 0.3
     shell:
         "Rscript make_count_matrix.R"
-        " -d {params.quant_dir}"
-        " -t {input.tx2gene}"
-        " -m {params.map_cutoff}"
-        " -o {output.gene_matrix}"
-        " -r {output.txi_obj}"
+        " --dir {params.quant_dir}"
+        " --sample-file {input.sample_file}"
+        " --sample-id {params.sample_id}"
+        " --tx2gene {input.tx2gene}"
+        " --mapped {params.map_cutoff}"
+        " --outfile {output.gene_matrix}"
+        " --rds {output.txi_obj}"
+
