@@ -14,7 +14,7 @@ To get current annotations, we will use [AnnotationHub](https://bioconductor.org
 
 First some locations for the gene lists we will be making. These are in reference to this notebook's location.
 
-```{r}
+```{r paths}
 data_dir = file.path("..", "data")
 
 # the human gene list will be in the glioblastoma subfolder.
@@ -24,6 +24,10 @@ hs_mito_file <- file.path(data_dir, "glioblastoma", "hs_mitochondrial_genes.tsv"
 mm_mito_file <- file.path(data_dir, "tabula-muris", "mm_mitochondrial_genes.tsv")
 ```
 
+```{r setup}
+# magrittr for pipes
+library(magrittr)
+```
 
 
 ## Human Ensembl Annotation
@@ -39,7 +43,10 @@ ah <- AnnotationHub::AnnotationHub()
 ```{r}
 AnnotationHub::query(ah, c("Ensdb", "Homo sapiens"))
 ```
-We are interested in the latest annotation package, which as of this writing is Ensembl 99. The AnnotationHub query for that is then `AH78783`, which we can now dowload and save to a new object that is a Bioconductor Annotation DB.
+We are interested in the latest annotation package, which as of this writing is Ensembl 99. 
+The AnnotationHub ID for that is then `AH78783`.
+The first time we select that item, AnnotationHub will download and save it to a new object that is a Bioconductor Annotation DB.
+This will be cached locally in case we need it again, so this step may be slow the first time, but should be quick when repeated.
 ```{r}
 ensdb_hs <- ah[['AH78783']] 
 ```
@@ -48,19 +55,22 @@ ensdb_hs <- ah[['AH78783']]
 
 Now we can query the `ensdb_hs` with the standard AnnotationDBI functions.
 
-First we will get the genes
+First we will get the genes and store them. 
+This will create a `GenomicRanges` object. 
+
 ```{r}
 ensg_hs <- genes(ensdb_hs)
-
 ```
 
-Now we will select only those genes that are on the mitochrondria (`MT`)
+Now we will select only those genes that are on the mitochrondria (`MT`).
+
 ```{r}
 mitogenes_hs <- ensg_hs[seqnames(ensg_hs) == 'MT']
 as.data.frame(mitogenes_hs)
 ```
 
 Now some quick reformatting and we'll save the output table.
+
 ```{r}
 mitogenes_hs %>%
   tibble::as_tibble() %>%
@@ -76,7 +86,8 @@ The procedure here is the same, starting with looking for mouse annotation files
 AnnotationHub::query(ah, c("Ensdb", "Mus musculus"))
 ```
 
-Again, we will pick Ensembl 99, but we will skip saving the whole db  as its own object this time.
+Again, we will pick Ensembl 99, but we will skip saving the whole db  as its own object in the environment this time (it will still be cached).
+
 ```{r}
 ensg_mm <- genes(ah[['AH78811']] )
 mitogenes_mm <- ensg_mm[seqnames(ensg_mm) == 'MT']
