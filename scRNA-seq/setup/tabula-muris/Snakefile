@@ -1,0 +1,39 @@
+# Workflow for downloading and preprocessing Tabula Muris data
+configfile: "config.yaml"
+workdir: config["base_dir"]
+
+rule targets:
+    input:
+        "TM_droplet_metadata.csv",
+        expand("fastq/{run_id}", run_id = config["run_ids"])
+
+rule get_metadata:
+    output:
+        "TM_droplet_metadata.csv"
+    shell:
+        "wget {config[metadata_url]} -O {output}"
+
+rule get_bamfile:
+    output:
+        "bam/{file}"
+    shell:
+        "aws --no-sign-request"
+        " s3 cp {config[s3_url]}/{wildcards.file} {output}"
+
+rule bam_to_fastq:
+    input:
+        "bam/{run_id}_possorted_genome.bam"
+    output:
+        directory("fastq/{run_id}")
+    threads: 4
+    shell:
+        "bamtofastq --nthreads={threads} {input} {output};"
+        # bamtofastq is super annoying in how it names things, so we will take the fastq files and move/rename them.
+        # only keeping read 1 and read 2
+        "files=`find fastq/{wildcards.run_id} -name *_R[1,2]_*.fastq.gz`;"
+        "for file in $files; do"
+        " mv $file {output}/$(basename $file | sed s/bamtofastq_S1/{wildcards.run_id}/);"
+        "done;"
+        # remove subdirectory with other files
+        "rm -r {output}/{wildcards.run_id}_MissingLibrary_*"
+
