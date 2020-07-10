@@ -1,6 +1,11 @@
 ---
 title: "Mitochondrial Gene Lists"
-output: html_notebook
+author: Joshua Shapiro for the CCDL
+date: 2020-07
+output: 
+  html_notebook: 
+    toc: true
+    toc_float: true
 ---
 
 This notebook generates a list of mitochondrial genes for use in scRNA-seq quality control.
@@ -34,40 +39,49 @@ library(magrittr)
 
 ### Retrieving the db
 
-To get the annotations, we will first create an `AnnotationHub` object and then query it for available Ensdb packages. 
+To get the annotations, we will first create an `AnnotationHub` object, which is used as the interface to the annotation files that the Bioconductor project makes available.
+We then query it for to find out what Ensdb packages (containing Ensembl annotations) are available for *Homo sapiens*.
 
 ```{r}
-ah <- AnnotationHub::AnnotationHub()
+hub <- AnnotationHub::AnnotationHub()
 ```
 
 ```{r}
-AnnotationHub::query(ah, c("Ensdb", "Homo sapiens"))
+AnnotationHub::query(hub, c("Ensdb", "Homo sapiens"))
 ```
 We are interested in the latest annotation package, which as of this writing is Ensembl 99. 
 The AnnotationHub ID for that is then `AH78783`.
-The first time we select that item, AnnotationHub will download and save it to a new object that is a Bioconductor Annotation DB.
+The first time we select that item, AnnotationHub will download and save it to a new object that uses a standard Bioconductor annotation interface.
 This will be cached locally in case we need it again, so this step may be slow the first time, but should be quick when repeated.
+
 ```{r}
-ensdb_hs <- ah[['AH78783']] 
+ensdb_hs <- hub[['AH78783']] 
 ```
+
+You may also see the `ensembldb` library load automatically at this point. 
+We will need it to access the the elements of the database
 
 ### Finding mitochondrial genes
 
-Now we can query the `ensdb_hs` with the standard AnnotationDBI functions.
+Now we can query the `ensdb_hs` with the AnnotationDBI functions that are part of Bioconductor.
 
-First we will get the genes and store them. 
-This will create a `GenomicRanges` object. 
+First we will get the genes and store them, using the `genes()` function that was loaded along with the annotations.
+This will create a `GenomicRanges` object, which is a way that Bioconductor packages store information about the coordinates of features like genes along a reference genome, (along with other information about the feature).
 
 ```{r}
 ensg_hs <- genes(ensdb_hs)
 ```
 
 Now we will select only those genes that are on the mitochrondria (`MT`).
+Here we are using the `GenomicRanges` function `seqnames()` to get the chromosome that each feature is on. 
+Just to check, we can print the results out as a data frame for easy examination.
 
 ```{r}
 mitogenes_hs <- ensg_hs[seqnames(ensg_hs) == 'MT']
 as.data.frame(mitogenes_hs)
 ```
+
+Encouragingly, there are 37 mitochondrial genes, which is correct.
 
 Now some quick reformatting and we'll save the output table.
 
@@ -94,9 +108,19 @@ mitogenes_mm <- ensg_mm[seqnames(ensg_mm) == 'MT']
 as.data.frame(mitogenes_mm)
 ```
 
+Reformat and write.
+
 ```{r}
 mitogenes_mm %>%
   tibble::as_tibble() %>%
   dplyr::select(gene_id, gene_name, dplyr::everything()) %>%
   readr::write_tsv(mm_mito_file)
 ```
+
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
+
