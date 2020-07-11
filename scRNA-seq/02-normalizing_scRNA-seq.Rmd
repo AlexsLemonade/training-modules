@@ -8,8 +8,7 @@ output:
 
 **CCDL 2019**
 
-In this notebook, we'll perform quality control analyses and normalization of 
-scRNA-seq count data. 
+In this notebook, we'll perform normalization of scRNA-seq count data that we have already done quality-control analyses of. 
     
 For this tutorial, we will be using a pair of single-cell analysis specific 
 R packages: `scater` and `scran` to work with our data. 
@@ -36,7 +35,33 @@ library(scater)
 library(scran)
 ```
 
-## Load the filtered count matrix
+Now let's set up the files we will be using:
+
+```{r files}
+# main data directory
+data_dir <- file.path("data", "glioblastoma")
+
+# Filtered count matrix file from previous notebook
+filtered_count_file <- file.path("data", "glioblastoma", "filtered_count_matrix.tsv")
+
+# Metadata file location
+metadata_file <- file.path(data_dir, "preprocessed", "darmanis_metadata.tsv")
+
+# Output directory
+norm_dir <- file.path(data_dir, "normalized")
+if (!dir.exists(norm_dir)) {
+  dir.create(norm_dir, recursive = TRUE)
+}
+```
+
+
+## Load the filtered count matrix and metadata
+
+```{r}
+sc_data_filtered <- readr::read_tsv(filtered_count_file)
+sc_metadata <- readr::read_tsv(metadata_file)
+```
+
 
 
 ## Set up a SingleCellExperiment object from count data
@@ -55,6 +80,7 @@ Bioconductor packages, we recommend this article: [Amezquita et al. _bioRxiv._ 2
 ```{r Set up SCE object}
 # Prep a matrix with just the rounded counts so we can create an sce object
 counts_mat <- round(as.matrix(sc_data_filtered[, -1]))
+
 ```
 
 Put our counts matrix in this special `SingleCellExperiment` function: 
@@ -63,8 +89,11 @@ Put our counts matrix in this special `SingleCellExperiment` function:
 # Set up the Single Cell Experiment object 
 sce_raw <- SingleCellExperiment::SingleCellExperiment(list(counts = counts_mat))
 
+# save some memory
+rm(counts_mat)
+
 # Store the gene names in this object
-rowData(sce_raw) <- genes
+rowData(sce_raw) <-  sc_data_filtered$gene
 ```
 
 In the intro-to-R-tidyverse module notebook, `01-intro-to-r`, we discuss base R 
@@ -115,6 +144,8 @@ qclust <- scran::quickCluster(sce_raw)
 # Step 2) Compute sum factors for each cell cluster grouping.  
 sce_raw <- scran::computeSumFactors(sce_raw, clusters = qclust)
 
+### TODO: This is now deprecated- update to latest recommendations ###
+
 # Step 3) Normalize using these pooled sum factors and log transform. 
 sce_norm <- scater::normalize(sce_raw)
 ```
@@ -145,11 +176,17 @@ objects.
 ```{r Graph PCA}
 # Make the counts PC scores into a dataframe with cell type labels for easy graphing 
 count_pca_scores <- data.frame(count_pca$x[, 1:2],
-                               'cell_type' = sc_metadata_filtered$cell.type.ch1)
+                               geo_accession = rownames(count_pca$x)) %>%
+  dplyr::left_join(dplyr::select(sc_metadata, 
+                                 geo_accession, 
+                                 cell_type = cell.type.ch1))
 
 # Set up the normalized PC scores in the same way
 norm_pca_scores <- data.frame(norm_pca$x[, 1:2],
-                              'cell_type' = sc_metadata_filtered$cell.type.ch1)
+                              geo_accession = rownames(norm_pca$x)) %>%
+  dplyr::left_join(dplyr::select(sc_metadata, 
+                                 geo_accession, 
+                                 cell_type = cell.type.ch1))
 ```
 
 Let's plot the counts PCA scores with their cell labels:
@@ -157,8 +194,8 @@ Let's plot the counts PCA scores with their cell labels:
 ```{r Plotting counts pca}
 # Now plot counts pca
 ggplot(count_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
-  geom_point() + # We use this so it is a scatterplot
-  ggtitle("Counts PCA Scores") + # Put a title for this graph
+  geom_point() + 
+  ggtitle("Counts PCA Scores") + 
   colorblindr::scale_color_OkabeIto() # We are adding this so it is colorblind friendly
 ```
 
@@ -167,8 +204,11 @@ but different data, use the above template to plot the normalized data.
 
 Let's plot the `norm_pca_scores` data:
 
-```{r Plotting norms pca}
-# Copy and paste the above template but plot the normalized data instead
+```{r Plotting norms pca, live = TRUE}
+ggplot(norm_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+  geom_point() + 
+  ggtitle("Normalized log counts PCA Scores") + 
+  colorblindr::scale_color_OkabeIto()
 ```
 
 The normalization has appeared to help separate the rest of the brain cells 
