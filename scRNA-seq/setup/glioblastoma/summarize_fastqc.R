@@ -39,7 +39,7 @@ opt <- parse_args(OptionParser(option_list = option_list))
 qc <- fastqcr::qc_aggregate(qc.dir = opt$dir)
 
 # Write full report table to a csv file
-readr::write_csv(qc_stats(qc), file = opt$table)
+readr::write_csv(qc_stats(qc), path = opt$table)
 
 # Filter out samples that have failed the quality tests
 qc_filtered <- data.frame(qc) %>%
@@ -48,4 +48,4 @@ qc_filtered <- data.frame(qc) %>%
   dplyr::arrange(sample)
 
 # Write filtered results to a csv file
-readr::write_csv(qc_filtered, file = opt$filtered)
+readr::write_csv(qc_filtered, path = opt$filtered)
