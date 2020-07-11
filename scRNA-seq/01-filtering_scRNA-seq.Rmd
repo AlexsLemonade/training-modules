@@ -370,7 +370,7 @@ sc_data_filtered <- sc_data[,filtered_samples$geo_accession]
 
 
 
-### Number of samples that express a gene as a quality measure
+## Number of samples that express a gene as a quality measure
 
 Now we have an idea of what samples we probably want to get rid of.
 But what if our data contains genes that we can't reliably measure in these cells?
@@ -394,21 +394,37 @@ ggplot(mapping = aes(x = num_samples_that_exp)) +
   theme_classic()
 ```
 
+How many genes will be excluded if we draw our cutoff at 200 samples?
+
+```{r}
+sum(num_samples_that_exp < 200)
+```
+That's a lot! How do we feel about that?
+
+
+To filter the genes that are not expressed in many samples, we will take a somewhat simpler approach, and use base R to select the rows from our matrix (already filtered by sample) that are above the cutoff.
+
+```{r}
+cutoff = 200
+sc_data_filtered2 <- sc_data_filtered[num_samples_that_exp >= cutoff, ]
+```
+
+
 
 ## Save the filtered data
 
 To save our filtered count matrix, we will first convert it back to a data frame, adding back the gene ids which were in the matrix row names. 
 
 ```{r}
-sc_filtered_df <- tibble::as_tibble(sc_data_filtered) %>%
-  dplyr::mutate(gene = rownames(sc_data_filtered)) %>%
+sc_filtered_df <- tibble::as_tibble(sc_data_filtered2) %>%
+  dplyr::mutate(gene = rownames(sc_data_filtered2)) %>%
   dplyr::select(gene, dplyr::everything()) # make the genes the first column
 ```
 
 Write the output file. 
 This is still a large matrix, it might take some time!
 ```{r}
-readr::write_rds(sc_filtered_df, filtered_count_file)
+readr::write_tsv(sc_filtered_df, filtered_count_file)
 ```
 
 
