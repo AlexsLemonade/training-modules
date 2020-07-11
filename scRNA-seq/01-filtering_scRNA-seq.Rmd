@@ -8,18 +8,12 @@ output:
 
 **CCDL 2019**
 
-In this notebook, we'll perform quality control analyses and normalization of 
-scRNA-seq count data. 
-    
-For this tutorial, we will be using a pair of single-cell analysis specific 
-R packages: `scater` and `scran` to work with our data. 
-This tutorial is in part based on the [scran
-tutorial.](https://bioconductor.org/packages/devel/bioc/vignettes/scran/inst/doc/scran.html)
+In this notebook, we'll perform quality control analyses of scRNA-seq count data. The [data set] (https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465)
+we are using is cells from a glioblastoma sample  that were Fluorescence-Activated Cell sorted (FACS) and then processed by paired end sequencing of RNA using the [Smart-seq2 protocol](http://www.nature.com/doifinder/10.1038/nmeth.2639) 
+[(Darmanis *et al.* 2017)](https://www.ncbi.nlm.nih.gov/pubmed/29091775).
+
   
 ## Set Up 
-
-For these analyses, we will need `scater` and `scran` packages, which have been 
-installed already on your Docker container. 
 
 ```{r setup}
 # Set seed for reproducibility
@@ -35,29 +29,35 @@ library(ggplot2)
 
 ## Import single-cell RNA-seq counts matrix
 
-This [data set](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465) 
-we are using is glioblastoma data that was Fluorescence-Activated Cell sorted 
-and then was processed by paired end sequencing using Smart-seq2 protocol 
-[(Darmanis et al. _Cell Reports._ 2017.).](https://www.ncbi.nlm.nih.gov/pubmed/29091775).
 
-The Smart-seq2 protocol results in separate paired fastq files for each processed cell (in this case over 7000 total fastq files).
-We have processed this data with `salmon quant` and used `tximport` to create a gene-level count matrix. 
+The Smart-seq2 sequencing results in separate paired fastq files for each processed cell (in this case over 7000 total fastq files).
+We have processed this data with `salmon quant` and used `tximport` to create a gene-level count matrix, filtering samples to only include those with at least 30% of reads mapping.
 
 
 ![](diagrams/full-length_1.png) 
 
-As far as *tag-based* scRNA-seq data, we will explain how to process raw data, 
-like fastq files, in the next section, so you can also get it to a count matrix
-and could use these same steps to filter and normalize the data.
+We will discuss *tag-based* scRNA-seq data (such as 10X), in a later section, 
+where you will learn how to process raw data to a count matrix and could apply
+these same types of steps to filter and normalize the data.
 
 ### Directories and files
 
+The data files we will be using for this part of the project are in the `data/glioblastoma` subdirectory of the `scRNA-seq` directory where this file is located.
+The main files are further located in the `preprocessed` subdirectory (and sometimes deeper than that!). 
+
+**Directory Structure diagram here**
+
+Importantly, the `preprocessed` directory is actually a *link* (think of a shortcut or alias) to a shared folder, so everyone is looking at exactly the same sets of files in there, and you will not be able to write to that directory.
+This is actually a good idea/practice to enforce in your own projects, if you can.
+Not so much the shared directory or links, but to think of the place where raw data is stored as one that you should never write to, except when adding new data.
+This can save many headaches of accidentally changing or overwriting raw data (we've all done it!).
+
+
+
 ```{r}
-# Shared data for these projects are in a shared folder on the server
-# This can be found relative to the user home directory, abbreviated "~"
+# main data directory
 data_dir <- file.path("data", "glioblastoma")
 
-####TODO#### remove untrimmed files
 # Count matrix file location
 gene_matrix_file <- file.path(data_dir,
                               "preprocessed",
