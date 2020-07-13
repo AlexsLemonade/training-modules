@@ -25,14 +25,12 @@ library(ggplot2)
 
 ## Import single-cell RNA-seq counts matrix
 
-
 The Smart-seq2 sequencing results in separate paired fastq files for each processed cell (in this case over 7000 total fastq files).
 We have processed this data with `salmon quant` and used `tximport` to create a gene-level count matrix, filtering samples to only include those with at least 30% of reads mapping.
 
-
 ![](diagrams/full-length_1.png) 
 
-We will discuss *tag-based* scRNA-seq data (such as 10X), in a later section, 
+We will discuss *tag-based* scRNA-seq data (such as 10X), in a later notebook, 
 where you will learn how to process raw data to a count matrix and could apply
 these same types of steps to filter and normalize the data.
 
@@ -50,7 +48,7 @@ This can save many headaches of accidentally changing or overwriting raw data (w
 
 
 
-```{r files}
+```{r filepaths}
 # main data directory
 data_dir <- file.path("data", "glioblastoma")
 
@@ -72,7 +70,7 @@ filtered_count_file <- file.path("data", "glioblastoma", "filtered_count_matrix.
 
 Let's import the gene matrix and metadata. 
 
-```{r Import Data}
+```{r read_data}
 # Read in the data
 sc_data <- readr::read_tsv(gene_matrix_file, progress = FALSE)
 
@@ -83,12 +81,22 @@ sc_metadata <- readr::read_tsv(metadata_file, progress = FALSE)
 Now that we have loaded our data, let's take a look at the general format
 Use a command we have used previously to look at the first few rows of `sc_data`.
 
-```{r peek, live = TRUE}
+```{r peek_data, live = TRUE}
 # Put a command here that would allow you to see the first few rows of `sc_data`
 head(sc_data)
 ```
 
 You'll notice the first column contains the gene information and the rest are samples. 
+
+Do the sample ids match what we have in the metadata? 
+For now, we will not worry about order, but just check that we have metadata for every sample.
+
+```{r sample_match, live = TRUE}
+samples <- colnames(sc_data)[-1]
+all(samples %in% sc_metadata$geo_accession)
+```
+
+
 For the analyses in this notebook, the gene column (which is a `character` type), will get in the way, so we will turn this column into the rownames instead, and convert the rest to a matrix.
 Recall that we can do this because all the remaining data has the same type.
 While not strictly necessary, having the data in the form of a matrix will make some calculations more efficient.
@@ -126,17 +134,18 @@ Let's make our first density plot with these data.
 We will use `ggplot()` as you have seen before, but since the object we want to plot, `gene_means`, is a vector not a data frame, we will skip the `data` argument and go straight to the `mapping` aesthetics.
 The remainder of the `ggplot` code should look familiar.
 
-```{r mean-density}
+```{r mean_density}
 # Plot the density of the means using ggplot2
 ggplot(mapping = aes( x = gene_means)) +
   geom_density() +
   xlab("Mean transcript count") 
 ```
+
 That plot is not quite as informative as we might like, as a few genes with very high expression are making the scale just a *bit* wide.
 Lets zoom in on the left part of the graph by adding an `xlim()` argument. 
 (Note that `xlim()` will remove points outside the specified range, so you will get a warning.)
 
-```{r}
+```{r zoom_density, live = TRUE}
 # Plot the density of the means using ggplot2
 ggplot(mapping = aes( x = gene_means)) +
   geom_density() +
@@ -165,13 +174,13 @@ The next section explores some of the ways we can filter the data set clean thin
 First, lets look at the total number of counts per sample, across all genes. 
 For this we will use `colSums()`, as each column represents a different sampled cell.
 
-```{r live = TRUE}
+```{r total_counts, live = TRUE}
 # Make a vector of total_counts number of counts per sample using colSums()
 total_counts <- colSums(sc_data)
 ```
 
 
-```{r}
+```{r counts_summary, live = TRUE}
 # Take a look at the summary statistics for the total counts
 summary(total_counts)
 ```
@@ -215,7 +224,7 @@ detected gene.
 How many counts must there be for you to consider a gene expressed? 
 Here let's go for a simple detection cutoff of > 0. 
 
-```{r Create detection matrix}
+```{r detection_matrix, live=TRUE}
 detection_mat <- sc_data > 0 
 ```
 
@@ -223,14 +232,14 @@ Now that we have turned our data into a matrix of `TRUE/FALSE` for detection, we
 can sum this data by column to effectively get a vector of how many genes were 
 measured in each cell. 
 
-```{r}
+```{r genes_expressed, live = TRUE}
 # Make a vector that contains the number of genes expressed by a particular cell
 num_genes_exp <- colSums(detection_mat)
 ```
 
 Let's plot this using the same style and type of graph as above. 
 
-```{r}
+```{r genes_expressed_plot, live = TRUE}
 ggplot(mapping = aes(x = num_genes_exp)) +
   geom_density(fill = "lightblue") + 
   xlab("Number of genes expressed") +
@@ -248,7 +257,7 @@ In order to do this, we need to prepare a data.frame that has our `num_genes_exp
 numbers along side our cell-type labels.
 We will do this with `dplyr::left_join()` to merge count data to our metadata table.
 
-```{r}
+```{r join_metadata, live = TRUE}
 # Let's make a dataframe with this information
 num_genes_exp_df <- tibble::tibble(geo_accession = names(num_genes_exp),
                                   num_genes_exp) %>%
@@ -260,8 +269,8 @@ num_genes_exp_df <- tibble::tibble(geo_accession = names(num_genes_exp),
 The next graph we are using the same steps as before but to make individual graphs for each 
 cell type, we are using an option in ggplot2 called `facet_wrap`.
 
-```{r}
-# Plot these data
+```{r facet_genes, live = TRUE}
+# Plot with faceting by cell type
 ggplot(num_genes_exp_df, aes(x = num_genes_exp)) + 
   xlab("Number of Genes Expressed") +
   geom_density(fill = "lightblue") + 
@@ -279,23 +288,27 @@ If a cell is dead or dying, its mRNA will tend to leak out of the cell, leaving 
 To look for this, we would like to calculate the fraction of mitochondrial expression for each cell as well.
 First, we will need a list of the mitochondrial genes, which we have prepared in a tsv file `hs_mitochondrial_genes.tsv` that we will now read in:
 
-```{r}
+```{r read_mito}
 #read `hs_mitochondrial_genes.tsv` from data_dir
 mito_genes_df <- readr::read_tsv(mito_genes_file) 
 ```
 
 Now we can use the `gene_id`s from that list to select only the rows of the count matrix that correspond to the mitochondrial genes and sum their expression for each sample.
 
-```{r}
+```{r mito_filter, live = TRUE}
+# create a mito_rows vector that is TRUE for mitochondrial genes in our dataset
 mito_rows <- rownames(sc_data) %in% mito_genes_df$gene_id
 
+# sum the counts from just those genes for all samples
 mito_counts <- colSums(sc_data[mito_rows, ])
+
+# calculate mito_fraction for all samples
 mito_fraction <- mito_counts/total_counts
 ```
 
 Lets make a plot of this distribution as well!
 
-```{r}
+```{r plot_mito, live = TRUE}
 ggplot(mapping = aes(x = mito_fraction)) +
   geom_density(fill = "lightblue") + 
   xlab("Mitchondrial fraction") +
@@ -307,20 +320,23 @@ ggplot(mapping = aes(x = mito_fraction)) +
 
 Lets put all of the QC measures we have calculated into a single data frame, so we can look at how they might relate to one another.
 
-```{r}
+```{r qc_dataframe, live = TRUE}
+# create a data frame of 
+# geo_accession, total_counts, num_genes_exp, and mito_fraction
 qc_df <- tibble::tibble(geo_accession = names(total_counts),
                         total_counts,
                         num_genes_exp,
                         mito_fraction) %>%
-  # add on the cell type again
+  # add on the cell type from metadata with left_join()
   dplyr::left_join(dplyr::select(sc_metadata, 
                                  geo_accession, cell_type = cell.type.ch1)) %>%
-  dplyr::arrange(mito_fraction) # sort for plotting order
+  # sort by mito_fraction for plotting 
+  dplyr::arrange(mito_fraction) 
   
 ```
 Now we can plot these measures all together, along with some possible cutoffs
 
-```{r}
+```{r qc_scatterplot}
 ggplot(qc_df, aes (x = total_counts,
                    y = num_genes_exp, 
                    color = mito_fraction)) +
@@ -337,12 +353,13 @@ ggplot(qc_df, aes (x = total_counts,
 
 Now if we want to filter our data based on these measures and cutoffs we like, we can do this with `dplyr::filter` and then select the resulting columns from the matrix.
 
-```{r}
+```{r qc_filter, live = TRUE}
+# create a filtered_samples data frame from qc_df
 filtered_samples <- qc_df %>%
   dplyr::filter(total_counts > 300000,
                 num_genes_exp > 4000,
                 mito_fraction < 0.1)
-
+# select only passing samples for sc_data_filtered
 sc_data_filtered <- sc_data[, filtered_samples$geo_accession]
 ```
 
@@ -357,16 +374,17 @@ But what if our data contains genes that we can't reliably measure in these cell
 Let's use our `detection_mat` to add up how many samples express each of 
 these genes so we can try to filter out unreliably measured genes.  
 
-```{r}
-# Make a vector that contains the number of cells that express a particular gene
-num_samples_that_exp <- rowSums(detection_mat)
+```{r sample_exp, live = TRUE}
+# Make a num_samples_exp vector that contains the 
+# number of cells that express a particular gene
+num_samples_exp <- rowSums(detection_mat)
 ```
 
 Let's make another density plot with the number of samples that express each gene:
 
-```{r}
+```{r sample_exp_plot}
 # Let's take a look at what this looks like:
-ggplot(mapping = aes(x = num_samples_that_exp)) +
+ggplot(mapping = aes(x = num_samples_exp)) +
   geom_density(fill = "lightblue") +
   geom_vline(xintercept = 200, col = "red") +
   xlab("Number of Samples Expressing Each Gene") + 
@@ -375,17 +393,19 @@ ggplot(mapping = aes(x = num_samples_that_exp)) +
 
 How many genes will be excluded if we draw our cutoff at 200 samples?
 
-```{r}
-sum(num_samples_that_exp < 200)
+```{r filter_effect, live = TRUE}
+sum(num_samples_exp < 200)
 ```
 That's a lot! How do we feel about that?
 
 
 To filter the genes that are not expressed in many samples, we will take a somewhat simpler approach, and use base R to select the rows from our matrix (already filtered by sample) that are above the cutoff.
 
-```{r}
+```{r filter_genes}
 cutoff <- 200
-sc_data_filtered2 <- sc_data_filtered[num_samples_that_exp >= cutoff, ]
+# filter sc_data_filtered to only genes above cutoff value
+# save as sc_data_filtered2
+sc_data_filtered2 <- sc_data_filtered[num_samples_exp >= cutoff, ]
 ```
 
 
@@ -394,7 +414,7 @@ sc_data_filtered2 <- sc_data_filtered[num_samples_that_exp >= cutoff, ]
 
 To save our filtered count matrix, we will first convert it back to a data frame, adding back the gene ids which were in the matrix row names. 
 
-```{r}
+```{r df_convert}
 sc_filtered_df <- tibble::as_tibble(sc_data_filtered2) %>%
   dplyr::mutate(gene = rownames(sc_data_filtered2)) %>%
   dplyr::select(gene, dplyr::everything()) # make the genes the first column
@@ -402,13 +422,13 @@ sc_filtered_df <- tibble::as_tibble(sc_data_filtered2) %>%
 
 Write the output file. 
 This is still a large matrix, it might take some time!
-```{r}
+```{r write_df}
 readr::write_tsv(sc_filtered_df, filtered_count_file)
 ```
 
 
 ### Print session info
 
-```{r}
+```{r sessioninfo}
 sessionInfo()
 ```
