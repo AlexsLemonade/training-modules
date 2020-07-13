@@ -30,9 +30,7 @@ We have processed this data with `salmon quant` and used `tximport` to create a 
 
 ![](diagrams/full-length_1.png) 
 
-We will discuss *tag-based* scRNA-seq data (such as 10X), in a later notebook, 
-where you will learn how to process raw data to a count matrix and could apply
-these same types of steps to filter and normalize the data.
+We will discuss *tag-based* scRNA-seq data (such as 10X), in a later notebook,  where you will learn how to process raw data to a count matrix and could apply these same types of steps to filter and normalize the data.
 
 ### Directories and files
 
@@ -136,9 +134,9 @@ The remainder of the `ggplot` code should look familiar.
 
 ```{r mean_density}
 # Plot the density of the means using ggplot2
-ggplot(mapping = aes( x = gene_means)) +
+ggplot(mapping = aes(x = gene_means)) +
   geom_density() +
-  xlab("Mean transcript count") 
+  xlab("Mean gene count") 
 ```
 
 That plot is not quite as informative as we might like, as a few genes with very high expression are making the scale just a *bit* wide.
@@ -147,9 +145,9 @@ Lets zoom in on the left part of the graph by adding an `xlim()` argument.
 
 ```{r zoom_density, live = TRUE}
 # Plot the density of the means using ggplot2
-ggplot(mapping = aes( x = gene_means)) +
+ggplot(mapping = aes(x = gene_means)) +
   geom_density() +
-  xlab("Mean transcript count") +
+  xlab("Mean gene count") +
   xlim(0, 100)
 ```
 
@@ -167,7 +165,7 @@ sum(sc_data == 0)/(nrow(sc_data) * ncol(sc_data))
 The small amount of RNA in a single cell results in higher chances of errors or 
 biases in amplification steps , so we don't necessarily want to keep the data for 
 all the cells and genes. 
-The next section explores some of the ways we can filter the data set clean things up.
+The next section explores some of the ways we can filter the data set to clean things up.
 
 #### Total counts as a quality measure
 
@@ -189,7 +187,7 @@ Yikes, one of the samples has only 413 counts, compared to the median of ~950,00
 It's highly likely that this 'cell' is either an empty well or did not get 
 sequenced properly. 
 
-Let's visualize the distribution of total counts to see if the 414 count sample 
+Let's visualize the distribution of total counts to see if the 413 count sample 
 is the only one we should get rid of.
 
 In following graphs, we will use vertical red lines to indicate possible 
@@ -216,11 +214,8 @@ sum(total_counts <= count_cutoff)
 ### Number of genes a cell expresses as a quality measure
 
 What if a single gene accounted for all counts in a particular cell?
-This cell would not have helpful data for us, so we should look to remove any 
-cells we suspect might not have a useful amount of its transcriptome measured.
-But before we can determine how many genes we consider a particular cell to be 
-expressing we need to determine a numeric cutoff for what we consider to be a 
-detected gene.
+This cell would not have helpful data for us, so we should look to remove any cells we suspect might not have a useful amount of its transcriptome measured.
+But before we can determine how many genes we consider a particular cell to be expressing we need to determine a numeric cutoff for what we consider to be a detected gene.
 How many counts must there be for you to consider a gene expressed? 
 Here let's go for a simple detection cutoff of > 0. 
 
@@ -228,9 +223,7 @@ Here let's go for a simple detection cutoff of > 0.
 detection_mat <- sc_data > 0 
 ```
 
-Now that we have turned our data into a matrix of `TRUE/FALSE` for detection, we
-can sum this data by column to effectively get a vector of how many genes were 
-measured in each cell. 
+Now that we have turned our data into a matrix of `TRUE/FALSE` for detection, we can sum this data by column to effectively get a vector of how many genes were measured in each cell. 
 
 ```{r genes_expressed, live = TRUE}
 # Make a vector that contains the number of genes expressed by a particular cell
@@ -249,12 +242,9 @@ ggplot(mapping = aes(x = num_genes_exp)) +
 
 
 
-As you may have noticed in our `sc_metadata` we have cell-type information 
-for these data. 
-Let's use the power of our single-cell resolution data to our advantage and look 
-at this data with cell-type labels. 
-In order to do this, we need to prepare a data.frame that has our `num_genes_exp`
-numbers along side our cell-type labels.
+As you may have noticed in our `sc_metadata` we have cell-type information for these data. 
+Let's use the power of our single-cell resolution data to our advantage and look at this data with cell-type labels. 
+In order to do this, we need to prepare a data.frame that has our `num_genes_exp` numbers along side our cell-type labels.
 We will do this with `dplyr::left_join()` to merge count data to our metadata table.
 
 ```{r join_metadata, live = TRUE}
@@ -371,8 +361,7 @@ sc_data_filtered <- sc_data[, filtered_samples$geo_accession]
 Now we have an idea of what samples we probably want to get rid of.
 But what if our data contains genes that we can't reliably measure in these cells?
 
-Let's use our `detection_mat` to add up how many samples express each of 
-these genes so we can try to filter out unreliably measured genes.  
+Let's use our `detection_mat` to add up how many samples express each of these genes so we can try to filter out unreliably measured genes.  
 
 ```{r sample_exp, live = TRUE}
 # Make a num_samples_exp vector that contains the 
