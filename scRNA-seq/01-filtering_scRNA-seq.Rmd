@@ -106,11 +106,11 @@ sc_data <- as.matrix(sc_data)
 ```
 
 Let's look at the mean expression of the genes in this dataset. 
-We will use `apply` in order to calculate things across our data.frame. 
-The second argument in `apply` specifies whether we are calculating by rows or columns. 
+We will use `apply()` in order to calculate things across our data.frame. 
+The second argument in `apply()` specifies whether we are calculating by rows or columns. 
 (1 = rows, 2 = columns).
 
-In the code chunk below, replace use `apply()` with the correct arguments to calculate the gene means. 
+In the code chunk below, use `apply()` with the correct arguments to calculate the gene means. 
 
 ```{r means, live = TRUE}
 # Let's calculate the gene means (by row)
@@ -162,9 +162,8 @@ sum(sc_data == 0)/(nrow(sc_data) * ncol(sc_data))
 
 ## Quality control measures for the counts matrix
   
-The small amount of RNA in a single cell results in higher chances of errors or 
-biases in amplification steps , so we don't necessarily want to keep the data for 
-all the cells and genes. 
+The small amount of RNA in a single cell results in higher chances of errors and biases in RNA isolation, amplification, and sequencing. 
+We should check that the overall data we observe for each sample/cell are reasonable before proceeding too far. 
 The next section explores some of the ways we can filter the data set to clean things up.
 
 #### Total counts as a quality measure
@@ -184,14 +183,11 @@ summary(total_counts)
 ```
 
 Yikes, one of the samples has only 413 counts, compared to the median of ~950,000!
-It's highly likely that this 'cell' is either an empty well or did not get 
-sequenced properly. 
+It's highly likely that this 'cell' is either an empty well or did not get sequenced properly. 
 
-Let's visualize the distribution of total counts to see if the 413 count sample 
-is the only one we should get rid of.
+Let's visualize the distribution of total counts to see if the 413 count sample is the only one we should get rid of.
 
-In following graphs, we will use vertical red lines to indicate possible 
-cutoffs. 
+In following graphs, we will use vertical red lines to indicate possible cutoffs. 
 
 ```{r total_counts_plot, live = TRUE}
 # Let's use the same kind of plot as above but add more layers
@@ -220,6 +216,7 @@ How many counts must there be for you to consider a gene expressed?
 Here let's go for a simple detection cutoff of > 0. 
 
 ```{r detection_matrix, live=TRUE}
+# make a detection_mat matrix that is TRUE when a gene is expressed in a sample
 detection_mat <- sc_data > 0 
 ```
 
@@ -244,7 +241,7 @@ ggplot(mapping = aes(x = num_genes_exp)) +
 
 As you may have noticed in our `sc_metadata` we have cell-type information for these data. 
 Let's use the power of our single-cell resolution data to our advantage and look at this data with cell-type labels. 
-In order to do this, we need to prepare a data.frame that has our `num_genes_exp` numbers along side our cell-type labels.
+In order to do this, we need to prepare a data frame that has our `num_genes_exp` numbers along side our cell-type labels.
 We will do this with `dplyr::left_join()` to merge count data to our metadata table.
 
 ```{r join_metadata, live = TRUE}
@@ -256,8 +253,7 @@ num_genes_exp_df <- tibble::tibble(geo_accession = names(num_genes_exp),
 
 ```
 
-The next graph we are using the same steps as before but to make individual graphs for each 
-cell type, we are using an option in ggplot2 called `facet_wrap`.
+The next graph we are using the same steps as before, but to make individual graphs for each cell type, we are using the ggplot2 `facet_wrap()` function.
 
 ```{r facet_genes, live = TRUE}
 # Plot with faceting by cell type
@@ -324,6 +320,7 @@ qc_df <- tibble::tibble(geo_accession = names(total_counts),
   dplyr::arrange(mito_fraction) 
   
 ```
+
 Now we can plot these measures all together, along with some possible cutoffs
 
 ```{r qc_scatterplot}
@@ -341,7 +338,7 @@ ggplot(qc_df, aes (x = total_counts,
 ```
 
 
-Now if we want to filter our data based on these measures and cutoffs we like, we can do this with `dplyr::filter` and then select the resulting columns from the matrix.
+If we want to filter our data based on these measures and cutoffs we like, we can do this with `dplyr::filter` and then select the resulting columns from the matrix.
 
 ```{r qc_filter, live = TRUE}
 # create a filtered_samples data frame from qc_df
@@ -352,8 +349,6 @@ filtered_samples <- qc_df %>%
 # select only passing samples for sc_data_filtered
 sc_data_filtered <- sc_data[, filtered_samples$geo_accession]
 ```
-
-
 
 
 ## Number of samples that express a gene as a quality measure
@@ -411,6 +406,7 @@ sc_filtered_df <- tibble::as_tibble(sc_data_filtered2) %>%
 
 Write the output file. 
 This is still a large matrix, it might take some time!
+
 ```{r write_df}
 readr::write_tsv(sc_filtered_df, filtered_count_file)
 ```
