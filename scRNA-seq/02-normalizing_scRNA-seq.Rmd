@@ -81,6 +81,7 @@ glio_sce <- SingleCellExperiment(list(counts = as.matrix(sc_data_filtered[, -1])
 
 # Store the gene names in this object
 rownames(glio_sce) <-  sc_data_filtered$gene
+colnames(glio_sce) <- colnames()
 ```
 
 In the intro-to-R-tidyverse module notebook, `01-intro-to-r`, we discuss base R object types, but there are some 'special' object types that are package-specific. 
@@ -131,9 +132,10 @@ all.equal(sample_info$geo_accession, colnames(glio_sce))
 Now add that data to the SCE object.
 For unclear reasons, we have to convert our table to a `DataFrame` object in order for this to work.
 Just to keep things confusing, a `DataFrame` is not the same as a `data.frame` that we have been using throughout. 
+We also need to be sure to include the `row.names` argument to keep those properly attached
 
 ```{r}
-colData(glio_sce) <- DataFrame(sample_info)
+colData(glio_sce) <- DataFrame(sample_info, row.names = sample_info$geo_accession)
 ```
 
 
@@ -236,6 +238,33 @@ The variation in gene expression we see among cells comes from a combination of 
 dec <- modelGeneVar(glio_sce)
 ```
 
+```{r}
+ggplot(as.data.frame(dec), aes(x= mean, y = total)) +
+  geom_point(alpha = 0.05) +
+  stat_function(fun = metadata(dec)$trend, color = "blue") + 
+  xlab("Mean log-expression") + 
+  ylab("Variance")
+
+```
+
+```{r}
+highvar_genes <- getTopHVGs(dec, prop=0.1)
+subset_pca <- t(logcounts(glio_sce)[highvar_genes,]) %>%
+  prcomp()
+```
+
+```{r}
+subset_pca_scores <- data.frame(subset_pca$x[, 1:2],
+                              geo_accession = rownames(subset_pca$x),
+                              cell_type = colData(glio_sce)$cell_type)
+```
+
+```{r}
+ggplot(subset_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+  geom_point() + 
+  ggtitle("Normalized log counts PCA Scores") + 
+  colorblindr::scale_color_OkabeIto()
+```
 
 
 ## Save the normalized data to tsv file
