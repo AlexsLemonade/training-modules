@@ -6,7 +6,7 @@ output:
     toc_float: true
 ---
 
-**CCDL 2019**
+**CCDL 2020**
 
 In this notebook, we'll perform quality control analyses of scRNA-seq count data. 
 The [data set](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465) we are using is cells from a glioblastoma sample that were Fluorescence-Activated Cell sorted (FACS) and then processed by paired end sequencing of RNA using the [Smart-seq2 protocol](http://www.nature.com/doifinder/10.1038/nmeth.2639) 
@@ -30,7 +30,7 @@ We have processed this data with `salmon quant` and used `tximport` to create a 
 
 ![](diagrams/full-length_1.png) 
 
-We will discuss *tag-based* scRNA-seq data (such as 10X), in a later notebook,  where you will learn how to process raw data to a count matrix and could apply these same types of steps to filter and normalize the data.
+We will discuss *tag-based* scRNA-seq data (such as 10X), in a later notebook, where you will learn how to process raw data to a count matrix and could apply these same types of steps to filter and normalize the data.
 
 ### Directories and files
 
@@ -41,7 +41,7 @@ A figure of the (partial) directory structure for this module is shown below.
 ![](diagrams/glioblastoma_dir_structure.png)
 
 Importantly, the `preprocessed` directory is actually a *link* (think of a shortcut or alias) to a shared folder, so everyone is looking at exactly the same sets of files in there, and you will not be able to write to that directory.
-This is actually a good idea/practice to enforce in your own projects, if you can.
+It's good practice to store your data in a place that you should never write to, except when adding new data.
 Not so much the shared directory or links, but to think of the place where raw data is stored as one that you should never write to, except when adding new data.
 This can save many headaches of accidentally changing or overwriting raw data (we've all done it!).
 
@@ -127,7 +127,6 @@ In this case, we can use `rowMeans()` to do the same calculation, much more quic
 # use rowMeans() to calculate gene means
 gene_means <- rowMeans(sc_data)
 ```
-
 
 Let's make our first density plot with these data.
 We will use `ggplot()` as you have seen before, but since the object we want to plot, `gene_means`, is a vector not a data frame, we will skip the `data` argument and go straight to the `mapping` aesthetics.
@@ -276,7 +275,7 @@ To look for this, we would like to calculate the fraction of mitochondrial expre
 First, we will need a list of the mitochondrial genes, which we have prepared in a tsv file `hs_mitochondrial_genes.tsv` that we will now read in:
 
 ```{r read_mito}
-#read `hs_mitochondrial_genes.tsv` from data_dir
+# read `hs_mitochondrial_genes.tsv` from data_dir
 mito_genes_df <- readr::read_tsv(mito_genes_file) 
 ```
 
@@ -322,7 +321,7 @@ qc_df <- tibble::tibble(geo_accession = names(total_counts),
   
 ```
 
-Now we can plot these measures all together, along with some possible cutoffs
+Now we can plot these measures all together, along with some possible cutoffs.
 
 ```{r qc_scatterplot}
 ggplot(qc_df, aes (x = total_counts,
@@ -339,7 +338,7 @@ ggplot(qc_df, aes (x = total_counts,
 ```
 
 
-If we want to filter our data based on these measures and cutoffs we like, we can do this with `dplyr::filter` and then select the resulting columns from the matrix.
+If we want to filter our data based on these measures and cutoffs we like, we can do this with `dplyr::filter()` and then select the resulting columns from the matrix.
 
 ```{r qc_filter, live = TRUE}
 # create a filtered_samples data frame from qc_df
