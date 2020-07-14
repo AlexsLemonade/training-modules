@@ -35,7 +35,7 @@ We will discuss *tag-based* scRNA-seq data (such as 10X), in a later notebook, w
 ### Directories and files
 
 The data files we will be using for this part of the project are in the `data/glioblastoma` subdirectory of the `scRNA-seq` directory where this file is located.
-The main files are further located in the `preprocessed` subdirectory (and sometimes deeper than that!). 
+The main files we will be using at this stage are further located in the `preprocessed` subdirectory (or a subdirectory of that subdirectory). 
 A figure of the (partial) directory structure for this module is shown below.
 
 ![](diagrams/glioblastoma_dir_structure.png)
@@ -44,6 +44,8 @@ Importantly, the `preprocessed` directory is actually a *link* (think of a short
 It's good practice to store your data in a place that you should never write to, except when adding new data.
 Not so much the shared directory or links, but to think of the place where raw data is stored as one that you should never write to, except when adding new data.
 This can save many headaches of accidentally changing or overwriting raw data (we've all done it!).
+
+We will write our output file for this stage in the `data/glioblastoma/filtered` directory, which may not exist yet, so we will also have to make it.
 
 
 
@@ -63,8 +65,14 @@ metadata_file <- file.path(data_dir, "preprocessed", "darmanis_metadata.tsv")
 # Mitochondrial genes
 mito_genes_file <- file.path(data_dir, "hs_mitochondrial_genes.tsv")
 
+# create the output directory
+filtered_dir <- file.path(data_dir, "filtered")
+if (!dir.exists(filtered_dir)) {
+  dir.create(filtered_dir, recursive = TRUE)
+}
+
 # Output file 
-filtered_count_file <- file.path("data", "glioblastoma", "filtered_count_matrix.tsv")
+filtered_count_file <- file.path(filtered_dir, "filtered_count_matrix.tsv")
 ```
 
 Let's import the gene matrix and metadata. 
@@ -388,8 +396,8 @@ To filter the genes that are not expressed in many samples, we will take a somew
 ```{r filter_genes}
 cutoff <- 200
 # filter sc_data_filtered to only genes above cutoff value
-# save as sc_data_filtered2
-sc_data_filtered2 <- sc_data_filtered[num_samples_exp >= cutoff, ]
+# save as sc_data_filtered_gene_express
+sc_data_filtered_gene_express <- sc_data_filtered[num_samples_exp >= cutoff, ]
 ```
 
 
@@ -399,8 +407,8 @@ sc_data_filtered2 <- sc_data_filtered[num_samples_exp >= cutoff, ]
 To save our filtered count matrix, we will first convert it back to a data frame, adding back the gene ids which were in the matrix row names. 
 
 ```{r df_convert}
-sc_filtered_df <- tibble::as_tibble(sc_data_filtered2) %>%
-  dplyr::mutate(gene = rownames(sc_data_filtered2)) %>%
+sc_filtered_df <- tibble::as_tibble(sc_data_filtered_gene_express) %>%
+  dplyr::mutate(gene = rownames(sc_data_filtered_gene_express)) %>%
   dplyr::select(gene, dplyr::everything()) # make the genes the first column
 ```
 
