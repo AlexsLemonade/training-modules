@@ -80,7 +80,7 @@ To learn more about `SingleCellExperiment` objects and how it works with Biocond
 glio_sce <- SingleCellExperiment(list(counts = as.matrix(sc_data_filtered[, -1])))
 
 # Store the gene names in this object
-rowData(glio_sce) <-  sc_data_filtered$gene
+rownames(glio_sce) <-  sc_data_filtered$gene
 ```
 
 In the intro-to-R-tidyverse module notebook, `01-intro-to-r`, we discuss base R object types, but there are some 'special' object types that are package-specific. 
@@ -92,7 +92,7 @@ Use this chunk we've set up below to do some exploring of the `SingleCellExperim
 # The SingleCellExperiment is a special type of object used by scater and scran
 # R packages, explore its properties here. 
 # Also check it out in the environment tab.
-summary(glio_sce)
+glio_sce
 ```
 
 Below is a figure from [Amezquita *et al.* _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1) (the preprint version of the above-linked paper) that shows the general structure of `SingleCellExperiment` objects. 
@@ -104,6 +104,38 @@ Each of these transformation functions also have a corresponding extraction func
 
 For more information on `SingleCellExperiment` objects, check out this [excellent vignette](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html)
 and/or [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1)
+
+### Adding more metadata to the SCE object
+
+
+```{r sample_info}
+# get the sample names and put them in a data frame (1 column)
+sample_info <- tibble::tibble(geo_accession = colnames(glio_sce)) %>%
+  #join to the metadata
+  dplyr::left_join(sc_metadata) %>%
+  dplyr::select(geo_accession,
+                title,
+                cell_type = cell.type.ch1,
+                tissue = characteristics_ch1.3
+                ) %>%
+  # clean up tissue
+  dplyr::mutate(tissue = stringr::str_remove(tissue, "tissue: "))
+```
+
+Check that the sample info accession ids are the same as the columns of our data
+
+```{r check_sampleinfo, live = TRUE}
+all.equal(sample_info$geo_accession, colnames(glio_sce))
+```
+
+Now add that data to the SCE object.
+For unclear reasons, we have to convert our table to a `DataFrame` object in order for this to work.
+Just to keep things confusing, a `DataFrame` is not the same as a `data.frame` that we have been using throughout. 
+
+```{r}
+colData(glio_sce) <- DataFrame(sample_info)
+```
+
 
 ## Normalization of count data 
 
@@ -163,18 +195,13 @@ Now we will retrieve the PC scores, by using `$x` at the end of the objects crea
 # Make the first two PC scores from the "raw" data into a dataframe 
 # with cell type labels for graphing 
 log_pca_scores <- data.frame(log_pca$x[, 1:2],
-                              geo_accession = rownames(log_pca$x)) %>%
-  dplyr::left_join(dplyr::select(sc_metadata, 
-                                 geo_accession, 
-                                 cell_type = cell.type.ch1))
-
+                            geo_accession = rownames(log_pca$x),
+                            cell_type = colData(glio_sce)$cell_type)
 
 # Set up the normalized PC scores in the same way
 norm_pca_scores <- data.frame(norm_pca$x[, 1:2],
-                              geo_accession = rownames(norm_pca$x)) %>%
-  dplyr::left_join(dplyr::select(sc_metadata, 
-                                 geo_accession, 
-                                 cell_type = cell.type.ch1))
+                              geo_accession = rownames(norm_pca$x),
+                              cell_type = colData(glio_sce)$cell_type)
 ```
 
 Let's plot the unnormalized PCA scores with their cell labels:
@@ -199,7 +226,15 @@ ggplot(norm_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   colorblindr::scale_color_OkabeIto()
 ```
 
-Do you see an effect from the normalization in this plot?
+Do you see an effect from the normalization in the comparison between these plots?
+
+## Modeling variance
+
+The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. 
+
+```{r model_variance}
+dec <- modelGeneVar(glio_sce)
+```
 
 
 
