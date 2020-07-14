@@ -6,7 +6,7 @@ output:
     toc_float: true
 ---
 
-**CCDL 2019**
+**CCDL 2020**
 
 In this notebook, we'll perform normalization of scRNA-seq count data that we have already done quality-control analyses of. 
     
@@ -17,8 +17,7 @@ tutorial.](https://bioconductor.org/packages/devel/bioc/vignettes/scran/inst/doc
   
 ## Set Up 
 
-For these analyses, we will need `scater` and `scran` packages, which have been 
-installed already on your Docker container. 
+Load the libraries we will be using, and set the random number generation seed value for reproducibility.
 
 ```{r setup}
 # Set seed for reproducibility
@@ -37,12 +36,12 @@ library(scran)
 
 Now let's set up the files we will be using:
 
-```{r files}
+```{r filepaths}
 # main data directory
 data_dir <- file.path("data", "glioblastoma")
 
 # Filtered count matrix file from previous notebook
-filtered_count_file <- file.path("data", "glioblastoma", "filtered_count_matrix.tsv")
+filtered_count_file <- file.path(data_dir, "filtered", "filtered_count_matrix.tsv")
 
 # Metadata file location
 metadata_file <- file.path(data_dir, "preprocessed", "darmanis_metadata.tsv")
@@ -55,9 +54,9 @@ if (!dir.exists(norm_dir)) {
 ```
 
 
-## Load the filtered count matrix and metadata
+## Read in the filtered count matrix and metadata
 
-```{r}
+```{r read_data}
 sc_data_filtered <- readr::read_tsv(filtered_count_file)
 sc_metadata <- readr::read_tsv(metadata_file)
 ```
@@ -67,119 +66,108 @@ sc_metadata <- readr::read_tsv(metadata_file)
 ## Set up a SingleCellExperiment object from count data
 
 Now that we have filtered our data, we are ready to normalize it.
-To do this, we are going to use some single-cell RNA-seq R packages called `scater` and `scran`.
+To do this, we are going to use some single-cell RNA-seq R packages called `scater` and `scran`. 
 
 ![](diagrams/full-length_2.png)
 
-The functions in these packages require the data to be in their own special 
-object type (not an uncommon thing for R packages to do) called `SingleCellExperiment`.
+The functions in these packages require the data to be in their own special object type (not an uncommon thing for R packages to do) called `SingleCellExperiment`.
 So first, we are going to set up our data in this format.
-To learn more about `SingleCellExperiment` objects and how it works with
-Bioconductor packages, we recommend this article: [Amezquita et al. 2020.](https://www.nature.com/articles/s41592-019-0654-x).
+To learn more about `SingleCellExperiment` objects and how it works with Bioconductor packages, we recommend this article: [Amezquita et al. 2020.](https://www.nature.com/articles/s41592-019-0654-x).
 
-```{r Set up SCE object}
-# Prep a matrix with just the rounded counts so we can create an sce object
-counts_mat <- round(as.matrix(sc_data_filtered[, -1]))
-
-```
-
-Put our counts matrix in this special `SingleCellExperiment` function: 
 
 ```{r}
 # Set up the Single Cell Experiment object 
-sce_raw <- SingleCellExperiment::SingleCellExperiment(list(counts = counts_mat))
-
-# save some memory
-rm(counts_mat)
+glio_sce <- SingleCellExperiment(list(counts = as.matrix(sc_data_filtered[, -1])))
 
 # Store the gene names in this object
-rowData(sce_raw) <-  sc_data_filtered$gene
+rowData(glio_sce) <-  sc_data_filtered$gene
 ```
 
-In the intro-to-R-tidyverse module notebook, `01-intro-to-r`, we discuss base R 
-object types, but there are some 'special' object types that are 
-package-specific. 
-`SingleCellExperiment` objects, for example, are what a lot of single-cell 
-analysis R packages use, so we will try to get acquainted with them. 
+In the intro-to-R-tidyverse module notebook, `01-intro-to-r`, we discuss base R object types, but there are some 'special' object types that are package-specific. 
+`SingleCellExperiment` objects, for example, are what a lot of single-cell analysis R packages use, so we will try to get acquainted with them. 
 
-Use this chunk we've set up below to do some exploring of the 
-`SingleCellExperiment` object you just made.
+Use this chunk we've set up below to do some exploring of the `SingleCellExperiment` object you just made.
 
-```{r Explore SCE structure}
+```{r Explore_SCEstructure, live = TRUE, eval = FALSE}
 # The SingleCellExperiment is a special type of object used by scater and scran
 # R packages, explore its properties here. 
 # Also check it out in the environment tab.
+summary(glio_sce)
 ```
 
-Below is a figure from [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1) 
-that shows the general structure of `SingleCellExperiment` objects. 
+Below is a figure from [Amezquita *et al.* _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1) (the preprint version of the above-linked paper) that shows the general structure of `SingleCellExperiment` objects. 
 
 ![](figures/sce_structure.png)
 
-Note that each function which transforms the `SingleCellExperiment` object
-stores its results back into the object.
-Each of these transformation functions also have a corresponding extraction 
-function that allow you extract (or set) those results from the 
-`SingleCellExperiment` object.
+Note that each function which transforms the `SingleCellExperiment` object can store its results back into the object (or a new copy of the object, but that tends to be a waste of space).
+Each of these transformation functions also have a corresponding extraction function that allow you extract (or set) those results from the `SingleCellExperiment` object. 
 
 For more information on `SingleCellExperiment` objects, check out this [excellent vignette](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html)
 and/or [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1)
 
 ## Normalization of count data 
 
-In whatever data we are working with, we are always looking to maximize biological 
-variance and minimize technical variance. 
+In whatever data we are working with, we are always looking to maximize biological variance and minimize technical variance. 
+A primary source of technical variation we are concerned with is the variation in library sizes among our samples. 
+While different cells may have different total transcript counts, it seems far more likely that the primary source of variation that we see is due to library construction, amplification, and sequencing. 
+
 This is where normalization methods usually come into the workflow.
-With this high amount of zeroes in our data, this makes normalization particularly
-tricky.
-So in order to account for these zeroes, we normalize cells in groups with other 
-cells like them; a method introduced in [Lun et al 2016](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
+The distribution of the counts that we saw in the previous notebook, and in particular the fact that the count data is noisy with many zero counts, makes normalization particularly tricky.
+To handle this noise, we normalize cells in groups with other cells like them; a method introduced in [Lun *et al.* (2016)](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
+
+Briefly, we first cluster the cells to find groups of similar cells, then compute normalization factors based on the sums of expression in those groups. 
+The group normalization is then applied back to the individual cells within the group to create a normalized count matrix. 
+In this case, we will also log-transform the normalized counts to get a less skewed distribution of expression measures. 
+Note that because of the zero counts, the logNormCounts() function will add a pseudocount of 1 to each value before computing the log.
 
 *These steps may take a minute or so.*
 
-```{r}
+```{r sce_normalize}
 # Step 1) Group cells with other like cells by clustering.  
-qclust <- scran::quickCluster(sce_raw)
+qclust <- scran::quickCluster(glio_sce)
 
 # Step 2) Compute sum factors for each cell cluster grouping.  
-sce_raw <- scran::computeSumFactors(sce_raw, clusters = qclust)
-
-### TODO: This is now deprecated- update to latest recommendations ###
+glio_sce <- scran::computeSumFactors(glio_sce, clusters = qclust)
 
 # Step 3) Normalize using these pooled sum factors and log transform. 
-sce_norm <- scater::normalize(sce_raw)
+glio_sce <- scater::logNormCounts(glio_sce)
 ```
 
 ## Compare normalized data to count data
 
-One way to determine whether our normalization yields biologically relevant 
-results, is to plot it and see if similarly labeled samples and cells end up 
-together.
-Because plotting 1000's of genes together isn't practical, we will reduce the 
-dimensions of our data using Principal Components Analysis. 
-Note that the `t()` function is being used here to transpose the `matrix`, so 
-it is samples x genes. 
-We could however, obtain PCA scores for each gene if we didn't transpose our
-data.frame first. 
+One way to determine whether our normalization yields biologically relevant results is to plot it and see if similarly labeled samples and cells end up together.
+Because plotting 1000's of genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis. 
 
-```{r}
-# Use PCA for dimension reduction of cells' raw data
-count_pca <- prcomp(t(counts(sce_raw)))
+Note that the `t()` function is being used here to transpose the count matrix, so it is samples x genes, resulting in PCA scores calculated with respect to the samples. 
+We could however, obtain PCA scores for each gene if we didn't transpose our matrix first. 
+
+We will also log transform the raw counts to make their scaling more comparable to the normalized data. 
+To do this we will use the `log1p()` function, which is specifically designed for the case where we want to add 1 to all of our values before taking the log, as we do here.
+(We could do something like `log(counts + 1)`, but this is both more efficient and more accurate.)
+
+```{r pca}
+# PCA on the raw counts, log transformed
+log_pca <- t(counts(glio_sce)) %>% # transpose the count matrix
+  log1p() %>% # log transform to make these comparable
+  prcomp() # calculate PCA scores
 
 # Use PCA for dimension reduction of cells' scran normalized data
-norm_pca <- prcomp(t(logcounts(sce_norm)))
+norm_pca <- t(logcounts(glio_sce)) %>%
+  prcomp()
+  
 ```
 
-Now we will retrieve the PCA scores, by using `$x` at the end of our `prcomp`
-objects.
+Now we will retrieve the PC scores, by using `$x` at the end of the objects created by `prcomp`.
 
-```{r Graph PCA}
-# Make the counts PC scores into a dataframe with cell type labels for easy graphing 
-count_pca_scores <- data.frame(count_pca$x[, 1:2],
-                               geo_accession = rownames(count_pca$x)) %>%
+```{r pca_df}
+# Make the first two PC scores from the "raw" data into a dataframe 
+# with cell type labels for graphing 
+log_pca_scores <- data.frame(log_pca$x[, 1:2],
+                              geo_accession = rownames(log_pca$x)) %>%
   dplyr::left_join(dplyr::select(sc_metadata, 
                                  geo_accession, 
                                  cell_type = cell.type.ch1))
+
 
 # Set up the normalized PC scores in the same way
 norm_pca_scores <- data.frame(norm_pca$x[, 1:2],
@@ -189,63 +177,56 @@ norm_pca_scores <- data.frame(norm_pca$x[, 1:2],
                                  cell_type = cell.type.ch1))
 ```
 
-Let's plot the counts PCA scores with their cell labels:
+Let's plot the unnormalized PCA scores with their cell labels:
 
-```{r Plotting counts pca}
+```{r pca_plot}
 # Now plot counts pca
-ggplot(count_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+ggplot(log_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
-  ggtitle("Counts PCA Scores") + 
+  ggtitle("Log Counts PCA Scores") + 
   colorblindr::scale_color_OkabeIto() # We are adding this so it is colorblind friendly
 ```
 
-We've plotted the counts data for you. Knowing that we want the same graph,
-but different data, use the above template to plot the normalized data.
+We've plotted the counts data for you. Knowing that we want the same graph, but different data, use the above template to plot the normalized data. 
+Feel free to customize the plot with a different theme or color scheme!
 
 Let's plot the `norm_pca_scores` data:
 
-```{r Plotting norms pca, live = TRUE}
+```{r norm_pca_plot, live = TRUE}
 ggplot(norm_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
   ggtitle("Normalized log counts PCA Scores") + 
   colorblindr::scale_color_OkabeIto()
 ```
 
-The normalization has appeared to help separate the rest of the brain cells 
-from the immune cells. 
+Do you see an effect from the normalization in this plot?
+
+
 
 ## Save the normalized data to tsv file
 
 In case we wanted to return to this data later, let's save the normalized data
 to a tsv file. 
-In order to do this we need to extract our normalized counts from `sce_norm`. 
-Refer back to the `SingleCellExperiment` figure above to determine why we are 
-using this `logcounts` function.
+In order to do this we need to extract our normalized counts from `glio_sce`. 
+Refer back to the `SingleCellExperiment` figure above to determine why we are using this `logcounts` function.
 
 ```{r Save Data to .tsv}
 # Save this gene matrix to a tsv file
-logcounts(sce_norm) %>% 
+logcounts(glio_sce) %>% 
   as.data.frame() %>%
-  readr::write_tsv(file.path(norm_dir, "scran_norm_gbm_gene_matrix.tsv"))
+  readr::write_tsv(file.path(norm_dir, "scran_norm_gene_matrix.tsv"))
 ```
 
-Also note that `readr::write_tsv` requires a `data.frame`; so we need to convert 
-our `matrix` to a data.frame.
-Because our metadata has been filtered to match our gene matrix, we will also 
-save a new file for the metadata. 
+Recall that `readr::write_tsv` requires a data frame; so we need to convert 
+our `matrix` to a data frame.
 
-```{r}
-readr::write_tsv(sc_metadata_filtered, file.path(norm_dir, 
-                                                 "gbm_filtered_metadata.tsv"))
-```
-
-We will return to our normalized `sce_norm` object in the exercise, so we will 
+We will return to our normalized `glio_sce` object in the exercise, so we will 
 also save our data in an RDS file so that we can re-load it into our R 
 environment as a `SingleCellExperiment` object.
 
 ```{r}
 # Save the data as an RDS
-readr::write_rds(sce_norm, file.path(norm_dir, "sce_norm.RDS"))
+readr::write_rds(glio_sce, file.path(norm_dir, "glioblastoma_sce.RDS"))
 ```
 
 ### Print session info
