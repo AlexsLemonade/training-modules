@@ -77,11 +77,11 @@ To learn more about `SingleCellExperiment` objects and how it works with Biocond
 
 ```{r}
 # Set up the Single Cell Experiment object 
-glio_sce <- SingleCellExperiment(list(counts = as.matrix(sc_data_filtered[, -1])))
+gbm_sce <- SingleCellExperiment(list(counts = as.matrix(sc_data_filtered[, -1])))
 
 # Store the gene names in this object
-rownames(glio_sce) <-  sc_data_filtered$gene
-colnames(glio_sce) <- colnames()
+rownames(gbm_sce) <-  sc_data_filtered$gene
+colnames(gbm_sce) <- colnames()
 ```
 
 In the intro-to-R-tidyverse module notebook, `01-intro-to-r`, we discuss base R object types, but there are some 'special' object types that are package-specific. 
@@ -93,7 +93,7 @@ Use this chunk we've set up below to do some exploring of the `SingleCellExperim
 # The SingleCellExperiment is a special type of object used by scater and scran
 # R packages, explore its properties here. 
 # Also check it out in the environment tab.
-glio_sce
+gbm_sce
 ```
 
 Below is a figure from [Amezquita *et al.* _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1) (the preprint version of the above-linked paper) that shows the general structure of `SingleCellExperiment` objects. 
@@ -111,7 +111,7 @@ and/or [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.11
 
 ```{r sample_info}
 # get the sample names and put them in a data frame (1 column)
-sample_info <- tibble::tibble(geo_accession = colnames(glio_sce)) %>%
+sample_info <- tibble::tibble(geo_accession = colnames(gbm_sce)) %>%
   #join to the metadata
   dplyr::left_join(sc_metadata) %>%
   dplyr::select(geo_accession,
@@ -126,7 +126,7 @@ sample_info <- tibble::tibble(geo_accession = colnames(glio_sce)) %>%
 Check that the sample info accession ids are the same as the columns of our data
 
 ```{r check_sampleinfo, live = TRUE}
-all.equal(sample_info$geo_accession, colnames(glio_sce))
+all.equal(sample_info$geo_accession, colnames(gbm_sce))
 ```
 
 Now add that data to the SCE object.
@@ -135,7 +135,7 @@ Just to keep things confusing, a `DataFrame` is not the same as a `data.frame` t
 We also need to be sure to include the `row.names` argument to keep those properly attached
 
 ```{r}
-colData(glio_sce) <- DataFrame(sample_info, row.names = sample_info$geo_accession)
+colData(gbm_sce) <- DataFrame(sample_info, row.names = sample_info$geo_accession)
 ```
 
 
@@ -158,13 +158,13 @@ Note that because of the zero counts, the logNormCounts() function will add a ps
 
 ```{r sce_normalize}
 # Step 1) Group cells with other like cells by clustering.  
-qclust <- scran::quickCluster(glio_sce)
+qclust <- scran::quickCluster(gbm_sce)
 
 # Step 2) Compute sum factors for each cell cluster grouping.  
-glio_sce <- scran::computeSumFactors(glio_sce, clusters = qclust)
+gbm_sce <- scran::computeSumFactors(gbm_sce, clusters = qclust)
 
 # Step 3) Normalize using these pooled sum factors and log transform. 
-glio_sce <- scater::logNormCounts(glio_sce)
+gbm_sce <- scater::logNormCounts(gbm_sce)
 ```
 
 ## Compare normalized data to count data
@@ -181,12 +181,12 @@ To do this we will use the `log1p()` function, which is specifically designed fo
 
 ```{r pca}
 # PCA on the raw counts, log transformed
-log_pca <- t(counts(glio_sce)) %>% # transpose the count matrix
+log_pca <- t(counts(gbm_sce)) %>% # transpose the count matrix
   log1p() %>% # log transform to make these comparable
   prcomp() # calculate PCA scores
 
 # Use PCA for dimension reduction of cells' scran normalized data
-norm_pca <- t(logcounts(glio_sce)) %>%
+norm_pca <- t(logcounts(gbm_sce)) %>%
   prcomp()
   
 ```
@@ -198,12 +198,12 @@ Now we will retrieve the PC scores, by using `$x` at the end of the objects crea
 # with cell type labels for graphing 
 log_pca_scores <- data.frame(log_pca$x[, 1:2],
                             geo_accession = rownames(log_pca$x),
-                            cell_type = colData(glio_sce)$cell_type)
+                            cell_type = colData(gbm_sce)$cell_type)
 
 # Set up the normalized PC scores in the same way
 norm_pca_scores <- data.frame(norm_pca$x[, 1:2],
                               geo_accession = rownames(norm_pca$x),
-                              cell_type = colData(glio_sce)$cell_type)
+                              cell_type = colData(gbm_sce)$cell_type)
 ```
 
 Let's plot the unnormalized PCA scores with their cell labels:
@@ -235,7 +235,7 @@ Do you see an effect from the normalization in the comparison between these plot
 The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. 
 
 ```{r model_variance}
-dec <- modelGeneVar(glio_sce)
+dec <- modelGeneVar(gbm_sce)
 ```
 
 ```{r}
@@ -249,14 +249,14 @@ ggplot(as.data.frame(dec), aes(x= mean, y = total)) +
 
 ```{r}
 highvar_genes <- getTopHVGs(dec, prop=0.1)
-subset_pca <- t(logcounts(glio_sce)[highvar_genes,]) %>%
+subset_pca <- t(logcounts(gbm_sce)[highvar_genes,]) %>%
   prcomp()
 ```
 
 ```{r}
 subset_pca_scores <- data.frame(subset_pca$x[, 1:2],
                               geo_accession = rownames(subset_pca$x),
-                              cell_type = colData(glio_sce)$cell_type)
+                              cell_type = colData(gbm_sce)$cell_type)
 ```
 
 ```{r}
@@ -271,12 +271,12 @@ ggplot(subset_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
 
 In case we wanted to return to this data later, let's save the normalized data
 to a tsv file. 
-In order to do this we need to extract our normalized counts from `glio_sce`. 
+In order to do this we need to extract our normalized counts from `gbm_sce`. 
 Refer back to the `SingleCellExperiment` figure above to determine why we are using this `logcounts` function.
 
 ```{r Save Data to .tsv}
 # Save this gene matrix to a tsv file
-logcounts(glio_sce) %>% 
+logcounts(gbm_sce) %>% 
   as.data.frame() %>%
   readr::write_tsv(file.path(norm_dir, "scran_norm_gene_matrix.tsv"))
 ```
@@ -284,13 +284,13 @@ logcounts(glio_sce) %>%
 Recall that `readr::write_tsv` requires a data frame; so we need to convert 
 our `matrix` to a data frame.
 
-We will return to our normalized `glio_sce` object in the exercise, so we will 
+We will return to our normalized `gbm_sce` object in the exercise, so we will 
 also save our data in an RDS file so that we can re-load it into our R 
 environment as a `SingleCellExperiment` object.
 
 ```{r}
 # Save the data as an RDS
-readr::write_rds(glio_sce, file.path(norm_dir, "glioblastoma_sce.RDS"))
+readr::write_rds(gbm_sce, file.path(norm_dir, "glioblastoma_sce.RDS"))
 ```
 
 ### Print session info
