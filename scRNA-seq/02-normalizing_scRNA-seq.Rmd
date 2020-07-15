@@ -171,41 +171,42 @@ gbm_sce <- scater::logNormCounts(gbm_sce)
 One way to determine whether our normalization yields biologically relevant results is to plot it and see if similarly labeled samples and cells end up together.
 Because plotting 1000's of genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis. 
 
-Note that the `t()` function is being used here to transpose the count matrix, so it is samples x genes, resulting in PCA scores calculated with respect to the samples. 
-We could however, obtain PCA scores for each gene if we didn't transpose our matrix first. 
-
 We will also log transform the raw counts to make their scaling more comparable to the normalized data. 
 To do this we will use the `log1p()` function, which is specifically designed for the case where we want to add 1 to all of our values before taking the log, as we do here.
 (We could do something like `log(counts + 1)`, but this is both more efficient and more accurate.)
 
-```{r pca}
-# PCA on the raw counts, log transformed
-log_pca <- t(counts(gbm_sce)) %>% # transpose the count matrix
-  log1p() %>% # log transform to make these comparable
-  prcomp() # calculate PCA scores
 
+
+```{r pca}
 # Use PCA for dimension reduction of cells' scran normalized data
-norm_pca <- t(logcounts(gbm_sce)) %>%
-  prcomp()
-  
+norm_pca <- scater::calculatePCA(gbm_sce, ntop = nrow(gbm_sce)) 
+
+# PCA on the raw counts, log transformed
+log_pca <- counts(gbm_sce) %>% # get the raw counts
+  log1p() %>% # log transform to make these more comparable to the normalized values
+  scater::calculatePCA(ntop = nrow(gbm_sce)) # calculate PCA scores
+
 ```
 
-Now we will retrieve the PC scores, by using `$x` at the end of the objects created by `prcomp`.
+Note that we are using `scater::calculatePCA()` two different ways here: once on the full `gbm_sce` object, and once on just the `counts` matrix. 
+When we use `calculatePCA()` on the object, it automatically uses the log normalized matrix from inside the object.
+
+We are also using the `ntop` argument so that the PCA is calculated using data from all genes in the data set. 
+This is not the default for `calculatePCA()` as we will explore below.
+
+Next we will arrange the PCA scores for plotting, adding a column with the cell type data so we can color each point of the plot. 
 
 ```{r pca_df}
-# Make the first two PC scores from the "raw" data into a dataframe 
-# with cell type labels for graphing 
-log_pca_scores <- data.frame(log_pca$x[, 1:2],
-                            geo_accession = rownames(log_pca$x),
-                            cell_type = gbm_sce$cell_type)
-
-# Set up the normalized PC scores in the same way
-norm_pca_scores <- data.frame(norm_pca$x[, 1:2],
-                              geo_accession = rownames(norm_pca$x),
+# Set up the PCA scores for plotting
+norm_pca_scores <- data.frame(norm_pca,
+                              geo_accession = rownames(norm_pca),
+                              cell_type = gbm_sce$cell_type)
+log_pca_scores <- data.frame(log_pca,
+                              geo_accession = rownames(log_pca),
                               cell_type = gbm_sce$cell_type)
 ```
 
-Let's plot the unnormalized PCA scores with their cell labels:
+Now we will plot the unnormalized PCA scores with their cell labels:
 
 ```{r pca_plot}
 # Now plot counts pca
@@ -234,49 +235,87 @@ Do you see an effect from the normalization in the comparison between these plot
 The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. 
 
 ```{r model_variance}
-dec <- modelGeneVar(gbm_sce)
+gbm_variance <- modelGeneVar(gbm_sce)
 ```
 
-```{r}
-ggplot(as.data.frame(dec), aes(x= mean, y = total)) +
+```{r plot_variance}
+ggplot(as.data.frame(gbm_variance), aes(x= mean, y = total)) +
   geom_point(alpha = 0.05) +
-  stat_function(fun = metadata(dec)$trend, color = "blue") + 
+  stat_function(fun = metadata(gbm_variance)$trend, color = "blue") + 
   xlab("Mean log-expression") + 
   ylab("Variance")
 
 ```
 
-```{r}
-highvar_genes <- getTopHVGs(dec, prop=0.1)
-subset_pca <- t(logcounts(gbm_sce)[highvar_genes,]) %>%
-  prcomp()
+```{r get_highvar}
+highvar_genes <- scran::getTopHVGs(gbm_variance, n = 500)
+highvar_pca <- scater::calculatePCA(gbm_sce, subset_row = highvar_genes)
 ```
 
-```{r}
-subset_pca_scores <- data.frame(subset_pca$x[, 1:2],
-                              geo_accession = rownames(subset_pca$x),
-                              cell_type = gbm_sce$cell_type)
+```{r highvar_df}
+highvar_pca_scores <- data.frame(highvar_pca,
+                                 geo_accession = rownames(highvar_pca),
+                                 cell_type = gbm_sce$cell_type)
 ```
 
-```{r}
-ggplot(subset_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+```{r plot_highvar}
+ggplot(highvar_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
   ggtitle("Normalized log counts PCA Scores") + 
   colorblindr::scale_color_OkabeIto()
 ```
 
+Now what we didn't tell you before, but will tell you now, is that the default for `scater::calculatePCA()` is to use the top 500 highest variance genes. 
+This is what we were overriding when we used `ntop = nrow(gbm_sce)`. 
+So if we want to shortcut what we did to get the above plot (or one very close to it), we could have done it with `scater::calculatePCA(gbm_sce)` using no additional arguments.
 
-## Identify marker genes
+*Why didn't we do that first?*
+Well, it wouldn't have shown you the effects of normalization or making the choice to include only high variance genes. 😉
 
-```{r find_markers}
-markers <- findMarkers(gbm_sce, gbm_sce$cell_type)
+
+`# Identify marker genes
+
+`The highest variance genes may not always be the most informative on their own.
+
+``{r find_markers}
+markers <- fscran::indMarkers(gbm_sce, gbm_sce$cell_type)
 
 ```
 
-```{r}
+```{r} marker_table
 markers$Astocyte %>%
   as.data.frame() %>%
-  dplyr::filter(Top < 10)
+  tibble::rownames_to_column("gene") %>%
+  dplyr::filter(Top <= 100) # most significant 100 for each pairwise comparison
+
+```
+Get the top markers for each cell type using `purrr`
+```{r top_markers}
+# Make a data frame of the top markers for each cell type
+top_markers <- purrr::map_df(as.list(markers),
+                             ~ as.data.frame(.) %>%
+                               tibble::rownames_to_column("gene") %>%
+                               dplyr::filter(Top <= 100),
+                             .id = "cell_type")
+```
+
+```{r unique_markers}
+unique_markers <- unique(top_markers$gene)
+length(unique_markers)
+```
+
+```{r}
+marker_pca <- calculatePCA(gbm_sce, subset_row=unique_markers) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("geo_accession") %>%
+  dplyr::mutate(cell_type = gbm_sce$cell_type)
+```
+
+```{r}
+ggplot(marker_pca, aes(x = PC1, y = PC2, color = cell_type)) +
+  geom_point() + 
+  ggtitle("PC scores for marker genes") + 
+  colorblindr::scale_color_OkabeIto()
 ```
 
 
