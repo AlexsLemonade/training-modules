@@ -94,22 +94,20 @@ We'll sometimes refer to them as biospecimen IDs or BSIDs for short!
 ```{r}
 stranded_count_mat <- stranded_count_mat %>%
   # We want to retain the Ensembl gene identifiers as the first column
-  dplyr::select(gene_id, histologies_df$Kids_First_Biospecimen_ID)
-
-# In the same order?
-identical(colnames(stranded_count_mat)[-1], 
-          histologies_df$Kids_First_Biospecimen_ID)
-```
-
-```{r}
-# Make the gene identifier column the rownames and make this into a matrix
-stranded_count_mat <- stranded_count_mat %>%
+  dplyr::select(gene_id, histologies_df$Kids_First_Biospecimen_ID) %>%
+  # Make the gene identifier column the rownames and make this into a matrix
   tibble::column_to_rownames("gene_id") %>%
   as.matrix()
 
 # This is the output of RSEM - some values will not be integers, rounding this
 # makes it such that these values are integers
 stranded_count_mat <- round(stranded_count_mat)
+```
+
+```{r}
+# In the same order?
+identical(colnames(stranded_count_mat), 
+          histologies_df$Kids_First_Biospecimen_ID)
 ```
 
 We're going to use this for clustering, so we probably want to be blind to the experimental design.
