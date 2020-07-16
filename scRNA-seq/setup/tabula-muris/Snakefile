@@ -5,7 +5,7 @@ workdir: config["base_dir"]
 rule targets:
     input:
         "TM_droplet_metadata.csv",
-        expand("fastq/{run_id}", run_id = config["run_ids"])
+        expand("alevin/{run_id}", run_id = config["run_ids"])
 
 rule get_metadata:
     output:
@@ -37,3 +37,21 @@ rule bam_to_fastq:
         # remove subdirectory with other files
         "rm -r {output}/{wildcards.run_id}_MissingLibrary_*"
 
+rule alevin:
+    input:
+        fastq_dir = "fastq/{run_id}",
+        index = config["salmon_index"],
+        tx2gene = config["tx2gene"]
+    output:
+        directory("alevin/{run_id}")
+    threads: 10
+    shell:
+        "salmon alevin -l ISR"
+        " -i {input.index}"
+        " -1 {input.fastq_dir}/{wildcards.run_id}_L*_R1_*.fastq.gz "
+        " -2 {input.fastq_dir}/{wildcards.run_id}_L*_R2_*.fastq.gz "
+        " --chromium"
+        " -p 5"
+        " -o {output}"
+        " --tgMap {input.tx2gene}"
+        " --dumpFeatures"
