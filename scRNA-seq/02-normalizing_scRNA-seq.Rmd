@@ -304,8 +304,7 @@ markers <- scran::findMarkers(gbm_sce, gbm_sce$cell_type)
 ```
 
 Next we can look at one of those tables, in this case the one for neurons. 
-Since each of the tables in the list-like object has a name, we can select an individual table using the familiar `$` syntax.
-We have done some transformation here to pull the gene name into a column of its own and filtered to the genes that seem to differentiate best using the `Top` column.
+Since each of the tables in the list-like object has a name, we can select an individual table using the familiar `$` syntax..We have done some transformation here to pull the gene name into a column of its own and filtered to the genes that seem to differentiate best using the `Top` column.
 
 ```{r marker_table}
 markers$Neuron %>%
@@ -329,14 +328,16 @@ purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
            head) # the function to apply (note no parenthesis)
 ```
 
-Since that would return a list of data frames, it isn't quite what we want.
+This returns a list of data frames, which isn't quite what we want.
+
 There is no built-in function that will give us just the first few row names, so we will have to define one, and `purrr` gives us a nice shorthand for doing that with `~` syntax.
-Each element of the list will be assigned to the `.x` variable, so we can define an expression that uses that and `purrr::map()` will apply that to each element of the list.
+In this syntax we type a `~` followed by an expression (R code) that uses `.x` as a placeholder for a single element of the list.
+`purrr::map()` will then apply the expression to each element of the list, and retrur the results as a new list.
 
 ```{r head_markernames, live = TRUE}
 # Get the first few row names of each table with a purrr function.
 purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
-           ~ rownames(head(.x)) )# our custom function.
+           ~ rownames(head(.x)) )#  our custom function.
 ```
 
 Another variant is `purrr::imap()`, which allows us to use the names of the list elements in our function. 
