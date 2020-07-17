@@ -46,7 +46,13 @@ filtered_count_file <- file.path(data_dir, "filtered", "filtered_count_matrix.ts
 # Metadata file location
 metadata_file <- file.path(data_dir, "preprocessed", "darmanis_metadata.tsv")
 
-# Output directory
+# Outout directory for markers
+marker_dir <- file.path("analysis", "glioblastoma", "markers")
+if (!dir.exists(marker_dir)) {
+  dir.create(marker_dir, recursive = TRUE)
+}
+
+# Output directory for normalized data
 norm_dir <- file.path(data_dir, "normalized")
 if (!dir.exists(norm_dir)) {
   dir.create(norm_dir, recursive = TRUE)
@@ -277,32 +283,73 @@ Well, it wouldn't have shown you the effects of normalization or making the choi
 
 The highest variance genes may not always be the most informative on their own, especially if we are trying to differentiate among cell types.
 To find genes that are distinct to one cell type or another, we can use the `scran::findMarkers()` function to test for genes that are significantly different among cells of each type.
-This will return a list of tables, one for each cell type, with statistics for each gene showing how well it differentiates that cell type against all other types.
+This will return a list (technically a list-like object) of tables, one for each cell type, with statistics for each gene showing how well it differentiates that cell type against all other types.
 
 ```{r find_markers}
 markers <- scran::findMarkers(gbm_sce, gbm_sce$cell_type)
 ```
 
 Next we can look at one of those tables, in this case the one for neurons. 
+Since each of the tables in the list-like object has a name, we can select an individual table using the familiar `$` syntax.
 We have done some transformation here to pull the gene name into a column of its own and filtered to the genes that seem to differentiate best using the `Top` column.
 
 ```{r marker_table}
 markers$Neuron %>%
-  as.data.frame() %>%
-  tibble::rownames_to_column("gene") %>%
+  as.data.frame() %>% # convert to a data frame
+  tibble::rownames_to_column("gene") %>% # make the gene names column
   dplyr::filter(Top <= 100) # most significant 100 for each pairwise comparison
 
 ```
 
 Because we tend to like tidy data, here we use a `tidyverse` function from the [`purrr` package](https://purrr.tidyverse.org) to apply the same operations as above to every element of the `markers` list. 
-`purrr::map_df()` is particularly nice, because after applying the operations in the second argument, it combines the results into a single data frame, adding a column with the name specified by `.id` to differentiate the rows that came from each element of the list.
+We will introduce `purrr` briefly here, but if you want more information and background, have alook at the [`purrr` cheatsheet (PDF)](https://github.com/rstudio/cheatsheets/raw/master/purrr.pdf) and Jenny Bryan has a a great [`purrr` tutorial](https://jennybc.github.io/purrr-tutorial/index.html) you might want to look at.
+
+
+The main functions in `purrr` are the `map()` functions, which take as their main arguments a **list** and a **function** to apply to each element of the list. 
+The first one, `purrr::map()` is essentially equivilent to the `lapply()` function that is part of base R, but with some different defaults. 
+We will use it first to get the top rows from each table by using it to apply the `head()` function to each element of the list.
+The results are returned as a new list.
+
+```{r head_markers, eval = FALSE}
+purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
+           head) # the function to apply (note no parenthesis)
+```
+
+Since that would return a list of data frames, it isn't quite what we want.
+There is no built-in function that will give us just the first few rownames, so we will have to define one, and `purrr` gives us a nice shorthand for doing that with `~` syntax.
+Each element of the list will be assigned to the `.x` variable, so we can define an expression that uses that and `purrr::map()` will apply that to each element of the list.
+
+```{r head_markernames, live = TRUE}
+# Get the first few rownames of each table with a purrr function.
+purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
+           ~ rownames(head(.x)) )# our custom function.
+```
+
+Another variant is `purrr::imap()`, which allows us to use the names of the list elements in our function. 
+We will use that here to name output files where we will print each of the marker tables, one for each cell type.
+We are again defining a custom function within the call to `purrr:imap()` using the `~` syntax, but this time we can use `.x` for the list elements and `.y` for their names.
+
+In addition to writing the tables out, we are saving the data frames we created as a new list object, that we can use in the next step.
+
+```{r write_tables, eval = FALSE}
+marker_df_list <- purrr::imap(
+  as.list(markers), # convert markers to a 'regular' list for purrr
+  ~ as.data.frame(.x) %>% # convert the table to a data frame
+    tibble::rownames_to_column("gene") %>% # make genes a new column
+    readr::write_tsv( # write each data frame to a file
+      file.path(marker_dir, paste0(.y, "_markers.tsv")) # construct the output path
+      )
+  )
+```
+
+`purrr::map_df()` is another nice function in `purrr`. 
+It's special purpose is that after it applies the operations in the second argument, it combines the results into a single data frame.
+Optionally, it adds a column with the name specified by the `.id` argument to differentiate the rows that came from each element of the input list.
 
 ```{r top_markers}
 # Make a data frame of the top markers for each cell type
-top_markers <- purrr::map_df(as.list(markers),
-                             ~ as.data.frame(.) %>%
-                               tibble::rownames_to_column("gene") %>%
-                               dplyr::filter(Top <= 100),
+top_markers <- purrr::map_df(marker_df_list,
+                             ~ dplyr::filter(.x, Top <= 100),
                              .id = "cell_type")
 ```
 
