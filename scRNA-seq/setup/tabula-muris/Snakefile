@@ -62,10 +62,14 @@ rule alevinQC:
     output:
         "qc-reports/alevinQC/{run_id}_alevinqc.html"
     shell:
+        # add a null whitelist file if none was generated
+        "[ -e {input}/alevin/whitelist.txt] ||"
+        " echo 'NNNNNNNNNNNNNNNN' > {input}/alevin/whitelist.txt ; "
+        # run alevinQC
         "Rscript -e "
         " 'alevinQC::alevinQCReport("
         "    baseDir = \"{input}\", "
         "    sampleId = \"{wildcards.run_id}\", "
         "    outputFile = \"{wildcards.run_id}_alevinqc.html\", "
         "    outputDir = \"qc-reports/alevinQC\", "
-        "    forceOverwrite = TRUE)"
+        "    forceOverwrite = TRUE)'"
