@@ -111,7 +111,7 @@ and/or [Amezquita *et al.* (2020)](https://www.nature.com/articles/s41592-019-06
 ```{r sample_info}
 # get the sample names and put them in a data frame (1 column)
 sample_info <- tibble::tibble(geo_accession = colnames(gbm_sce)) %>%
-  #join to the metadata
+  # join to the metadata
   dplyr::left_join(sc_metadata) %>%
   dplyr::select(geo_accession,
                 title,
@@ -151,7 +151,7 @@ To handle this noise, we normalize cells in groups with other cells like them; a
 Briefly, we first cluster the cells to find groups of similar cells, then compute normalization factors based on the sums of expression in those groups. 
 The group normalization is then applied back to the individual cells within the group to create a normalized count matrix. 
 In this case, we will also log-transform the normalized counts to get a less skewed distribution of expression measures. 
-Note that because of the zero counts, the logNormCounts() function will add a pseudocount of 1 to each value before computing the log.
+Note that because of the zero counts, the `logNormCounts()` function will add a pseudocount of 1 to each value before computing the log.
 
 *These steps may take a minute or so.*
 
@@ -169,7 +169,7 @@ gbm_sce <- scater::logNormCounts(gbm_sce)
 ## Compare normalized data to count data
 
 One way to determine whether our normalization yields biologically relevant results is to plot it and see if similarly labeled samples and cells end up together.
-Because plotting 1000's of genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis. 
+Because plotting 1000's of genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis (PCA). 
 
 We will also log transform the raw counts to make their scaling more comparable to the normalized data. 
 To do this we will use the `log1p()` function, which is specifically designed for the case where we want to add 1 to all of our values before taking the log, as we do here.
@@ -194,7 +194,7 @@ When we use `calculatePCA()` on the object, it automatically uses the log normal
 We are also using the `ntop` argument so that the PCA is calculated using data from all genes in the data set. 
 This is not the default for `calculatePCA()` as we will explore below.
 
-Next we will arrange the PCA scores for plotting, adding a column with the cell type data so we can color each point of the plot. 
+Next we will arrange the PCA scores for plotting, adding a column with the cell-type data so we can color each point of the plot. 
 
 ```{r pca_df}
 # Set up the PCA scores for plotting
@@ -202,8 +202,8 @@ norm_pca_scores <- data.frame(norm_pca,
                               geo_accession = rownames(norm_pca),
                               cell_type = gbm_sce$cell_type)
 log_pca_scores <- data.frame(log_pca,
-                              geo_accession = rownames(log_pca),
-                              cell_type = gbm_sce$cell_type)
+                             geo_accession = rownames(log_pca),
+                             cell_type = gbm_sce$cell_type)
 ```
 
 Now we will plot the unnormalized PCA scores with their cell labels:
@@ -239,7 +239,7 @@ gbm_variance <- modelGeneVar(gbm_sce)
 ```
 
 ```{r plot_variance}
-ggplot(as.data.frame(gbm_variance), aes(x= mean, y = total)) +
+ggplot(as.data.frame(gbm_variance), aes(x = mean, y = total)) +
   geom_point(alpha = 0.05) +
   stat_function(fun = metadata(gbm_variance)$trend, color = "blue") + 
   xlab("Mean log-expression") + 
@@ -295,7 +295,7 @@ markers$Neuron %>%
 ```
 
 Because we tend to like tidy data, here we use a `tidyverse` function from the [`purrr` package](https://purrr.tidyverse.org) to apply the same operations as above to every element of the `markers` list. 
-`purrr::map_df` is particularly nice, because after applying the operations in the second argument, it combines the results into a single data frame, adding a column with the name specified by `.id` to differentiate the rows that came from each element of the list.
+`purrr::map_df()` is particularly nice, because after applying the operations in the second argument, it combines the results into a single data frame, adding a column with the name specified by `.id` to differentiate the rows that came from each element of the list.
 
 ```{r top_markers}
 # Make a data frame of the top markers for each cell type
@@ -313,7 +313,7 @@ unique_markers <- unique(top_markers$gene)
 length(unique_markers)
 ```
 
-Now we will use those unique markers to calculate the principal component analysis using just those genes.
+Now we will use those unique markers to calculate the PCA using just those genes.
 
 ```{r marker_pca}
 marker_pca <- calculatePCA(gbm_sce, 
@@ -339,7 +339,7 @@ ggplot(marker_pca, aes(x = PC1, y = PC2, color = cell_type)) +
 In case we wanted to return to this data later, let's save the normalized data
 to a tsv file. 
 In order to do this we need to extract our normalized counts from `gbm_sce`. 
-Refer back to the `SingleCellExperiment` figure above to determine why we are using this `logcounts` function.
+Refer back to the `SingleCellExperiment` figure above to determine why we are using this `logcounts()` function.
 
 ```{r Save Data to .tsv}
 # Save this gene matrix to a tsv file
