@@ -27,7 +27,7 @@ In our experience with the method, it does this quite well.
 
 ## Set up
 
-```{r}
+```{r set_seed}
 # We will need this for our dimension reduction to be reproducible and there is
 # some sampling that goes into collapsing our RNA-seq matrix
 seed <- 1234
@@ -36,7 +36,7 @@ set.seed(seed)
 
 ### Libraries
 
-```{r}
+```{r libraries}
 library(tidyverse)
 # Pathway-Level Information ExtractoR
 library(PLIER)
@@ -46,7 +46,7 @@ library(PLIER)
 
 #### Directories
 
-```{r}
+```{r directories}
 # Directory that holds the metadata and RNA-seq
 data_dir <- file.path("data", "open-pbta", "processed")
 
@@ -59,7 +59,7 @@ if (!dir.exists(models_dir)) {
 
 #### Input files
 
-```{r}
+```{r input_files}
 # Metadata
 histologies_file <- file.path(data_dir, "pbta-histologies-stranded-rnaseq.tsv")
 # VST transformed RNA-seq data
@@ -68,7 +68,7 @@ rnaseq_file <- file.path(data_dir, "pbta-vst-stranded.tsv")
 
 #### Output file
 
-```{r}
+```{r output_files}
 # RNA-seq file with duplicate gene identifiers collapsed
 collapsed_data_file <- file.path(data_dir, "pbta-vst-stranded-collapsed.tsv")
 # PLIER output
@@ -81,7 +81,7 @@ plier_file <- file.path(models_dir, "pbta-medulloblastoma-plier.RDS")
 
 In the interest of reducing runtime, we're going to subset the dataset to only the medulloblastoma samples we included in the previous notebook.
 
-```{r}
+```{r read_in_metadata, live = TRUE}
 # Read in metadata
 histologies_df <- read_tsv(histologies_file)
 
@@ -95,13 +95,13 @@ medulloblastoma_samples <- histologies_df %>%
 
 Read in the VST transformed RNA-seq data.
 
-```{r}
+```{r read_in_rnaseq, live = TRUE}
 rnaseq_df <- read_tsv(rnaseq_file)
 ```
 
 Let's take a look at this data frame.
 
-```{r}
+```{r rnaseq_head, live = TRUE}
 head(rnaseq_df)
 ```
 
@@ -111,7 +111,7 @@ PLIER requires gene symbols as rownames, so we will need to take some steps to p
 First, we need to separate the gene symbols from the Ensembl gene identifiers.
 Luckily, there's a tidyverse function that can separate one column into multiple columns called `tidyr::separate()`.
 
-```{r}
+```{r separate_gene_ids}
 symbol_rnaseq_df <- rnaseq_df %>%
   tidyr::separate(gene_id,  # Take the gene_id column
                   # Create two new columns called ensembl_id and gene_symbol
@@ -131,39 +131,39 @@ rm(rnaseq_df)
 
 Alright, what does our new data frame look like?
 
-```{r}
+```{r head_symbol_df, live = TRUE}
 head(symbol_rnaseq_df)
 ```
 
 We won't need the column with the Ensembl identifiers anymore, so let's remove it.
 
-```{r}
+```{r remove_ensg, live = TRUE}
 symbol_rnaseq_df <- symbol_rnaseq_df %>%
   select(-ensembl_id)
 ```
 
 ### Collapsing duplicate gene symbols
 
-```{r}
+```{r any_duplicated}
 any(duplicated(symbol_rnaseq_df$gene_symbol))
 ```
 
 How many duplicated gene symbols are there?
 
-```{r}
+```{r how_many_duplicated}
 sum(duplicated(symbol_rnaseq_df$gene_symbol))
 ```
 
 Relative to the total number of genes, there are not too many genes that are duplicated.
 
-```{r}
+```{r add_row_means}
 # mean transformed value across the entire cohort
 symbol_rnaseq_df$mean_value <- rowMeans(symbol_rnaseq_df[, -1])
 ```
 
 We'll use a single gene symbol that we've randomly picked to follow along with these processing steps!
 
-```{r}
+```{r duplicated_examples}
 # Genes we will use to illustrate what happens during the collapsing duplicate
 # process
 duplicated_symbols <- c("DGCR5", "RABGEF1")
@@ -177,7 +177,7 @@ symbol_rnaseq_df %>%
 
 For a given duplicated gene symbol, we want to select the row with the highest average expression value.
 
-```{r}
+```{r collapsed_rnaseq}
 collapsed_rnaseq_df <- symbol_rnaseq_df %>%
   # For each set of rows that correspond to the same gene symbol
   group_by(gene_symbol) %>%
@@ -190,13 +190,13 @@ collapsed_rnaseq_df <- symbol_rnaseq_df %>%
 
 Check again to see if any duplicated gene symbols remain in the new collapsed data frame.
 
-```{r}
+```{r any_duplicated_now, live = TRUE}
 any(duplicated(collapsed_rnaseq_df$gene_symbol))
 ```
 
 Which row for our gene symbols of interest was retained in the collapsed data frame?
 
-```{r}
+```{r which_retained}
 collapsed_rnaseq_df %>% 
   filter(gene_symbol %in% duplicated_symbols) %>%
   select(gene_symbol, mean_value) %>%
@@ -205,7 +205,7 @@ collapsed_rnaseq_df %>%
 
 Now we're ready to remove the extraneous column with our mean values and write this collapsed data to file.
 
-```{r}
+```{r write_collapsed}
 collapsed_rnaseq_df %>%
   select(-mean_value) %>%
   write_tsv(collapsed_data_file)
@@ -213,7 +213,7 @@ collapsed_rnaseq_df %>%
 
 Make a matrix for samples that we're interested in studying here.
 
-```{r}
+```{r get_medulloblastoma_mat, live = TRUE}
 medulloblastoma_rnaseq_mat <- collapsed_rnaseq_df %>%
   select(gene_symbol, tidyselect::all_of(medulloblastoma_samples)) %>%
   tibble::column_to_rownames("gene_symbol") %>%
@@ -222,17 +222,24 @@ medulloblastoma_rnaseq_mat <- collapsed_rnaseq_df %>%
 
 And a bit of cleanup.
 
-```{r}
+```{r remove_old_df}
 rm(collapsed_rnaseq_df, symbol_rnaseq_df)
 ```
 
 ## Pathway-Level Information ExtractoR (PLIER)
 
+Here's an overview of the PLIER method from [Mao et al. _Nature Methods._ 2019.](https://doi.org/10.1038/s41592-019-0456-1) (Figure 1).
+
+![](diagrams/mao_nature_methods_fig1.png)
+
+> **Fig. 1 | PLIER overview.** PLIER is a matrix factorization approach that decomposes gene expression data into a product of a small number of LVs and
+their corresponding gene associations or loadings, while constraining the loadings to align with the most relevant automatically selected subset of prior knowledge. **a**, Given two inputs, the gene expression matrix _Y_ and the prior knowledge (represented as binary gene set membership in matrix _C_), the method returns the LVs (_B_), their loadings (_Z_), and an additional sparse matrix (_U_) that specifies which (if any) prior-information gene sets and pathways are used for each LV. The light gray area of _U_ indicates the large number of zero elements of the matrix. We apply our method to a whole-blood human gene expression dataset. **b**, The positive entries of the resulting _U_ matrix are visualized as a heat map, facilitating the identification of the correspondence between specific LVs and prior biological knowledge. As the absolute scale of the _U_ matrix is arbitrary, each column is normalized to a maximum of 1. **c**, We validate the LVs mapped to specific leukocyte cell types by comparing PLIER estimated relative cell-type proportions with direct measurements by mass cytometry. Dashed lines represent 0.05, 0.01, and 0.001 significance levels for Spearman rank correlation (one-tailed test). NK cell, natural killer cell.
+
 ### Pathway data
 
 The `PLIER` package comes with different gene sets we can use as input during training.
 
-```{r}
+```{r plier_data}
 data("bloodCellMarkersIRISDMAP")
 data("canonicalPathways")
 data("svmMarkers")
@@ -248,21 +255,21 @@ all_pathways <- PLIER::combinePaths(bloodCellMarkersIRISDMAP,
 And a built-in function to row normalize the expression data.
 This is z-scoring the expression values for each gene.
 
-```{r}
+```{r row_normalize, live = TRUE}
 # Row normalize -- z-scoring the genes
 medulloblastoma_zscore <- PLIER::rowNorm(medulloblastoma_rnaseq_mat)
 ```
 
 ### Run PLIER
 
-```{r}
+```{r common_genes}
 # Identify genes that are common to the pathway data and the zscore mat
 common_genes <- PLIER::commonRows(all_pathways, medulloblastoma_zscore)
 ```
 
 Now for the main PLIER function.
 
-```{r}
+```{r run_plier}
 plier_results <- PLIER::PLIER(data = medulloblastoma_zscore[common_genes, ],
                               priorMat = all_pathways[common_genes, ],
                               rseed = seed)
@@ -272,20 +279,20 @@ plier_results <- PLIER::PLIER(data = medulloblastoma_zscore[common_genes, ],
 
 What does the output of `PLIER::PLIER()` look like?
 
-```{r}
+```{r view_plier, live = TRUE}
 View(plier_results)
 ```
 
 The _U_ matrix tells us about how the latent variables learned by the model relate to the pathways we used as input.
 
-```{r}
+```{r plot_u}
 PLIER::plotU(plier_results)
 ```
 
 `summary` returns the FDR and AUC values for input pathway to latent variable relationships.
 Let's look at the values of that data frame for the latent variable that corresponds to some macrophage-related gene sets.
 
-```{r}
+```{r lv57_summary}
 plier_results$summary %>% 
   filter(`LV index` == 57,
          FDR < 0.05) %>%
@@ -294,25 +301,25 @@ plier_results$summary %>%
 
 The _B_ matrix contains the latent variable values for each sample.
 
-```{r}
+```{r dim_b}
 dim(plier_results$B)
 ```
 
 Let's take a peek at the matrix itself.
 
-```{r}
+```{r b_preview, live = TRUE}
 plier_results$B[1:5, 1:5]
 ```
 
 The _Z_ matrix contains the gene loadings (how genes combine to get _B_).
 
-```{r}
+```{r dim_z}
 dim(plier_results$Z)
 ```
 
 We can use _Z_ to tell us which genes contribute to LV57.
 
-```{r}
+```{r lv57_loadings}
 head(sort(plier_results$Z[, 57], 
           decreasing = TRUE), 
      n = 25)
@@ -321,12 +328,12 @@ head(sort(plier_results$Z[, 57],
 In the next notebook, we'll show you one way to use a PLIER model for biological discovery.
 For now, let's save the plier results to file.
 
-```{r}
+```{r write_plier}
 write_rds(plier_results, path = plier_file)
 ```
 
 ## Session Info
 
-```{r}
+```{r session_info}
 sessionInfo()
 ```
