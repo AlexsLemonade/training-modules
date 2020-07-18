@@ -79,6 +79,8 @@ But for your own reference, here is how you might do it yourself:
 #  -k 23
 ```
 
+The scripts we used to build the index we are using here (and others) can be found in [this repository](https://github.com/AlexsLemonade/training-txome-prep)
+
 ## Step 4: For each sample, run [Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) for quantification
 
 From the command line, running Alevin is not too much different from running
@@ -123,8 +125,8 @@ However, Drop-seq data is also supported, and in this case you would use a `--dr
 
 #### `--tgMap`
 This is needed to supply a transcript to gene key that Alevin will use to quantify the genes.
-For our example, we've pre-made the file `Mus_musculus.GRCm38_tx2gene.tsv` from the Ensembl transcriptome that we indexed above. 
-The file has to be a TSV file.
+For our example, we've pre-made the file `mm_ensdb95_tx2gene.tsv` from the Ensembl transcriptome that we indexed above. 
+The file is a TSV file with 2 columns: one of transcripts and the other the gene that each comes from.
 
 
 #### `--dumpFeatures`
@@ -163,36 +165,33 @@ In the pattern `10X_P4_3_L*_R1_*.fastq.gz`, this would allow any lane number and
 For this directory, that would look make our full `salmon alevin` command look like this (don't run this now!):
 
 ```
-salmon alevin -l ISR \
-  -i /shared/data/reference/refgenie/mm10_cdna/salmon_index/short/short/ \
-  -1 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R1_*.fastq.gz \
-  -2 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R2_*.fastq.gz \
-  --chromium  \
-  -p 4 \
-  -o data/tabula-muris/alevin-quant/10X_P4_3_full \
-  --tgMap data/tabula-muris/mm_ensdb95_tx2gene.tsv \
-  --dumpFeatures
+# salmon alevin -l ISR \
+#   -i /shared/data/reference/refgenie/mm10_cdna/salmon_index/short/short/ \
+#   -1 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R1_*.fastq.gz \
+#   -2 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R2_*.fastq.gz \
+#   --chromium  \
+#   -p 4 \
+#   -o data/tabula-muris/alevin-quant/10X_P4_3_full \
+#   --tgMap data/tabula-muris/mm_ensdb95_tx2gene.tsv \
+#   --dumpFeatures
 ```
 
 In general, you will want to run all lanes and all files for a given sample together.
-But DO NOT want to combine multiple samples into a single `alevin` quantification!
+But **DO NOT** combine multiple *samples* into a single `alevin` quantification!
+Keep separate samples (and replicates) separate!
 
 ## Step 6: Perform QC checks with `alevinQC`
 
-Now that we have quantified our data with Alevin, we are ready to perform
-quality control checks.
+Now that we have quantified our data with Alevin, we are ready to perform quality control checks.
 
 ![**Current status of this dataset**](diagrams/tag-based_2.png)
 
 In order to perform quality control checks, we'll use the `alevinQC` R package.
-Note that `alevinQC` depends on files that we get using the`--dumpFeatures`
-option in Alevin.
+Note that `alevinQC` depends on files that we get using the`--dumpFeatures` option in Alevin.
 
 About the `alevinQCReport()` function:
-The first argument needs to be where the sample's output data was put when
-Alevin was run (as a character string, aka using quotes)
-The rest of `alevinQCReport()`'s arguments tell R where to put the output QC
-report also using `characters`.
+The first argument needs to be where the sample's output data was put when Alevin was run (as a character string, aka using quotes).
+The rest of `alevinQCReport()`'s arguments tell R where to put the output QC report.
 
 ```{r}
 # Produce a QC report
@@ -202,11 +201,9 @@ alevinQC::alevinQCReport("data/tabula-muris/alevin-quant/10X_P4_3",
                          outputDir = "qc-reports")
 ```
 
-Check out `data/tabula_muris/qc_reports/10X_P4_3_subset_qc_report.html`
-in order to examine the quality of your data and performance of Alevin.
+Look for the `10X_P4_3_qc_report.html` file created in the `qc-reports` directory to examine the quality of your data and performance of Alevin.
 
-
-This is an example of [a poor quality sample alevinQC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/tabula_muris/qc_reports/Bad_Example_10X_P4_2_qc_report.html).
+We have also placed an example of a poor quality sample alevinQC report in the `qc-reports` directory, with the name `Bad_Example_10X_P4_2_qc_report.html`.
 
 ## Step 7: Loading Alevin output into R
 
