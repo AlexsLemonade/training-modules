@@ -1,0 +1,239 @@
+---
+title: "Run PLIER on OpenPBTA data"
+output: 
+  html_notebook:
+    toc: true
+    toc_float: true
+author: CCDL for ALSF    
+date: 2020
+---
+
+In this notebook, we'll train a Pathway-Level Information ExtractoR (PLIER) model on the OpenPBTA data ([Mao et al. _Nature Methods._ 2019.](https://doi.org/10.1038/s41592-019-0456-1)).
+
+Running PLIER takes more time than we have available to us during the workshop, so we supply the PLIER output during the workshop in the interest of exploring the model.
+
+## Set up 
+
+```{r}
+# Seed we'll use throughout
+seed <- 12345
+```
+
+### Libraries
+
+```{r}
+library(tidyverse)
+library(PLIER)
+```
+
+### Directories and files
+
+#### Directories
+
+```{r}
+# Data with transformed data
+data_dir <- file.path("..", "data", "open-pbta", "processed")
+# Directory to hold the PLIER outpu
+models_dir <- file.path("..", "models")
+if (!dir.exists(models_dir)) {
+  dir.create(models_dir, recursive = TRUE)
+}
+```
+
+#### Input
+
+```{r}
+rnaseq_file <- file.path(data_dir, "pbta-vst-stranded.tsv")
+```
+
+#### Output
+
+```{r}
+plier_file <- file.path(models_dir, "pbta-stranded-plier.RDS")
+```
+
+## Read in and prepare data
+
+We'll use the VST transformed stranded RNA-seq data from OpenPBTA.
+
+```{r}
+rnaseq_df <- read_tsv(rnaseq_file)
+head(rnaseq_df)
+```
+
+The `gene_id` column concatenates two different gene identifiers: Ensembl gene IDs and gene symbols.
+PLIER requires gene symbols as rownames, so we will need to take some steps to prepare this data for use with PLIER.
+
+First, we need to separate the gene symbols from the Ensembl gene identifiers.
+Luckily, there's a tidyverse function that can separate one column into multiple columns called `tidyr::separate()`.
+
+```{r}
+symbol_rnaseq_df <- rnaseq_df %>%
+  separate(gene_id,  # Take the gene_id column
+                  # Create two new columns called ensembl_id and gene_symbol
+                  into = c("ensembl_id", "gene_symbol"),
+                  # The values for these two columns are separated by _
+                  sep = "_",
+                  # Some gene symbols themselves contain _, so when that happens
+                  # merge everything after the first _ into the gene_symbol
+                  # column
+                  extra = "merge")
+
+
+# We no longer need the data frame we read in, so we'll remove it to save some
+# memory
+rm(rnaseq_df)
+```
+
+Alright, what does our new data frame look like?
+
+```{r}
+head(symbol_rnaseq_df)
+```
+
+We won't need the column with the Ensembl identifiers anymore, so let's remove it.
+
+```{r}
+symbol_rnaseq_df <- symbol_rnaseq_df %>%
+  select(-ensembl_id)
+```
+
+### Collapsing duplicate gene symbols
+
+```{r}
+any(duplicated(symbol_rnaseq_df$gene_symbol))
+```
+
+How many duplicated gene symbols are there?
+
+```{r}
+sum(duplicated(symbol_rnaseq_df$gene_symbol))
+```
+
+Relative to the total number of genes, there are too many genes that are duplicated.
+
+```{r}
+# mean transformed value across the entire cohort
+symbol_rnaseq_df$mean_value <- rowMeans(symbol_rnaseq_df[, -1])
+```
+
+We'll use a single gene symbol that we've randomly picked to follow along with these processing steps!
+
+```{r}
+# Gene we will use to illustrate what happens during the collapsing duplicate
+# process
+duplicated_symbol <- "DGCR5"
+
+# Let's take a look at the mean values prior to any filtering
+symbol_rnaseq_df %>% 
+  filter(gene_symbol == duplicated_symbol) %>%
+  select(gene_symbol, mean_value)
+```
+
+```{r}
+# There will be sampling in the next step so we need to set a seed
+set.seed(seed)
+
+# Collapse the RNA-seq data such that there is only one instance of each gene 
+# symbol
+collapsed_rnaseq_df <- symbol_rnaseq_df %>%
+  # For each set of rows that correspond to the same gene symbol
+  group_by(gene_symbol) %>%
+  # Select the single row with the highest value in the mean_value column
+  top_n(1, mean_value) %>%
+  # In the case of ties, where the mean values are the same, randomly pick one
+  # row
+  sample_n(1)
+```
+
+Check again to see if any duplicated gene symbols remain in the new collapsed data frame.
+
+```{r}
+any(duplicated(collapsed_rnaseq_df$gene_symbol))
+```
+
+Which row for our gene symbol of interest was retained in the collapsed data frame?
+
+```{r}
+collapsed_rnaseq_df %>% 
+  filter(gene_symbol == duplicated_symbol) %>%
+  select(gene_symbol, mean_value)
+```
+
+Now we're ready to remove the extraneous column with our mean values and make a matrix.
+
+```{r}
+rnaseq_mat <- collapsed_rnaseq_df %>%
+  select(-mean_value) %>%
+  tibble::column_to_rownames("gene_symbol") %>%
+  as.matrix()
+```
+
+## PLIER
+
+### Gene sets
+
+The PLIER package comes with multiple gene sets that we will now load in and use as input during training.
+
+```{r}
+data("bloodCellMarkersIRISDMAP")
+data("canonicalPathways")
+data("oncogenicPathways")
+data("svmMarkers")
+
+# Combine all gene sets into single matrix
+all_pathways <- PLIER::combinePaths(bloodCellMarkersIRISDMAP, 
+                                    canonicalPathways,
+                                    oncogenicPathways,
+                                    svmMarkers)
+```
+
+### Row normalize
+
+PLIER uses z-scored data.
+
+```{r}
+# Row normalize (e.g., standardize)
+rnaseq_norm <- PLIER::rowNorm(rnaseq_mat)
+```
+
+### Run PLIER
+
+```{r}
+# Identify genes that are common to the pathway data and the zscore mat
+common_genes <- PLIER::commonRows(all_pathways, rnaseq_norm)
+```
+
+Let's time how long it takes to run PLIER on this data set with some help from `Sys.time()`.
+
+```{r}
+start_time <- Sys.time()
+```
+
+```{r}
+# Run PLIER
+plier_results <- PLIER::PLIER(data = rnaseq_norm[common_genes, ],
+                              priorMat = all_pathways[common_genes, ],
+                              rseed = 1234,
+                              trace = TRUE)
+```
+
+```{r}
+end_time <- Sys.time()
+end_time - start_time
+```
+
+### Save to file
+
+Save the PLIER output to file.
+
+```{r}
+write_rds(plier_results, path = plier_file)
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
+
