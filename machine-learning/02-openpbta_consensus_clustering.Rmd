@@ -16,8 +16,8 @@ In this notebook, we'll use the medulloblastoma data from the OpenPBTA project t
 
 ### Libraries
 
-```{r}
-# Bit o' data wrangling
+```{r libraries}
+# Bit o' data wranglin'
 library(tidyverse)
 # Consensus clustering library
 library(ConsensusClusterPlus)
@@ -30,7 +30,7 @@ library(ComplexHeatmap)
 
 #### Directories
 
-```{r}
+```{r directories, live = TRUE}
 # Directory with the prepared/lightly cleaned OpenPBTA data
 data_dir <- file.path("data", "open-pbta", "processed")
 
@@ -44,14 +44,14 @@ if (!dir.exists(results_dir)) {
 
 #### Input files
 
-```{r}
+```{r input_files}
 histologies_file <- file.path(data_dir, "pbta-histologies-stranded-rnaseq.tsv")
 rnaseq_file <- file.path(data_dir, "pbta-vst-stranded.tsv")
 ```
 
 #### Output files
 
-```{r}
+```{r output_files, live = TRUE}
 cc_results_file <- file.path(results_dir, "consensus_clustering_results.RDS")
 ```
 
@@ -61,7 +61,7 @@ cc_results_file <- file.path(results_dir, "consensus_clustering_results.RDS")
 
 Let's read in the sample metadata and get the sample identifiers for medulloblastoma samples.
 
-```{r}
+```{r read_in_metadata, live = TRUE}
 # Read in metadata TSV
 histologies_df <- read_tsv(histologies_file)
 
@@ -74,7 +74,7 @@ medulloblastoma_samples <- histologies_df %>%
 
 ### RNA-seq data
 
-```{r}
+```{r read_in_rnaseq}
 # Read in transformed RNA-seq data
 rnaseq_df <- read_tsv(rnaseq_file)
 
@@ -103,7 +103,7 @@ The consensus clustering methodology was first introduced in [Monti et al. _Mach
 Consensus clustering is one way to help you determine the number of clusters in your data, but it is not the only methodology available. 
 Check out the [Data Novia course _Cluster Validation Essentials_ by Alboukadel Kassambara](https://www.datanovia.com/en/courses/cluster-validation-essentials/) for a deeper dive.
 
-```{r}
+```{r consensus_clustering}
 cc_results <- ConsensusClusterPlus(rnaseq_mat,
                                    maxK = 15,
                                    # Setting this seed is necessary for the 
@@ -119,8 +119,9 @@ A cluster of a few samples may not be that helpful in reaching our analysis goal
 
 Let's take a look at the class labels for _k_ = 9.
 
-```{r}
+```{r cc_labels, live = TRUE}
 # table() creates a contingency table of counts
+# 
 table(cc_results[[9]]$consensusClass)
 ```
 
@@ -129,28 +130,29 @@ table(cc_results[[9]]$consensusClass)
 **Let's consider clusters 1, 3, and 4 for further analysis.**
 But first, we'll save the entirety of the consensus clustering results to file.
 
-```{r}
+```{r save_cc_results, live = TRUE}
+# Write consensus clustering results to file
 write_rds(cc_results, path = cc_results_file)
 ```
 
 And now to extract the samples in the clusters of interest.
 What we used `table()` on before is actually a named vector.
 
-```{r}
+```{r extract_cluster_labels}
 cc_cluster_labels <- cc_results[[9]]$consensusClass
 head(cc_cluster_labels)
 ```
 
 We'll extract the names (biospecimen IDs) for samples in clusters 1, 3, and 4, which contain the majority of samples.
 
-```{r}
+```{r sample_names}
 sample_index <- which(cc_cluster_labels %in% c(1, 3, 4))
 samples_in_clusters <- names(cc_cluster_labels)[sample_index]
 ```
 
 Check what proportion of total samples are in one of these three clusters.
 
-```{r}
+```{r proportion_in_clusters}
 # number of samples that met our logical criterion above divided by total 
 # number of samples
 length(sample_index) / length(cc_cluster_labels)
@@ -158,7 +160,7 @@ length(sample_index) / length(cc_cluster_labels)
 
 And now we'll filter the RNA-seq matrix.
 
-```{r}
+```{r filter_to_clusters, live = TRUE}
 filtered_rnaseq_mat <- rnaseq_mat[, samples_in_clusters]
 dim(filtered_rnaseq_mat)
 ```
@@ -173,12 +175,12 @@ We'll use the [`cluster` package](https://cran.r-project.org/web/packages/cluste
 The `silhouette()` function takes the class labels and dissimilarities.
 Let's use Pearson correlation as we have been throughout.
 
-```{r}
+```{r same_order}
 all.equal(names(cc_cluster_labels[sample_index]), 
           colnames(filtered_rnaseq_mat))
 ```
 
-```{r}
+```{r mb_cor_and_dist, live = TRUE}
 # Calculate the Pearson correlation between samples (columns of the matrix)
 mb_sample_correlation <- cor(filtered_rnaseq_mat,
                              use = "pairwise.complete.obs",
@@ -189,7 +191,7 @@ mb_sample_dist <- as.dist(1 - mb_sample_correlation)
 
 Let's calculate the silhouette values and then plot them.
 
-```{r}
+```{r silhouette}
 silhouette_results <- silhouette(x = cc_cluster_labels[sample_index],
                                  dist = mb_sample_dist)
 plot(silhouette_results)
@@ -202,21 +204,27 @@ A [medulloblastoma subtype classifier](https://github.com/d3b-center/medullo-cla
 How do the subtype labels from this classifier (in the `molecular_subtype` column of our sample metadata) stack up to the clusters we identified with unsupervised methods?
 
 Let's first make a data frame that holds the subtype labels.
-We can use this both to compare our unsupervised clustering results to the subtype labels and to 
+We can use this both to compare our unsupervised clustering results to the subtype labels and for some plotting downstream.
 
-```{r}
+```{r subtype_df}
 mb_molecular_subtype_df <- histologies_df %>%
   filter(short_histology == "Medulloblastoma") %>%
   select(Kids_First_Biospecimen_ID, molecular_subtype)
 ```
 
-```{r}
+Add the consensus clustering labels.
+
+```{r subtype_cc, live = TRUE}
+# Create a data frame that contains the consensus cluster results and join
+# it with the data frame of molecular subtype labels
 cc_df <- data.frame(cc_cluster_labels) %>%
   tibble::rownames_to_column("Kids_First_Biospecimen_ID") %>%
   inner_join(mb_molecular_subtype_df)
 ```
 
-```{r}
+Do the consensus clustering results agree with the molecular subtype labels?
+
+```{r cc_subtype_table}
 table(cc_df$cc_cluster_labels, cc_df$molecular_subtype)
 ```
 
@@ -230,41 +238,89 @@ We used a different measure (VST values vs. FPKM) and used all features.
 
 ## Low-dimensional representation
 
-Let's see if a low-dimensional representation, we'll use UMAP, seems to agree with our other unsupervised results.
+Let's see if low-dimensional representations agree with our other unsupervised results.
+First, let's find the high variance genes; we'll perform dimension reduction on those genes only.
 
-```{r}
+```{r gene_variance}
+# Calculate variance
+gene_variance <- matrixStats::rowVars(rnaseq_mat)
+# Find the value that we'll use as a threshold to filter the top 5%
+variance_threshold <- quantile(gene_variance, 0.95)
+# Row indices of high variance genes
+high_variance_index <- which(gene_variance > variance_threshold)
+```
+
+### UMAP
+
+First, let's use UMAP.
+
+```{r run_umap}
 # Set seed for reproducible UMAP results
 set.seed(2020)
-# umap() expects features (genes) to be columns
-umap_results <- umap::umap(t(rnaseq_mat))
+# umap() expects features (genes) to be columns, so we have to use t()
+umap_results <- umap::umap(t(rnaseq_mat[high_variance_index, ]))
 ```
 
 The UMAP coordinates are in the `layout` element of the list returned by `umap::umap()`.
 
-```{r}
-umap_plot_df <- as.data.frame(umap_results$layout) %>%
+```{r make_umap_df, live = TRUE}
+# Make a data frame of the layout results and join with molecular subtype 
+# data frame
+umap_plot_df <- data.frame(umap_results$layout) %>%
   tibble::rownames_to_column("Kids_First_Biospecimen_ID") %>%
   inner_join(mb_molecular_subtype_df)
 ```
 
 Let's make a scatter plot and color our samples by the subtype labels.
 
-```{r}
+```{r umap_scatter}
 umap_plot_df %>%
-  ggplot(aes(x = V1, 
-             y = V2,
+  ggplot(aes(x = X1, 
+             y = X2,
              color = molecular_subtype)) +
   geom_point() +
-  scale_color_manual(values = colorblindr::palette_OkabeIto) +
+  colorblindr::scale_color_OkabeIto() +
   theme_bw() +
   xlab("UMAP1") +
   ylab("UMAP2")
 ```
 
-## Session Info
+### PCA 
 
-```{r}
-sessionInfo()
+Now, we'll briefly show you how to use built-in functions for PCA on any matrix that's not in a specialized object for some kind of genomic data.
+
+```{r run_pca}
+# Like umap(), prcomp() expects the features to be columns
+pca_results <- prcomp(t(rnaseq_mat[high_variance_index, ]), 
+                      scale = TRUE)
+# The low-dimensional representation is returned in x
+head(pca_results$x)
 ```
 
+Let's get the first 2 PCs ready for plotting.
 
+```{r pca_df, live = TRUE}
+pca_plot_df <- data.frame(pca_results$x[, 1:2]) %>%
+  tibble::rownames_to_column("Kids_First_Biospecimen_ID") %>%
+  inner_join(mb_molecular_subtype_df)
+```
+
+And now make a scatterplot.
+
+```{r pca_scatter, live = TRUE}
+pca_plot_df %>%
+  ggplot(aes(x = PC1, 
+             y = PC2,
+             color = molecular_subtype)) +
+  geom_point() +
+  colorblindr::scale_color_OkabeIto() +
+  theme_bw() +
+  xlab("PC1") +
+  ylab("PC2")
+```
+
+## Session Info
+
+```{r session_info}
+sessionInfo()
+```
