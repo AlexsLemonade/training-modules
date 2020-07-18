@@ -3,7 +3,7 @@ title: "Combining alevin runs"
 output: html_notebook
 ---
 
-
+## Setup
 ```{r setup}
 library(tximport)
 library(scran)
@@ -14,12 +14,18 @@ library(magrittr)
 library(ggplot2)
 ```
 
+
+### Sample IDs
+
+These are the sample ids from *Tabula Muris* that we have processed and will be using.
+
 ```{r}
-# sample IDs (skipping `_2` as it is known bad)
+# sample IDs (skipping `10X_P4_2` as it is known bad)
 samples <- c("10X_P4_0", "10X_P4_1", "10X_P4_3", "10X_P4_4", "10X_P4_5", "10X_P4_6")
 ```
 
 
+### File paths
 
 ```{r filepaths}
 data_dir <- "/shared/data/training-data/tabula-muris"
@@ -33,40 +39,52 @@ mito_file <- file.path("..", "..", "data", "tabula-muris",
                        "mm_mitochondrial_genes.tsv")
 
 
-outfile <- file.path("..", "..", "data", "tabula-muris", "full", )
+outfile <- file.path("..", "..", "data", "tabula-muris", "normalized", "TM_normalized.rds")
 ```
 
+## Read in data
+
+Import the alevin results and convert them to `SingleCellExperiments`.
 ```{r import_sce}
 tm_sces <- alevin_files %>%
   purrr::map(tximport::tximport, type = "alevin") %>%
   purrr::map(~ SingleCellExperiment::SingleCellExperiment(list(counts = .x$counts)))
 ```
-Get the tissue types and mouse info for each sample
+
+Get the tissue types and mouse info for each sample. 
+We are getting these from the `TM_droplet_metadata.csv` data file, which also has data for individual cells, but we will discard most of that.
+The `channel` column is what we are calling the `sample_id`.
+
 ```{r}
 tm_metadata <- readr::read_csv(tm_metafile, guess_max = 10000) %>%
   dplyr::select(sample_id = channel, mouse.id, tissue, mouse.sex) %>%
   dplyr::distinct()
 ```
 
-
 Add sample info to each single cell experiment object.
+Here we are lso making sure we have a unique `cell` id that matches the format of `TM_droplet_metadata.csv` 
 
 ```{r update_col}
 add_sample_meta <- function(sce, sample_id, meta_table){
   barcodes <- colnames(sce) 
-  cell_ids <- paste0(barcodes, ".", sample_id)
-  meta_df <- tibble::tibble(cell_id = cell_ids, 
+  cell_ids <- paste0(sample_id, "_",  barcodes)
+  meta_df <- tibble::tibble(cell = cell_ids, 
                             sample_id = sample_id, 
                             barcode = barcodes) %>%
     dplyr::left_join(meta_table, by = "sample_id")
-  colData(sce) <- DataFrame(meta_df, row.names = meta_df$cell_id)
+  colData(sce) <- DataFrame(meta_df, row.names = meta_df$cell)
   return(sce)
 }
 
 tm_sces <- purrr::imap(tm_sces, add_sample_meta, tm_metadata)
 ```
 
-Run QC filters
+
+## Quality Control 
+
+### Per-cell QC
+
+Get the list of mitochondiral genes and calculate QC metrics for each cell using `scater::addPerCellQC()`.
 
 ```{r applyQC}
 # Get vector of mitochondrial genes.
@@ -78,29 +96,37 @@ tm_sces <- tm_sces %>%
   purrr::map(scater::addPerCellQC, subsets = list(mito = mito_genes))
 ```
 
-Pull the QC data for plotting
+Extract the QC data from the Single Cell Experiment objects as a data frame for plotting.
 
 ```{r}
 qc_df <- tm_sces %>%
   purrr::map_df(~ as.data.frame(colData(.x)))
 ```
 
+#### Scatter plot of each sample
 ```{r}
 ggplot(qc_df, aes(x = total, y = detected, color = subsets_mito_percent)) + 
   geom_point() +
   scale_color_viridis_c() +
   facet_wrap(~ sample_id)
 ```
+
+#### Density plots of mitochondrial percentages
 ```{r}
-ggplot(qc_df, aes(x = subsets_mito_percent, color = tissue)) + 
+ggplot(qc_df, aes(x = subsets_mito_percent, color = tissue, fill = tissue)) + 
   geom_density() + 
-  facet_wrap(~ sample_id, scales = "free_y")
+  facet_wrap(~ sample_id, scales = "free_y") +
+  colorblindr::scale_fill_OkabeIto() + 
+  colorblindr::scale_color_OkabeIto()
 ```
 
-This may not be ideal, especially for the kidney samples but for now lets set the following cutoffs:
+### Filter cells based on QC measures
+
+This may not be ideal, especially for the kidney samples which seem to have high overall mitochondrial percentages, but for now lets set the following cutoffs:
 
 - Mitochondrial percent < 25%
 - detected genes > 500
+
 
 ```{r}
 filter_sce <- function(sce, detect_threshold, mito_threshold) {
@@ -114,17 +140,27 @@ tm_filtered <- tm_sces %>%
 ```
 
 
-Combine SCEs
+### Combine SingleCellExperiments
+
+This is a naive combination, simply concatinating the component samples into one SCE class/expression matrix.
+If we had some batch info, we might want to apply that to do better.
+
 ```{r}
 tm_combined <- do.call(cbind, tm_filtered)
 ```
 
-Feature QC:
+### Feature (gene) QC
+
+I am doing the Feature QC at this point because it does not use normalized data, and by my understanding of the normalization procedures, removing the low-expressed genes should not affect normalization. 
+
 ```{r}
 tm_combined <- addPerFeatureQC(tm_combined)
 ```
 
-Feature filtering: Genes found in at least 10 samples, and with a mean count of at least 0.5
+Feature filtering criteria: 
+- Genes found in at least 10 samples
+- mean count of at least 0.5
+
 ```{r}
 detected <- rowData(tm_combined)$detected > 10
 expressed <- rowData(tm_combined)$mean > 0.5
@@ -134,9 +170,13 @@ tm_combined <- tm_combined[detected & expressed, ]
 ```
 
 
-Normalize
+## Normalization
+
+We are normalizing with `scran::computeSumFactors()` which implements the strategy of [Lun 
+*et al.* (2016)](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
+
 ```{r normalize}
-# clister similar cells
+# Cluster similar cells
 qclust <- scran::quickCluster(tm_combined)
 
 # Step 2) Compute sum factors for each cell cluster grouping.  
@@ -147,7 +187,33 @@ tm_combined <- scater::logNormCounts(tm_combined)
 ```
 
 
-Write out the SCE object:
+## Variance filtering
+
+Since we are using this as an example data set, we are going to shrink it down past what we might normally do.
+We will select the 1000 genes with the highest biologial variance across samples, after modeling the technical variance using `scran::modelGeneVar()`
+
+```{r}
+gene_var <- scran::modelGeneVar(tm_combined)
+highvar_genes <- scran::getTopHVGs(gene_var, n = 1000)
+
+# filter
+tm_combined_filt <- tm_combined[highvar_genes,]
+```
+
+
+
+Write out the SCE object as an RDS for later use.
+
+```{r}
+readr::write_rds(tm_combined_filt, outfile)
+```
+
+
+## Session Info
+```{r}
+sessionInfo()
+```
+
 
 
 
