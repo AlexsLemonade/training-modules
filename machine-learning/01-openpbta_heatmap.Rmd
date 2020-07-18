@@ -24,7 +24,7 @@ It is highly flexible; see the [`ComplexHeatmap` Complete Reference](https://jok
 
 ### Libraries
 
-```{r}
+```{r load_library}
 # We'll be doing a bit of data wrangling with the Tidyverse at the outset
 library(tidyverse)
 # ComplexHeatmap is the package we'll use for making a heatmap
@@ -36,7 +36,7 @@ library(ComplexHeatmap)
 
 We store the data we'll use in this notebook in `data/open-pbta/processed`. 
 
-```{r}
+```{r directories, live = TRUE}
 data_dir <- file.path("data", "open-pbta", "processed")
 
 # We'll store the heatmap in plots - create directory if it doesn't exist yet
@@ -48,14 +48,14 @@ if (!dir.exists(plots_dir)) {
 
 #### Input files
 
-```{r}
+```{r input_files}
 histologies_file <- file.path(data_dir, "pbta-histologies-stranded-rnaseq.tsv")
 rnaseq_file <- file.path(data_dir, "pbta-vst-stranded.tsv") 
 ```
 
 #### Output files
 
-```{r}
+```{r png_output, live = TRUE}
 heatmap_file <- file.path(plots_dir, 
                           "common_histologies_high_variance_heatmap.png")
 ```
@@ -66,7 +66,7 @@ heatmap_file <- file.path(plots_dir,
 
 Let's read in the metadata file and take a look.
 
-```{r}
+```{r read_in_metadata, live = TRUE}
 histologies_df <- read_tsv(histologies_file,
                            # this specifies how many lines should be used to
                            # guess column types - this file has well under
@@ -76,14 +76,14 @@ histologies_df <- read_tsv(histologies_file,
 
 Use the chunk below to explore the metadata data frame.
 
-```{r}
+```{r explore_histologies_df, live = TRUE}
 View(histologies_df)
 ```
 
 We'll use the disease labels in a column called `short_histologies` when we label the heatmap.
 Let's count how many samples are assigned each `short_histologies` label using the Tidyverse.
 
-```{r}
+```{r count_histologies}
 histology_count_df <- histologies_df %>%
   group_by(short_histology) %>%
   # Count how many samples are in each short_histology and name the column 
@@ -96,7 +96,7 @@ histology_count_df <- histologies_df %>%
 histology_count_df
 ```
 
-```{r}
+```{r filter_histologies, live = TRUE}
 # Only include histologies with over 50 samples
 histologies_to_keep <- histology_count_df %>%
   filter(n > 50) %>%
@@ -109,7 +109,8 @@ filtered_histologies_df <- histologies_df %>%
 
 ### RNA-seq data
 
-```{r}
+```{r read_in_rnaseq, live = TRUE}
+# Read in and examine the RNA-seq data
 rnaseq_df <- read_tsv(rnaseq_file)
 head(rnaseq_df)
 ```
@@ -120,11 +121,11 @@ To subset the expression data to only the histologies we're interested in, we ne
 
 The sample identifiers we need are in a column called `Kids_First_Biospecimen_ID`.
 
-```{r}
+```{r look_at_sample_ids, live = TRUE}
 head(filtered_histologies_df$Kids_First_Biospecimen_ID)
 ```
 
-```{r}
+```{r create_rnaseq_mat}
 # Filter to the samples in the histologies we're interested in
 # and create a matrix where the rownames are the gene identifiers
 rnaseq_mat <- rnaseq_df %>%
@@ -136,7 +137,7 @@ rnaseq_mat <- rnaseq_df %>%
 
 What are the dimensions of this RNA-seq data?
 
-```{r}
+```{r rnaseq_dim, live = TRUE}
 dim(rnaseq_mat)
 ```
 
@@ -145,7 +146,7 @@ If we make a heatmap to get an idea of the structure in our data, it can be help
 
 First, we'll calculate the variance for each gene using `rowVars()` from the `matrixStats` package and then take the genes in the top 10%.
 
-```{r}
+```{r high_var_genes}
 # Calculate variance
 gene_variance <- matrixStats::rowVars(rnaseq_mat)
 # Find the value that we'll use as a threshold to filter the top 10%
@@ -156,7 +157,7 @@ high_variance_index <- which(gene_variance > variance_threshold)
 head(high_variance_index)
 ```
 
-```{r}
+```{r high_var_mat, live = TRUE}
 # Get a matrix that is subset to just the high variance genes
 high_var_mat <- rnaseq_mat[high_variance_index, ]
 ```
@@ -168,7 +169,7 @@ high_var_mat <- rnaseq_mat[high_variance_index, ]
 First, we'll set up the metadata that we want to use to label samples in the heatmap.
 In `ComplexHeatmap` terminology, this is called annotation, or `HeatmapAnnotation`, specifically.
 
-```{r}
+```{r sample_annotation_df}
 sample_annotation_df <- filtered_histologies_df %>%
   # Select only the columns that we'll use
   select(Kids_First_Biospecimen_ID,
@@ -183,14 +184,14 @@ sample_annotation_df
 Right now, `sample_annotation_df` is a tibble because it's a filtered version of something we read in with `readr::read_tsv()`.
 Usually this is pretty much equivalent to a data frame.
 
-```{r}
+```{r sample_annotation_class}
 class(sample_annotation_df)
 ```
 
 BUT `ComplexHeatmap` expects a data frame, so sometimes it will behave in unexpected ways when you give it a tibble! 
 Let's make a data frame and make the sample identifiers the rownames.
 
-```{r}
+```{r annotation_as_df, live = TRUE}
 sample_annotation_df <- sample_annotation_df %>%
   as.data.frame() %>%
   tibble::column_to_rownames("Kids_First_Biospecimen_ID")
@@ -199,7 +200,7 @@ sample_annotation_df <- sample_annotation_df %>%
 To specify the colors in our annotation bar, we need to create a list of named vectors.
 The names of the list need to exactly match the column names in `sample_annotation_df` and the names in each vector need to exact match the values in those columns.
 
-```{r}
+```{r color_palettes}
 # Palette recommended for those with color vision deficencies - we'll use that 
 # for histologies
 histology_colors <- colorblindr::palette_OkabeIto[2:5]
@@ -226,51 +227,49 @@ sample_annotation_colors <- list(
 
 We need to create a special type of object with `HeatmapAnnotation`.
 
-```{r}
+```{r create_annotation, live = TRUE}
 column_annotation <- HeatmapAnnotation(
   df = sample_annotation_df,
   col = sample_annotation_colors
 )
 ```
 
-Now 
-
 ### Values for display
 
 We will z-score the expression values for display.
 This is sometimes called a standardized score.
 
-```{r}
+```{r row_normalize}
 # PLIER::rowNorm z-scores the gene (row) values
 zscores_mat <- PLIER::rowNorm(high_var_mat)
 ```
 
 Let's look at the mean and standard deviation of values for a randomly selected gene prior to standardization.
 
-```{r}
+```{r random_row_mean}
 mean(high_var_mat[25, ])
 ```
 
-```{r}
+```{r random_row_sd}
 sd(high_var_mat[25, ])
 ```
 
 And now those values after standardization.
 
-```{r}
+```{r random_z_mean, live = TRUE}
 mean(zscores_mat[25, ])
 ```
 
 This value isn't exact zero but it's very close!
 
-```{r}
+```{r random_z_sd, live = TRUE}
 sd(zscores_mat[25, ])
 ```
 
 The standard deviation is now 1.
 That means all the variance values should be equal to one, too.
 
-```{r}
+```{r summary_row_variance}
 summary(matrixStats::rowVars(zscores_mat))
 ```
 
@@ -280,7 +279,7 @@ If you're filtering to high variance values, it's important to do that _prior_ t
 
 Okay, now we're ready to make a heatmap complete with annotation bars.
 
-```{r}
+```{r make_heatmap}
 Heatmap(zscores_mat,
         # The distance metric used for clustering the rows
         clustering_distance_rows = "pearson",
@@ -299,7 +298,7 @@ Heatmap(zscores_mat,
         name = "z-score")
 ```
 
-```{r}
+```{r save_heatmap_png, live = TRUE}
 png(filename = heatmap_file, 
     width = 11, 
     height = 7, 
@@ -322,7 +321,7 @@ dev.off()
 The heatmap we made with all of the histologies under consideration suggested that there's some structure _within_ histologies.
 Let's take a closer look at the medulloblastoma samples.
 
-```{r}
+```{r mb_sample_ids, live = TRUE}
 medulloblastoma_samples <- filtered_histologies_df %>%
   filter(short_histology == "Medulloblastoma") %>%
   pull(Kids_First_Biospecimen_ID)
@@ -330,13 +329,13 @@ medulloblastoma_samples <- filtered_histologies_df %>%
 
 Use all genes to create a matrix that only contains medulloblastoma samples.
 
-```{r}
+```{r mb_mat, live = TRUE}
 medulloblastoma_mat <- rnaseq_mat[, medulloblastoma_samples]
 ```
 
 We'll use Pearson correlation for our distance metric here again, but let's breakdown what goes into hierarchical clustering a bit here.
 
-```{r}
+```{r calculate_cor}
 # cor() will take the correlation between columns - we're interested in the 
 # relationship between medulloblastoma samples, so we don't need to transpose
 # the matrix before using cor()
@@ -348,20 +347,25 @@ mb_sample_correlation <- cor(medulloblastoma_mat,
 Hierarchical clustering is performed on dissimilarities, so we'll subtract the correlation values from 1.
 To use `hclust()` -- the built-in method for hierarchical clustering in R -- we need a dissimilarity structure.
 
-```{r}
+```{r cor_as_dist, live = TRUE}
 mb_sample_dist <- as.dist(1 - mb_sample_correlation)
 ```
 
-Now we're ready to perform hierarchical clustering with `hclust()`.
+Now we're ready to perform [hierarchical clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering) with `hclust()`.
+This is an _agglomerative_ method of clustering - each sample starts in its own cluster and then at each step of the algorithm the two most similar clusters are joined until there's only a single cluster left.
 
-```{r}
+```{r mb_hclust, live = TRUE}
 mb_sample_hclust <- hclust(mb_sample_dist, 
                            method = "average")
 ```
 
+Here, `method = "average"` refers to the agglomeration or linkage method used during clustering. 
+The method we're using is also known as [UPGMA (unweighted pair group method with arithmetic mean)](https://en.wikipedia.org/wiki/UPGMA) and is how we specify what formula to use for calculating inter-cluster distances during hierarchical clustering.
+The distance between two clusters is the average distance between all pairs of points in the two clusters.
+
 To look at the dendrogram produced by `hclust()`, we can use built-in graphics by calling `plot()`.
 
-```{r}
+```{r mb_dendrogram}
 plot(mb_sample_hclust, 
      # Put the labels at the same height
      hang = -1, 
@@ -373,7 +377,7 @@ How many groups of medulloblastoma samples do you think there are?
 
 ## Session Info
 
-```{r}
+```{r session_info}
 sessionInfo()
 ```
 
