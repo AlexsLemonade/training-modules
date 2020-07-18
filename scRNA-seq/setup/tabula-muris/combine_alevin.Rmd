@@ -1,0 +1,153 @@
+---
+title: "Combining alevin runs"
+output: html_notebook
+---
+
+
+```{r setup}
+library(tximport)
+library(scran)
+library(scater)
+
+library(magrittr)
+
+library(ggplot2)
+```
+
+```{r}
+# sample IDs (skipping `_2` as it is known bad)
+samples <- c("10X_P4_0", "10X_P4_1", "10X_P4_3", "10X_P4_4", "10X_P4_5", "10X_P4_6")
+```
+
+
+
+```{r filepaths}
+data_dir <- "/shared/data/training-data/tabula-muris"
+
+alevin_files <- file.path(data_dir, "alevin", samples, "alevin/quants_mat.gz")
+names(alevin_files) <- samples
+
+tm_metafile <- file.path(data_dir, "TM_droplet_metadata.csv")
+
+mito_file <- file.path("..", "..", "data", "tabula-muris", 
+                       "mm_mitochondrial_genes.tsv")
+
+
+outfile <- file.path("..", "..", "data", "tabula-muris", "full", )
+```
+
+```{r import_sce}
+tm_sces <- alevin_files %>%
+  purrr::map(tximport::tximport, type = "alevin") %>%
+  purrr::map(~ SingleCellExperiment::SingleCellExperiment(list(counts = .x$counts)))
+```
+Get the tissue types and mouse info for each sample
+```{r}
+tm_metadata <- readr::read_csv(tm_metafile, guess_max = 10000) %>%
+  dplyr::select(sample_id = channel, mouse.id, tissue, mouse.sex) %>%
+  dplyr::distinct()
+```
+
+
+Add sample info to each single cell experiment object.
+
+```{r update_col}
+add_sample_meta <- function(sce, sample_id, meta_table){
+  barcodes <- colnames(sce) 
+  cell_ids <- paste0(barcodes, ".", sample_id)
+  meta_df <- tibble::tibble(cell_id = cell_ids, 
+                            sample_id = sample_id, 
+                            barcode = barcodes) %>%
+    dplyr::left_join(meta_table, by = "sample_id")
+  colData(sce) <- DataFrame(meta_df, row.names = meta_df$cell_id)
+  return(sce)
+}
+
+tm_sces <- purrr::imap(tm_sces, add_sample_meta, tm_metadata)
+```
+
+Run QC filters
+
+```{r applyQC}
+# Get vector of mitochondrial genes.
+mito_genes <- readr::read_tsv(mito_file) %>%
+  dplyr::filter(gene_id %in% rownames(tm_sces[[1]])) %>%
+  dplyr::pull(gene_id)
+
+tm_sces <- tm_sces %>%
+  purrr::map(scater::addPerCellQC, subsets = list(mito = mito_genes))
+```
+
+Pull the QC data for plotting
+
+```{r}
+qc_df <- tm_sces %>%
+  purrr::map_df(~ as.data.frame(colData(.x)))
+```
+
+```{r}
+ggplot(qc_df, aes(x = total, y = detected, color = subsets_mito_percent)) + 
+  geom_point() +
+  scale_color_viridis_c() +
+  facet_wrap(~ sample_id)
+```
+```{r}
+ggplot(qc_df, aes(x = subsets_mito_percent, color = tissue)) + 
+  geom_density() + 
+  facet_wrap(~ sample_id, scales = "free_y")
+```
+
+This may not be ideal, especially for the kidney samples but for now lets set the following cutoffs:
+
+- Mitochondrial percent < 25%
+- detected genes > 500
+
+```{r}
+filter_sce <- function(sce, detect_threshold, mito_threshold) {
+  qc_pass <- ((sce$detected > mito_threshold) 
+              & (sce$subsets_mito_percent < mito_threshold))
+  sce_filtered <- sce[, qc_pass]
+}
+
+tm_filtered <- tm_sces %>%
+  purrr::map(filter_sce, detect_threshold = 500, mito_threshold = 25) 
+```
+
+
+Combine SCEs
+```{r}
+tm_combined <- do.call(cbind, tm_filtered)
+```
+
+Feature QC:
+```{r}
+tm_combined <- addPerFeatureQC(tm_combined)
+```
+
+Feature filtering: Genes found in at least 10 samples, and with a mean count of at least 0.5
+```{r}
+detected <- rowData(tm_combined)$detected > 10
+expressed <- rowData(tm_combined)$mean > 0.5
+
+# filter the genes (rows) this time
+tm_combined <- tm_combined[detected & expressed, ]
+```
+
+
+Normalize
+```{r normalize}
+# clister similar cells
+qclust <- scran::quickCluster(tm_combined)
+
+# Step 2) Compute sum factors for each cell cluster grouping.  
+tm_combined <- scran::computeSumFactors(tm_combined, clusters = qclust)
+
+# Step 3) Normalize using these pooled sum factors and log transform. 
+tm_combined <- scater::logNormCounts(tm_combined)
+```
+
+
+Write out the SCE object:
+
+
+
