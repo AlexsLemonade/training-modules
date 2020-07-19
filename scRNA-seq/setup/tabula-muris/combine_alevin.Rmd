@@ -33,8 +33,22 @@ library(ggplot2)
 These are the sample ids from *Tabula Muris* that we have processed and will be using.
 
 ```{r}
-# sample IDs (skipping `10X_P4_2` as it is known bad)
-samples <- c("10X_P4_0", "10X_P4_1", "10X_P4_3", "10X_P4_4", "10X_P4_5", "10X_P4_6")
+# sample IDs (skipping `10X_P4_2`,  as it is known bad)
+samples <- c("10X_P4_0" ,
+             "10X_P4_1" , 
+             "10X_P4_3" , 
+             "10X_P4_4" ,
+             "10X_P4_5" , 
+             "10X_P4_6" , 
+             "10X_P4_7" ,
+             "10X_P7_0" ,
+             "10X_P7_2" ,
+             "10X_P7_3" ,
+             "10X_P7_11", 
+             "10X_P7_12",
+             "10X_P7_13",
+             "10X_P7_14", 
+             "10X_P7_15")
 ```
 
 
@@ -52,7 +66,12 @@ mito_file <- file.path("..", "..", "data", "tabula-muris",
                        "mm_mitochondrial_genes.tsv")
 
 
-outfile <- file.path("..", "..", "data", "tabula-muris", "normalized", "TM_normalized.rds")
+outdir <- file.path(data_dir, "normalized")
+if (!dir.exists(outdir)){
+  dir.create(outdir)
+}
+outfile <- file.path(outdir, "TM_normalized.rds")
+
 ```
 
 ## Read in data
@@ -105,6 +124,7 @@ mito_genes <- readr::read_tsv(mito_file) %>%
   dplyr::filter(gene_id %in% rownames(tm_sces[[1]])) %>%
   dplyr::pull(gene_id)
 
+# Per Cell QC
 tm_sces <- tm_sces %>%
   purrr::map(scater::addPerCellQC, subsets = list(mito = mito_genes))
 ```
@@ -119,64 +139,67 @@ qc_df <- tm_sces %>%
 #### Scatter plot of each sample
 ```{r}
 ggplot(qc_df, aes(x = total, y = detected, color = subsets_mito_percent)) + 
-  geom_point() +
+  geom_point(alpha = 0.2) +
   scale_color_viridis_c() +
-  facet_wrap(~ sample_id)
+  facet_wrap(~ sample_id) 
 ```
 
 #### Density plots of mitochondrial percentages
 ```{r}
 ggplot(qc_df, aes(x = subsets_mito_percent, color = tissue, fill = tissue)) + 
   geom_density() + 
-  facet_wrap(~ sample_id, scales = "free_y") +
-  colorblindr::scale_fill_OkabeIto() + 
-  colorblindr::scale_color_OkabeIto()
+  facet_wrap(~ sample_id, scales = "free_y") 
 ```
 
 ### Filter cells based on QC measures
 
-This may not be ideal, especially for the kidney samples which seem to have high overall mitochondrial percentages, but for now lets set the following cutoffs:
+This may not be ideal, but for now lets set the following cutoffs:
 
 - Mitochondrial percent < 25%
-- detected genes > 500
+- detected genes > 1000
 
 
 ```{r}
 filter_sce <- function(sce, detect_threshold, mito_threshold) {
-  qc_pass <- ((sce$detected > mito_threshold) 
+  qc_pass <- ((sce$detected > detect_threshold) 
               & (sce$subsets_mito_percent < mito_threshold))
   sce_filtered <- sce[, qc_pass]
+  return(sce_filtered)
 }
 
 tm_filtered <- tm_sces %>%
-  purrr::map(filter_sce, detect_threshold = 500, mito_threshold = 25) 
+  purrr::map(filter_sce, detect_threshold = 1000, mito_threshold = 25) 
 ```
 
 
 ### Combine SingleCellExperiments
 
 This is a naive combination, simply concatinating the component samples into one SCE class/expression matrix.
-If we had some batch info, we might want to apply that to do better.
+If we had batch info, we might want to apply that to do better.
 
 ```{r}
 tm_combined <- do.call(cbind, tm_filtered)
+
+# save some memory
+rm(tm_filtered, tm_sces)
 ```
 
 ### Feature (gene) QC
 
-I am doing the Feature QC at this point because it does not use normalized data, and by my understanding of the normalization procedures, removing the low-expressed genes should not affect normalization. 
+Doing the Feature QC at this point is required because low abundance/uncommon genes can result in negative size factor estimates in the normalization steps, which is undesirable, to say the least.
+
 
 ```{r}
 tm_combined <- addPerFeatureQC(tm_combined)
 ```
 
 Feature filtering criteria: 
-- Genes found in at least 10 samples
-- mean count of at least 0.5
+- Genes found in at least 20 cells
+- mean count of at least 0.01 
 
 ```{r}
-detected <- rowData(tm_combined)$detected > 10
-expressed <- rowData(tm_combined)$mean > 0.5
+detected <- rowData(tm_combined)$detected > 20
+expressed <- rowData(tm_combined)$mean > 0.01
 
 # filter the genes (rows) this time
 tm_combined <- tm_combined[detected & expressed, ]
@@ -210,7 +233,7 @@ gene_var <- scran::modelGeneVar(tm_combined)
 highvar_genes <- scran::getTopHVGs(gene_var, n = 1000)
 
 # filter
-tm_combined_filt <- tm_combined[highvar_genes,]
+tm_combined_filt <- tm_combined[highvar_genes, ]
 ```
 
 
