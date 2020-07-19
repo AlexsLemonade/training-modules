@@ -32,7 +32,7 @@ To quote from Hadley Wickham's [R for Data Science](https://r4ds.had.co.nz/):
 
 Let's look at a toy example.
 
-```{r}
+```{r create_toy_wide}
 set.seed(12345)
 toy_df <- data.frame( 
   cbind(c("GENEA", "GENEB", "GENEC"),
@@ -43,13 +43,13 @@ colnames(toy_df) <- c("Gene", paste0("Sample", 1:10))
 
 `toy_df` is now in "wide" format.
 
-```{r}
+```{r toy_df}
 toy_df
 ```
 
 Let's get it into "long" format.
 
-```{r}
+```{r make_toy_long}
 toy_long_df <- reshape2::melt(toy_df, 
                               id.vars = "Gene", 
                               variable.name = "Sample", 
@@ -59,7 +59,7 @@ toy_long_df
 
 Let's remove these toy examples from the workspace.
 
-```{r}
+```{r remove_toy, live = TRUE}
 rm(toy_df, toy_long_df)
 ```
 
@@ -67,8 +67,9 @@ rm(toy_df, toy_long_df)
 
 ### Libraries
 
-```{r}
+```{r libraries}
 library(tidyverse)
+# Package for annotation of statistical significance on plots
 library(ggsignif)
 ```
 
@@ -76,7 +77,7 @@ library(ggsignif)
 
 #### Directories
 
-```{r}
+```{r directories, live = TRUE}
 # Directory that holds the metadata
 data_dir <- file.path("data", "open-pbta", "processed")
 # Directory that holds the PLIER output
@@ -90,14 +91,14 @@ if (!dir.exists(plots_dir)) {
 
 #### Input
 
-```{r}
+```{r input_files}
 histologies_file <- file.path(data_dir, "pbta-histologies-stranded-rnaseq.tsv")
 plier_file <- file.path(models_dir, "pbta-medulloblastoma-plier.RDS")
 ```
 
 #### Output
 
-```{r}
+```{r output_file}
 boxplot_png <- file.path(plots_dir, "medulloblastoma_LV57_boxplot.png")
 ```
 
@@ -105,30 +106,33 @@ boxplot_png <- file.path(plots_dir, "medulloblastoma_LV57_boxplot.png")
 
 ### Sample metadata
 
-```{r}
+```{r read_in_metadata}
 histologies_df <- read_tsv(histologies_file)
 ```
 
 ### PLIER results
 
-```{r}
+```{r read_in_plier, live = TRUE}
 # Read in the PLIER results
 plier_results <- read_rds(plier_file)
 ```
 
-```{r}
+For biological discovery, we are often most interested in the latent variables that have some kind of association with an input gene set or pathway.
+We can use the FDR values in the summary data frame to filter to only the latent variables (and their associated gene sets).
+
+```{r filter_fdr, live = TRUE}
 # Filter to LV-pathway relationships with FDR < 0.05
 sig_summary_df <- plier_results$summary %>%
   dplyr::filter(FDR < 0.05)
 sig_summary_df
 ```
 
-```{r}
+```{r sig_index}
 # We only want a single instance of each LV index
 sig_index <- as.integer(unique(sig_summary_df$`LV index`))
 ```
 
-```{r}
+```{r sig_b_wide, live = TRUE}
 # Get the LV by sample matrix from the PLIER results and subset it to only those
 # LVs with an FDR < 0.05 (at least one pathway)
 b_matrix <- plier_results$B
@@ -143,14 +147,14 @@ sig_b_wide <- data.frame(sig_b_matrix) %>%
 
 Let's look at what format this is in currently.
 
-```{r}
+```{r wide_peek}
 sig_b_wide
 ```
 
-We want this in long format. 
+We want this in long format for plotting.
 We'll use `reshape2::melt` to do this just like in the toy example above.
 
-```{r}
+```{r melt_b, live = TRUE}
 sig_b_df <- reshape2::melt(sig_b_wide, 
                            id.vars = "LV", 
                            variable.name = "Kids_First_Biospecimen_ID",
@@ -160,7 +164,7 @@ head(sig_b_df)
 
 Now let's add relevant metadata to the data frame so we can use that for plotting.
 
-```{r}
+```{r add_metadata_b}
 sig_b_df <- inner_join(x = sig_b_df, 
                        y = histologies_df %>%
                          select(Kids_First_Biospecimen_ID,
@@ -172,15 +176,11 @@ sig_b_df <- inner_join(x = sig_b_df,
                        by = "Kids_First_Biospecimen_ID")
 ```
 
-```{r}
-head(sig_b_df)
-```
-
 ## Plotting
 
 We'll plot LV57; this is the latent variable that we looked at the loadings for in the previous notebook.
 
-```{r}
+```{r lv_to_plot}
 # PLIER names certain latent variables based on their association with input
 # gene sets
 lv_to_plot <- "57,SVM Macrophages M2"
@@ -191,9 +191,9 @@ lv_plot_df <- sig_b_df %>%
 
 ### Boxplot and customization
 
-Let's start by making a boxplot.
+Let's start by making a simple boxplot.
 
-```{r}
+```{r lv_boxplot, live = TRUE}
 # Make a boxplot where samples are grouped by molecular subtype
 ggplot(lv_plot_df,
        aes(x = molecular_subtype, 
@@ -205,7 +205,7 @@ ggplot(lv_plot_df,
 
 It can often be helpful to visualize individual samples.
 
-```{r}
+```{r lv_jitter, live = TRUE}
 # Add individual points with geom_jitter()
 ggplot(lv_plot_df,
        aes(x = molecular_subtype, 
@@ -218,7 +218,7 @@ ggplot(lv_plot_df,
 
 We're able to globally adjust the aesthetics of the jitter points.
 
-```{r}
+```{r improve_jitter, live = TRUE}
 # Improve the aesthetics of the points
 ggplot(lv_plot_df,
        aes(x = molecular_subtype, 
@@ -231,7 +231,7 @@ ggplot(lv_plot_df,
 
 Add a built-in `ggplot2` theme.
 
-```{r}
+```{r theme_bw, live = TRUE}
 # Use @jaclyn-taroni's favorite theme :)
 ggplot(lv_plot_df,
        aes(x = molecular_subtype, 
@@ -245,7 +245,7 @@ ggplot(lv_plot_df,
 
 Use the same color palette we used in the UMAP plot earlier in the module.
 
-```{r}
+```{r okabe_ito, live = TRUE}
 # Add colorblindr::scale_color_OkabeIto()
 ggplot(lv_plot_df,
        aes(x = molecular_subtype, 
@@ -260,7 +260,7 @@ ggplot(lv_plot_df,
 
 Add a title to the plot.
 
-```{r}
+```{r add_title, live = TRUE}
 # Use labs() to add a title
 ggplot(lv_plot_df,
        aes(x = molecular_subtype, 
@@ -276,7 +276,7 @@ ggplot(lv_plot_df,
 
 Center the title and make it bigger and in bold.
 
-```{r}
+```{r center_title, live = TRUE}
 # Use theme() to improve the way the title looks
 ggplot(lv_plot_df,
        aes(x = molecular_subtype, 
@@ -296,11 +296,11 @@ ggplot(lv_plot_df,
 Use the next chunks to further customize your plot.
 We might suggest starting with the x- and y-axis labels.
 
-```{r}
+```{r labs_help}
 ?labs
 ```
 
-```{r}
+```{r adventure_time}
 
 ```
 
@@ -308,9 +308,10 @@ We might suggest starting with the x- and y-axis labels.
 
 R is great for analyzing genomic data and for publication ready visualizations, but as language for statistical computing, it's also great for statistical analysis!
 
-Let's start by 
+Let's start by performing a pairwise Wilcoxon rank sum test.
+We can put that information onto the plot with the `ggsignif` package.
 
-```{r}
+```{r pairwise_wilcox}
 pairwise.wilcox.test(x = lv_plot_df$LV_estimate,
                      g = lv_plot_df$molecular_subtype,
                      p.adjust.method = "bonferroni")
@@ -318,7 +319,8 @@ pairwise.wilcox.test(x = lv_plot_df$LV_estimate,
 
 To add the Bonferroni-adjusted p-values for SHH vs. the other subtypes to the plot, we should adjust the y-axis limits to leave room for the labels.
 
-```{r}
+```{r increase_ylim, live = TRUE}
+# Make room for the annotations
 ggplot(lv_plot_df,
        aes(x = molecular_subtype, 
            y = LV_estimate, 
@@ -337,7 +339,8 @@ ggplot(lv_plot_df,
 
 And now we're ready to add the adjusted p-values to the plot with `ggsignif::geom_signif()`.
 
-```{r}
+```{r geom_signif}
+# Add the adjusted p-values
 ggplot(lv_plot_df,
        aes(x = molecular_subtype, 
            y = LV_estimate, 
@@ -364,13 +367,13 @@ ggplot(lv_plot_df,
 
 Save this final plot to file.
 
-```{r}
+```{r ggsave, live = TRUE}
 ggsave(filename = boxplot_png, plot = last_plot())
 ```
 
 ## Session Info
 
-```{r}
+```{r session_info}
 sessionInfo()
 ```
 
