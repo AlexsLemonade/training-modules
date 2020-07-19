@@ -307,9 +307,9 @@ pca_plot_df <- data.frame(pca_results$x[, 1:10]) %>%
   inner_join(mb_molecular_subtype_df)
 ```
 
-And now make a scatterplot.
+And now make a scatterplot of PC1 and PC2.
 
-```{r pca_scatter, live = TRUE}
+```{r pca_scatter_1, live = TRUE}
 pca_plot_df %>%
   ggplot(aes(x = PC1, 
              y = PC2,
@@ -321,18 +321,46 @@ pca_plot_df %>%
   ylab("PC2")
 ```
 
+What about PC2 and PC3?
+
+```{r pca_scatter_2, live = TRUE}
+pca_plot_df %>%
+  ggplot(aes(x = PC2, 
+             y = PC3,
+             color = molecular_subtype)) +
+  geom_point() +
+  colorblindr::scale_color_OkabeIto() +
+  theme_bw() +
+  xlab("PC2") +
+  ylab("PC3")
+```
+
+`summary()` will report the proportion of variance explained by each principal component.
+By accessing the `importance` element with `<summary results>$importance`, we can use indexing to only look at the first 10 PCs.
+
+```{r pca_summary}
+# Save summary of the PCA results
+pca_summary <- summary(pca_results)
+# Importance information for the first 10 PCs
+pca_importance <- pca_summary$importance[, 1:10]
+pca_importance
+```
+
 [`plotly`](https://plotly.com/r/) is a package that allows us to plot interactive 3D scatterplots.
 
 ```{r 3d_scatter}
-pca_3d_plot <- plot_ly() %>%
-  add_trace(data = pca_plot_df,
-            x = ~ PC1,
-            y = ~ PC2,
-            z = ~ PC3,
-            mode = "markers",
-            type = "scatter3d",
-            color = ~ molecular_subtype,
-            colors = colorblindr::palette_OkabeIto[1:4])
+# plot_ly is kind of like ggplot(), but it doesn't require us to specify the 
+# aesthetics or types (e.g., geoms) separately in the same way
+pca_3d_plot <- plot_ly(data = pca_plot_df,
+                       x = ~ PC1,
+                       y = ~ PC2,
+                       z = ~ PC3,
+                       mode = "markers",
+                       type = "scatter3d",
+                       color = ~ molecular_subtype,
+                       colors = colorblindr::palette_OkabeIto[1:4])
+
+# Add axis labels
 pca_3d_plot <- pca_3d_plot %>% 
   layout(scene = list(
     xaxis = list(title = "PC1"),
@@ -342,7 +370,6 @@ pca_3d_plot <- pca_3d_plot %>%
 
 pca_3d_plot
 ```
-
 
 ## Session Info
 
