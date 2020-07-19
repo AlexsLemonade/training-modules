@@ -24,6 +24,8 @@ library(ConsensusClusterPlus)
 # Library we'll use for silhouette values
 library(cluster)
 library(ComplexHeatmap)
+# We'll make a 3D plot with this library
+library(plotly)  # TODO: install globally
 ```
 
 ### Directories and files
@@ -294,13 +296,13 @@ Now, we'll briefly show you how to use built-in functions for PCA on any matrix 
 pca_results <- prcomp(t(rnaseq_mat[high_variance_index, ]), 
                       scale = TRUE)
 # The low-dimensional representation is returned in x
-head(pca_results$x)
+pca_results$x[1:6, 1:6]
 ```
 
-Let's get the first 2 PCs ready for plotting.
+Let's get the first 10 PCs ready for plotting.
 
 ```{r pca_df, live = TRUE}
-pca_plot_df <- data.frame(pca_results$x[, 1:2]) %>%
+pca_plot_df <- data.frame(pca_results$x[, 1:10]) %>%
   tibble::rownames_to_column("Kids_First_Biospecimen_ID") %>%
   inner_join(mb_molecular_subtype_df)
 ```
@@ -318,6 +320,29 @@ pca_plot_df %>%
   xlab("PC1") +
   ylab("PC2")
 ```
+
+[`plotly`](https://plotly.com/r/) is a package that allows us to plot interactive 3D scatterplots.
+
+```{r 3d_scatter}
+pca_3d_plot <- plot_ly() %>%
+  add_trace(data = pca_plot_df,
+            x = ~ PC1,
+            y = ~ PC2,
+            z = ~ PC3,
+            mode = "markers",
+            type = "scatter3d",
+            color = ~ molecular_subtype,
+            colors = colorblindr::palette_OkabeIto[1:4])
+pca_3d_plot <- pca_3d_plot %>% 
+  layout(scene = list(
+    xaxis = list(title = "PC1"),
+    yaxis = list(title = "PC2"),
+    zaxis = list(title = "PC3")
+  ))
+
+pca_3d_plot
+```
+
 
 ## Session Info
 
