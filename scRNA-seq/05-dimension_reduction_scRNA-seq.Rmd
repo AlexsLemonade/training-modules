@@ -38,9 +38,13 @@ For this module, we are going to use the dataset that we processed part of in
 
 ```{r filepaths}
 
-# Path for the alevin results
+# Path to the single-sample alevin results
 alevin_file <- file.path("data", "tabula-muris", "alevin-quant", 
                           "10X_P4_3_full", "alevin", "quants_mat.gz")
+
+# normalized multi-sample Tabula Muris Data
+tm_normalized <- file.path("data", "tabula-muris", 
+                         "normalized", "TM_normalized.rds" )
 
 # Path to the metadata file 
 metadata_file <- file.path("data", "tabula-muris", 
@@ -65,16 +69,15 @@ tm_metadata <- readr::read_csv(metadata_file, guess_max = 10000) %>%
 As we did before with the Smart-seq2 data, we will want to filter and normalize this data with `scran/scater`.
 While we did the filtering manually before, we can actually do most of the same analyses with `scran`.
 
-First we will want to add a bit of extra information to the `SingleCellExperiment` object.
+First we want to get our mitochondrial genes list again.
 
 ```{r mitogenes}
 mito_genes <- readr::read_tsv(mito_file) %>%
   dplyr::filter(gene_id %in% rownames(tm_sce)) %>%
   dplyr::pull(gene_id)
-
-
 ```
 
+Now we can use `scater::addPerCellQC()` to calculate our QC statistics and add them to the metadata for each cell (the `colData` for the `SingleCellExperiment` object.)
 
 ```{r calculateQC}
 tm_sce <- scater::addPerCellQC(tm_sce, 
@@ -83,7 +86,8 @@ tm_sce <- scater::addPerCellQC(tm_sce,
 cell_qc_df <- as.data.frame(colData(tm_sce)) 
 ```
 
-Make some plots of the QC data to decide on cutoffs for your cells.
+Now we can make some plots of the QC data and use it to inform our next steps/
+Use the `cell_qc_df` data frame we just created, to make some plots and decide on cutoffs!
 
 ```{r qc_plots, live = TRUE}
 ggplot(cell_qc_df, 
@@ -105,16 +109,18 @@ Looking at the data, it seems like a reasonable cutoff might be 500 detected gen
 Using these QC data, we can now create a subset of the `SingleCellExperiment` object, keeping only the columns (samples) that pass our QC thresholds:
 
 ```{r qcfilter, live = TRUE}
+# create tm_sce_filtered object with just the cells that pass filters
 qc_pass <- (tm_sce$detected > 500) & (tm_sce$subsets_mito_percent < 20)
 tm_sce_filtered <- tm_sce[, qc_pass]
 ```
 
-We will also filter the genes to only the ones detected in at least 5 cells, and with a mean count > 1
+We can also filter by features (genes in our case) using `scater::addPerFeatureQC()` which will computer the number of samples where each gene is detected and the mean count across all genes. 
+We can then use those data (stored in `rowData`) to filter by row to only the genes that are detected in at least 5 cells, and with a mean count > 0.1.
 
 ```{r gene_qc}
 tm_sce_filtered <- scater::addPerFeatureQC(tm_sce_filtered)
 detected <- rowData(tm_sce_filtered)$detected > 5
-expressed <- rowData(tm_sce_filtered)$mean > 1
+expressed <- rowData(tm_sce_filtered)$mean > 0.1
 
 # filter the genes (rows) this time
 tm_sce_filtered <- tm_sce_filtered[detected & expressed, ]
@@ -122,7 +128,7 @@ tm_sce_filtered <- tm_sce_filtered[detected & expressed, ]
 
 ### Normalize
 
-Now we will perform the same normalization steps we did with the Smart-seq2 data:
+Now we will perform the same normalization steps we did with the Smart-seq2 data, using `scran`scran::computeSumFactors()` and `scater::logNormCounts()`
 
 ```{r normalize}
 # Cluster similar cells
@@ -159,9 +165,11 @@ tissue they are from.
 # Plot this with ggplot2 and label the points with cell types
 ggplot(pca_tab_mur, 
        aes(x = PC1, y = PC2)) + 
-  geom_point() +
-  colorblindr::scale_color_OkabeIto()
+  geom_point() 
 ```
+
+It looks like there are a few different clusters here, which may represent different kinds of cells within this tissue.
+
 
 ## t-SNE experiment
 
