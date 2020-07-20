@@ -43,7 +43,7 @@ alevin_file <- file.path("data", "tabula-muris", "alevin-quant",
                           "10X_P4_3_full", "alevin", "quants_mat.gz")
 
 # normalized multi-sample Tabula Muris Data
-tm_normalized <- file.path("data", "tabula-muris", 
+tm_normalized_file <- file.path("data", "tabula-muris", 
                          "normalized", "TM_normalized.rds" )
 
 # Path to the metadata file 
@@ -168,145 +168,182 @@ ggplot(pca_tab_mur,
   geom_point() 
 ```
 
-It looks like there are a few different clusters here, which may represent different kinds of cells within this tissue.
+It looks like there are a few different clusters here, which may represent different kinds of cells within the bladder tissue. 
 
 
-## t-SNE experiment
+## Beyond PCA: UMAP
 
-t-SNE is a popular dimension reduction technique that has become even more 
-popular with single-cell RNA-seq data analysis. 
-It would be a good use of our time to explore t-SNE parameters and how they 
-affect the outcomes.
-First, let's run our data through t-SNE on default parameters and see what our 
-data looks like with a `ggplot2` scatterplot.
-Here we will be using the R package, `Rtsne` to perform t-SNE. 
-Although packages like `scater` have built in methods for performing dimension
-reduction (`scater::runTSNE`), we want to show you a method that can be applied 
-to most any data so long as it is in a matrix.
+### Dataset
+To explore more about dimensionality reduction, we will explore a larger subset of the data from the *Tabula Muris* study. 
+We have run alevin on 15 samples, representing 9 different tissues, and taken each of those samples through QC and normalization similar to what we have presented above (with slightly different cutoffs).
+Following that, we selected the 1000 genes with the greatest biological variance (using the same method as shown in `02-normalizing_scRNA-seq.Rmd`).
 
-```{r t-SNE}
-# Run t-SNE using the Rtsne package
-tsne_tab_mur <- Rtsne::Rtsne(transposed_data)
+These results, with accompanying metadata were saved into a `SingleCellExpriment` object, which is stored as RDS file at the location `tm_normalized_file` (defined in the `filepath` chunk above).
+Let's load that in and have a quick look at it. 
 
-# Make this a data.frame so ggplot will like it
-# Note that Y is the output coordinates from Rtsne
-tsne_data <- data.frame(tsne_tab_mur$Y)
-  
-# Plot this with ggplot2
-ggplot(tsne_data, aes(x = X1, y = X2)) + 
-  geom_point() + 
-  colorblindr::scale_color_OkabeIto()
+```{r load_normalized}
+tm_normalized <- readr::read_rds(tm_normalized_file)
 ```
 
-#### Apply metadata labels to our t-SNE
+How many cells are in this data? How many samples are there? How many cells from each tissue?
 
-Let's re-plot this with labels using some of our metadata to see 
-how the cells are clustering (or not clustering) by different variables. 
-Remember that `tab_mur_meta` has the corresponding information for each of our
-cells. 
-Below we have set up the cells to be colored by the `tissue` variable. 
-Run this, but also feel free to look at what other information we have for these
-cells in `tab_mur_meta` by using `str()` and change this to a different variable to 
-graph it by.
+```{r explore_sce, live = TRUE}
+# explore summaries of the SCE data
+dim(tm_normalized) # column count is the number of cells
 
-```{r}
-# Plot this with ggplot2, but add the color argument
-ggplot(tsne_data, aes(x = X1, y = X2, color = tab_mur_meta$tissue)) + 
-  geom_point() +
-  colorblindr::scale_color_OkabeIto()
+unique(tm_normalized$sample_id) # what are the samples
+
+table(tm_normalized$tissue) # table of cells per tissue
+
+as.data.frame(colData(tm_normalized)) %>% # dplyr summary table
+  dplyr::group_by(tissue) %>%
+  dplyr::summarize(n = dplyr::n(), 
+                   mean_detected = mean(detected), 
+                   max_detected = max(detected))
 ```
 
-Now that we have an idea of what the default parameters look like, let's try
-experimenting with the perplexity parameter. 
-For us to determine a good number range to use for testing perplexity, let's 
-first look up the documentation for `Rtsne::Rtsne` and find out what the 
-default for the `perplexity` argument is. 
 
-In order to prepare for this experiment, we will create a *function* that allows
-us to rerun this same code chunk easily, but create an argument that allows us
-to change one variable: our perplexity variable. 
+### UMAP
 
-```{r Make t-SNE plot function}
-TsnePlotWrapper <- function(perplexity_param = 30) {
-  # Purpose: Run t-SNE and plot the output
-  # Args: perplexity_param: a single numeric argument that will change the 
-  #                         perplexity variable in the Rtsne function. 
-  # Output: a ggplot scatterplot with the two t-SNE coordinates plotted and 
+**UMAP** (Uniform Manifold Approximation and Projection) is a machine learning technique designed to provide more detail in highly dimensional data than a typical principal components analysis. 
+While PCA assumes that the variation we care about has a particular distribution (normal, broadly speaking), UMAP allows more complicated distributions that it learns from the data. 
+The underlying mathematics are beyond me, but if you are more ambitious than I, you can look at the paper by [McInnes, Healy, & Melville (2018)](https://arxiv.org/abs/1802.03426). 
+The main advantage of this change in underlying assumptions is that UMAP can do a better job separating clusters, especially when some of those clusters may be more similar to each other than others.  
+
+Another dimentionality technique that you may have heard of is **t-SNE**, which has similar properties to UMAP, and often produces similar results. 
+There is some ongoing debate about which of these two techniques is superior, and whether the differences are due to the underlying algorithm or to implementation and parameter initialization defaults. 
+Regardless of why, in our experience, UMAP seems to produce slightly better results, but the differences are relatively subtle.
+
+
+### Default parameters
+
+For ease of use with this data, we will be using the `scater::calculateUMAP()` function to apply UMAP to our single cell data, but similar functions the `umap` package (notably `umap::umap()`) can be used to apply UMAP to any numerical matrix.
+
+UMAP can be very slow for a large data set with lots of parameters.
+It is worth noting that teh `scater::calculateUMAP()` implementation actually does PCA first, and then runs UMAP on the top 50 PCs. 
+
+`scater::calculateUMAP()` will return a matrix of results, with one row for each sample, and a column for each of the UMAP dimensions returned. 
+Let's see how it looks with the default parameters:
+
+```{r run_umap, live = TRUE}
+# run calculateUMAP and save to tm_umap
+tm_umap <- scater::calculateUMAP(tm_normalized)
+```
+
+Now lets convert that matrix result to a data frame and plot the results!
+
+```{r plot_umap}
+# ggplot tm_umap
+ggplot(data.frame(tm_umap), aes(x = X1, y = X2)) + 
+  geom_point(alpha = 0.1, size = 0.1)
+```
+
+There is clearly a lot of structure in there, but is it meaningful?
+Lets add in the metadata we have stored in the `SingleCellExperiment` data (colData) and replot it.
+There is a bit of conversion we have to do here to start, because `SingleCellExperiment` likes to use DataFrames
+
+```{r umap_metadata}
+tm_meta_umap <- colData(tm_normalized) %>%
+  as.data.frame() %>%
+  dplyr::bind_cols(data.frame(tm_umap)) %>% # add umap columns to data frame
+  dplyr::rename(UMAP1 = "X1", UMAP2 = "X2") # rename for meaning!
+```
+
+```{r plot_color}
+ggplot(data.frame(tm_meta_umap), 
+       aes(x = UMAP1, y = UMAP2, color = tissue)) + 
+  geom_point(alpha = 0.1, size = 0.1) +
+  # fix the legend to show opaque, large points
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))
+```
+
+
+## UMAP experiments
+
+Now that we have an idea of what a UMAP plot with the default parameters looks like, let's try experimenting with the `n_neighbors` parameter. 
+First, we should see what this parameter is, and what the default value is.
+In the console, run `?scater::calculateUMAP` to see what this (and other parameters) are.
+For even more parameters, you can look at the underlying implementation code that `calculateUMAP()` uses, which is the function `uwot::umap()`
+
+
+
+In order to make our experimentation easier, we will create a *function* that allows us to rerun the same code chunk easily, but create an argument that allows us to change one variable: the n_neighbors variable. 
+
+```{r UMAP-function}
+UMAP_plot_wrapper <- function(nn_param = 15, sce = tm_normalized) {
+  # Purpose: Run UMAP and plot the output
+  # Args: nn_param: a single numeric argument that will change the 
+  #                 n_neighbors variable in the calculateUMAP() function. 
+  # Output: a ggplot scatterplot with the two UMAP coordinates plotted and 
   #         cell-types labeled with data point colors. 
 
-  # Run t-SNE but set the perplexity parameter
-  tsne_tab_mur <- Rtsne::Rtsne(transposed_data, perplexity = perplexity_param)
+  # Run UMAP with a specified n_neighbors parameter
+  
+  umap_mat <- scater::calculateUMAP(sce, n_neighbors = nn_param)
 
-  # Make this a data.frame so ggplot will like it
-  tsne <- data.frame(tsne_tab_mur$Y)
+  meta_umap <- colData(sce) %>%
+    as.data.frame() %>%
+    dplyr::bind_cols(data.frame(umap_mat)) %>% # add umap columns to data frame
+    dplyr::rename(UMAP1 = "X1", UMAP2 = "X2") # rename for meaning!
   
   # Plot this with ggplot2
-  ggplot(tsne, aes(x = X1, y = X2, color = tab_mur_meta$tissue)) + 
-    geom_point() + 
-    colorblindr::scale_color_OkabeIto()
+  ggplot(data.frame(meta_umap), 
+         aes(x = UMAP1, y = UMAP2, color = tissue)) + 
+    geom_point(alpha = 0.1, size = 0.1) +
+    guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))
 }
 ```
 
-Fill in the next five code chunks with the function and the perplexity argument 
-you would like to use for each. 
+Lets make sure that works and gives the same result as before when we use the default parameters
+```{r function-test}
+UMAP_plot_wrapper(nn_param = 15)
+```
+
+*Kind of?*
+
+This isn't your fault! 
+UMAP is a non-determinisitic function, which means that there is a random component to the results. 
+We can use `set.seed()` to be sure that an individual run (or set of runs) is the same every time, but it is important to check your results a few times to be sure that the random component is giving you anomalous results.
+
+
+
+Fill in the next five code chunks with the function and the `n_neighbors` argument you would like to use for each. 
 Then run the chunks and compare your output graphs.
 
-```{r Run tSNE 1}
-# We've set up the first example for you
-TsnePlotWrapper(perplexity_param = 3)
+```{r run-UMAP-1, live = TRUE}
+# Try something low?
+UMAP_plot_wrapper(nn_param = 3)
 ```
 
-```{r Run t-SNE 2}
-# Run tSNE_plot_wrapper function for a second time, but use a different perplexity
-# argument
+```{r run-UMAP-2, live = TRUE}
+# Try something high?
+UMAP_plot_wrapper(nn_param = 100)
 ```
 
-```{r Run t-SNE 3}
-# Run tSNE_plot_wrapper function for a third time, but use a different perplexity
-# argument
-```
-
-```{r Run t-SNE 4}
-# Run tSNE_plot_wrapper function for a fourth time, but use a different perplexity
-# argument
-```
-
-```{r Run t-SNE 5}
-# Run tSNE_plot_wrapper function for a fifth time, but use a different perplexity
-# argument
+```{r run-UMAP-3, live = TRUE}
+# Try whatever you like!
+UMAP_plot_wrapper(nn_param = 5)
 ```
 
 #### Some 'big picture' thoughts to take from this experiment: 
 
-1) Different analyses (such as t-SNE) have various limitations for interpretability.
-   We found in our experiment that the coordinates of t-SNE output for any given 
-   cell might change drastically. 
-   This probably means that you shouldn't rely too heavily on the exact values of
-   t-SNE's output. 
-2) Different analyses also have their strengths.   
-   Using cell-type labeling, our experiment illustrated that t-SNE does 
-   appear to give some biologically relevant output information for this dataset. 
-3) Playing with parameters so you can fine-tune them is a good way to give you more
-   information about a particular analysis as well as the data itself. 
+1) Different analyses (such as UMAP) have various limitations for interpretability. The coordinates of UMAP output for any given cell can change dramatically depending on parameters, and even run to run with the same parameters. This probably means that you shouldn't rely too heavily on the exact values of UMAP's output. 
+2) Different analyses also have their strengths. Using cell-type labeling, our experiment illustrated that UMAP does appear to give some biologically relevant output information for this dataset. 
+3) Playing with parameters so you can fine-tune them is a good way to give you more information about a particular analysis as well as the data itself. 
    
-In summary, if the results of an analysis can be completely changed by changing its
-parameters, you should be more cautious when it comes to the conclusions you
-draw from it as well as having good rationale for the parameters you choose. 
+In summary, if the results of an analysis can be completely changed by changing its parameters, you should be more cautious when it comes to the conclusions you draw from it as well as having good rationale for the parameters you choose. 
 
-### For further reading on dimension reduction:  
 
-- [Wattenberg et al](https://distill.pub/2016/misread-tsne/) discuss how to 
-use t-SNE properly with great visuals.  
-- [Nyguen & Holmes _PLoS Comput Biol_ 2019.](https://journals.plos.org/ploscompbiol/article/file?id=10.1371/journal.pcbi.1006907&type=printable)
-lay out guidelines on choosing dimensions reduction methods.  
-- [Becht et al _Nature Biotechnology_ 2018.](https://www.nature.com/articles/nbt.4314) discusses using [UMAP](https://github.com/lmcinnes/umap) for single-cell data.  
+### Some further reading on dimension reduction:  
+
 - This website explains [PCA visually](http://setosa.io/ev/principal-component-analysis/).  
-  
-**Single-cell specific dimension reduction methods to consider:**  
-- [VASC](https://www.sciencedirect.com/science/article/pii/S167202291830439X)  
-- [scVI](https://scvi.readthedocs.io/en/master/readme.html)  
+- [Becht *et al.* (2018)](https://www.nature.com/articles/nbt.4314) discusses using [UMAP](https://github.com/lmcinnes/umap) for single-cell data.  
+- [Wattenberg *et al.*](https://distill.pub/2016/misread-tsne/) discuss how to use t-SNE properly with great visuals. 
+(The lessons apply to UMAP as well, with a broad substitution of the `n_neighbors` parameter for `perplexity`.)
+- [Nyguen & Holmes (2019)](https://journals.plos.org/ploscompbiol/article/file?id=10.1371/journal.pcbi.1006907&type=printable) lay out guidelines on choosing dimensions reduction methods.  
 
-#### Print session info:
+
+## Session Info:
 
 ```{r}
 sessionInfo()
