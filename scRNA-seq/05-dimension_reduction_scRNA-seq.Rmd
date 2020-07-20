@@ -18,7 +18,7 @@ A common practice is to common to use dimension reduction techniques so all of t
 
 ## Set Up 
 
-```{r}
+```{r setup}
 # Load libraries
 library(ggplot2)
 library(scater)
@@ -55,6 +55,7 @@ mito_file <- file.path("data", "tabula-muris",
                        "mm_mitochondrial_genes.tsv")
 ```
 
+## Single sample QC and normalization
 
 ```{r tximport_sce}
 tm_txi <- tximport::tximport(alevin_file, type = "alevin")
@@ -77,6 +78,8 @@ mito_genes <- readr::read_tsv(mito_file) %>%
   dplyr::pull(gene_id)
 ```
 
+### Quality Control and Filtering
+
 Now we can use `scater::addPerCellQC()` to calculate our QC statistics and add them to the metadata for each cell (the `colData` for the `SingleCellExperiment` object.)
 
 ```{r calculateQC}
@@ -86,7 +89,7 @@ tm_sce <- scater::addPerCellQC(tm_sce,
 cell_qc_df <- as.data.frame(colData(tm_sce)) 
 ```
 
-Now we can make some plots of the QC data and use it to inform our next steps/
+Let's make some plots of the QC data and use it to inform our next steps.
 Use the `cell_qc_df` data frame we just created, to make some plots and decide on cutoffs!
 
 ```{r qc_plots, live = TRUE}
@@ -158,8 +161,7 @@ pca_tab_mur <- calculatePCA(tm_sce_filtered)
 pca_tab_mur <- data.frame(pca_tab_mur)
 ```
 
-Let's plot our first two principal components and label our cells with what 
-tissue they are from.
+
 
 ```{r Plot PCA}
 # Plot this with ggplot2 and label the points with cell types
@@ -212,14 +214,14 @@ The main advantage of this change in underlying assumptions is that UMAP can do 
 
 Another dimentionality technique that you may have heard of is **t-SNE**, which has similar properties to UMAP, and often produces similar results. 
 There is some ongoing debate about which of these two techniques is superior, and whether the differences are due to the underlying algorithm or to implementation and parameter initialization defaults. 
-Regardless of why, in our experience, UMAP seems to produce slightly better results, but the differences are relatively subtle.
+Regardless of why, in our experience, UMAP seems to produce slightly better results and run a bit faster, but the differences can be subtle.
 
 
 ### Default parameters
 
 For ease of use with this data, we will be using the `scater::calculateUMAP()` function to apply UMAP to our single cell data, but similar functions the `umap` package (notably `umap::umap()`) can be used to apply UMAP to any numerical matrix.
 
-UMAP can be very slow for a large data set with lots of parameters.
+UMAP can be slow for a large data set with lots of parameters.
 It is worth noting that teh `scater::calculateUMAP()` implementation actually does PCA first, and then runs UMAP on the top 50 PCs. 
 
 `scater::calculateUMAP()` will return a matrix of results, with one row for each sample, and a column for each of the UMAP dimensions returned. 
@@ -270,7 +272,7 @@ For even more parameters, you can look at the underlying implementation code tha
 In order to make our experimentation easier, we will create a *function* that allows us to rerun the same code chunk easily, but create an argument that allows us to change one variable: the n_neighbors variable. 
 
 ```{r UMAP-function}
-UMAP_plot_wrapper <- function(nn_param = 15, sce = tm_normalized) {
+UMAP_plot_wrapper <- function(sce = tm_normalized, nn_param = 15) {
   # Purpose: Run UMAP and plot the output
   # Args: nn_param: a single numeric argument that will change the 
   #                 n_neighbors variable in the calculateUMAP() function. 
@@ -308,6 +310,7 @@ We can use `set.seed()` to be sure that an individual run (or set of runs) is th
 
 
 Fill in the next five code chunks with the function and the `n_neighbors` argument you would like to use for each. 
+
 Then run the chunks and compare your output graphs.
 
 ```{r run-UMAP-1, live = TRUE}
@@ -327,12 +330,61 @@ UMAP_plot_wrapper(nn_param = 5)
 
 #### Some 'big picture' thoughts to take from this experiment: 
 
-1) Different analyses (such as UMAP) have various limitations for interpretability. The coordinates of UMAP output for any given cell can change dramatically depending on parameters, and even run to run with the same parameters. This probably means that you shouldn't rely too heavily on the exact values of UMAP's output. 
-2) Different analyses also have their strengths. Using cell-type labeling, our experiment illustrated that UMAP does appear to give some biologically relevant output information for this dataset. 
-3) Playing with parameters so you can fine-tune them is a good way to give you more information about a particular analysis as well as the data itself. 
+1. Analyses (such as UMAP) have various limitations for interpretability. 
+The coordinates of UMAP output for any given cell can change dramatically depending on parameters, and even run to run with the same parameters. 
+This probably means that you shouldn't rely too heavily on the exact values of UMAP's output. 
+
+    - One particular limitation of UMAP and t-SNE is that while observed clusters have some meaning, the distance *between* clusters usually does not (nor does cluster density). 
+    The fact that two clusters are near each other should NOT be interpreted to mean that they are more related to each other than to more distant clusters. 
+    (There is some disagreement about whether UMAP distances have more meaning, but it is probably safer to assume they don't.)
+    
+2. Different analyses also have their strengths. 
+Using cell-type labeling, our experiment illustrated that UMAP does appear to give some biologically relevant output information for this dataset. 
+
+3. Playing with parameters so you can fine-tune them is a good way to give you more information about a particular analysis as well as the data itself. 
    
 In summary, if the results of an analysis can be completely changed by changing its parameters, you should be more cautious when it comes to the conclusions you draw from it as well as having good rationale for the parameters you choose. 
 
+### PCA comparison
+
+We didn't plot PCA first for these data, so let's see what that would have looked like:
+
+```{r pca}
+tm_pca <- scater::calculatePCA(tm_normalized)
+
+tm_meta_pca <- colData(tm_normalized) %>%
+  as.data.frame() %>%
+  dplyr::bind_cols(data.frame(tm_pca)) # add PC columns to data frame
+
+ggplot(data.frame(tm_meta_pca), 
+       aes(x = PC1, y = PC2, color = tissue)) + 
+  geom_point(alpha = 0.1, size = 0.1) +
+  # fix the legend to show opaque, large points
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))   
+```
+
+Not as clustered!
+
+### t-SNE comparison
+
+In the block below, is a similar analysis and plot with t-SNE (t-distributed Stochastic Neighbor Embedding).
+
+```{r}
+tm_tsne <- scater::calculateTSNE(tm_normalized)
+
+tm_meta_tsne <- colData(tm_normalized) %>%
+  as.data.frame() %>%
+  dplyr::bind_cols(data.frame(tm_tsne)) %>% # add tsne columns to data frame
+  dplyr::rename(TSNE1 = "X1", TSNE2 = "X2") # rename for meaning!
+
+ggplot(data.frame(tm_meta_tsne), 
+       aes(x = TSNE1, y = TSNE2, color = tissue)) + 
+  geom_point(alpha = 0.1, size = 0.1) +
+  # fix the legend to show opaque, large points
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))      
+```
+
+Different! (Slower!) Is it better or worse? Hard to say!
 
 ### Some further reading on dimension reduction:  
 
