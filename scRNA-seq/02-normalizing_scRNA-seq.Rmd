@@ -1,12 +1,12 @@
 ---
-title: "scRNA-seq Normalization"
+title: "scRNA-seq Normalization and Finding Marker Genes"
 output:   
   html_notebook: 
     toc: true
     toc_float: true
 ---
 
-**CCDL 2019**
+**CCDL 2020**
 
 In this notebook, we'll perform normalization of scRNA-seq count data that we have already done quality-control analyses of. 
     
@@ -17,8 +17,7 @@ tutorial.](https://bioconductor.org/packages/devel/bioc/vignettes/scran/inst/doc
   
 ## Set Up 
 
-For these analyses, we will need `scater` and `scran` packages, which have been 
-installed already on your Docker container. 
+Load the libraries we will be using, and set the random number generation seed value for reproducibility.
 
 ```{r setup}
 # Set seed for reproducibility
@@ -37,17 +36,23 @@ library(scran)
 
 Now let's set up the files we will be using:
 
-```{r files}
+```{r filepaths}
 # main data directory
 data_dir <- file.path("data", "glioblastoma")
 
 # Filtered count matrix file from previous notebook
-filtered_count_file <- file.path("data", "glioblastoma", "filtered_count_matrix.tsv")
+filtered_count_file <- file.path(data_dir, "filtered", "filtered_count_matrix.tsv")
 
 # Metadata file location
 metadata_file <- file.path(data_dir, "preprocessed", "darmanis_metadata.tsv")
 
-# Output directory
+# Outout directory for markers
+marker_dir <- file.path("analysis", "glioblastoma", "markers")
+if (!dir.exists(marker_dir)) {
+  dir.create(marker_dir, recursive = TRUE)
+}
+
+# Output directory for normalized data
 norm_dir <- file.path(data_dir, "normalized")
 if (!dir.exists(norm_dir)) {
   dir.create(norm_dir, recursive = TRUE)
@@ -55,9 +60,9 @@ if (!dir.exists(norm_dir)) {
 ```
 
 
-## Load the filtered count matrix and metadata
+## Read in the filtered count matrix and metadata
 
-```{r}
+```{r read_data}
 sc_data_filtered <- readr::read_tsv(filtered_count_file)
 sc_metadata <- readr::read_tsv(metadata_file)
 ```
@@ -67,185 +72,355 @@ sc_metadata <- readr::read_tsv(metadata_file)
 ## Set up a SingleCellExperiment object from count data
 
 Now that we have filtered our data, we are ready to normalize it.
-To do this, we are going to use some single-cell RNA-seq R packages called `scater` and `scran`.
+To do this, we are going to use some single-cell RNA-seq R packages called `scater` and `scran`. 
 
 ![](diagrams/full-length_2.png)
 
-The functions in these packages require the data to be in their own special 
-object type (not an uncommon thing for R packages to do) called `SingleCellExperiment`.
+The functions in these packages require the data to be in their own special object type (not an uncommon thing for R packages to do) called `SingleCellExperiment`.
 So first, we are going to set up our data in this format.
-To learn more about `SingleCellExperiment` objects and how it works with
-Bioconductor packages, we recommend this article: [Amezquita et al. 2020.](https://www.nature.com/articles/s41592-019-0654-x).
+To learn more about `SingleCellExperiment` objects and how it works with Bioconductor packages, we recommend this article: [Amezquita *et al.* 2020.](https://www.nature.com/articles/s41592-019-0654-x).
 
-```{r Set up SCE object}
-# Prep a matrix with just the rounded counts so we can create an sce object
-counts_mat <- round(as.matrix(sc_data_filtered[, -1]))
-
-```
-
-Put our counts matrix in this special `SingleCellExperiment` function: 
 
 ```{r}
 # Set up the Single Cell Experiment object 
-sce_raw <- SingleCellExperiment::SingleCellExperiment(list(counts = counts_mat))
-
-# save some memory
-rm(counts_mat)
+gbm_sce <- SingleCellExperiment(list(counts = as.matrix(sc_data_filtered[, -1])))
 
 # Store the gene names in this object
-rowData(sce_raw) <-  sc_data_filtered$gene
+rownames(gbm_sce) <-  sc_data_filtered$gene
 ```
 
-In the intro-to-R-tidyverse module notebook, `01-intro-to-r`, we discuss base R 
-object types, but there are some 'special' object types that are 
-package-specific. 
-`SingleCellExperiment` objects, for example, are what a lot of single-cell 
-analysis R packages use, so we will try to get acquainted with them. 
+In the intro-to-R-tidyverse module notebook, `01-intro-to-base_R.Rmd`, we discuss base R object types, but there are some 'special' object types that are package-specific. 
+`SingleCellExperiment` objects, for example, are what a lot of single-cell analysis R packages use, so we will try to get acquainted with them. 
 
-Use this chunk we've set up below to do some exploring of the 
-`SingleCellExperiment` object you just made.
+Use this chunk we've set up below to do some exploring of the `SingleCellExperiment` object you just made.
 
-```{r Explore SCE structure}
+```{r Explore_SCEstructure, live = TRUE, eval = FALSE}
 # The SingleCellExperiment is a special type of object used by scater and scran
 # R packages, explore its properties here. 
 # Also check it out in the environment tab.
+gbm_sce
 ```
 
-Below is a figure from [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1) 
-that shows the general structure of `SingleCellExperiment` objects. 
+Below is a figure from [Amezquita *et al.* (_bioRxiv._ 2019)](https://www.biorxiv.org/content/10.1101/590562v1) (the preprint version of the above-linked paper) that shows the general structure of `SingleCellExperiment` objects. 
 
 ![](figures/sce_structure.png)
 
-Note that each function which transforms the `SingleCellExperiment` object
-stores its results back into the object.
-Each of these transformation functions also have a corresponding extraction 
-function that allow you extract (or set) those results from the 
-`SingleCellExperiment` object.
+Note that each function which transforms the `SingleCellExperiment` object can store its results back into the object (or a new copy of the object, but that tends to be a waste of space).
+Each of these transformation functions also have a corresponding extraction function that allow you extract (or set) those results from the `SingleCellExperiment` object. 
 
 For more information on `SingleCellExperiment` objects, check out this [excellent vignette](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html)
-and/or [Amezquita et al. _bioRxiv._ 2019.](https://www.biorxiv.org/content/10.1101/590562v1)
+and/or [Amezquita *et al.* (2020)](https://www.nature.com/articles/s41592-019-0654-x)
+
+### Adding more metadata to the SCE object
+
+
+```{r sample_info}
+# get the sample names and put them in a data frame (1 column)
+sample_info <- tibble::tibble(geo_accession = colnames(gbm_sce)) %>%
+  # join to the metadata
+  dplyr::left_join(sc_metadata) %>%
+  dplyr::select(geo_accession,
+                title,
+                cell_type = cell.type.ch1,
+                tissue = characteristics_ch1.3
+                ) %>%
+  # clean up tissue
+  dplyr::mutate(tissue = stringr::str_remove(tissue, "tissue: "))
+```
+
+Check that the sample info accession ids are the same as the columns of our data
+
+```{r check_sampleinfo, live = TRUE}
+all.equal(sample_info$geo_accession, colnames(gbm_sce))
+```
+
+Now add that data to the SCE object.
+For unclear reasons, we have to convert our table to a `DataFrame` object in order for this to work.
+Just to keep things confusing, a `DataFrame` is not the same as a `data.frame` that we have been using throughout. 
+We also need to be sure to include the `row.names` argument to keep those properly attached
+
+```{r}
+colData(gbm_sce) <- DataFrame(sample_info, row.names = sample_info$geo_accession)
+```
+
 
 ## Normalization of count data 
 
-In whatever data we are working with, we are always looking to maximize biological 
-variance and minimize technical variance. 
+In whatever data we are working with, we are always looking to maximize biological variance and minimize technical variance. 
+A primary source of technical variation we are concerned with is the variation in library sizes among our samples. 
+While different cells may have different total transcript counts, it seems more likely that the primary source of variation that we see is due to library construction, amplification, and sequencing. 
+
 This is where normalization methods usually come into the workflow.
-With this high amount of zeroes in our data, this makes normalization particularly
-tricky.
-So in order to account for these zeroes, we normalize cells in groups with other 
-cells like them; a method introduced in [Lun et al 2016](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
+The distribution of the counts that we saw in the previous notebook, and in particular the fact that the count data is noisy with many zero counts, makes normalization particularly tricky.
+To handle this noise, we normalize cells in groups with other cells like them; a method introduced in [Lun *et al.* (2016)](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
+
+Briefly, we first cluster the cells to find groups of similar cells, then compute normalization factors based on the sums of expression in those groups. 
+The group normalization is then applied back to the individual cells within the group to create a normalized count matrix. 
+In this case, we will also log-transform the normalized counts to get a less skewed distribution of expression measures. 
+Note that because of the zero counts, the `logNormCounts()` function will add a pseudocount of 1 to each value before computing the log.
 
 *These steps may take a minute or so.*
 
-```{r}
+```{r sce_normalize}
 # Step 1) Group cells with other like cells by clustering.  
-qclust <- scran::quickCluster(sce_raw)
+qclust <- scran::quickCluster(gbm_sce)
 
 # Step 2) Compute sum factors for each cell cluster grouping.  
-sce_raw <- scran::computeSumFactors(sce_raw, clusters = qclust)
-
-### TODO: This is now deprecated- update to latest recommendations ###
+gbm_sce <- scran::computeSumFactors(gbm_sce, clusters = qclust)
 
 # Step 3) Normalize using these pooled sum factors and log transform. 
-sce_norm <- scater::normalize(sce_raw)
+gbm_sce <- scater::logNormCounts(gbm_sce)
 ```
 
 ## Compare normalized data to count data
 
-One way to determine whether our normalization yields biologically relevant 
-results, is to plot it and see if similarly labeled samples and cells end up 
-together.
-Because plotting 1000's of genes together isn't practical, we will reduce the 
-dimensions of our data using Principal Components Analysis. 
-Note that the `t()` function is being used here to transpose the `matrix`, so 
-it is samples x genes. 
-We could however, obtain PCA scores for each gene if we didn't transpose our
-data.frame first. 
+One way to determine whether our normalization yields biologically relevant results is to plot it and see if similarly labeled samples and cells end up together.
+Because plotting 1000's of genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis (PCA). 
 
-```{r}
-# Use PCA for dimension reduction of cells' raw data
-count_pca <- prcomp(t(counts(sce_raw)))
+We will also log transform the raw counts to make their scaling more comparable to the normalized data. 
+To do this we will use the `log1p()` function, which is specifically designed for the case where we want to add 1 to all of our values before taking the log, as we do here.
+(We could do something like `log(counts + 1)`, but this is both more efficient and more accurate.)
 
+
+
+```{r pca}
 # Use PCA for dimension reduction of cells' scran normalized data
-norm_pca <- prcomp(t(logcounts(sce_norm)))
+norm_pca <- scater::calculatePCA(gbm_sce, ntop = nrow(gbm_sce)) 
+
+# PCA on the raw counts, log transformed
+log_pca <- counts(gbm_sce) %>% # get the raw counts
+  log1p() %>% # log transform to make these more comparable to the normalized values
+  scater::calculatePCA(ntop = nrow(gbm_sce)) # calculate PCA scores
+
 ```
 
-Now we will retrieve the PCA scores, by using `$x` at the end of our `prcomp`
-objects.
+Note that we are using `scater::calculatePCA()` two different ways here: once on the full `gbm_sce` object, and once on just the `counts` matrix. 
+When we use `calculatePCA()` on the object, it automatically uses the log normalized matrix from inside the object.
 
-```{r Graph PCA}
-# Make the counts PC scores into a dataframe with cell type labels for easy graphing 
-count_pca_scores <- data.frame(count_pca$x[, 1:2],
-                               geo_accession = rownames(count_pca$x)) %>%
-  dplyr::left_join(dplyr::select(sc_metadata, 
-                                 geo_accession, 
-                                 cell_type = cell.type.ch1))
+We are also using the `ntop` argument so that the PCA is calculated using data from all genes in the data set. 
+This is not the default for `calculatePCA()` as we will explore below.
 
-# Set up the normalized PC scores in the same way
-norm_pca_scores <- data.frame(norm_pca$x[, 1:2],
-                              geo_accession = rownames(norm_pca$x)) %>%
-  dplyr::left_join(dplyr::select(sc_metadata, 
-                                 geo_accession, 
-                                 cell_type = cell.type.ch1))
+Next we will arrange the PCA scores for plotting, adding a column with the cell-type data so we can color each point of the plot. 
+
+```{r pca_df}
+# Set up the PCA scores for plotting
+norm_pca_scores <- data.frame(norm_pca,
+                              geo_accession = rownames(norm_pca),
+                              cell_type = gbm_sce$cell_type)
+log_pca_scores <- data.frame(log_pca,
+                             geo_accession = rownames(log_pca),
+                             cell_type = gbm_sce$cell_type)
 ```
 
-Let's plot the counts PCA scores with their cell labels:
+Now we will plot the unnormalized PCA scores with their cell labels:
 
-```{r Plotting counts pca}
+```{r pca_plot}
 # Now plot counts pca
-ggplot(count_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+ggplot(log_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
-  ggtitle("Counts PCA Scores") + 
+  ggtitle("Log counts (unnormalized) PCA scores") + 
   colorblindr::scale_color_OkabeIto() # We are adding this so it is colorblind friendly
 ```
 
-We've plotted the counts data for you. Knowing that we want the same graph,
-but different data, use the above template to plot the normalized data.
+We've plotted the counts data for you. Knowing that we want the same graph, but different data, use the above template to plot the normalized data. 
+Feel free to customize the plot with a different theme or color scheme!
 
 Let's plot the `norm_pca_scores` data:
 
-```{r Plotting norms pca, live = TRUE}
+```{r norm_pca_plot, live = TRUE}
 ggplot(norm_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
-  ggtitle("Normalized log counts PCA Scores") + 
+  ggtitle("Normalized log counts PCA scores") + 
   colorblindr::scale_color_OkabeIto()
 ```
 
-The normalization has appeared to help separate the rest of the brain cells 
-from the immune cells. 
+Do you see an effect from the normalization in the comparison between these plots?
+
+## Modeling variance
+
+The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. 
+In order to account for this we could just take the largest variance genes, but if we want to be a bit more careful about it, we can model the variance in expression of each gene as a function of mean expression for that gene.
+This is useful because we generally expect the variance to increase as mean expression increases, even if there is no biological signal in the expression variation.
+
+We will do this modeling of variance by expression with the `scran::modelGeneVar()` function, saving the results to a new variable. 
+
+```{r model_variance}
+gbm_variance <- scran::modelGeneVar(gbm_sce)
+```
+
+Now let's plot the relationship between gene expression and variance we were discussing.
+Here we will also add the fitting curve that `scran::modelGeneVar()` created, which is stored as function in the  `$trend` slot of the `gbm_variance` object.
+We can add a function like that curve to a `ggplot` with a `stat_function` layer.
+
+```{r plot_variance}
+ggplot(as.data.frame(gbm_variance), aes(x = mean, y = total)) +
+  geom_point(alpha = 0.05) +
+  stat_function(fun = metadata(gbm_variance)$trend, color = "blue") + 
+  xlab("Mean log-expression") + 
+  ylab("Variance")
+
+```
+
+Now we can use `scran::getTopHVGs()` to select the genes that have the most biological variation (according to the model) and calculate PCA scores using only those genes. 
+Here we are picking the 500 top genes.
+
+```{r get_highvar}
+highvar_genes <- scran::getTopHVGs(gbm_variance, n = 500)
+highvar_pca <- scater::calculatePCA(gbm_sce, subset_row = highvar_genes)
+```
+
+```{r highvar_df}
+highvar_pca_scores <- data.frame(highvar_pca,
+                                 geo_accession = rownames(highvar_pca),
+                                 cell_type = gbm_sce$cell_type)
+```
+
+```{r plot_highvar}
+ggplot(highvar_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+  geom_point() + 
+  ggtitle("High variance gene PCA scores") + 
+  colorblindr::scale_color_OkabeIto()
+```
+
+Now what we didn't tell you before, but will tell you now, is that the default for `calculatePCA()` is to use the top 500 highest variance genes. 
+This is what we were overriding when we used `ntop = nrow(gbm_sce)`.
+*However*, that filter is based on total variance, not biological variance, as we have done here. 
+
+In most cases, the list of genes will be pretty similar; if you were to plot the biological variance (`gbm_variance$bio`) against the total variance (`gbm_variance$total`), you would see a very strong relationship at the top end. 
+So if we want to shortcut what we did to get the above plot (or one very close to it), we could have done it with `scater::calculatePCA(gbm_sce)` using no additional arguments.
+
+*Why didn't we do that first?*
+Well, it wouldn't have shown you the effects of normalization or making the choice to include only high variance genes. 😉
+
+
+## Identify marker genes
+
+The highest variance genes may not always be the most informative on their own, especially if we are trying to differentiate among cell types.
+To find genes that are distinct to one cell type or another, we can use the `scran::findMarkers()` function to test for genes that are significantly different among cells of each type.
+This will return a list (technically a list-like object) of tables, one for each cell type, with statistics for each gene showing how well it differentiates that cell type against all other types.
+
+```{r find_markers}
+markers <- scran::findMarkers(gbm_sce, gbm_sce$cell_type)
+```
+
+Next we can look at one of those tables, in this case the one for neurons. 
+Since each of the tables in the list-like object has a name, we can select an individual table using the familiar `$` syntax..We have done some transformation here to pull the gene name into a column of its own and filtered to the genes that seem to differentiate best using the `Top` column.
+
+```{r marker_table}
+markers$Neuron %>%
+  as.data.frame() %>% # convert to a data frame
+  tibble::rownames_to_column("gene") %>% # make the gene names column
+  dplyr::filter(Top <= 100) # most significant 100 for each pairwise comparison
+
+```
+
+Because we tend to like [tidy data](https://r4ds.had.co.nz/tidy-data.html), here we use a `tidyverse` function from the [`purrr` package](https://purrr.tidyverse.org) to apply the same operations as above to every element of the `markers` list. 
+We will introduce `purrr` briefly here, but if you want more information and background, we recommend the [`purrr` cheatsheet (PDF)](https://github.com/rstudio/cheatsheets/raw/master/purrr.pdf) and Jenny Bryan's great [`purrr` tutorial](https://jennybc.github.io/purrr-tutorial/index.html) you might want to look at.
+
+
+The main functions in `purrr` are the `map()` functions, which take as their main arguments a **list** and a **function** to apply to each element of the list. 
+The first one, `purrr::map()` is essentially equivalent to the `lapply()` function that is part of base R, but with some different defaults. 
+We will use it to get the top rows from each table by applying the `head()` function to each element of the list.
+The results are returned as a new list.
+
+```{r head_markers, eval = FALSE}
+purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
+           head) # the function to apply (note no parenthesis)
+```
+
+This returns a list of data frames, which isn't quite what we want.
+
+There is no built-in function that will give us just the first few row names, so we will have to define one, and `purrr` gives us a nice shorthand for doing that with `~` syntax.
+In this syntax we type a `~` followed by an expression (R code) that uses `.x` as a placeholder for a single element of the list.
+`purrr::map()` will then apply the expression to each element of the list, and return the results as a new list.
+
+```{r head_markernames, live = TRUE}
+# Get the first few row names of each table with a purrr function.
+purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
+           ~ rownames(head(.x))) # our custom function.
+```
+
+Another variant is `purrr::imap()`, which allows us to use the names of the list elements in our function. 
+(Try `names(markers)` to see the names for the list we are working with now.)
+We will use that here to name output files where we will print each of the marker tables, one for each cell type.
+We are again defining a custom function within the call to `purrr:imap()` using the `~` syntax, but this time we can use `.x` for the list elements and `.y` for their names.
+
+In addition to writing the tables out, we are saving the data frames we created as a new list object that we can use in the next step.
+
+```{r write_tables}
+marker_df_list <- purrr::imap(
+  as.list(markers), # convert markers to a 'regular' list for purrr
+  ~ as.data.frame(.x) %>% # convert the table to a data frame
+    tibble::rownames_to_column("gene") %>% # make genes a new column
+    readr::write_tsv( # write each data frame to a file
+      file.path(marker_dir, paste0(.y, "_markers.tsv")) # construct the output path
+    )
+  )
+```
+
+`purrr::map_df()` is another nice function in `purrr`. 
+It applies the operations in the second argument and combines the output into a single data frame.
+Optionally, it adds a column with the name specified by the `.id` argument to differentiate the rows that came from each element of the input list.
+
+```{r top_markers}
+# Make a data frame of the top markers for each cell type
+top_markers <- purrr::map_df(marker_df_list,
+                             ~ dplyr::filter(.x, Top <= 100),
+                             .id = "cell_type")
+```
+
+This list has a lot of redundancy, and we really only care about the gene names for the next step, so we will reduce that column down to just the unique set of gene names with `unique()`.
+
+```{r unique_markers}
+unique_markers <- unique(top_markers$gene)
+length(unique_markers)
+```
+
+Now we will use those unique markers to calculate the PCA using just those genes.
+
+```{r marker_pca}
+marker_pca <- calculatePCA(gbm_sce, 
+                           subset_row = unique_markers, 
+                           ntop = length(unique_markers)) %>% # use all of the markers 
+  as.data.frame() %>% # converting to a data frame & adding columns in a pipe, for variety
+  tibble::rownames_to_column("geo_accession") %>%
+  dplyr::mutate(cell_type = gbm_sce$cell_type)
+```
+
+Now we can make a plot of the marker gene PCA!
+
+```{r plot_marker, live = TRUE}
+ggplot(marker_pca, aes(x = PC1, y = PC2, color = cell_type)) +
+  geom_point() + 
+  ggtitle("Marker gene PCA scores") + 
+  colorblindr::scale_color_OkabeIto()
+```
+
 
 ## Save the normalized data to tsv file
 
 In case we wanted to return to this data later, let's save the normalized data
 to a tsv file. 
-In order to do this we need to extract our normalized counts from `sce_norm`. 
-Refer back to the `SingleCellExperiment` figure above to determine why we are 
-using this `logcounts` function.
+In order to do this we need to extract our normalized counts from `gbm_sce`. 
+Refer back to the `SingleCellExperiment` figure above to determine why we are using this `logcounts()` function.
 
 ```{r Save Data to .tsv}
 # Save this gene matrix to a tsv file
-logcounts(sce_norm) %>% 
+logcounts(gbm_sce) %>% 
   as.data.frame() %>%
-  readr::write_tsv(file.path(norm_dir, "scran_norm_gbm_gene_matrix.tsv"))
+  readr::write_tsv(file.path(norm_dir, "scran_norm_gene_matrix.tsv"))
 ```
 
-Also note that `readr::write_tsv` requires a `data.frame`; so we need to convert 
-our `matrix` to a data.frame.
-Because our metadata has been filtered to match our gene matrix, we will also 
-save a new file for the metadata. 
+Recall that `readr::write_tsv` requires a data frame; so we need to convert 
+our `matrix` to a data frame.
 
-```{r}
-readr::write_tsv(sc_metadata_filtered, file.path(norm_dir, 
-                                                 "gbm_filtered_metadata.tsv"))
-```
-
-We will return to our normalized `sce_norm` object in the exercise, so we will 
+We will return to our normalized `gbm_sce` object in the exercise, so we will 
 also save our data in an RDS file so that we can re-load it into our R 
 environment as a `SingleCellExperiment` object.
 
 ```{r}
 # Save the data as an RDS
-readr::write_rds(sce_norm, file.path(norm_dir, "sce_norm.RDS"))
+readr::write_rds(gbm_sce, file.path(norm_dir, "glioblastoma_sce.RDS"))
 ```
 
 ### Print session info
