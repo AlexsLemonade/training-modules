@@ -40,11 +40,11 @@ For this module, we are going to use the dataset that we processed part of in
 
 # Path to the single-sample alevin results
 alevin_file <- file.path("data", "tabula-muris", "alevin-quant", 
-                          "10X_P4_3_full", "alevin", "quants_mat.gz")
+                         "10X_P4_3_full", "alevin", "quants_mat.gz")
 
 # normalized multi-sample Tabula Muris Data
 tm_normalized_file <- file.path("data", "tabula-muris", 
-                         "normalized", "TM_normalized.rds" )
+                                "normalized", "TM_normalized.rds" )
 
 # Path to the metadata file 
 metadata_file <- file.path("data", "tabula-muris", 
@@ -170,17 +170,20 @@ ggplot(pca_tab_mur,
   geom_point() 
 ```
 
-It looks like there are a few different clusters here, which may represent different kinds of cells within the bladder tissue. 
+It looks like there are a few different clusters here, which may represent different kinds of cells within the bladder tissue.
+If we wanted to, we might look at marker genes within these clusters to try to determine which kinds of cells are in each cluster from this tissue. 
+This is exactly what the *Tabula Muris* group ended up doing, and you can see some of their results along that front at https://tabula-muris.ds.czbiohub.org/.
 
 
 ## Beyond PCA: UMAP
 
-### Dataset
+### More from the *Tabula Muris* Dataset
+
 To explore more about dimensionality reduction, we will explore a larger subset of the data from the *Tabula Muris* study. 
 We have run alevin on 15 samples, representing 9 different tissues, and taken each of those samples through QC and normalization similar to what we have presented above (with slightly different cutoffs).
 Following that, we selected the 1000 genes with the greatest biological variance (using the same method as shown in `02-normalizing_scRNA-seq.Rmd`).
 
-These results, with accompanying metadata were saved into a `SingleCellExpriment` object, which is stored as RDS file at the location `tm_normalized_file` (defined in the `filepath` chunk above).
+These results, with accompanying metadata were saved into a `SingleCellExperiment` object, which is stored as RDS file at the location `tm_normalized_file` (defined in the `filepaths` chunk above).
 Let's load that in and have a quick look at it. 
 
 ```{r load_normalized}
@@ -203,7 +206,31 @@ as.data.frame(colData(tm_normalized)) %>% # dplyr summary table
                    mean_detected = mean(detected), 
                    max_detected = max(detected))
 ```
+### PCA baseline
 
+Before we move on to UMAP, let's calculate the principle components for this full data set, and see what it can show us.
+
+In the chunk below, we calculate the PCs and plot the first two, colored by tissue, much as we did before.
+
+```{r pca}
+# calculate PCA
+tm_pca <- scater::calculatePCA(tm_normalized)
+
+# combine PCA results with metadata stored in sce
+tm_meta_pca <- colData(tm_normalized) %>%
+  as.data.frame() %>%
+  dplyr::bind_cols(data.frame(tm_pca))
+
+# plot 1st two PC with ggplot
+ggplot(data.frame(tm_meta_pca), 
+       aes(x = PC1, y = PC2, color = tissue)) + 
+  geom_point(alpha = 0.1, size = 0.1) +
+  # fix the legend to show opaque, large points
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))   
+```
+
+There is definitely some structure there, but the different tissues are certainly not well separated. 
+Newer, fancier techniques may allow us to do better!
 
 ### UMAP
 
@@ -241,7 +268,10 @@ ggplot(data.frame(tm_umap), aes(x = X1, y = X2)) +
 ```
 
 There is clearly a lot of structure in there, but is it meaningful?
-Lets add in the metadata we have stored in the `SingleCellExperiment` data (colData) and replot it.
+
+Does it correspond to tissues, sex of the mouse, individual samples? Or is it all just random?
+
+Let's add in the metadata we have stored in the `SingleCellExperiment` data (colData) and replot it.
 There is a bit of conversion we have to do here to start, because `SingleCellExperiment` likes to use DataFrames
 
 ```{r umap_metadata}
@@ -251,13 +281,14 @@ tm_meta_umap <- colData(tm_normalized) %>%
   dplyr::rename(UMAP1 = "X1", UMAP2 = "X2") # rename for meaning!
 ```
 
-```{r plot_color}
-ggplot(data.frame(tm_meta_umap), 
+```{r plot_tissue, live = TRUE}
+ggplot(tm_meta_umap, 
        aes(x = UMAP1, y = UMAP2, color = tissue)) + 
   geom_point(alpha = 0.1, size = 0.1) +
-  # fix the legend to show opaque, large points
   guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))
 ```
+
+
 
 
 ## UMAP experiments
@@ -266,8 +297,6 @@ Now that we have an idea of what a UMAP plot with the default parameters looks l
 First, we should see what this parameter is, and what the default value is.
 In the console, run `?scater::calculateUMAP` to see what this (and other parameters) are.
 For even more parameters, you can look at the underlying implementation code that `calculateUMAP()` uses, which is the function `uwot::umap()`
-
-
 
 In order to make our experimentation easier, we will create a *function* that allows us to rerun the same code chunk easily, but create an argument that allows us to change one variable: the n_neighbors variable. 
 
@@ -305,12 +334,10 @@ UMAP_plot_wrapper(nn_param = 15)
 
 This isn't your fault! 
 UMAP is a non-determinisitic function, which means that there is a random component to the results. 
-We can use `set.seed()` to be sure that an individual run (or set of runs) is the same every time, but it is important to check your results a few times to be sure that the random component is giving you anomalous results.
+We can use `set.seed()` to be sure that an individual run (or set of runs) is the same every time, but it is important to check your results a few times to be sure that the random component is not giving you anomalous results.
 
-
-
-Fill in the next five code chunks with the function and the `n_neighbors` argument you would like to use for each. 
-
+Fill in the next few code chunks with the function and the `n_neighbors` argument you would like to use for each. 
+(Feel )
 Then run the chunks and compare your output graphs.
 
 ```{r run-UMAP-1, live = TRUE}
@@ -345,29 +372,9 @@ Using cell-type labeling, our experiment illustrated that UMAP does appear to gi
    
 In summary, if the results of an analysis can be completely changed by changing its parameters, you should be more cautious when it comes to the conclusions you draw from it as well as having good rationale for the parameters you choose. 
 
-### PCA comparison
-
-We didn't plot PCA first for these data, so let's see what that would have looked like:
-
-```{r pca}
-tm_pca <- scater::calculatePCA(tm_normalized)
-
-tm_meta_pca <- colData(tm_normalized) %>%
-  as.data.frame() %>%
-  dplyr::bind_cols(data.frame(tm_pca)) # add PC columns to data frame
-
-ggplot(data.frame(tm_meta_pca), 
-       aes(x = PC1, y = PC2, color = tissue)) + 
-  geom_point(alpha = 0.1, size = 0.1) +
-  # fix the legend to show opaque, large points
-  guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))   
-```
-
-Not as clustered!
-
 ### t-SNE comparison
 
-In the block below, is a similar analysis and plot with t-SNE (t-distributed Stochastic Neighbor Embedding).
+In the block below is a similar analysis and plot with t-SNE (t-distributed Stochastic Neighbor Embedding).
 
 ```{r}
 tm_tsne <- scater::calculateTSNE(tm_normalized)
@@ -385,6 +392,7 @@ ggplot(data.frame(tm_meta_tsne),
 ```
 
 Different! (Slower!) Is it better or worse? Hard to say!
+Different people like different things, and one plot might illustrate a particular point better than another. 
 
 ### Some further reading on dimension reduction:  
 
