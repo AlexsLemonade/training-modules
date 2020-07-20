@@ -8,13 +8,13 @@ editor_options:
   chunk_output_type: inline
 ---
 
-**CCDL 2019**
+**CCDL 2020**
 
 In this notebook, we will be running through the basics of processing raw single-cell RNA-seq data.
 
 We will be using a tag-based scRNA-seq sample from the [*Tabula Muris* project](https://www.nature.com/articles/s41586-018-0590-4).
 This dataset is made of 20 mouse organs that were sequenced using 10X Genomics Chromium single cell sequencing methods.
-For 10X Genomics scRNA-seq data, cells are separated by emulsion/droplets, and individual  cells are given barcodes (often abbreviated 'CB' in documentation).
+For 10X Genomics scRNA-seq data, cells are separated by emulsion/droplets, and individual cells are given barcodes (often abbreviated 'CB' in documentation).
 These data also have [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772) which allow us to examine PCR amplification errors and biases.
 
 **Relative workflow for tag-based data**
@@ -38,7 +38,7 @@ However, most public data is available in `fastq` format, so that is where we wi
 
 If you have opened the `scRNA-seq.Rproj` file, your Terminal should already be set to the `scRNA-seq` directory, but it is worth checking with the `pwd` command in the Terminal 
 (or by looking at the path shown in the command prompt or at the top of the Terminal pane). 
-If you are in a different directory, we will want to use `cd` to change to the correct directory. 
+If you are in a different directory, we will want to use `cd` to change to the `training-modules/scRNA-seq` directory. 
 
 Once you are there, you should be able to run the following command in the Terminal to look at the contents of the `data/tabula-muris` directory:
 
@@ -78,6 +78,8 @@ But for your own reference, here is how you might do it yourself:
 #  -i index/Mus_musculus/short_index \
 #  -k 23
 ```
+
+The scripts we used to build the index we are using here (and others) can be found in [this repository](https://github.com/AlexsLemonade/training-txome-prep)
 
 ## Step 4: For each sample, run [Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) for quantification
 
@@ -123,8 +125,8 @@ However, Drop-seq data is also supported, and in this case you would use a `--dr
 
 #### `--tgMap`
 This is needed to supply a transcript to gene key that Alevin will use to quantify the genes.
-For our example, we've pre-made the file `Mus_musculus.GRCm38_tx2gene.tsv` from the Ensembl transcriptome that we indexed above. 
-The file has to be a tsv file.
+For our example, we've pre-made the file `mm_ensdb95_tx2gene.tsv` from the Ensembl transcriptome that we indexed above. 
+The file is a TSV file with 2 columns: one of transcripts and the other the gene that each comes from.
 
 
 #### `--dumpFeatures`
@@ -163,36 +165,33 @@ In the pattern `10X_P4_3_L*_R1_*.fastq.gz`, this would allow any lane number and
 For this directory, that would look make our full `salmon alevin` command look like this (don't run this now!):
 
 ```
-salmon alevin -l ISR \
-  -i /shared/data/reference/refgenie/mm10_cdna/salmon_index/short/short/ \
-  -1 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R1_*.fastq.gz \
-  -2 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R2_*.fastq.gz \
-  --chromium  \
-  -p 4 \
-  -o data/tabula-muris/alevin-quant/10X_P4_3_full \
-  --tgMap data/tabula-muris/mm_ensdb95_tx2gene.tsv \
-  --dumpFeatures
+# salmon alevin -l ISR \
+#   -i /shared/data/reference/refgenie/mm10_cdna/salmon_index/short/short/ \
+#   -1 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R1_*.fastq.gz \
+#   -2 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R2_*.fastq.gz \
+#   --chromium  \
+#   -p 4 \
+#   -o data/tabula-muris/alevin-quant/10X_P4_3_full \
+#   --tgMap data/tabula-muris/mm_ensdb95_tx2gene.tsv \
+#   --dumpFeatures
 ```
 
 In general, you will want to run all lanes and all files for a given sample together.
-But DO NOT want to combine multiple samples into a single `alevin` quantification!
+But **DO NOT** combine multiple *samples* into a single `alevin` quantification!
+Keep separate samples (and replicates) separate!
 
 ## Step 6: Perform QC checks with `alevinQC`
 
-Now that we have quantified our data with Alevin, we are ready to perform
-quality control checks.
+Now that we have quantified our data with Alevin, we are ready to perform quality control checks.
 
 ![**Current status of this dataset**](diagrams/tag-based_2.png)
 
 In order to perform quality control checks, we'll use the `alevinQC` R package.
-Note that `alevinQC` depends on files that we get using the`--dumpFeatures`
-option in Alevin.
+Note that `alevinQC` depends on files that we get using the`--dumpFeatures` option in Alevin.
 
-About the `alevinQCReport` function:
-The first argument needs to be where the sample's output data was put when
-Alevin was run (as a character string, aka using quotes)
-The rest of `alevinQCReport`'s arguments tell R where to put the output QC
-report also using `characters`.
+About the `alevinQCReport()` function:
+The first argument needs to be where the sample's output data was put when Alevin was run (as a character string, aka using quotes).
+The rest of `alevinQCReport()`'s arguments tell R where to put the output QC report.
 
 ```{r}
 # Produce a QC report
@@ -202,11 +201,9 @@ alevinQC::alevinQCReport("data/tabula-muris/alevin-quant/10X_P4_3",
                          outputDir = "qc-reports")
 ```
 
-Check out `data/tabula_muris/qc_reports/10X_P4_3_subset_qc_report.html`
-in order to examine the quality of your data and performance of Alevin.
+Look for the `10X_P4_3_qc_report.html` file created in the `qc-reports` directory to examine the quality of your data and performance of Alevin.
 
-
-This is an example of [a poor quality sample alevinQC report](https://alexslemonade.github.io/training-modules/scRNA-seq/data/tabula_muris/qc_reports/Bad_Example_10X_P4_2_qc_report.html).
+We have also placed an example of a poor quality sample alevinQC report in the `qc-reports` directory, with the name `Bad_Example_10X_P4_2_qc_report.html`.
 
 ## Step 7: Loading Alevin output into R
 
@@ -214,16 +211,16 @@ After we have successfully quantified our tag-based scRNA-seq data (and optional
 
 Doing this is similar to what we have done before, using our old friend `tximport`. 
 First we will set up the paths to the directory we created, and to the relevant file that `tximport` needs within that directory, which is called `quants_mat.gz`.
-It is located in the `alevin` subdirectory of the output directory.
+It is located in the `alevin` subdirectory of the output directory that is automatically created by Alevin.
 
 ```{r files}
 # the directory we created for alevin output
-quant_dir <- file.path("data", "tabula-muris","alevin-quant", "10X_P4_3")
+quant_dir <- file.path("data", "tabula-muris", "alevin-quant", "10X_P4_3")
 # the quant matrix file
 quant_file <- file.path(quant_dir, "alevin", "quants_mat.gz")
 ```
 
-Now we can read in the data with `tximport`, specifying the type as `"alevin"`.
+Now we can read in the data with the `tximport()` function, specifying the type as `"alevin"`.
 
 ```{r tximport}
 txi <- tximport::tximport(quant_file, type = "alevin")
@@ -242,5 +239,4 @@ sce <- SingleCellExperiment::SingleCellExperiment(list(counts = txi$counts))
 ```{r sessioninfo}
 sessionInfo()
 ```
-
 
