@@ -131,7 +131,7 @@ tm_sce_filtered <- tm_sce_filtered[detected & expressed, ]
 
 ### Normalize
 
-Now we will perform the same normalization steps we did with the Smart-seq2 data, using `scran`scran::computeSumFactors()` and `scater::logNormCounts()`
+Now we will perform the same normalization steps we did with the Smart-seq2 data, using `scran::computeSumFactors()` and `scater::logNormCounts()`
 
 ```{r normalize}
 # Cluster similar cells
@@ -239,7 +239,7 @@ While PCA assumes that the variation we care about has a particular distribution
 The underlying mathematics are beyond me, but if you are more ambitious than I, you can look at the paper by [McInnes, Healy, & Melville (2018)](https://arxiv.org/abs/1802.03426). 
 The main advantage of this change in underlying assumptions is that UMAP can do a better job separating clusters, especially when some of those clusters may be more similar to each other than others.  
 
-Another dimentionality technique that you may have heard of is **t-SNE**, which has similar properties to UMAP, and often produces similar results. 
+Another dimentionality reduction technique that you may have heard of is **t-SNE** (t-distributed Stochastic Neighbor Embedding), which has similar properties to UMAP, and often produces similar results. 
 There is some ongoing debate about which of these two techniques is superior, and whether the differences are due to the underlying algorithm or to implementation and parameter initialization defaults. 
 Regardless of why, in our experience, UMAP seems to produce slightly better results and run a bit faster, but the differences can be subtle.
 
@@ -259,7 +259,7 @@ Let's see how it looks with the default parameters:
 tm_umap <- scater::calculateUMAP(tm_normalized)
 ```
 
-Now lets convert that matrix result to a data frame and plot the results!
+Now let's convert that matrix result to a data frame and plot the results!
 
 ```{r plot_umap}
 # ggplot tm_umap
@@ -325,7 +325,8 @@ UMAP_plot_wrapper <- function(sce = tm_normalized, nn_param = 15) {
 }
 ```
 
-Lets make sure that works and gives the same result as before when we use the default parameters
+Let's make sure that works and gives the same result as before when we use the default parameters.
+
 ```{r function-test}
 UMAP_plot_wrapper(nn_param = 15)
 ```
@@ -334,10 +335,11 @@ UMAP_plot_wrapper(nn_param = 15)
 
 This isn't your fault! 
 UMAP is a non-determinisitic function, which means that there is a random component to the results. 
-We can use `set.seed()` to be sure that an individual run (or set of runs) is the same every time, but it is important to check your results a few times to be sure that the random component is not giving you anomalous results.
+We can use `set.seed()` to be sure that an individual run (or set of runs) is the same every time you run your analysis, but it is important to check your results a few times with different random starting points to be sure that the random component is not giving you anomalous results.
+Setting a different random number seed with `set.seed()` is one way to do this, or you can run the analysis multiple times in the same session, as we have done here.
 
 Fill in the next few code chunks with the function and the `n_neighbors` argument you would like to use for each. 
-(Feel )
+(Feel free to add more tests!)
 Then run the chunks and compare your output graphs.
 
 ```{r run-UMAP-1, live = TRUE}
@@ -375,6 +377,7 @@ In summary, if the results of an analysis can be completely changed by changing 
 ### t-SNE comparison
 
 In the block below is a similar analysis and plot with t-SNE (t-distributed Stochastic Neighbor Embedding).
+Note that this analysis also does PCA before moving on to the fancy machine learning.
 
 ```{r}
 tm_tsne <- scater::calculateTSNE(tm_normalized)
