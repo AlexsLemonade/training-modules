@@ -243,14 +243,11 @@ column_annotation <- HeatmapAnnotation(
 
 We will z-score the expression values for display.
 This is sometimes called a standardized score.
-
-```{r row_normalize}
-# PLIER::rowNorm z-scores the gene (row) values
-zscores_mat <- PLIER::rowNorm(high_var_mat)
-```
+It's calculated for each value in a row (gene) by subtracting the gene's mean and dividing by the gene's standard deviation.
 
 ```{r}
-zscores_alt <- (high_var_mat - rowMeans(high_var_mat)) / matrixStats::rowSds(high_var_mat)
+zscores_mat <- 
+  (high_var_mat - rowMeans(high_var_mat)) / matrixStats::rowSds(high_var_mat)
 ```
 
 
@@ -290,30 +287,27 @@ If you're filtering to high variance values, it's important to do that _prior_ t
 Okay, now we're ready to make a heatmap complete with annotation bars.
 
 ```{r make_heatmap}
-# Assign the heatmap object
-mb_heatmap <- Heatmap(zscores_mat,
-                      # The distance metric used for clustering the rows
-                      # This is different from the default (Euclidean)
-                      clustering_distance_rows = "pearson",
-                      # Linkage method for row clustering
-                      # This is different from the default (complete)
-                      clustering_method_rows = "average",
-                      # Distance metric for columns
-                      clustering_distance_columns = "pearson",
-                      # Linkage for columns
-                      clustering_method_columns = "average",
-                      show_row_names = FALSE,
-                      show_column_names = FALSE,
-                      # Add annotation bars to the top of the 
-                      top_annotation = column_annotation,
-                      # This will be used as the label for the color bar
-                      # of the cells of the heatmap itself
-                      name = "z-score")
-
-mb_heatmap
+Heatmap(zscores_mat,
+        # The distance metric used for clustering the rows
+        # This is different from the default (Euclidean)
+        clustering_distance_rows = "pearson",
+        # Linkage method for row clustering
+        # This is different from the default (complete)
+        clustering_method_rows = "average",
+        # Distance metric for columns
+        clustering_distance_columns = "pearson",
+        # Linkage for columns
+        clustering_method_columns = "average",
+        show_row_names = FALSE,
+        show_column_names = FALSE,
+        # Add annotation bars to the top of the 
+        top_annotation = column_annotation,
+        # This will be used as the label for the color bar
+        # of the cells of the heatmap itself
+        name = "z-score")
 ```
 
-We have to display the heatmap by calling `mb_heatmap` _twice_ -- once for display in the notebook and once to save to a PNG file -- because we can't easily assign 
+We have to create the heatmap _twice_ -- once for display in the notebook and once to save to a PNG file.
 
 ```{r save_heatmap_png, live = TRUE}
 # Open PNG plot device
@@ -322,8 +316,16 @@ png(filename = heatmap_file,
     height = 7, 
     units = "in", 
     res = 300)
-# Heatmap object itself
-mb_heatmap
+# Heatmap, again!
+Heatmap(zscores_mat,
+        clustering_distance_rows = "pearson",
+        clustering_method_rows = "average",
+        clustering_distance_columns = "pearson",
+        clustering_method_columns = "average",
+        show_row_names = FALSE,
+        show_column_names = FALSE,
+        top_annotation = column_annotation,
+        name = "z-score")
 # Shut down current graphics device
 dev.off()
 ```
