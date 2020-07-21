@@ -35,7 +35,7 @@ library(ComplexHeatmap)
 
 ### Directories and files
 
-We store the data we'll use in this notebook in `data/open-pbta/processed`. 
+We have stored the data we'll use in this notebook in `data/open-pbta/processed`. 
 
 ```{r directories, live = TRUE}
 data_dir <- file.path("data", "open-pbta", "processed")
@@ -77,7 +77,7 @@ histologies_df <- read_tsv(histologies_file,
 
 Use the chunk below to explore the metadata data frame.
 
-```{r explore_histologies_df, live = TRUE}
+```{r explore_histologies_df, live = TRUE, eval = FALSE}
 View(histologies_df)
 ```
 
@@ -146,7 +146,8 @@ dim(rnaseq_mat)
 ```
 
 Over 50k genes would be hard to put it the same heatmap!
-If we make a heatmap to get an idea of the structure in our data, it can be helpful to subset to high variance genes.
+If we are making a heatmap to get an idea of the structure in our data, it can be helpful to subset to high variance genes.
+This is because the genes that *don't* vary are not likely to contribute much to the overall patterns we are interested in.
 
 First, we'll calculate the variance for each gene using `rowVars()` from the `matrixStats` package and then take the genes in the top 10%.
 
@@ -202,7 +203,7 @@ sample_annotation_df <- sample_annotation_df %>%
 ```
 
 To specify the colors in our annotation bar, we need to create a list of named vectors.
-The names of the list need to exactly match the column names in `sample_annotation_df` and the names in each vector need to exact match the values in those columns.
+The names of the list need to *exactly* match the column names in `sample_annotation_df` and the names in each vector need to *exactly* match the values in those columns.
 
 ```{r color_palettes}
 # Palette recommended for those with color vision deficencies - we'll use that 
@@ -229,7 +230,7 @@ sample_annotation_colors <- list(
 )
 ```
 
-We need to create a special type of object with `HeatmapAnnotation`.
+We need to create a special type of object with `HeatmapAnnotation` using the annotation data frame and the list of color vectors.
 
 ```{r create_annotation, live = TRUE}
 column_annotation <- HeatmapAnnotation(
@@ -269,14 +270,14 @@ And now those values after standardization.
 mean(zscores_mat[25, ])
 ```
 
-This value isn't exact zero but it's very close!
+This value isn't exactly zero but it's very close!
 
 ```{r random_z_sd, live = TRUE}
 sd(zscores_mat[25, ])
 ```
 
 The standard deviation is now 1.
-That means all the variance values should be equal to one, too.
+That means all the variance values will be equal to one, too.
 
 ```{r summary_row_variance}
 summary(matrixStats::rowVars(zscores_mat))
@@ -344,7 +345,7 @@ Use all genes to create a matrix that only contains medulloblastoma samples.
 medulloblastoma_mat <- rnaseq_mat[, medulloblastoma_samples]
 ```
 
-We'll use Pearson correlation for our distance metric here again, but let's breakdown what goes into hierarchical clustering a bit here.
+We'll use Pearson correlation for our distance metric here again, but let's break down what goes into hierarchical clustering a bit here.
 
 ```{r calculate_cor}
 # cor() will take the correlation between columns - we're interested in the 
@@ -392,4 +393,3 @@ How many groups of medulloblastoma samples do you think there are?
 ```{r session_info}
 sessionInfo()
 ```
-
