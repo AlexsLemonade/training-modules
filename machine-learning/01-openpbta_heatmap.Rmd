@@ -18,7 +18,8 @@ We've downloaded the publicly available data from the project and performed a va
 
 We'll use a package called [`ComplexHeatmap`](https://www.bioconductor.org/packages/release/bioc/html/ComplexHeatmap.html) to make our heatmap.
 This package also will perform clustering as part of the heatmap.
-It is highly flexible; see the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/) for more information.
+It is highly flexible and opinionated - the data structures we pass `ComplexHeatmap` functions often need to be _just right_.
+See the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/) for more information.
 
 ## Set up
 
@@ -88,7 +89,7 @@ histology_count_df <- histologies_df %>%
   group_by(short_histology) %>%
   # Count how many samples are in each short_histology and name the column 
   # with that number n
-  count(name = "n") %>%
+  tally() %>%
   # Sort from largest number of samples to smallest number of samples in a 
   # histology
   arrange(desc(n))
@@ -129,7 +130,10 @@ head(filtered_histologies_df$Kids_First_Biospecimen_ID)
 # Filter to the samples in the histologies we're interested in
 # and create a matrix where the rownames are the gene identifiers
 rnaseq_mat <- rnaseq_df %>%
-  select(gene_id, 
+  select(gene_id,
+         # In addition to *selecting* the samples in histologies that are in 
+         # the filtered histologies data frame, this step also makes it such 
+         # that the samples are in the same order in both data frames
          filtered_histologies_df$Kids_First_Biospecimen_ID) %>%
   tibble::column_to_rownames("gene_id") %>%
   as.matrix()
@@ -244,6 +248,11 @@ This is sometimes called a standardized score.
 zscores_mat <- PLIER::rowNorm(high_var_mat)
 ```
 
+```{r}
+zscores_alt <- (high_var_mat - rowMeans(high_var_mat)) / matrixStats::rowSds(high_var_mat)
+```
+
+
 Let's look at the mean and standard deviation of values for a randomly selected gene prior to standardization.
 
 ```{r random_row_mean}
@@ -280,39 +289,41 @@ If you're filtering to high variance values, it's important to do that _prior_ t
 Okay, now we're ready to make a heatmap complete with annotation bars.
 
 ```{r make_heatmap}
-Heatmap(zscores_mat,
-        # The distance metric used for clustering the rows
-        clustering_distance_rows = "pearson",
-        # Linkage method for row clustering
-        clustering_method_rows = "average",
-        # Distance metric for columns
-        clustering_distance_columns = "pearson",
-        # Linkage for columns
-        clustering_method_columns = "average",
-        show_row_names = FALSE,
-        show_column_names = FALSE,
-        # Add annotation bars to the top of the 
-        top_annotation = column_annotation,
-        # This will be used as the label for the color bar
-        # of the cells of the heatmap itself
-        name = "z-score")
+# Assign the heatmap object
+mb_heatmap <- Heatmap(zscores_mat,
+                      # The distance metric used for clustering the rows
+                      # This is different from the default (Euclidean)
+                      clustering_distance_rows = "pearson",
+                      # Linkage method for row clustering
+                      # This is different from the default (complete)
+                      clustering_method_rows = "average",
+                      # Distance metric for columns
+                      clustering_distance_columns = "pearson",
+                      # Linkage for columns
+                      clustering_method_columns = "average",
+                      show_row_names = FALSE,
+                      show_column_names = FALSE,
+                      # Add annotation bars to the top of the 
+                      top_annotation = column_annotation,
+                      # This will be used as the label for the color bar
+                      # of the cells of the heatmap itself
+                      name = "z-score")
+
+mb_heatmap
 ```
 
+We have to display the heatmap by calling `mb_heatmap` _twice_ -- once for display in the notebook and once to save to a PNG file -- because we can't easily assign 
+
 ```{r save_heatmap_png, live = TRUE}
+# Open PNG plot device
 png(filename = heatmap_file, 
     width = 11, 
     height = 7, 
     units = "in", 
     res = 300)
-Heatmap(zscores_mat,
-        clustering_distance_rows = "pearson",
-        clustering_method_rows = "average",
-        clustering_distance_columns = "pearson",
-        clustering_method_columns = "average",
-        show_row_names = FALSE,
-        show_column_names = FALSE,
-        top_annotation = column_annotation,
-        name = "z-score")
+# Heatmap object itself
+mb_heatmap
+# Shut down current graphics device
 dev.off()
 ```
 
@@ -344,8 +355,9 @@ mb_sample_correlation <- cor(medulloblastoma_mat,
                              method = "pearson")
 ```
 
-Hierarchical clustering is performed on dissimilarities, so we'll subtract the correlation values from 1.
+Hierarchical clustering is performed on dissimilarities, so we'll subtract the correlation values from 1 -- now we have distance information.
 To use `hclust()` -- the built-in method for hierarchical clustering in R -- we need a dissimilarity structure.
+`as.dist()` returns a special object of class `dist`, a distance matrix used by `hclust()`.
 
 ```{r cor_as_dist, live = TRUE}
 mb_sample_dist <- as.dist(1 - mb_sample_correlation)
@@ -361,7 +373,7 @@ mb_sample_hclust <- hclust(mb_sample_dist,
 
 Here, `method = "average"` refers to the agglomeration or linkage method used during clustering. 
 The method we're using is also known as [UPGMA (unweighted pair group method with arithmetic mean)](https://en.wikipedia.org/wiki/UPGMA) and is how we specify what formula to use for calculating inter-cluster distances during hierarchical clustering.
-The distance between two clusters is the average distance between all pairs of points in the two clusters.
+The distance between two clusters is the average distance between all pairs of points in the two clusters, where each pair is comprised of one point from each of the two clusters.
 
 To look at the dendrogram produced by `hclust()`, we can use built-in graphics by calling `plot()`.
 
