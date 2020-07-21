@@ -27,6 +27,9 @@ hs_mito_file <- file.path(data_dir, "glioblastoma", "hs_mitochondrial_genes.tsv"
 
 # the mouse list will be in the tabula-muris subfolder.
 mm_mito_file <- file.path(data_dir, "tabula-muris", "mm_mitochondrial_genes.tsv")
+
+mm_tx2gene_file <- file.path(data_dir, "tabula-muris", "mm_ensdb95_tx2gene.tsv")
+
 ```
 
 ```{r setup}
@@ -49,13 +52,20 @@ hub <- AnnotationHub::AnnotationHub()
 ```{r}
 AnnotationHub::query(hub, c("Ensdb", "Homo sapiens"))
 ```
-We are interested in the latest annotation package, which as of this writing is Ensembl 99. 
-The AnnotationHub ID for that is then `AH78783`.
+We are interested in the annotation package for Ensembl 95, which was what we used for the the annotations we built this time around.
+Lets add that to the query.
+
+```{r}
+AnnotationHub::query(hub, c("Ensdb", "Homo sapiens", "95"))
+```
+
+
+The AnnotationHub ID for that is then `AH67950`.
 The first time we select that item, AnnotationHub will download and save it to a new object that uses a standard Bioconductor annotation interface.
 This will be cached locally in case we need it again, so this step may be slow the first time, but should be quick when repeated.
 
 ```{r}
-ensdb_hs <- hub[['AH78783']] 
+ensdb_hs <- hub[['AH67950']] 
 ```
 
 You may also see the `ensembldb` library load automatically at this point. 
@@ -97,13 +107,13 @@ mitogenes_hs %>%
 The procedure here is the same, starting with looking for mouse annotation files in AnnotationHub:
 
 ```{r}
-AnnotationHub::query(ah, c("Ensdb", "Mus musculus"))
+AnnotationHub::query(hub, c("Ensdb", "Mus musculus", "95"))
 ```
 
-Again, we will pick Ensembl 99, but we will skip saving the whole db  as its own object in the environment this time (it will still be cached).
+Again, we will pick Ensembl 95, but we will skip saving the whole db as its own object in the environment this time (it will still be cached).
 
 ```{r}
-ensg_mm <- genes(ah[['AH78811']] )
+ensg_mm <- genes(hub[['AH67971']] )
 mitogenes_mm <- ensg_mm[seqnames(ensg_mm) == 'MT']
 as.data.frame(mitogenes_mm)
 ```
@@ -117,10 +127,24 @@ mitogenes_mm %>%
   readr::write_tsv(mm_mito_file)
 ```
 
+### Transcript2gene
+
+Turns out we need a bit more from this db... We want to build a transcript to gene mapping, including version info for the transcripts.
+
+```{r}
+mm_db <- hub[['AH67971']]
+tx <- transcriptsBy(mm_db, "gene")
+tx_df <- as.data.frame(tx) %>%
+  dplyr::select(tx_id_version, gene_id)
+
+readr::write_tsv(tx_df, 
+                 mm_tx2gene_file,
+                 col_names = FALSE)
+```
+
 
 ## Session Info
 
 ```{r}
 sessionInfo()
 ```
-
