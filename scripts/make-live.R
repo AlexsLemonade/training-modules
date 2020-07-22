@@ -7,7 +7,7 @@
 
 # Install exrcise package if needed.
 if (!"exrcise" %in% installed.packages()){
-  remotes::install_github("AlexsLemonade/exrcise", dependencies = TRUE)
+  remotes::install_github("AlexsLemonade/exrcise", dependencies = TRUE, upgrade = "never")
 }
 
 # find the project root
