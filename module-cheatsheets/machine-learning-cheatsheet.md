@@ -39,20 +39,6 @@ Read the Base `R` package documentation [**here**](https://www.rdocumentation.or
 
  <div style="page-break-after: always;"></div>
  
-### `DESeq2`
-Read the `DESeq2` package documentation [**here**](https://www.rdocumentation.org/packages/DESeq2/versions/1.24.0). <br>
-A vignette on the usage of the `DESeq2` package can be found [**here**](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
-
-| Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
-|-----------------------------------------|---------------------------------------------|-------------------------|------------------------------------------------------------------------|
-| `DESeq2`               | [`DESeqDataSetFromMatrix()`](https://www.rdocumentation.org/packages/DESeq/versions/1.24.0/topics/DESeqDataSet-class)         | Combine Pathways                 | Combines the pathway data obtained from `PLIER` and returns the result as a matrix                                                            |
-| `DESeq2`               | [`counts()`](https://www.rdocumentation.org/packages/DESeq2/versions/1.24.0/topics/counts)         | Counts            | Accesses the counts slot, which holds the count data, of a `DESeqDataSet` object                                                   |
-| `DESeq2`               | [`vst()`](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/vst)       | Variance Stabilizing Transformation          | Accesses the counts slot, which holds the count data, of a `DESeqDataSet` object                                                   |
-| `DESeq2`               | [`assay()`]()       | Assay          | Accesses the counts slot, which holds the count data, of a `DESeqDataSet` object that has undergone regularized log transformation or variance stabilizing transformation                                                  |
-
-<br>
-<br>
-
 ### `PLIER`
 Read the `PLIER` package documentation [**here**](https://www.biorxiv.org/content/10.1101/116061v2). <br>
 A `PLIER` package vignette can be found [**here**](https://github.com/wgmao/PLIER/blob/master/vignettes/vignette.pdf) and can also serve as documentation for the commands in the table below. 
