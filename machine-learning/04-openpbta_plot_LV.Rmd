@@ -1,0 +1,379 @@
+---
+title: "OpenPBTA: Explore a PLIER latent variable"
+output: 
+  html_notebook:
+    toc: true
+    toc_float: true
+author: CCDL for ALSF
+date: 2020
+---
+
+In this notebook, we'll plot the differences in a single PLIER latent variable's values between the 4 medulloblastoma molecular subgroups in our data: Group 3, Group 4, SHH and WNT.
+
+Our objective is to learn more about using the `ggplot2` package for a common use case in life science research: visualizing the difference in values between some experimental or clinical group for a single measure.
+
+Often when we're working with high-throughout biological data like transcriptomic data, it takes some wrangling to get the data in a format for plotting with `ggplot2`.
+So we'll cover how to do that, too.
+
+## First, a note on tidy data
+
+In order to use `ggplot2`, we'll need the data in "long" or "tidy" format. 
+`PLIER` outputs what we want to plot in what we call "wide" format.
+
+Read more about tidy data [here](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html).
+
+To quote from Hadley Wickham's [R for Data Science](https://r4ds.had.co.nz/):
+
+> There are three interrelated rules which make a dataset tidy:
+>
+> * Each variable must have its own column.
+> * Each observation must have its own row.
+> * Each value must have its own cell.
+
+Let's look at a toy example.
+
+```{r create_toy_wide}
+set.seed(12345)
+toy_df <- data.frame( 
+  cbind(c("GENEA", "GENEB", "GENEC"),
+        matrix(rnorm(30), ncol = 10))
+)
+colnames(toy_df) <- c("Gene", paste0("Sample", 1:10))
+```
+
+`toy_df` is now in "wide" format.
+
+```{r toy_df}
+toy_df
+```
+
+Let's get it into "long" format.
+
+```{r make_toy_long}
+toy_long_df <- tidyr::pivot_longer(toy_df,
+                                   # The data is in every column except the one 
+                                   # named "Gene"
+                                   cols = -Gene, 
+                                   # What will we call the column of the old df 
+                                   # column names?
+                                   names_to = "Sample",
+                                   # What will we call the column of values 
+                                   # from the old df?
+                                   values_to = "Expression")
+
+toy_long_df
+```
+
+Let's remove these toy examples from the workspace.
+
+```{r remove_toy, live = TRUE}
+rm(toy_df, toy_long_df)
+```
+
+## Set up
+
+### Libraries
+
+```{r libraries}
+library(tidyverse)
+# Package for annotation of statistical significance on plots
+library(ggsignif)
+```
+
+### Directories and files
+
+#### Directories
+
+```{r directories, live = TRUE}
+# Directory that holds the metadata
+data_dir <- file.path("data", "open-pbta", "processed")
+# Directory that holds the PLIER output
+models_dir <- "models"
+# Directory to hold the plot output - create if it doesn't exist yet
+plots_dir <- "plots"
+if (!dir.exists(plots_dir)) {
+  dir.create(plots_dir, recursive = TRUE)
+}
+```
+
+#### Input
+
+```{r input_files}
+histologies_file <- file.path(data_dir, "pbta-histologies-stranded-rnaseq.tsv")
+plier_file <- file.path(models_dir, "pbta-medulloblastoma-plier.RDS")
+```
+
+#### Output
+
+```{r output_file}
+boxplot_png <- file.path(plots_dir, "medulloblastoma_LV57_boxplot.png")
+```
+
+## Read in data and prepare for plotting
+
+### Sample metadata
+
+```{r read_in_metadata}
+histologies_df <- read_tsv(histologies_file)
+```
+
+### PLIER results
+
+```{r read_in_plier, live = TRUE}
+# Read in the PLIER results
+plier_results <- read_rds(plier_file)
+```
+
+For biological discovery, we are often most interested in the latent variables that have some kind of association with an input gene set or pathway.
+We can use the FDR values in the summary data frame to filter to only the latent variables with a significant association (and their associated gene sets).
+
+```{r filter_fdr, live = TRUE}
+# Filter to LV-pathway relationships with FDR < 0.05
+sig_summary_df <- plier_results$summary %>%
+  dplyr::filter(FDR < 0.05)
+sig_summary_df
+```
+
+```{r sig_index}
+# We only want a single instance of each LV index
+sig_index <- as.integer(unique(sig_summary_df$`LV index`))
+```
+
+```{r sig_b_wide, live = TRUE}
+# Get the LV by sample matrix from the PLIER results and subset it to only those
+# LVs with an FDR < 0.05 (at least one pathway)
+b_matrix <- plier_results$B
+sig_b_matrix <- b_matrix[sig_index, ]
+
+# Create a data frame and add a column with LV identifiers
+sig_b_wide <- data.frame(sig_b_matrix) %>%
+  tibble::rownames_to_column(var = "LV")
+```
+
+#### Tidy
+
+Let's look at what format this is in currently.
+
+```{r wide_peek}
+sig_b_wide
+```
+
+We want this in long format for plotting.
+We'll use `tidyr::pivot_longer` to do this just like in the toy example above.
+
+```{r pivot_longer_b, live = TRUE}
+sig_b_df <- tidyr::pivot_longer(sig_b_wide,
+                                cols = starts_with("BS_"),
+                                names_to = "Kids_First_Biospecimen_ID",
+                                values_to = "LV_estimate")
+head(sig_b_df)
+```
+
+Right now the `LV` column has values that contain two pieces of information: the LV index and the pathway that the LV has been named for.
+
+*Remember, just because a LV is named for a single pathway, that doesn't mean that that is the only input pathway that is significantly associated with that latent variable - always check `summary`!*
+
+Now let's add relevant metadata to the data frame so we can use that for plotting.
+
+```{r add_metadata_b}
+# Create a data frame that only has the biospecimen identifiers and the 
+# molecular subtype labels
+subtype_df <- histologies_df %>%
+  select(Kids_First_Biospecimen_ID,
+         molecular_subtype)
+
+# Add the subtype labels to the LV estimates
+sig_b_df <- inner_join(x = sig_b_df, 
+                       y = subtype_df,
+                       by = "Kids_First_Biospecimen_ID")
+```
+
+## Plotting
+
+We'll plot LV57; this is the latent variable that we looked at the loadings for in the previous notebook.
+
+```{r lv_to_plot}
+# PLIER names certain latent variables based on their association with input
+# gene sets
+lv_to_plot <- "57,SVM Macrophages M2"
+# For plotting, subset only to the rows corresponding to this latent variable
+lv_plot_df <- sig_b_df %>%
+  filter(LV == lv_to_plot) 
+```
+
+### Boxplot and customization
+
+Let's start by making a simple boxplot.
+
+```{r lv_boxplot, live = TRUE}
+# Make a boxplot where samples are grouped by molecular subtype
+ggplot(lv_plot_df,
+       aes(x = molecular_subtype, 
+           y = LV_estimate, 
+           group = molecular_subtype, 
+           colour = molecular_subtype)) +
+  geom_boxplot()
+```
+
+It can often be helpful to visualize individual samples.
+
+```{r lv_jitter, live = TRUE}
+# Add individual points with geom_jitter()
+ggplot(lv_plot_df,
+       aes(x = molecular_subtype, 
+           y = LV_estimate, 
+           group = molecular_subtype, 
+           colour = molecular_subtype)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter()
+```
+
+We're able to globally adjust the aesthetics of the jitter points.
+
+```{r improve_jitter, live = TRUE}
+# Improve the aesthetics of the points
+ggplot(lv_plot_df,
+       aes(x = molecular_subtype, 
+           y = LV_estimate, 
+           group = molecular_subtype, 
+           colour = molecular_subtype)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5)
+```
+
+Add a built-in `ggplot2` theme.
+
+```{r theme_bw, live = TRUE}
+# Use @jaclyn-taroni's favorite theme :)
+ggplot(lv_plot_df,
+       aes(x = molecular_subtype, 
+           y = LV_estimate, 
+           group = molecular_subtype, 
+           colour = molecular_subtype)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  theme_bw()
+```
+
+Use the same color palette we used in the UMAP plot earlier in the module.
+
+```{r okabe_ito, live = TRUE}
+# Add colorblindr::scale_color_OkabeIto()
+ggplot(lv_plot_df,
+       aes(x = molecular_subtype, 
+           y = LV_estimate, 
+           group = molecular_subtype, 
+           colour = molecular_subtype)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  theme_bw() +
+  colorblindr::scale_color_OkabeIto()
+```
+
+Add a title to the plot.
+
+```{r add_title, live = TRUE}
+# Use labs() to add a title
+ggplot(lv_plot_df,
+       aes(x = molecular_subtype, 
+           y = LV_estimate, 
+           group = molecular_subtype, 
+           colour = molecular_subtype)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  theme_bw() +
+  colorblindr::scale_color_OkabeIto() +
+  labs(title = lv_to_plot)
+```
+
+Center the title and make it bigger and in bold.
+
+```{r center_title, live = TRUE}
+# Use theme() to improve the way the title looks
+ggplot(lv_plot_df,
+       aes(x = molecular_subtype, 
+           y = LV_estimate, 
+           group = molecular_subtype, 
+           colour = molecular_subtype)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  theme_bw() +
+  colorblindr::scale_color_OkabeIto() +
+  labs(title = lv_to_plot) +
+  theme(plot.title = element_text(size = 15,
+                                  face = "bold",
+                                  hjust = 0.5))
+```
+
+Use the next chunks to further customize your plot.
+We might suggest starting with the x- and y-axis labels.
+
+```{r labs_help}
+?labs
+```
+
+```{r adventure_time}
+
+```
+
+### Adding p-values to a plot
+
+R is great for analyzing genomic data and for publication ready visualizations, but as language for statistical computing, it's also great for statistical analysis!
+
+Let's start by performing a pairwise Wilcoxon rank sum test. 
+This is also sometimes called a Mann-Whitney U test.
+It is a non-parametric test of the null hypothesis that two groups are from the same population or that the medians of the two groups are identical. 
+_Pairwise_ means we will test all pairs of groups.
+
+We can put that information onto the plot with the `ggsignif` package.
+
+```{r pairwise_wilcox}
+pairwise.wilcox.test(x = lv_plot_df$LV_estimate,
+                     g = lv_plot_df$molecular_subtype,
+                     # Because we're performing multiple tests, we should
+                     # adjust the p-values
+                     p.adjust.method = "bonferroni")
+```
+
+And now we're ready to add the adjusted p-values to the plot with `ggsignif::geom_signif()`.
+
+```{r geom_signif}
+# Add the adjusted p-values
+ggplot(lv_plot_df,
+       aes(x = molecular_subtype, 
+           y = LV_estimate, 
+           group = molecular_subtype, 
+           colour = molecular_subtype)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  theme_bw() +
+  colorblindr::scale_color_OkabeIto() +
+  labs(title = lv_to_plot) +
+  theme(plot.title = element_text(size = 15,
+                                  face = "bold",
+                                  hjust = 0.5)) +
+  # This is to make room for the labels - these values are highly specific to
+  # this plot!
+  ylim(c(-1.75, 4)) +
+  # Note this is highly specific to this plot!
+  # This can not be applied to any other plot without significant modification!
+  geom_signif(y_position = c(3.5, 3.9, 3.7),
+              xmin = c("Group3", "Group4", "SHH"),
+              xmax  = c("SHH", "SHH", "WNT"),
+              annotations = c("0.00071", "9e-06", "0.30052"),
+              tip_length = 0,
+              color = "#000000")
+```
+
+Save this final plot to file.
+
+```{r ggsave, live = TRUE}
+ggsave(filename = boxplot_png, plot = last_plot())
+```
+
+## Session Info
+
+```{r session_info}
+sessionInfo()
+```
+
