@@ -18,7 +18,7 @@ Read the Base `R` documentation [**here**](https://www.rdocumentation.org/packag
 | Base `R`| [`colSums()`](https://www.rdocumentation.org/packages/raster/versions/3.3-13/topics/colSums)| Column sums| Calculates sums for each column|
 | Base `R`| [`t()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/t)  |Transpose| Returns the transpose of a matrix or data frame|
 | Base `R`| [`prcomp()`](https://www.rdocumentation.org/packages/stats/versions/3.5.1/topics/prcomp)| Principal Components Analysis|Executes a principal components analysis on specified matrix or data frame|
-| Base `R` [`<-function(x) { <code> }`](http://adv-r.had.co.nz/Functions.html) |Create a function| Function | Creates a function that would take the defined parameters as input and execute the commands within the curly braces  |
+| Base `R`| [`<-function(x) { <code> }`](http://adv-r.had.co.nz/Functions.html) | Function | Creates a function that would take the defined parameters as input and execute the commands within the curly braces  |
 
 
 ### `ggplot2`
@@ -52,7 +52,6 @@ In addition to the links above, [Amezquita et al.](https://www.biorxiv.org/conte
 | `scran`| [`findMarkers()`](https://rdrr.io/bioc/scran/man/findMarkers.html)| Find marker genes | Find candidate marker genes for clusters of cells |
 | `scater`| [`addPerCellQC()`](https://rdrr.io/bioc/scater/man/addPerCellQC.html)| Add per cell quality control | For a `SingleCellExperiment` object, calculate and add quality control per cell and store in `colData`  |
 | `scater`| [`addPerFeatureQC()`](https://rdrr.io/bioc/scater/man/addPerCellQC.html)| Add per feature quality control | For a `SingleCellExperiment` object, calculate and add quality control per feature (genes usually) and store in `rowData`|
-
 | `scater`| [`normalize()`](https://www.rdocumentation.org/packages/scater/versions/1.0.4/topics/normalize)| Normalize | Returns the `SingleCellExperiment` object with normalized expression values for each cell, using the size factors stored in the object  |
 | `scater`| [`calculatePCA()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate PCA | Calculates principal components analysis on a `SingleCellExperiment` object |
 | `scater`| [`calculateUMAP()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate UMAP | Calculates uniform manifold appropximate projection on a `SingleCellExperiment` object |
@@ -77,6 +76,7 @@ Documentation for each of these packages can be accessed by clicking the package
 | [`alevinQC`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html) | [`alevinQCReport()`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html#generate-qc-report) | Alevin QC Report | Produces a QC (quality check) report from the alevin output |
 | `dat`| [`DataFrame()`](https://www.rdocumentation.org/packages/dat/versions/0.5.0/topics/DataFrame)| Data frame | Not to be confused with [`data.frame()` from Base R. This is a slightly different data frame-like object needed for storing information in `SingleCellExperiment` object's `colData()`.|
 | [`colorblindr`](https://www.rdocumentation.org/packages/colorblindr/versions/0.1.0)|[`scale_color_OkabeIto()`](https://www.rdocumentation.org/packages/colorblindr/versions/0.1.0/topics/scale_colour_OkabeIto) | OkabeIto Color Scale | When added as a layer to a plot, makes the plot colorblind friendly |
+| [`Rtsne`](https://www.rdocumentation.org/packages/Rtsne/versions/0.15)| [`Rtsne()`](https://www.rdocumentation.org/packages/Rtsne/versions/0.15/topics/Rtsne)| T-Distributed Stochastic Neighbor Embedding using a Barnes-Hut Implementation | Reduces the dimensions of the specified matrix or data frame|
 | [`tibble`](https://tibble.tidyverse.org/index.html)|[`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html) | As tibble | Coerce data.frame or matrix to a tibble |
 
 <br>
