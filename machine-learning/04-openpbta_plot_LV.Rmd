@@ -50,10 +50,17 @@ toy_df
 Let's get it into "long" format.
 
 ```{r make_toy_long}
-toy_long_df <- reshape2::melt(toy_df, 
-                              id.vars = "Gene", 
-                              variable.name = "Sample", 
-                              value.name = "Expression")
+toy_long_df <- tidyr::pivot_longer(toy_df,
+                                   # The data is in every column except the one 
+                                   # named "Gene"
+                                   cols = -Gene, 
+                                   # What will we call the column of the old df 
+                                   # column names?
+                                   names_to = "Sample",
+                                   # What will we call the column of values 
+                                   # from the old df?
+                                   values_to = "Expression")
+
 toy_long_df
 ```
 
@@ -118,7 +125,7 @@ plier_results <- read_rds(plier_file)
 ```
 
 For biological discovery, we are often most interested in the latent variables that have some kind of association with an input gene set or pathway.
-We can use the FDR values in the summary data frame to filter to only the latent variables (and their associated gene sets).
+We can use the FDR values in the summary data frame to filter to only the latent variables with a significant association (and their associated gene sets).
 
 ```{r filter_fdr, live = TRUE}
 # Filter to LV-pathway relationships with FDR < 0.05
@@ -152,27 +159,32 @@ sig_b_wide
 ```
 
 We want this in long format for plotting.
-We'll use `reshape2::melt` to do this just like in the toy example above.
+We'll use `tidyr::pivot_longer` to do this just like in the toy example above.
 
-```{r melt_b, live = TRUE}
-sig_b_df <- reshape2::melt(sig_b_wide, 
-                           id.vars = "LV", 
-                           variable.name = "Kids_First_Biospecimen_ID",
-                           value.name = "LV_estimate")
+```{r pivot_longer_b, live = TRUE}
+sig_b_df <- tidyr::pivot_longer(sig_b_wide,
+                                cols = starts_with("BS_"),
+                                names_to = "Kids_First_Biospecimen_ID",
+                                values_to = "LV_estimate")
 head(sig_b_df)
 ```
+
+Right now the `LV` column has values that contain two pieces of information: the LV index and the pathway that the LV has been named for.
+
+*Remember, just because a LV is named for a single pathway, that doesn't mean that that is the only input pathway that is significantly associated with that latent variable - always check `summary`!*
 
 Now let's add relevant metadata to the data frame so we can use that for plotting.
 
 ```{r add_metadata_b}
+# Create a data frame that only has the biospecimen identifiers and the 
+# molecular subtype labels
+subtype_df <- histologies_df %>%
+  select(Kids_First_Biospecimen_ID,
+         molecular_subtype)
+
+# Add the subtype labels to the LV estimates
 sig_b_df <- inner_join(x = sig_b_df, 
-                       y = histologies_df %>%
-                         select(Kids_First_Biospecimen_ID,
-                                broad_histology,
-                                short_histology,
-                                integrated_diagnosis,
-                                molecular_subtype,
-                                composition),
+                       y = subtype_df,
                        by = "Kids_First_Biospecimen_ID")
 ```
 
@@ -308,33 +320,19 @@ We might suggest starting with the x- and y-axis labels.
 
 R is great for analyzing genomic data and for publication ready visualizations, but as language for statistical computing, it's also great for statistical analysis!
 
-Let's start by performing a pairwise Wilcoxon rank sum test.
+Let's start by performing a pairwise Wilcoxon rank sum test. 
+This is also sometimes called a Mann-Whitney U test.
+It is a non-parametric test of the null hypothesis that two groups are from the same population or that the medians of the two groups are identical. 
+_Pairwise_ means we will test all pairs of groups.
+
 We can put that information onto the plot with the `ggsignif` package.
 
 ```{r pairwise_wilcox}
 pairwise.wilcox.test(x = lv_plot_df$LV_estimate,
                      g = lv_plot_df$molecular_subtype,
+                     # Because we're performing multiple tests, we should
+                     # adjust the p-values
                      p.adjust.method = "bonferroni")
-```
-
-To add the Bonferroni-adjusted p-values for SHH vs. the other subtypes to the plot, we should adjust the y-axis limits to leave room for the labels.
-
-```{r increase_ylim, live = TRUE}
-# Make room for the annotations
-ggplot(lv_plot_df,
-       aes(x = molecular_subtype, 
-           y = LV_estimate, 
-           group = molecular_subtype, 
-           colour = molecular_subtype)) +
-  geom_boxplot(outlier.shape = NA) +
-  geom_jitter(width = 0.2, alpha = 0.5) +
-  theme_bw() +
-  colorblindr::scale_color_OkabeIto() +
-  labs(title = lv_to_plot) +
-  theme(plot.title = element_text(size = 15,
-                                  face = "bold",
-                                  hjust = 0.5)) +
-  ylim(c(-1.75, 4))
 ```
 
 And now we're ready to add the adjusted p-values to the plot with `ggsignif::geom_signif()`.
@@ -354,6 +352,8 @@ ggplot(lv_plot_df,
   theme(plot.title = element_text(size = 15,
                                   face = "bold",
                                   hjust = 0.5)) +
+  # This is to make room for the labels - these values are highly specific to
+  # this plot!
   ylim(c(-1.75, 4)) +
   # Note this is highly specific to this plot!
   # This can not be applied to any other plot without significant modification!
