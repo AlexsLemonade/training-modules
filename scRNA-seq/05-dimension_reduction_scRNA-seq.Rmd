@@ -37,21 +37,23 @@ For this module, we are going to use the dataset that we processed part of in
 ## Directories and files
 
 ```{r filepaths}
+# main data directory
+data_dir <- file.path("data", "tabula-muris")
 
 # Path to the single-sample alevin results
-alevin_file <- file.path("data", "tabula-muris", "alevin-quant", 
-                         "10X_P4_3_full", "alevin", "quants_mat.gz")
+alevin_file <- file.path(data_dir, "alevin-quant", 
+                         "10X_P4_3", "alevin", "quants_mat.gz")
 
 # normalized multi-sample Tabula Muris Data
-tm_normalized_file <- file.path("data", "tabula-muris", 
-                                "normalized", "TM_normalized.rds" )
+tm_normalized_file <- file.path(data_dir, "normalized",
+                                "TM_normalized.rds" )
 
 # Path to the metadata file 
-metadata_file <- file.path("data", "tabula-muris", 
+metadata_file <- file.path(data_dir, 
                            "TM_droplet_metadata.csv")
 
 # Mitochondrial gene table
-mito_file <- file.path("data", "tabula-muris", 
+mito_file <- file.path(data_dir,
                        "mm_mitochondrial_genes.tsv")
 ```
 
@@ -80,27 +82,45 @@ mito_genes <- readr::read_tsv(mito_file) %>%
 
 ### Quality Control and Filtering
 
-Now we can use `scater::addPerCellQC()` to calculate our QC statistics and add them to the metadata for each cell (the `colData` for the `SingleCellExperiment` object.)
+Now we can use `scater::addPerCellQC()` to calculate our QC statistics and add them to the metadata for each cell (the `colData` for the `SingleCellExperiment` object.) 
+We are adding the `subsets` argument, which allows us to specify a named list of gene subsets to calculate extra statistics for. 
+These might be spike-in controls, mitochondrial genes, rRNA, or whatever class of genes you would like. 
+The name of each subset is used in the statistic labels, so keep them short. 
+Here we will calculate statistics for only the mitochondrial genes, and we have given that set the name `mito`.
 
 ```{r calculateQC}
-tm_sce <- scater::addPerCellQC(tm_sce, 
-                               subsets = list(mito = mito_genes)) 
+tm_sce <- scater::addPerCellQC(
+  tm_sce, 
+  # a list of named gene subsets that we want stats for
+  # here we are using mitochondrial genes
+  subsets = list(mito = mito_genes)) 
 
 cell_qc_df <- as.data.frame(colData(tm_sce)) 
+```
+
+What QC measures did `addPerCellQC()` calculate?
+
+```{r pee_QC, live = TRUE}
+# look at the column names of cell_qc_df
+colnames(cell_qc_df )
 ```
 
 Let's make some plots of the QC data and use it to inform our next steps.
 Use the `cell_qc_df` data frame we just created, to make some plots and decide on cutoffs!
 
 ```{r qc_plots, live = TRUE}
+# Plot some aspect of the QC data stored in `cell_qc_df`
 ggplot(cell_qc_df, 
        aes(x = sum, y = detected, color = subsets_mito_percent)) +
   geom_point() +
   scale_color_viridis_c() +
   scale_x_log10() +
   scale_y_log10() +
-  geom_hline(yintercept = 500, color = "red")
+  geom_hline(yintercept = 200, color = "red")
+```
 
+```{r qc_plot2, live = TRUE}
+# make another QC plot
 ggplot(cell_qc_df, 
        aes(x = subsets_mito_percent)) +
   geom_histogram() + 
@@ -160,8 +180,6 @@ pca_tab_mur <- calculatePCA(tm_sce_filtered)
 # Make a dataframe with these PCA scores
 pca_tab_mur <- data.frame(pca_tab_mur)
 ```
-
-
 
 ```{r Plot PCA}
 # Plot this with ggplot2 and label the points with cell types
@@ -283,6 +301,7 @@ tm_meta_umap <- colData(tm_normalized) %>%
 ```
 
 ```{r plot_tissue, live = TRUE}
+# plot UMAP with colors by tissue
 ggplot(tm_meta_umap, 
        aes(x = UMAP1, y = UMAP2, color = tissue)) + 
   geom_point(alpha = 0.1, size = 0.1) +
