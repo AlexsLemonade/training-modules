@@ -9,7 +9,7 @@ date: 2020
 ---
 
 In this notebook, we'll use a method called Pathway-Level Information Extractor
-(PLIER) ([Mao et al. _Nature Methods._ 2019.](https://doi.org/10.1038/s41592-019-0456-1)).
+(PLIER) ([Mao *et al.*  2019](https://doi.org/10.1038/s41592-019-0456-1)).
 
 We like PLIER for a few reasons:
 
@@ -206,7 +206,7 @@ collapsed_rnaseq_df %>%
 Now we're ready to remove the extraneous column with our mean values and write this collapsed data to file.
 
 ```{r write_collapsed}
-collapsed_rnaseq_df %>%
+collapsed_rnaseq_df <- collapsed_rnaseq_df %>%
   select(-mean_value) %>%
   write_tsv(collapsed_data_file)
 ```
@@ -228,12 +228,12 @@ rm(collapsed_rnaseq_df, symbol_rnaseq_df)
 
 ## Pathway-Level Information ExtractoR (PLIER)
 
-Here's an overview of the PLIER method from [Mao et al. _Nature Methods._ 2019.](https://doi.org/10.1038/s41592-019-0456-1) (Figure 1).
+Here's an overview of the PLIER method from [Mao _et al._ (2019)](https://doi.org/10.1038/s41592-019-0456-1) (Figure 1).
 
 ![](diagrams/mao_nature_methods_fig1.png)
 
-> **Fig. 1 | PLIER overview.** PLIER is a matrix factorization approach that decomposes gene expression data into a product of a small number of LVs and
-their corresponding gene associations or loadings, while constraining the loadings to align with the most relevant automatically selected subset of prior knowledge. **a**, Given two inputs, the gene expression matrix _Y_ and the prior knowledge (represented as binary gene set membership in matrix _C_), the method returns the LVs (_B_), their loadings (_Z_), and an additional sparse matrix (_U_) that specifies which (if any) prior-information gene sets and pathways are used for each LV. The light gray area of _U_ indicates the large number of zero elements of the matrix. We apply our method to a whole-blood human gene expression dataset. **b**, The positive entries of the resulting _U_ matrix are visualized as a heat map, facilitating the identification of the correspondence between specific LVs and prior biological knowledge. As the absolute scale of the _U_ matrix is arbitrary, each column is normalized to a maximum of 1. **c**, We validate the LVs mapped to specific leukocyte cell types by comparing PLIER estimated relative cell-type proportions with direct measurements by mass cytometry. Dashed lines represent 0.05, 0.01, and 0.001 significance levels for Spearman rank correlation (one-tailed test). NK cell, natural killer cell.
+> **Fig. 1 | PLIER overview.** 
+PLIER is a matrix factorization approach that decomposes gene expression data into a product of a small number of LVs and their corresponding gene associations or loadings, while constraining the loadings to align with the most relevant automatically selected subset of prior knowledge. **a**, Given two inputs, the gene expression matrix _Y_ and the prior knowledge (represented as binary gene set membership in matrix _C_), the method returns the LVs (_B_), their loadings (_Z_), and an additional sparse matrix (_U_) that specifies which (if any) prior-information gene sets and pathways are used for each LV. The light gray area of _U_ indicates the large number of zero elements of the matrix. We apply our method to a whole-blood human gene expression dataset. **b**, The positive entries of the resulting _U_ matrix are visualized as a heat map, facilitating the identification of the correspondence between specific LVs and prior biological knowledge. As the absolute scale of the _U_ matrix is arbitrary, each column is normalized to a maximum of 1. **c**, We validate the LVs mapped to specific leukocyte cell types by comparing PLIER estimated relative cell-type proportions with direct measurements by mass cytometry. Dashed lines represent 0.05, 0.01, and 0.001 significance levels for Spearman rank correlation (one-tailed test). NK cell, natural killer cell.
 
 ### Pathway data
 
@@ -252,7 +252,7 @@ all_pathways <- PLIER::combinePaths(bloodCellMarkersIRISDMAP,
 
 ### Row normalize
 
-And a built-in function to row normalize the expression data.
+`PLIER` comes with a built-in function to row normalize the expression data.
 This is z-scoring the expression values for each gene.
 
 ```{r row_normalize, live = TRUE}
@@ -279,7 +279,7 @@ plier_results <- PLIER::PLIER(data = medulloblastoma_zscore[common_genes, ],
 
 What does the output of `PLIER::PLIER()` look like?
 
-```{r view_plier, live = TRUE}
+```{r view_plier, live = TRUE, eval = FALSE}
 View(plier_results)
 ```
 
@@ -289,7 +289,7 @@ The _U_ matrix tells us about how the latent variables learned by the model rela
 PLIER::plotU(plier_results)
 ```
 
-`summary` returns the FDR and AUC values for input pathway to latent variable relationships.
+`summary()` of a `PLIER` results object returns the FDR and AUC values for input pathway to latent variable relationships.
 Let's look at the values of that data frame for the latent variable that corresponds to some macrophage-related gene sets.
 
 ```{r lv57_summary}
