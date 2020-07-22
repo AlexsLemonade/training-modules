@@ -10,7 +10,7 @@ date: 2020
 
 If we want to identify groups or clusters using expression data, we often want to **validate** those groups in some way, such as determining the "correct" number of groups or checking for agreement within clusters.
 
-In this notebook, we'll use the medulloblastoma data from the OpenPBTA project to look at two techniques for cluster validation and look how clusters overlap with sample labels that are available in our metadata.
+In this notebook, we'll use the medulloblastoma data from the OpenPBTA project to demonstrate a technique for cluster validation and look how clusters overlap with sample labels that are available in our metadata.
 
 ## Set up
 
@@ -21,9 +21,6 @@ In this notebook, we'll use the medulloblastoma data from the OpenPBTA project t
 library(tidyverse)
 # Consensus clustering library
 library(ConsensusClusterPlus)
-# Library we'll use for silhouette values
-library(cluster)
-library(ComplexHeatmap)
 # We'll make a 3D plot with this library
 library(plotly) 
 ```
@@ -95,12 +92,37 @@ rnaseq_mat <- rnaseq_df %>%
 
 ### Consensus clustering
 
-The first method we'll use is called consensus clustering.
+The method we'll use to examine the stability of clusters is called consensus clustering.
 Consensus clustering aims to finds the "consensus" across multiple runs of the algorithm using a resampling procedure.
 
-We'll use the package [`ConsensusClusterPlus`](https://bioconductor.org/packages/release/bioc/html/ConsensusClusterPlus.html) that we loaded up top.
+We'll use the package [`ConsensusClusterPlus`](https://bioconductor.org/packages/release/bioc/html/ConsensusClusterPlus.html) that we loaded up top ([vignette](https://bioconductor.org/packages/release/bioc/vignettes/ConsensusClusterPlus/inst/doc/ConsensusClusterPlus.pdf)).
 
 The consensus clustering methodology was first introduced in [Monti *et al.* (2003)](https://doi.org/10.1023/A:1023949509487)
+Let's look at some simulated data and results from this publication to see what consensus clustering results look like in an ideal case where we know how many clusters there are!
+
+Consensus clustering outputs something called a _consensus index_ that tells us how often two samples are clustered together over multiple runs of the algorithm (0 = never, 1 = always).
+The consensus index values can be visualized in a consensus matrix.
+Here's a consensus matrix from simulated data with three groups. 
+Because this shows the relationship between samples, rows _and_ columns correspond to samples.
+A cell will be white if the consensus index = 0 and red if the consensus index = 1.
+
+![](diagrams/monti_gaussian3_consensus_matrix.png)
+
+There are 3 groups or clusters, represented by the 3 red blocks on the diagonal, of samples that always cluster together and never cluster with samples outside of that cluster.
+
+![](diagrams/monti_gaussian3_cdf_delta.png)
+
+We can also look at the cumulative distribution function (CDF) of the consensus matrix to get an idea of at what number of clusters (_k_) the CDF is maximized.
+The delta plot shoes use the relative increase in the CDF between _k_ and _k_ - 1. 
+Notice how there's a drop at _k_ = 3 in this simulated example.
+
+Next, let's look at a simulated example where there are 5 groups.
+
+![](diagrams/monti_gaussian5.png)
+
+Notice how the consensus matrix at _k_ = 5 looks "cleaner" than the one for _k_ = 4 and there appears to be an increase in the area under the CDF between _k_ = 4 and _k_ = 5.
+
+*All figures from [Monti et al. (2003)](https://doi.org/10.1023/A:1023949509487).*
 
 Consensus clustering is one way to help you determine the number of clusters in your data, but it is not the only methodology available. 
 Check out the Data Novia course [_Cluster Validation Essentials_ by Alboukadel Kassambara](https://www.datanovia.com/en/courses/cluster-validation-essentials/) for a deeper dive.
@@ -116,21 +138,25 @@ cc_results <- ConsensusClusterPlus(rnaseq_mat,
                                    distance = "pearson")
 ```
 
-It seems like there are 3 main stable clusters from the consensus clustering results.
-A cluster of a few samples may not be that helpful in reaching our analysis goals.
+Our results are not as clean as the simulated data (surprise, surprise)!
+We see an increase on the delta plot in several places: _k_ = 5, _k_ = 7, _k_ = 9, and _k_ = 12.
+
+If we look at the tracking plot that tells us how the samples group together and the consensus index plots, we can see 3 main clusters that arise around _k_ = 9 but we could also make an argument for the two groups that show up at _k_ 5 through 8.
+
+We'll move forward with the _k_ = 9 labels, but we hope you appreciate that determining the number clusters is not an easy problem!
 
 Let's take a look at the class labels for _k_ = 9.
 
 ```{r cc_labels, live = TRUE}
 # table() creates a contingency table of counts
-# 
 table(cc_results[[9]]$consensusClass)
 ```
 
 (Note: the numbering of the clusters is arbitrary here.)
 
-**Let's consider clusters 1, 3, and 4 for further analysis.**
-But first, we'll save the entirety of the consensus clustering results to file.
+A cluster of a few samples may not be that helpful in reaching our analysis goals!
+
+Let's save the entirety of the consensus clustering results to file.
 
 ```{r save_cc_results, live = TRUE}
 # Write consensus clustering results to file
@@ -143,60 +169,6 @@ What we used `table()` on before is actually a named vector.
 ```{r extract_cluster_labels}
 cc_cluster_labels <- cc_results[[9]]$consensusClass
 head(cc_cluster_labels)
-```
-
-We'll extract the names (biospecimen IDs) for samples in clusters 1, 3, and 4, which contain the majority of samples.
-
-```{r sample_names}
-sample_index <- which(cc_cluster_labels %in% c(1, 3, 4))
-samples_in_clusters <- names(cc_cluster_labels)[sample_index]
-```
-
-Check what proportion of total samples are in one of these three clusters.
-
-```{r proportion_in_clusters}
-# number of samples that met our logical criterion above divided by total 
-# number of samples
-length(sample_index) / length(cc_cluster_labels)
-```
-
-And now we'll filter the RNA-seq matrix.
-
-```{r filter_to_clusters, live = TRUE}
-filtered_rnaseq_mat <- rnaseq_mat[, samples_in_clusters]
-dim(filtered_rnaseq_mat)
-```
-
-### Silhouette coefficient
-
-The silhouette coefficient or value is a measure of cluster consistency that ranges from -1 to 1.
-It is calculated on a per-sample basis -- it measures how similar a sample is to the cluster it's in compared to other clusters ([Wikipedia entry for silhouette](https://en.wikipedia.org/wiki/Silhouette_(clustering))).
-
-We'll use the [`cluster` package](https://cran.r-project.org/web/packages/cluster/index.html) to compute our silhouette values for the clusters we identified using consensus clustering above.
-
-The `silhouette()` function takes the class labels and dissimilarities.
-Let's use Pearson correlation as we have been throughout.
-
-```{r same_order}
-all.equal(names(cc_cluster_labels[sample_index]), 
-          colnames(filtered_rnaseq_mat))
-```
-
-```{r mb_cor_and_dist, live = TRUE}
-# Calculate the Pearson correlation between samples (columns of the matrix)
-mb_sample_correlation <- cor(filtered_rnaseq_mat,
-                             use = "pairwise.complete.obs",
-                             method = "pearson")
-# Dissimilarity means we need to subtract these values from 1
-mb_sample_dist <- as.dist(1 - mb_sample_correlation)
-```
-
-Let's calculate the silhouette values and then plot them.
-
-```{r silhouette}
-silhouette_results <- silhouette(x = cc_cluster_labels[sample_index],
-                                 dist = mb_sample_dist)
-plot(silhouette_results)
 ```
 
 ### Compare clustering results to external metadata labels
@@ -335,6 +307,10 @@ pca_plot_df %>%
   ylab("PC3")
 ```
 
+It can be useful to understand the proportion of variance explained by each principal component when visualizing and interpreting the results.
+For example, if PC1 explained 96% of the variance in your data and very clearly showed a difference between sample batches you would be very concerned!
+On the other hand, if a separation of batches was apparent in a different principal component that explained a low proportion of variance and the first few PCs explained most of the variance and appeared to correspond to something like tissue type and treatment, you would be less concerned.
+
 `summary()` will report the proportion of variance explained by each principal component.
 By accessing the `importance` element with `<summary results>$importance`, we can use indexing to only look at the first 10 PCs.
 
@@ -345,6 +321,9 @@ pca_summary <- summary(pca_results)
 pca_importance <- pca_summary$importance[, 1:10]
 pca_importance
 ```
+
+You might consider adding these values to your axis labels to add readers in interpretation.
+(`DESeq2::plotPCA()`, which we used in the bulk RNA-seq module, does this for us!)
 
 [`plotly`](https://plotly.com/r/) is a package that allows us to plot interactive 3D scatterplots.
 
