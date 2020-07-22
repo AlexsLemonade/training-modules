@@ -8,22 +8,23 @@ author: CCDL for ALSF
 date: 2020
 ---
 
-In this notebook, we'll use a method called Pathway-Level Information Extractor
-(PLIER) ([Mao *et al.*  2019](https://doi.org/10.1038/s41592-019-0456-1)).
+In this notebook, we'll use a method called Pathway-Level Information Extractor (PLIER) ([Mao *et al.* (2019)](https://doi.org/10.1038/s41592-019-0456-1)).
 
 We like PLIER for a few reasons:
 
 * It is a matrix factorization approach. 
-That means we can get a low-dimensional representation of our data.
-Specifically, PLIER learns correlated patterns of expression in our data or 
-latent variables (LVs).
-* It includes penalties such that _some_ of the LVs will align with gene sets 
-that we give it, so it's excellent for biological discovery.
-* The authors demonstrated that it performs favorably with regard to estimating 
-proportion of immune cells in a sample as compared to other methods.
-* Because not _all_ LVs align with the gene sets we input, some of them capture 
-unwanted technical variation. 
-In our experience with the method, it does this quite well.
+  That means we can get a low-dimensional representation of our data.
+  Specifically, PLIER learns correlated patterns of expression in our data or latent variables (LVs).
+  Here, a latent variable is an "eigengene-like" combination of genes' expression.
+  (It's called _latent_ because it's not directly measured, but instead inferred from the individual gene measurements.)
+* It includes penalties such that _some_ of the LVs will align with gene sets that we give it, so it's excellent for biological discovery.
+* The authors demonstrated that it performs favorably with regard to estimating proportion of immune cells in a sample as compared to other methods.
+* Because not _all_ LVs align with the gene sets we input, some of them capture unwanted technical variation. 
+  In our experience with the method, it does this quite well.
+
+PLIER is similar to other pathway analysis methods that you may be familiar with in that it uses prior knowledge in the form of gene sets.
+It produces output values that are on an individual sample level and does not require a two group comparison ahead of time like some pathway analysis methods.
+However, PLIER is designed to align the LVs it constructs with the relevant input gene sets that the data supports, whereas other methods will use all gene sets you provide as input.
 
 ## Set up
 
@@ -161,7 +162,7 @@ Relative to the total number of genes, there are not too many genes that are dup
 symbol_rnaseq_df$mean_value <- rowMeans(symbol_rnaseq_df[, -1])
 ```
 
-We'll use a single gene symbol that we've randomly picked to follow along with these processing steps!
+We'll use a few gene symbols that we've arbitrarily selected to follow along with these processing steps!
 
 ```{r duplicated_examples}
 # Genes we will use to illustrate what happens during the collapsing duplicate
@@ -238,6 +239,7 @@ PLIER is a matrix factorization approach that decomposes gene expression data in
 ### Pathway data
 
 The `PLIER` package comes with different gene sets we can use as input during training.
+The gene sets themselves are not really any different than other gene sets we might use for pathway analysis, but the data that comes in the package is in a format that is already compatiable for use with PLIER.
 
 ```{r plier_data}
 data("bloodCellMarkersIRISDMAP")
@@ -284,6 +286,7 @@ View(plier_results)
 ```
 
 The _U_ matrix tells us about how the latent variables learned by the model relate to the pathways we used as input.
+`plotU()` is a special function to display the _U_ matrix.
 
 ```{r plot_u}
 PLIER::plotU(plier_results)
