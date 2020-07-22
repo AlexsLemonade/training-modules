@@ -64,6 +64,7 @@ In addition to the links above, [Amezquita et al.](https://www.biorxiv.org/conte
 Read the `purrr` documentation [**here**](https://purrr.tidyverse.org/)
 
 | Library/Package| Piece of Code| What it's called| What it does |
+|----------------|--------------|-----------------|--------------|
 | `purrr`| [`map()`](https://purrr.tidyverse.org/reference/map.html)| map | Apply a function across each element of list; return a list |
 | `purrr`| [`map_df()`](https://purrr.tidyverse.org/reference/map.html)| map df |  Apply a function across each element of list; return a data frame |
 
