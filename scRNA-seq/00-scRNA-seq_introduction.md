@@ -37,7 +37,7 @@ Individual samples have two fastq files: one for the cell barcodes and another w
 
 #### Pros:  
 - Can run potentially millions of cells at once.   
-- Much less computationally demaning.
+- Much less computationally demanding.
 - Won't take up all your computer's storage.  
 - Much cheaper.  
 
