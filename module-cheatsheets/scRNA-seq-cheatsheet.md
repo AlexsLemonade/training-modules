@@ -45,11 +45,13 @@ In addition to the links above, [Amezquita et al.](https://www.biorxiv.org/conte
 | `SingleCellExperiment` | [`SingleCellExperiment()`](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#2_creating_singlecellexperiment_instances) | Single Cell Experiment| Creates a `SingleCellExperiment` object  |
 | `SingleCellExperiment`| [`colData()`](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#5_extracting_coldata_and_rowdata) | Column Data | Extracts and stores cell-level metadata that describes features of the `SingleCellExperiment` object|
 | `SingleCellExperiment`| [`rowData()`](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#5_extracting_coldata_and_rowdata)  | Row Data   | Extracts and stores gene-level metadata that describes features of the `SingleCellExperiment` object|
-| `SingleCellExperiment`| [`logcounts()`](https://bioconductor.org/packages/devel/bioc/vignettes/scater/inst/doc/vignette-intro.html#3_calculating_a_variety_of_expression_values)| Log counts| Stores or extracts log-transformed single-cell experiment count data as an assay of the `SingleCellExperiment` object|
+| `SingleCellExperiment`| [`logcounts()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html)| Log counts| Stores or extracts log-transformed single-cell experiment count data as an assay of the `SingleCellExperiment` object|
+| `SingleCellExperiment`| [`counts()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html)| Counts| Stores or extracts raw single-cell experiment count data as an assay of the `SingleCellExperiment` object|
 | `scran` | [`quickCluster()`](https://www.rdocumentation.org/packages/scran/versions/1.0.3/topics/Quick%20clustering) | Quick Clustering     | Groups similar cells into clusters which are stored in the `SingleCellExperiment` object and are used for the calculation of size factors by `scran::computeSumFactors`|
 | `scran` | [`computeSumFactors()`](https://www.rdocumentation.org/packages/scran/versions/1.0.3/topics/Deconvolution%20Methods)  | Compute Sum Factors| Returns a numeric vector of computed sum factors for each cell cluster stored in the `SingleCellExperiment` object. The cluster-based size factors are deconvolved into cell-based size factors that are stored in the `SingleCellExperiment` object and used by the `scran::normalize` function for the normalization of each cell's gene expression profile|
 | `scater`| [`normalize()`](https://www.rdocumentation.org/packages/scater/versions/1.0.4/topics/normalize)| Normalize | Returns the `SingleCellExperiment` object with normalized expression values for each cell, using the size factors stored in the object  |
 | `scran`| [`getTopHVGs()`](https://rdrr.io/bioc/scran/man/getTopHVGs.html)| Get top highly variable genes | Identify variable genes in a `SingleCellExperiment` object, based on variance |
+| `scran`| [`modelGeneVar()`](https://rdrr.io/github/MarioniLab/scran/man/modelGeneVar.html)| model per gene variance | Model the per gene variance of a `SingleCellExperiment` object |
 | `scran`| [`findMarkers()`](https://rdrr.io/bioc/scran/man/findMarkers.html)| Find marker genes | Find candidate marker genes for clusters of cells |
 | `scater`| [`addPerCellQC()`](https://rdrr.io/bioc/scater/man/addPerCellQC.html)| Add per cell quality control | For a `SingleCellExperiment` object, calculate and add quality control per cell and store in `colData`  |
 | `scater`| [`addPerFeatureQC()`](https://rdrr.io/bioc/scater/man/addPerCellQC.html)| Add per feature quality control | For a `SingleCellExperiment` object, calculate and add quality control per feature (genes usually) and store in `rowData`|
@@ -67,7 +69,15 @@ Read the `purrr` documentation [**here**](https://purrr.tidyverse.org/)
 |----------------|--------------|-----------------|--------------|
 | `purrr`| [`map()`](https://purrr.tidyverse.org/reference/map.html)| map | Apply a function across each element of list; return a list |
 | `purrr`| [`map_df()`](https://purrr.tidyverse.org/reference/map.html)| map df |  Apply a function across each element of list; return a data frame |
+| `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| imap |  Apply a function across each element of list and its index/names |
 
+### `stringr`
+
+Read the `stringr` documentation [**here**](https://stringr.tidyverse.org/index.html)
+
+| Library/Package| Piece of Code| What it's called| What it does |
+|----------------|--------------|-----------------|--------------|
+| `stringr`| [`str_remove()`](https://stringr.tidyverse.org/reference/str_remove.html)| String remove | Remove matched string patterns |
 
 ### `alevinQC`, `colorblindr`, `Rtsne`, `tibble`
 Documentation for each of these packages can be accessed by clicking the package name in the table below.
