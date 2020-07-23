@@ -10,12 +10,12 @@
 
 ### Base `R`
 
-Read the Base `R` documentation [**here**](https://www.rdocumentation.org/packages/base/versions/3.5.1)
+Read the Base `R` documentation [**here**](https://www.rdocumentation.org/packages/base/versions/3.5.1).
 
 |Library/Package|Piece of Code|What it's called| What it does|
 |---------------|-------------|----------------|-------------|
-| Base `R`| [`rowSums()`](https://www.rdocumentation.org/packages/raster/versions/3.3-13/topics/rowSums)| Row sums|Calculates sums for each row|
-| Base `R`| [`colSums()`](https://www.rdocumentation.org/packages/raster/versions/3.3-13/topics/colSums)| Column sums| Calculates sums for each column|
+| Base `R`| [`rowSums()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/rowSums)| Row sums|Calculates sums for each row|
+| Base `R`| [`colSums()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/colSums)| Column sums| Calculates sums for each column|
 | Base `R`| [`t()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/t)  |Transpose| Returns the transpose of a matrix or data frame|
 | Base `R`| [`prcomp()`](https://www.rdocumentation.org/packages/stats/versions/3.5.1/topics/prcomp)| Principal Components Analysis|Executes a principal components analysis on specified matrix or data frame|
 | Base `R`| [`<-function(x) { <code> }`](http://adv-r.had.co.nz/Functions.html) | Function | Creates a function that would take the defined parameters as input and execute the commands within the curly braces  |
@@ -23,7 +23,7 @@ Read the Base `R` documentation [**here**](https://www.rdocumentation.org/packag
 
 ### `ggplot2`
 
-Read the `ggplot2` documentation [**here**](https://ggplot2.tidyverse.org/reference/)
+Read the `ggplot2` documentation [**here**](https://ggplot2.tidyverse.org/reference/).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -63,7 +63,7 @@ In addition to the links above, [Amezquita et al.](https://www.biorxiv.org/conte
 
 ### `purrr`
 
-Read the `purrr` documentation [**here**](https://purrr.tidyverse.org/)
+Read the `purrr` documentation [**here**](https://purrr.tidyverse.org/).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -85,7 +85,7 @@ Documentation for each of these packages can be accessed by clicking the package
 | Library/Package|Piece of Code| What it's called| What it does  |
 |----------------|-------------|-----------------|---------------|
 | [`alevinQC`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html) | [`alevinQCReport()`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html#generate-qc-report) | Alevin QC Report | Produces a QC (quality check) report from the alevin output |
-| `dat`| [`DataFrame()`](https://www.rdocumentation.org/packages/dat/versions/0.5.0/topics/DataFrame)| Data frame | Not to be confused with [`data.frame()` from Base R. This is a slightly different data frame-like object needed for storing information in `SingleCellExperiment` object's `colData()`.|
+| [`dat`](https://cran.r-project.org/web/packages/dat/index.html)| [`DataFrame()`](https://www.rdocumentation.org/packages/dat/versions/0.5.0/topics/DataFrame)| Data frame | Not to be confused with [`data.frame()` from Base R. This is a slightly different data frame-like object needed for storing information in `SingleCellExperiment` object's `colData()`.|
 | [`colorblindr`](https://www.rdocumentation.org/packages/colorblindr/versions/0.1.0)|[`scale_color_OkabeIto()`](https://www.rdocumentation.org/packages/colorblindr/versions/0.1.0/topics/scale_colour_OkabeIto) | OkabeIto Color Scale | When added as a layer to a plot, makes the plot colorblind friendly |
 | [`Rtsne`](https://www.rdocumentation.org/packages/Rtsne/versions/0.15)| [`Rtsne()`](https://www.rdocumentation.org/packages/Rtsne/versions/0.15/topics/Rtsne)| T-Distributed Stochastic Neighbor Embedding using a Barnes-Hut Implementation | Reduces the dimensions of the specified matrix or data frame|
 | [`tibble`](https://tibble.tidyverse.org/index.html)|[`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html) | As tibble | Coerce data.frame or matrix to a tibble |
