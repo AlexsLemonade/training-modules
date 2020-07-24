@@ -26,7 +26,12 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
                        c("01-filtering_scRNA-seq.Rmd",
                          "02-normalizing_scRNA-seq.Rmd",
                          "04-tag-based_scRNA-seq_processing.Rmd",
-                         "05-dimension_reduction_scRNA-seq.Rmd"))
+                         "05-dimension_reduction_scRNA-seq.Rmd")),
+             file.path(root_dir,  "machine-learning",
+                       c("01-openpbta_heatmap.Rmd",
+                         "02-openpbta_consensus_clustering.Rmd",
+                         "03-openpbta_PLIER.Rmd",
+                         "04-openpbta_plot_LV.Rmd"))
              )
 
 
