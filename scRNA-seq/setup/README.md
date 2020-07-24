@@ -7,11 +7,19 @@ Currently, these workflows do not include conda environments or docker, as those
 
 ## File locations
 
-The main location for the files needed for training data is `/shared/data/training-data`.
+On the RStudio server the main location for the files needed for training data is `/shared/data/training-data`.
 For users, this is generally symlinked from their home directories, so they can get to it from `~/shared-data/training-data`
 The files are then organized by dataset.
 
+After setup, the following symlinks should be established:
 
+```
+# cd scRNA-seq
+ln -s /shared/data/training-data/darmanis data/glioblastoma/preprocessed
+ln -s /shared/data/training-data/tabula-muris/fastq data/tabula-muris/fastq-raw
+ln -s /shared/data/training-data/tabula-muris/normalized/TM_normalized.rds data/tabula-muris/normalized/TM_normalized.rds
+
+```
 ## SmartSeq Data
 
 The SmartSeq data we are using comes from the following study: <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465>, which corresponds to the SRA project SRP079058. 
