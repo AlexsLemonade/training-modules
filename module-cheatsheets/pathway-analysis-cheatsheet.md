@@ -60,7 +60,7 @@ Read the `clusterProfiler` package documentation [**here**](https://www.rdocumen
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
-| `clusterProfiler`                | [`enricher()`](https://www.rdocumentation.org/packages/clusterProfiler/versions/3.0.4/topics/enricher)             | Enricher                                         | Performs a universal over-represention/enrichment analysis for a given genes of interest list                  |
+| `clusterProfiler`                | [`enricher()`](https://www.rdocumentation.org/packages/clusterProfiler/versions/3.0.4/topics/enricher)             | Enricher                                         | Performs a universal over-representation analysis for a given list of genes and gene sets or pathways             |
 | `clusterProfiler`                | [`GSEA()`](https://www.rdocumentation.org/packages/clusterProfiler/versions/3.0.4/topics/GSEA)             | Gene Set Enrichment Analysis (GSEA)                                         | Performs a universal gene set enrichment analysis on given preranked (sorted) named vector of statistics, where the names in the vector are gene identifiers of gene sets                     |
 
 <div style="page-break-after: always;"></div>
