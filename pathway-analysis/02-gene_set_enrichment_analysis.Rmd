@@ -10,7 +10,7 @@ date: 2020
 
 In this notebook, we will perform Gene Set Enrichment Analysis (GSEA) on the neuroblastoma cell line differential gene expression (DGE) results we generated during the RNA-seq module.
 
-To refresh our memory, we analyzed data from [Harenza *et al.* 2017.](https://doi.org/10.1038/sdata.2017.33) and specifically tested for DGE between with _MYCN_ amplified cell lines and non-amplified cell lines using `DESeq2`.
+To refresh our memory, we analyzed data from [Harenza *et al.* (2017)](https://doi.org/10.1038/sdata.2017.33) and specifically tested for DGE between with _MYCN_ amplified cell lines and non-amplified cell lines using `DESeq2`.
 We have a table of results that contains our log2 fold changes and adjusted p-values.
 
 *Note: We've taken an additional step to get more accurate log2 fold change estimates. 
@@ -25,7 +25,7 @@ There are 3 general steps in FCS methods ([Khatri, Sirota, and Butte. (2012)]( h
  
 1. Calculate a gene-level statistic (we'll use log2 fold change from DESeq2 here)
 2. Gene-level statistics are aggregated into a pathway-level statistic
-3. Assess the statistical significance of the pathway level statistic
+3. Assess the statistical significance of the pathway-level statistic
 
 #### Other resources
 
@@ -37,7 +37,7 @@ You can read more about fgsea in [Korotkevich, Sukhov, Sergushichev. (2019)](htt
 
 ### Libraries
 
-```{r}
+```{r libraries}
 # Package to run GSEA
 library(clusterProfiler)
 # Package that contains the MSigDB gene sets in tidy format
@@ -64,7 +64,7 @@ if (!dir.exists(output_dir)) {
 
 #### Input files
 
-```{r}
+```{r input_files}
 # DGE results
 dge_results_file <- file.path(input_dir,
                              "nb_cell_line_mycn_amplified_v_nonamplified.tsv")
@@ -72,7 +72,7 @@ dge_results_file <- file.path(input_dir,
 
 #### Output files
 
-```{r}
+```{r output_files}
 # GSEA pathway-level scores and statistics
 gsea_results_file <- file.path(output_dir,
                                "nb_cell_line_gsea_results.tsv")
@@ -95,15 +95,15 @@ The fewer gene sets we test, the lower our multiple hypothesis testing burden.
 
 We can retreive only the Hallmark gene sets by specifying `category = "H"` to the `msigdbr()` function.
 
-```{r}
+```{r hallmark_sets, live = TRUE}
 hs_hallmark_df <- msigdbr(species = "Homo sapiens",
                           category = "H")
 ```
 
-
 ## Differential gene expression results
 
-```{r}
+```{r read_in_dge, live = TRUE}
+# Read in the DGE results
 dge_results_df <- readr::read_tsv(dge_results_file)
 ```
 
@@ -118,7 +118,7 @@ When `mapIds()` is run with `multiValues = "first"` and it encounters multiple m
 This is the default behavior.
 It will also return a named vector of the IDs you queried for (`column`), where the names are the input identifiers (`keys`), in the same order as the keys which means you can use it directly with `dplyr::mutate()`.
 
-```{r}
+```{r convert_entrez, live = TRUE}
 dge_results_df <- dge_results_df %>%
   # Create a new column 'entrez_id' that contains the Entrez IDs returned by
   # mapIds()
@@ -131,8 +131,6 @@ dge_results_df <- dge_results_df %>%
   # We need these gene identifiers to perform our pathway analysis, so remove
   # any genes where we don't have Entrez IDs
   dplyr::filter(!is.na(entrez_id))
-
-head(dge_results_df)
 ```
 
 ### Preranked list
@@ -140,18 +138,18 @@ head(dge_results_df)
 The `GSEA()` function takes a preranked (sorted) named vector of statistics, where the names in the vector are gene identifiers.
 This is step 1 -- gene-level statistics.
 
-```{r}
+```{r lfc_vector}
 lfc_vector <- dge_results_df$log2FoldChange
 names(lfc_vector) <- dge_results_df$entrez_id
 lfc_vector <- sort(lfc_vector, decreasing = TRUE)
 ```
 
-```{r}
+```{r head_lfc, live = TRUE}
 # Look at first entries of the log2 fold change vector
 head(lfc_vector)
 ```
 
-```{r}
+```{r tail_lfc, live = TRUE}
 # Look at the last entries of the log2 fold change vector
 tail(lfc_vector)
 ```
@@ -169,15 +167,15 @@ The ES is the maximum deviation from zero.
 Significance is assessed by generating a null distribution by sampling random gene sets of the same size and an FDR (false discovery rate) value is calculated to account for multiple hypothesis testing.
 ([Subramanian, Tamayo *et al.* (2005)](https://doi.org/10.1073/pnas.0506580102); [Korotkevich, Sukhov, Sergushichev. (2019)](https://doi.org/10.1101/060012)).
 
-We can use the `GSEA()` function to perform GSEA with any generic set of gene sets, but there are several functions (e.g., `gseKEGG()`).
+We can use the `GSEA()` function to perform GSEA with any generic set of gene sets, but there are several functions for using specific, commonly used gene sets (e.g., `gseKEGG()`).
 
-```{r}
-gsea_results <- GSEA(geneList = lfc_vector,
-                     nPerm = 1000,
-                     minGSSize = 25,
-                     maxGSSize = 500,
+```{r run_gsea}
+gsea_results <- GSEA(geneList = lfc_vector,  # ordered ranked gene list
+                     nPerm = 1000,  # number of permutations
+                     minGSSize = 25,  # minimum gene set size
+                     maxGSSize = 500,  # maximum gene set set
                      pvalueCutoff = 0.05,
-                     pAdjustMethod = "BH",
+                     pAdjustMethod = "BH",  # Benjamini-Hochberg correction
                      TERM2GENE = dplyr::select(hs_hallmark_df,
                                                gs_name,
                                                entrez_gene))
@@ -185,7 +183,7 @@ gsea_results <- GSEA(geneList = lfc_vector,
 
 Let's take a look at the results.
 
-```{r eval = FALSE}
+```{r view_gsea, live = TRUE, eval = FALSE}
 View(gsea_results@result %>%
        dplyr::arrange(dplyr::desc(NES))
 )
@@ -203,7 +201,7 @@ Let's take a look at 3 different pathways -- one with a highly positive NES, one
 The gene set `HALLMARK_MYC_TARGETS_V2` had high positive log2 fold changes.
 Recall a positive log2 fold change means a it had a higher expression value in _MYCN_ amplified cell lines.
 
-```{r}
+```{r myc_v2}
 enrichplot::gseaplot(gsea_results,
                      geneSetID = "HALLMARK_MYC_TARGETS_V2",
                      title = "HALLMARK_MYC_TARGETS_V2")
@@ -215,7 +213,7 @@ Notice how the genes that are in the gene set, indicated by the black bars, tend
 
 The gene set `HALLMARK_INFLAMMATORY_RESPONSE` had a highly negative NES.
 
-```{r}
+```{r inflammatory}
 enrichplot::gseaplot(gsea_results,
                      geneSetID = "HALLMARK_INFLAMMATORY_RESPONSE",
                      title = "HALLMARK_INFLAMMATORY_RESPONSE")
@@ -228,7 +226,7 @@ This gene set shows the opposite pattern -- genes in the pathway tend to be on t
 A moderately negative NES is somewhere in the middle in this particular experiment.
 Let's look at `HALLMARK_P53_PATHWAY`.
 
-```{r}
+```{r p53}
 enrichplot::gseaplot(gsea_results,
                      geneSetID = "HALLMARK_P53_PATHWAY",
                      title = "HALLMARK_P53_PATHWAY")
@@ -240,6 +238,6 @@ Genes in the pathway are distributed more evenly throughout the ranked list, res
 
 ## Session Info
 
-```{r}
+```{r session_info}
 sessionInfo()
 ```
