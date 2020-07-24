@@ -22,7 +22,7 @@ Read the `AnnotationDbi` package vignette [**here**](http://bioconductor.org/pac
 | Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
 |-----------------------------------------|---------------------------------------------|-------------------------|------------------------------------------------------------------------|
 | `AnnotationDbi`        | [`keytypes()`](https://bioconductor.org/packages/release/bioc/vignettes/AnnotationDbi/inst/doc/IntroToAnnotationPackages.pdf)      | Keytypes     | Returns a character vector of column names/types of gene identifiers (e.g. `ENSEMBL` ) available in an `AnnotationDbi` package.                                              |
-| `AnnotationDbi`       | [`mapIDs()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects) | Mapped IDs       | Extracts the mapped IDs for a set of gene identifiers. The types of gene identifiers for mapping are supplied to the arguments column (type of gene identifiers to return e.g. `ENSEMBL`) and keytype (type of gene identifiers to start with e.g. `ENTREZ`).                                  |  
+| `AnnotationDbi`       | [`mapIds()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects) | Mapped IDs       | Extracts the mapped IDs for a set of gene identifiers. The types of gene identifiers (e.g. `ENSEMBL` or `ENTREZ`) are supplied to arguments: `keytype` (type of gene identifiers we are providing in the `keys` argument) and  `column` (type of gene identifiers we want returned).                                 |  
 
 ### Base `R`
 
@@ -60,6 +60,7 @@ Read the `clusterProfiler` package documentation [**here**](https://www.rdocumen
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
+| `clusterProfiler`                | [`enricher()`](https://www.rdocumentation.org/packages/clusterProfiler/versions/3.0.4/topics/enricher)             | Enricher                                         | Performs a universal over-represention/enrichment analysis for a given genes of interest list                  |
 | `clusterProfiler`                | [`GSEA()`](https://www.rdocumentation.org/packages/clusterProfiler/versions/3.0.4/topics/GSEA)             | Gene Set Enrichment Analysis (GSEA)                                         | Performs a universal gene set enrichment analysis on given preranked (sorted) named vector of statistics, where the names in the vector are gene identifiers of gene sets                     |
 
 <div style="page-break-after: always;"></div>
