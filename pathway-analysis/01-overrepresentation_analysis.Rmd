@@ -31,7 +31,7 @@ Check out the [_AnnotationDbi: Introduction To Bioconductor Annotation Packages_
 
 ### Libraries
 
-```{r}
+```{r libraries}
 # Pipes
 library(magrittr)
 # Package we'll use to 
@@ -46,7 +46,7 @@ library(org.Hs.eg.db)
 
 #### Directories
 
-```{r}
+```{r create_ora_directory, live = TRUE}
 # We'll create a directory to specifically hold the ORA results if it doesn't
 # exist yet
 results_dir <- file.path("results", "ora")
@@ -59,8 +59,7 @@ if (!dir.exists(results_dir)) {
 
 For our ORA example, we're going to use one of the tables of marker genes from the Smart-Seq2 glioblastoma dataset we worked with during the scRNA-seq module.
 
-```{r}
-# TODO: backup file 
+```{r input_file}
 input_file <- file.path("..", "scRNA-seq", "analysis", "glioblastoma", 
                         "markers", "Neuron_markers.tsv")
 ```
@@ -69,7 +68,7 @@ input_file <- file.path("..", "scRNA-seq", "analysis", "glioblastoma",
 
 We'll save the table of ORA results (e.g., p-values).
 
-```{r}
+```{r output_file, live = TRUE}
 kegg_results_file <- file.path(results_dir, "neuron_kegg_ora_results.tsv")
 ```
 
@@ -80,13 +79,13 @@ The [`msigdbr`](https://cran.r-project.org/web/packages/msigdbr/index.html) pack
 
 Let's take a look at what organisms the package supports.
 
-```{r}
+```{r show_species}
 msigdbr_show_species()
 ```
 
 The GBM data we're interested in here comes from human samples, so we can obtain just the gene sets relevant to _H. sapiens_ with the `species` argument to `msigdbr()`.
 
-```{r}
+```{r hs_df, live = TRUE}
 hs_msigdb_df <- msigdbr(species = "Homo sapiens")
 ```
 
@@ -109,6 +108,8 @@ And are a subset of `C2: curated gene sets`.
 Specifically, we will use the [KEGG (Kyoto Encyclopedia of Genes and Genomes)](https://www.genome.jp/kegg/) pathways. 
 
 ```{r}
+# Filter the human data frame to the KEGG pathways that are included in the
+# curated gene sets
 hs_kegg_df <- hs_msigdb_df %>%
   dplyr::filter(gs_cat == "C2",  # curated gene sets 
                 gs_subcat == "CP:KEGG")  # KEGG pathways 
@@ -116,7 +117,7 @@ hs_kegg_df <- hs_msigdb_df %>%
 
 *Note: We could specified that we wanted the KEGG gene sets using the `category` and `subcategory` arguments of `msigdbr()`, but we're going for general steps!*
 
-```{r}
+```{r hs_kegg_columns}
 colnames(hs_kegg_df)
 ```
 
@@ -125,7 +126,8 @@ Our data frame with KEGG terms contains Entrez IDs and gene symbols.
 
 ## Read in marker data and prep
 
-```{r}
+```{r read_in_view_neuron, live = TRUE}
+# Read in and take a look at the neuron markers data frame
 neuron_markers_df <- readr::read_tsv(input_file)
 neuron_markers_df
 ```
@@ -144,7 +146,7 @@ we would use `org.Dr.eg.db` for zebrafish (_Danio rerio_).
 
 We can see what types of IDs are available to us in an annotation package with `keytypes()`.
 
-```{r}
+```{r keytypes, live = TRUE}
 keytypes(org.Hs.eg.db)
 ```
 
@@ -152,7 +154,7 @@ Even though we'll use this package to convert from Ensembl gene IDs (`ENSEMBL`) 
 
 The function we will use to map from Ensembl gene IDs to gene symbols is called `mapIds()`.
 
-```{r}
+```{r map_to_symbol}
 neuron_marker_symbols <- mapIds(org.Hs.eg.db,  # Specify the annotation package
                                 # The vector of gene identifiers we want to 
                                 # map
@@ -181,7 +183,7 @@ This message is letting us know that sometimes Ensembl gene identifiers will map
 Now we are ready to add the gene symbols to our data frame with the marker information.
 Here we're using a `dplyr::left_join()` because we only want to retain the genes that have gene symbols and this will filter out anything in our marker data frame that does not have gene symbols when we join using the Ensembl gene identifiers.
 
-```{r}
+```{r add_symbols, live = TRUE}
 neuron_markers_df <- neuron_marker_symbols %>%
   # Using a left join removes the rows without gene symbols because those rows
   # have already been removed in neuron_marker_symbols
@@ -205,7 +207,7 @@ Borrowing an example from [_clusterProfiler: universal enrichment tool for funct
 
 We'll call genes that are differentially expressed `gene_in_interest` and genes that are in the gene set `in_gene_set`.
 
-```{r}
+```{r gene_table}
 gene_table <- data.frame(
   gene_not_interest = c(2613, 15310),
   gene_in_interest = c(28, 29)
@@ -218,7 +220,7 @@ gene_table
 We can assess if the 28 overlapping genes mean that the differentially expressed genes are over-represented in the gene set with the hypergeometric distribution.
 This corresponds to a one-sided Fisher's exact test.
 
-```{r}
+```{r fisher_test}
 fisher.test(gene_table, alternative = "greater")
 ```
 
@@ -229,10 +231,10 @@ When we test **multiple pathways or gene sets**, the p-values then need to be **
 Let's generate a list of genes that are indicative of neurons in the GBM data.
 We need to use the gene symbols, rather than the Ensembl gene IDs.
 
-```{r}
+```{r top_neuron_genes, live = TRUE}
+# Select genes that are in the top 100 for at least one comparison to other
+# cell types
 top_neuron_genes <- neuron_markers_df %>%
-  # Select genes that are in the top 100 for at least one comparison to other
-  # cell types
   dplyr::filter(Top <= 100) %>%
   dplyr::pull(gene_symbol)
 
@@ -255,9 +257,9 @@ Sometimes folks consider genes from the entire genome to comprise the background
 
 Where the key phrase is **genes detected**. 
 If we are unable to detect a gene, we should remove it from our background set.
-In the scRNA-seq module (`01-filtering_scRNA-seq.Rmd` specifically), we filtered out genes that were expressed in less than 200 cells, but all genes that were detected should be in our marker data frame.
+In the scRNA-seq module (`01-filtering_scRNA-seq.Rmd` specifically), we filtered out genes that were expressed in less than 200 cells, but all genes that were _detected_ should be in our marker data frame.
 
-```{r}
+```{r detected_genes, live = TRUE}
 detected_genes <- unique(as.character(neuron_markers_df$gene_symbol))
 ```
 
@@ -265,13 +267,15 @@ detected_genes <- unique(as.character(neuron_markers_df$gene_symbol))
 
 Now that we have our background set, our genes of interest, and our pathway information, we're ready to run ORA using the `enricher()` function.
 
-```{r}
+```{r kegg_ora}
 kegg_ora_results <- enricher(
   gene = top_neuron_genes,  # Genes of interest
   pvalueCutoff = 0.05,  
   pAdjustMethod = "BH",  # FDR
   universe = detected_genes,  # Background set
-  TERM2GENE = dplyr::select(hs_kegg_df, 
+  # The pathway information should be a data frame with a term name or 
+  # identifier and the gene identifiers
+  TERM2GENE = dplyr::select(hs_kegg_df,  
                             gs_name,
                             gene_symbol)
 )
@@ -281,14 +285,14 @@ kegg_ora_results <- enricher(
 
 What is returned by `enricher()`?
 
-```{r}
+```{r str_kegg_ora}
 str(kegg_ora_results)
 ```
 
 The information we're most likely interested in is in the `results` slot.
 Let's convert this into a data frame that we can write to file.
 
-```{r}
+```{r kegg_df}
 kegg_result_df <- data.frame(kegg_ora_results@result)
 ```
 
@@ -296,15 +300,15 @@ kegg_result_df <- data.frame(kegg_ora_results@result)
 
 We can use a dot plot to visualize our significant enrichment results.
 
-```{r}
+```{r dotplot}
 enrichplot::dotplot(kegg_ora_results)
 ```
 
 This is arguably more useful when we have a large number of significant pathways.
 
-We can use an [UpSet plot](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4720993/) to visualize the overlap between the gene sets that were returned as significant.
+We can use an [UpSet plot](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4720993/) to visualize the **overlap** between the gene sets that were returned as significant.
 
-```{r}
+```{r upsetplot}
 enrichplot::upsetplot(kegg_ora_results)
 ```
 
@@ -312,13 +316,12 @@ Gene sets or pathways aren't independent, either!
 
 #### Write results to file
 
-```{r}
+```{r write_results, live = TRUE}
 readr::write_tsv(kegg_result_df, path = kegg_results_file)
 ```
 
 ## Session Info 
 
-```{r}
+```{r session_info}
 sessionInfo()
 ```
-
