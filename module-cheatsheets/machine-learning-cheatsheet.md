@@ -24,14 +24,19 @@ Read the Base `R` package documentation [**here**](https://www.rdocumentation.or
 
 | Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
 |-----------------------------------------|---------------------------------------------|-------------------------|------------------------------------------------------------------------|
-| Base `R`               | [`lapply()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/lapply)        | Apply over a list    | Applies a function to specified elements of a list, and returns a list with these results           |  
+| Base `R`               | [`round()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/Round)         | Round    | Rounds the values in the object provided in the first argument to the number of decimal places specified in the second argument         |
+| Base `R`               | [`identical()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/identical)     | Identical   | Checks if two objects are exactly equal        |
+| Base `R`               | [`prcomp()`](https://www.rdocumentation.org/packages/stats/versions/3.5.1/topics/prcomp)                             | Principal Components Analysis  | Executes a principal components analysis on specified matrix or data frame                                               |   
+| Base `R`               | [`rowSums()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/colSums)     | Row Sums  | Returns the sums of the rows in a numeric array, matrix, or data.frame | 
+| Base `R`               | [`rowMeans()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/colSums)     | Row Means  | Returns the means of the rows in a numeric array, matrix, or data.frame | 
+| Base `R`               | [`quantile()`](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/quantile)    | Sample Quantiles  | Returns the sample quantiles for a given numeric vector of data and numeric vector of probabilities  |
+| Base `R`               | [`cor()`](https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/cor)        | Correlation     | Computes correlation between columns using a specified correlation method, and returns a correlation matrix        |
+| Base `R`               | [`as.dist()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/Round)         | Distance matrix compution    | Returns a special object of class `dist`, a distance matrix used by the `hclust()` function         |
+| Base `R`               | [`hclust()`](https://www.rdocumentation.org/packages/stats/versions/3.5.1/topics/hclust)    | Hierarchical Clustering  | Performs hierarchical clustering analysis on a set of dissimilarities and methods  |
+| Base `R`               | [`table()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/table)    | Create Table       | Creates a contingency table of counts for each combination of factor levels               | 
 | Base `R`               | [`duplicated()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/duplicated)           | Duplicated              | Returns a logical vector, where `TRUE` represents elements of the object that are duplicates               |
 | Base `R`               | [`any()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/any)             | Any      | Checks to see if at least one of the elements are `TRUE` when given a logical vector                                      |
-| Base `R`               | [`is.na()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/NA)                | Is it "Not Available"            | Returns a logical vector where `TRUE` represents an instance of a missing value  |
-| Base `R`               | [`cor()`](https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/cor)        | Correlation     | Computes correlation between columns using a specified correlation method, and returns a correlation matrix        |
-| Base `R`               | [`table()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/table)    | Create Table       | Creates a contingency table of counts for each combination of factor levels               |
 | Base `R`               | [`cbind()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/cbind)                | Cbind                          | Combines vectors, matrices, or data.frames by columns                                         |
-| Base `R`               | [`paste0()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/paste)     | Concatenate Strings              | Joins together strings with no separator after they have been converted to character vectors      |
 | Base `R`             | [`pairwise.wilcox.test()`](https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/pairwise.wilcox.test) | Pairwise Wilcoxon Rank Sum Tests | Calculates the pairwise comparisons between group levels                   |
 
  <div style="page-break-after: always;"></div>
@@ -72,15 +77,31 @@ A vignette on the usage of the `ggplot2` package can be found [**here**](https:/
 | `ggplot2`              | [`labs()`](https://www.rdocumentation.org/packages/ggplot2/versions/3.1.0/topics/labs)        | Labels       | Sets the axis, legend, and plot labels if specified                     |
 | `ggplot2`              | [`theme()`](https://www.rdocumentation.org/packages/ggplot2/versions/3.1.0/topics/theme)      | Theme        | Sets the specified non-data elements of a plot (i.e. plot title, legend spacing, text size, etc.)       |
 
+<br>
+<br>
+
+### `tidyr`
+Read the `tidyr` package documentation [**here**](https://tidyr.tidyverse.org/index.html). <br>
+A vignette on the usage of the `tidyr` package can be found [**here**](https://tidyr.tidyverse.org/articles/tidy-data.html).
+| Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
+|-----------------------------------------|---------------------------------------------|-------------------------|------------------------------------------------------------------------|
+| `tidyr`            | [`separate()`](https://tidyr.tidyverse.org/reference/separate.html)    | Separate  | Separates a character column into multiple columns with a given regular expression or numeric locations     |
+| `tidyr`            | [`pivot_longer()`](https://tidyr.tidyverse.org/reference/pivot_longer.html)    | Pivot Longer  | Pivots data in a data.frame from wide to long format     |
+
+
 <div style="page-break-after: always;"></div>
 
-### `data.table`, `reshape2`, `RColorBrewer`, `ConsensusClusterPlus`, `ggsignif`
+### Other packages and functions
 Documentation for each of these packages can be accessed by clicking the package name in the table below.
 
 | Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
 |-----------------------------------------|---------------------------------------------|-------------------------|------------------------------------------------------------------------|
 | [`data.table`](https://www.rdocumentation.org/packages/data.table/versions/1.11.8)       | [`fread()`](https://www.rdocumentation.org/packages/data.table/versions/1.11.8/topics/fread)    | F read           | Reads in data faster than base R                                                                         |
-| [`reshape2`](https://www.rdocumentation.org/packages/reshape2/versions/1.4.3)             | [`melt()`](https://www.rdocumentation.org/packages/reshape2/versions/1.4.3/topics/melt)         | Melt             | Converts an object into a data.frame in 'long' format                                                                     |
-| [`RColorBrewer`](https://www.rdocumentation.org/packages/RColorBrewer/versions/1.1-2)         | [`brewer.pal()`](https://www.rdocumentation.org/packages/RColorBrewer/versions/1.1-2/topics/RColorBrewer)           | Brewer Pal       | Makes specified color palettes from ColorBrewer available in the R environment             |
+| [`purrr`](https://purrr.tidyverse.org/)            | [`discard()`](https://purrr.tidyverse.org/reference/keep.html)    | Discard  | Discards the given elements        |
+| [`dplyr`](https://www.rdocumentation.org/packages/dplyr/versions/0.7.8)            | [`pull()`](https://www.rdocumentation.org/packages/dplyr/versions/0.7.8/topics/pull)    | Pull  | Pulls a single variable out of a given table of data        |
+| [`matrixStats`](https://purrr.tidyverse.org/)            | [`rowSds()`](https://www.rdocumentation.org/packages/matrixStats/versions/0.5.0/topics/rowSds)    | Row Standard Deviations  | Returns the standard deviation estimates for each row in a matrix       |
+| [`matrixStats`](https://purrr.tidyverse.org/)            | [`rowVars()`](https://www.rdocumentation.org/packages/matrixStats/versions/0.5.0/topics/rowVars)    | Row Variances  | Returns the variance estimates for each row in a matrix       |
+| [`umap`](https://www.rdocumentation.org/packages/umap/versions/0.2.6.0)            | [`umap()`](https://www.rdocumentation.org/packages/umap/versions/0.2.6.0/topics/umap)    | Uniform Manifold Approximation and Projection (UMAP)  | Computes a manifold approximation and projection on a given matrix or data.frame     |
 | [`ConsensusClusterPlus`](https://www.rdocumentation.org/packages/ConsensusClusterPlus/versions/1.46.0) | [`ConsensusClusterPlus()`](https://www.rdocumentation.org/packages/ConsensusClusterPlus/versions/1.36.0/topics/ConsensusClusterPlus) | Consensus Clustering             | Finds the consensus across multiple runs of the clustering algorithm                              |
+| [`plotly`](https://www.rdocumentation.org/packages/plotly/versions/4.9.2.1)            | [`plot_ly()`](https://www.rdocumentation.org/packages/plotly/versions/4.9.2.1/topics/plot_ly)    | Plotly Visualization  | Initiates a plotly visualization with given R objects     |
 | [`ggsignif`](https://www.rdocumentation.org/packages/ggsignif/versions/0.4.0)             | [`geom_signif()`](https://www.rdocumentation.org/packages/ggsignif/versions/0.4.0/topics/stat_signif)    | Create Significance Layer   | Adds significance information to the plot. It can be used to run statistical tests and display the significance information from those tests. We use it differently, in a way that gives us more control, in the notebook.        |
