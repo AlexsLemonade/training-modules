@@ -91,7 +91,7 @@ A vignette on the usage of the `tidyr` package can be found [**here**](https://t
 
 <div style="page-break-after: always;"></div>
 
-### `data.table`, `purrr`, `dplyr`, `matrixStats`, `umap`, `ConsensusClusterPlus`, `plotly`, `tidyr`, `ggsignif`
+### Other packages and functions
 Documentation for each of these packages can be accessed by clicking the package name in the table below.
 
 | Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
