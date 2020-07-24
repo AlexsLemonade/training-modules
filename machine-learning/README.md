@@ -3,7 +3,7 @@
 This CCDL-designed module analyzes pediatric brain tumor data from the [OpenPBTA project](https://github.com/AlexsLemonade/OpenPBTA-analysis) using some machine learning methods.
 OpenPBTA contains data from [Children's Brain Tumor Tissue Consortium](https://cbttc.org/) and the PNOC003 DIPG clinical trial from the [Pediatric Pacific Neuro-oncology Consortium](http://www.pnoc.us/).
 
-This material depends on knowledge gained in the [intro to R](https://github.com/AlexsLemonade/training-modules/tree/master/intro-to-R-tidyverse) module and analyses can be performed within a [Docker container](https://github.com/AlexsLemonade/training-modules/tree/master/docker-install).
+This material depends on knowledge gained in the [Intro to R](https://github.com/AlexsLemonade/training-modules/tree/master/intro-to-R-tidyverse) module and analyses can be performed within a [Docker container](https://hub.docker.com/r/ccdl/training_rnaseq).
 It covers how to make heatmaps, perform consensus clustering, and obtain correlated patterns of expression in data or latent variables (LVs) through the implementation of PLIER (Pathway-Level Information Extractor).
 
 The notebooks that comprise this module are:
