@@ -19,7 +19,7 @@ bucket_url=https://s3.amazonaws.com/kf-openaccess-us-east-1-prd-pbta/data
 data_dir=../data/open-pbta/download
 
 # The md5sum file provides our single point of truth for which files are in a release.
-curl --create-dirs $bucket_url/$RELEASE/md5sum.txt -o ${data_dir}/md5sum.txt ${data_dir}/md5sum.txt
+curl --create-dirs $bucket_url/$RELEASE/md5sum.txt -o ${data_dir}/md5sum.txt
 
 # Consider the filenames in the md5sum file and the release notes
 FILES=(`tr -s ' ' < ${data_dir}/md5sum.txt | cut -d ' ' -f 2` release-notes.md)
