@@ -155,30 +155,34 @@ Even though we'll use this package to convert from Ensembl gene IDs (`ENSEMBL`) 
 The function we will use to map from Ensembl gene IDs to gene symbols is called `mapIds()`.
 
 ```{r map_to_symbol}
-neuron_marker_symbols <- mapIds(org.Hs.eg.db,  # Specify the annotation package
-                                # The vector of gene identifiers we want to 
-                                # map
-                                keys = neuron_markers_df$gene, 
-                                # The type of gene identifier we want returned
-                                column = "SYMBOL", 
-                                # What type of gene identifiers we're starting
-                                # with
-                                keytype = "ENSEMBL", 
-                                # In the case of 1:many mappings, return the
-                                # first one. This is default behavior!
-                                multiVals = "first") %>%
-  # This returns a named vector which we can convert to a data frame, where
-  # the keys (Ensembl IDs) are the rownames but we want them as a column
-  data.frame() %>%
-  tibble::rownames_to_column("ensembl_id") %>%
-  # Rename the column that contains the gene symbols
-  dplyr::rename(gene_symbol = ".") %>%
+# This returns a named vector which we can convert to a data frame, where
+# the keys (Ensembl IDs) are the names
+symbols_vector <- mapIds(org.Hs.eg.db,  # Specify the annotation package
+                         # The vector of gene identifiers we want to 
+                         # map
+                         keys = neuron_markers_df$gene, 
+                         # The type of gene identifier we want returned
+                         column = "SYMBOL", 
+                         # What type of gene identifiers we're starting
+                         # with
+                         keytype = "ENSEMBL", 
+                         # In the case of 1:many mappings, return the
+                         # first one. This is default behavior!
+                         multiVals = "first") 
+
+# We would like a data frame we can join to the marker stats
+neuron_marker_symbols <- data.frame(
+  ensembl_id = names(symbols_vector),
+  gene_symbol = symbols_vector,
+  stringsAsFactors = FALSE
+) %>%
   # If an Ensembl gene identifier doesn't map to a gene symbol, drop that
   # from the data frame
   dplyr::filter(!is.na(gene_symbol))
 ```
 
 This message is letting us know that sometimes Ensembl gene identifiers will map to multiple gene symbols.
+In this case, it's also possible that a gene symbol will map to multiple Ensembl IDs.
 
 Now we are ready to add the gene symbols to our data frame with the marker information.
 Here we're using a `dplyr::left_join()` because we only want to retain the genes that have gene symbols and this will filter out anything in our marker data frame that does not have gene symbols when we join using the Ensembl gene identifiers.
@@ -285,8 +289,8 @@ kegg_ora_results <- enricher(
 
 What is returned by `enricher()`?
 
-```{r str_kegg_ora, eval = FALSE}
-str(kegg_ora_results)
+```{r view_kegg_ora, eval = FALSE}
+View(kegg_ora_results)
 ```
 
 The information we're most likely interested in is in the `results` slot.
