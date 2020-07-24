@@ -1,0 +1,101 @@
+---
+title: "Prepare neuroblastoma DGE results for GSEA"
+output: 
+  html_notebook: 
+    toc: true
+    toc_float: true
+author: CCDL for ALSF
+date: 2020
+---
+
+We'll use this notebook to prepare the neuroblastoma cell line results we generated in the `RNA-seq` module for use with functional class scoring methods that accept ranked lists of genes (e.g., Gene Set Enrichment Analysis [GSEA]).
+As a reminder, these data are from [Harenza, et al. _Scientific Data._ 2017.](https://doi.org/10.1038/sdata.2017.33)
+
+Specifically, we're going to take an additional step that makes the log2 fold change estimates more accurate for use in visualization or ranking downstream.
+
+> We **highly recommend** taking a look at the resources we adapted this from!
+>
+> * [Harvard Chan Bioinformatics Core (HBC). _DGE Analysis: Pairwise Comparisons (Wald Test)._](https://hbctraining.github.io/DGE_workshop_salmon/lessons/05_DGE_DESeq2_analysis2.html)
+> * [Love, Anders, and Huber. _Analyzing RNA-seq data with DESeq2._](https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#log-fold-change-shrinkage-for-visualization-and-ranking)
+
+## Set up
+
+### Libraries
+
+```{r}
+library(magrittr)
+library(DESeq2)
+```
+
+### Directories and files
+
+#### Directories
+
+```{r}
+# Results directory of the RNA-seq module
+input_dir <- file.path("..", "..", "RNA-seq", "results")
+# We will store everything in a results directory for the pathway analysis 
+# module, with the tabular input for pathway analysis being stored in 
+# results/gene-metrics
+output_dir <- file.path("..", "results", "gene-metrics")
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir, recursive = TRUE)
+}
+```
+
+#### Input file
+
+```{r}
+# RDS file that contains our differential gene expression results
+dge_file <- file.path(
+  input_dir, 
+  "NB_cell_line_DESeq_amplified_v_nonamplified.RDS"
+)
+```
+
+#### Output
+
+```{r}
+# We'll store our (post LFC shrinkage) results in a TSV file
+results_table_file <- file.path(
+  output_dir, 
+  "nb_cell_line_mycn_amplified_v_nonamplified.tsv"
+)
+```
+
+## Read in data and `lfcShrink()`
+
+```{r}
+# Read in DESeq2 data set
+dge_object <- readr::read_rds(dge_file)
+# Look at the contrasts available
+resultsNames(dge_object)
+```
+
+### Shrink LFC
+
+Extract results for the _MYCN_ amplified vs. non-amplified comparison and apply shrinkage of the log2 fold change estimates.
+
+```{r}
+results_table_mycn <- results(dge_object, 
+                              alpha = 0.05)
+results_lfc <- lfcShrink(dge_object, 
+                         coef = "Status_Amplified_vs_Nonamplified",
+                         res = results_table_mycn)
+```
+
+Now write these results to file without filtering for significance or using a LFC threshold.
+If we need to filter, we can easily do that later!
+
+```{r}
+results_df <- results_lfc %>%
+  data.frame() %>%
+  tibble::rownames_to_column("Gene") %>%
+  readr::write_tsv(results_table_file)
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```

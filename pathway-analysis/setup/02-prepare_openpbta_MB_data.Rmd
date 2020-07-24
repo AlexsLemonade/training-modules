@@ -1,0 +1,92 @@
+---
+title: "Prepare OpenPBTA medulloblastoma data"
+output: 
+  html_notebook: 
+   toc: true
+   toc_float: true
+author: CCDL for ALSF
+date: 2020
+---
+
+In this notebook, we'll prepare medulloblastoma data from the Open Pediatric Brain Tumor Atlas (OpenPBTA) project.
+
+**Note that this notebook relies on the setup of the `machine-learning` module, where the OpenPBTA data is transformed (`../../machine-learning/setup/01-transform-rnaseq.Rmd`),
+and the collapse step in the module itself  (`../../machine-learning/03-openpbta_PLIER.Rmd`). Therefore it is not intended for processing during training, but as part of development.**
+
+## Set up
+
+### Libraries
+
+```{r}
+library(tidyverse)
+```
+
+### Directories and files
+
+#### Directories
+
+We transformed these data in the `machine-learning` module set up.
+
+```{r}
+input_dir <- file.path("..", "..", "machine-learning", "data", 
+                       "open-pbta", "processed")
+
+# We'll store the output of this notebook in a data directory in the pathway
+# analysis module
+output_dir <- file.path("..", "data", "medulloblastoma")
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir, recursive = TRUE)
+}
+```
+
+#### Input files
+
+```{r}
+histologies_file <- file.path(input_dir, "pbta-histologies-stranded-rnaseq.tsv")
+rnaseq_file <- file.path(input_dir, "pbta-vst-stranded-collapsed.tsv")
+```
+
+#### Output files
+
+```{r}
+output_metadata_file <- file.path(output_dir, "medulloblastoma_histologies.tsv")
+output_rnaseq_file <- file.path(output_dir, "medulloblastoma_vst_collapsed.tsv")
+```
+
+## Read in and prepare data
+
+We're going to simply limit the two files to medulloblastoma samples.
+
+```{r}
+histologies_df <- read_tsv(histologies_file)
+rnaseq_df <- read_tsv(rnaseq_file)
+```
+
+Filter both data frames to only the medulloblastoma samples.
+
+```{r}
+mb_histologies_df <- histologies_df %>%
+  filter(short_histology == "Medulloblastoma") %>%
+  # Remove columns that are all NA -- typically columns used for info about 
+  # other histologies
+  discard(~ all(is.na(.)))
+
+# Use the biospecimen identifiers (Kids_First_Biospecimen_ID) from metadata
+# data frame to filter columns of the RNA-seq data
+mb_rnaseq_df <- rnaseq_df %>%
+  select(gene_symbol, mb_histologies_df$Kids_First_Biospecimen_ID)
+```
+
+Write to file.
+
+```{r}
+write_tsv(mb_histologies_df, output_metadata_file)
+write_tsv(mb_rnaseq_df, output_rnaseq_file)
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
+
