@@ -12,43 +12,31 @@ editor_options:
 
 In this exercise notebook we will be using [*Tabula Muris* project](https://www.nature.com/articles/s41586-018-0590-4) data for dimension reduction for the cells of a mouse kidney sample, `10X_P7_0`. 
 
-- Part A of this exercise is performing the quantification and pre-processing of `10X_P7_0` with Alevin. 
+- Part A of this exercise is performing the quantification and processing of `10X_P7_0` with Alevin. 
 - Part B of this exercise is performing dimension reduction on the quantified cells of `10X_P7_0`.
 
-You are welcome to [skip to Part B](#part_b:_performing_dimension_reduction_on_10x_p7_0’s_cells) if you are not interested in pre-processing steps with Alevin, you will need to copy over results we have prepared for you. 
+You are welcome to [skip to Part B](#part_b:_performing_dimension_reduction_on_10x_p7_0’s_cells) if you are not interested in performing the quantification steps with Alevin. 
 
-# Part A: Pre-processing 10X_P7_0
+# Part A: Quantifying single-cell expression of a liver sample.
 
-In this part of the exercise we will be following the same pre-processing steps tag-based scRNA-seq sample as we did in the `04-tag-based_scRNA-seq_processing.Rmd` notebook. 
+In this part of the exercise we will be following the same steps for a tag-based scRNA-seq sample as we did in the `04-tag-based_scRNA-seq_processing.Rmd` notebook. 
 
 **Relative workflow for tag-based data**
 ![](diagrams/tag-based_1.png)
 
-
 ## Checking your directories
 
-Here we are working from this Rmd file, so our current directory will automatically be `training-modules/scRNA-seq`. 
-Use the empty code chunk below to write out a command that would allow you to `l`i`s`t the files that are in the `tabula-muris` folder that is in `data`. 
+While we are working from this `.Rmd` file, our current directory will automatically be `training-modules/scRNA-seq`, but you should check that your `Terminal` also is set to that directory.
+Use the empty code chunk below to check your `p`resent `w`orking `d`irectory with `pwd`, and (on a different line) write out a command that would allow you to `l`i`s`t the files that are in the `tabula-muris` folder that is in `data`. 
 
 When you think you've written the command correctly, copy and paste it into your Terminal window. 
 
-```{sh, eval=FALSE, solution=TRUE}
-ls data/tabula-muris
+```sh
+# Copy and paste these commands in your Terminal and use `cd` to navigate to training-modules/scRNA-seq
+
 ```
 
 You should see `fastq-raw` directory among other files we will use for this exercise. 
-
-### Set up your output directory
-
-We will want to store the quantification output files for `10X_P7_0` in its own folder, in the `data/alevin-quant` folder. 
-In shell, you can use the `mkdir` command for this. 
-Write out and run a `mkdir` command for this file path: `data/tabula-muris/alevin-quant/10X_P7_0`. 
-
-```{sh, eval=TRUE, solution=TRUE}
-# Use the mkdir command to create an output folder for the 10X_P7_0 quantification output
-mkdir -p data/tabula-muris/alevin-quant/10X_P7_0
-# We will need to keep this file path in mind when we are constructing our alevin quant command
-```
 
 ### Construct our Salmon Alevin quant command
 
@@ -64,9 +52,9 @@ For determining what you will want to specify for each of these options, you may
 For tag-based single cell, this `-l` for the library type will always be `ISR`.
 Write down what this option line will look like here (but don't try to run it; it won't work):
 
-```{sh, eval=FALSE, solution=TRUE}
+```sh
 # Write down what we will be using for our library specification, -l
--l ISR
+
 ```
 
 #### Transcriptome index: -i
@@ -77,21 +65,19 @@ This transcriptome index will need to be:
 - made from a `cdna` genome
 - be made with a `short` *-k*
 
-All transcriptome indices we've prepared for you are stored in the `shared/reference` folder. 
+This file path is admittedly odd so we will provide it to you here: 
 
-Given this information, determine the file path to the correct transcriptome index for this data and write it in the chunk below:
-
-```{sh, eval=FALSE, solution=TRUE}
-# Write out the file path to the mouse cdna short transcriptome index already prepare for you
-/shared/data/reference/refgenie/mm10_cdna/salmon_index/short/short/
+```sh
+# Here's the file path to the mouse cdna short transcriptome index already prepare for you
+~/shared-data/reference/refgenie/mm10_cdna/salmon_index/short/short/
 # This will be your -i option specification
 ```
 
 To test if your file path is correct, use the `ls` command on the file path you wrote above, and the correct folder will have a `versionInfo.json` in it (among a lot of other files). 
 
-```{sh, eval=FALSE, solution=TRUE}
+```sh
 # Use `ls` to see if your transcriptome index file path goes to a folder that seems legitimate
-ls /shared/data/reference/refgenie/mm10_cdna/salmon_index/short/short/
+
 ```
 
 #### Input files: -1 and -2
@@ -103,37 +89,34 @@ In the case of tag-based data with alevin:
 `-2` option is for our `R2` file (contains the reads). 
 
 Find the file path for the `10X_P7_0` `R1` fastq.gz file and write out what your `-1` specification will be.
-We will only process one set of the files, the `_001` chunks so use the file path for that file only. 
+We will only process one set of the files, the `_001` chunks so use the file path for that file only. (This chunk won't work if you try to run it due to permissions errors; no worries). 
 
-Don't run this chunk, it won't work. 
-
-```{eval=FALSE, solution=TRUE}
+```sh
 # Write out the file path for 10X_P7_0's R1 FILE 001 file. 
-data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L001_R1_001.fastq.gz
+
 # This will be your -1 option specification.
 ```
 
-Now write out the file path, but the for `R2` file (it will be *almost* identical!). 
+Now write out the file path for the `R2` file (it will be *almost* identical!). 
 
-```{eval=FALSE, solution=TRUE}
-# Write out the file path for 10X_P7_0's R2 FILE 001 file. 
-data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L001_R1_001.fastq.gz
+```sh
+# Write out the file path for 10X_P7_0's R2 FILE 002 file. 
+
 # This will be your -2 option specification.
 ```
 
 In this `.Rmd` file we are using, we can make an `R` code chunk so we can use `file.exists()` to look for the files we just specified. 
-Write out two `file.exists()` tests to check if both your `-1` and `-2` file paths lead to exisiting files. 
+Write out two `file.exists()` tests to check if both your `-1` and `-2` file paths lead to existing files. 
 Copy and paste the file paths exactly so you don't accidentally introduce any typos to your tests. 
 (*DO* run this code chunk). 
 
-```{r, solution=TRUE}
-# In this R code chunk, we can test if the file paths we specified above is legitimate by using `file.exist()` function.
+```{r files-exist, solution=TRUE}
+# In this R code chunk, we can test if the file paths we specified above are legitimate by using `file.exist()` function.
 
 # Use file.exists() to check for your R1 file 
-file.exists("data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L001_R1_001.fastq.gz")
 
 # Use file.exists() to check for your R2 file 
-file.exists("data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L001_R2_001.fastq.gz")
+
 ```
 
 You should get two `TRUE`s print out if you've correctly specified existing files. 
@@ -141,34 +124,24 @@ You should get two `TRUE`s print out if you've correctly specified existing file
 #### Output files: -o
 
 We use `-o` to designate a folder for the output quant files. 
-At the beginning of this notebook, [we used `mkdir` command to create this](#set-up-your-output-directory). 
-Copy and paste only the file path from that command here. 
+We will want to store the output in the `alevin-quant` folder, with its own folder named as `10X_P7_0`.
 
-```{solution=TRUE}
-# Write out the file path to the directory you created for your alevin quantification output files.
-data/tabula-muris/alevin-quant/10X_P7_0
+```sh
+# Write out the file path to where we will want our alevin quantification results.
+
 # This will be your -o option specification.
-```
-
-Write out a `dir.exists()` test to check if the directory you specified above exists.
-(Hint: Copy and paste the directory path exactly so you don't accidentally introduce a typo to your test). 
-
-```{r, solution=TRUE}
-# In this R code chunk, we can test if the directory we specified above is legitimate by using `dir.exist()` function.
-# Use dir.exists() to check for your R1 file 
-dir.exists("data/tabula-muris/alevin-quant/10X_P7_0")
 ```
 
 #### Transcript to gene file: --tgMap
 
-We use `--tgMap` to supply a transcript to gene key that alevin will use to quantify the genes.
+We use `--tgMap` to supply a transcript to gene key that Alevin will use to quantify the genes.
 This specification will go hand-in-hand with the transcriptome index you are using. 
 In this case, we are using the same transcriptome index we used in `04-tag-based_scRNA-seq_processing.Rmd`; so we will also use the same transcript to gene key file as well. 
 You'll find this file in the `data/tabula-muris` folder. 
 
-```{solution=TRUE}
-# Write out the file path to the directory you created for your alevin quantification output files.
-data/tabula-muris/mm_ensdb95_tx2gene.tsv
+```sh
+# Write out the file path to the transcript-gene map file.
+
 # This will be your --tgMap option specification.
 ```
 
@@ -184,10 +157,10 @@ Remember that when we need a command to continue on to the next line, we end it 
 
 Here we've got a template of what your alevin quant command will look like. 
 In the previous steps, we determined what each of these should be. 
-Note that when we need a command to continue on to the next line, we end it with `\`. 
+Note that when we need a command to continue on to the next line, we end it with `\` (make sure there is no space after). 
 
 **Template alevin command**
-```
+```sh
 salmon alevin \
   -l <library_type> \
   -i <transcriptome_index_file_path> \
@@ -205,112 +178,81 @@ Then, it is your task to replace every `<fill_in_the_blank>` with what you deter
 
 *Important tips as you fill in the blanks*:   
 1) _Do_ remove the `<` and `>`'s. 
-2) _Don't_ remove the `\`'s.  
+2) _Don't_ remove the `\`'s (and don't put a space at the end of the line with one). 
 3) _Don't_ touch the `-p` command at the end. We have preset this for you - it determines how many [threads](https://en.wikipedia.org/wiki/Thread_(computing)) this command will be allowed. 
 
-```{solution=TRUE}
+```sh
 # Copy and paste this template alevin command here!
 # Replace every `<fill_in_the_blank>` with what you determined previously. 
-salmon alevin \
-  -l ISR \
-  -i /shared/data/reference/refgenie/mm10_cdna/salmon_index/short/short/ \
-  -1 data/tabula-muris/fastq-raw/10X_P7_0/10X_P7_0_L001_R1_001.fastq.gz \
-  -2 data/tabula-muris/fastq-raw/10X_P7_0/10X_P7_0_L001_R1_002.fastq.gz \
-  -o data/tabula-muris/alevin-quant/10X_P7_0 \
-  --tgMap data/tabula-muris/mm_ensdb95_tx2gene.tsv \
-  --chromium \
-  --dumpFeatures \
-  -p 5
+
 ```
 
-When you believe you have written in every option correctly, run the code chunk!
-If you have specified everything correctly, the quantification will run. 
+When you believe you have written in every option correctly, copy and paste the code chunk into your Terminal and press `Enter` to run it!
+
+If you have specified everything correctly, the quantification will begin. 
 This will take some time; when it is done the last message you will see is 
 
 ```
 [alevinLog] [info] Finished optimizer
 ```
 
-### Perform QC checks with `alevinQC`
-
-Now that we have quantified our data with Alevin, we are ready to perform quality control checks.
-
-![**Current status of this dataset**](diagrams/tag-based_2.png)
-
-In order to perform quality control checks, we'll use the `alevinQC` R package.
-We have already constructed this command for you. 
-
-```{r, eval=FALSE}
-# Produce a QC report
-alevinQC::alevinQCReport("data/tabula-muris/alevin-quant/10X_P7_0",
-                         sampleId = "10X_P7_0",
-                         outputFile = "10X_P7_0_qc_report.html",
-                         outputDir = "qc-reports")
-```
-
-Look for the `10X_P7_0_qc_report.html` file created in the `qc-reports` directory to examine the quality of your data and performance of Alevin.
-
 ## Part B: Performing dimension reduction on 10X_P7_0's cells
 
-In the second half of this exercise notebook, we will use the alevin quantified data from sample `10X_P7_0` to perform dimension reduction on its cells. 
+In the second half of this exercise notebook, we will use the Alevin quantified data from sample `10X_P7_0` to perform dimension reduction on its cells. 
 
-If you did _not_ complete Part A of this exercise notebook, you will need to use this command to copy over the results for `10X_P7_0` that we previously prepared for you: 
+If you did _not_ complete Part A of this exercise notebook, you will need to use this command to copy over the results for `10X_P7_0` that we previously prepared for you. 
 
-*Only run this command if you did _not_ complete Part A.*
+To copy over the full results (Part A only processed one of six pairs of fastq files), or if you did not complete part A, run this command:
 
-```{sh, eval=FALSE}
-cp -r ~/shared-data/training-data/tabula-muris/alevin/10X_P7_0 data/tabula-muris/alevin-quant/
+```sh
+cp -r ~/shared-data/training-data/tabula-muris/alevin/10X_P7_0 data/tabula-muris/alevin-quant/.
 ```
 
 ### Set up
 
-We will be using `tximport` for reading in our alevin quant data and the following packages: `ggplot2`, `scater`, `scran`, `magrittr` for normalization and visualization
+We will be using `tximport` for reading in our Alevin quant data and the following packages: `ggplot2`, `scater`, `scran`, `magrittr` for normalization and visualization
 Use this chunk to import these libraries (or you can choose to go the `::` route).
 
-```{r, solution=TRUE}
+```{r libraries, solution=TRUE}
 # Import the libraries specified, or from here on out, use the :: 
-library(tximport)
-library(ggplot2)
-library(scater)
-library(scran)
-library(magrittr)
+
 ```
 
-We'll also need to set the seed because there is some randomization involved in some of these steps!
+We'll also want to set the seed because there is some randomization involved in some of these steps!
 
-```{r}
+```{r seed}
 # Setting the seed for reproducibility
 set.seed(12345)
 ```
 
 ### Read in the quantification file
 
-First we will set up the paths to our alevin outpurt. 
-The relevant file that `tximport` needs for our quantification output, is called `quants_mat.gz` in `alevin-quant` directory for `10X_P7_0`. 
-The `quants_mat.gz` is in the `alevin` subdirectory of the output directory that is automatically created by Alevin.
-Call this file path object, `quant_file`.
+First we will set up the paths to our Alevin output. 
+The relevant file that `tximport` needs for our quantification output is called `quants_mat.gz`. 
+The `quants_mat.gz` is in the `alevin` sub-directory of the output directory (``10X_P7_0`), which is automatically created by Alevin.
+Call this file path object `quant_file`.
 
 ```{r solution=TRUE}
-# Specify the file path to the `quants_mat.gz` file for 10X_P7_0 and call this object, `quant_file`.
-quant_file <- file.path("data", "tabula-muris", "alevin-quant", "10X_P7_0", "alevin", "quants_mat.gz")
+# Specify the file path to the `quants_mat.gz` file for 10X_P7_0 and call this object `quant_file`.
+
 ```
 
-With our file path to `quants_mat.gz` specified, read in the `tximport()` function, specifying the argument `type` as `"alevin"`.
+With our file path to `quants_mat.gz` specified, read it using the `tximport()` function, specifying the argument `type` as `"alevin"`.
 You can reference [this example](https://bioconductor.org/packages/devel/bioc/vignettes/tximport/inst/doc/tximport.html#Alevin). 
-Call this new `tximport` object, `txi`. 
+Call this new `tximport` object `txi`. 
 
-```{r, solution=TRUE}
+```{r txi, solution=TRUE}
 # Read in the `quant_file` using the `tximport::tximport()` function. 
-txi <- tximport(quant_file, type = "alevin")
+
 ```
 
 For the next step, we will need to be able extract the `counts` part of the `txi` object.
 Let's take a look at a preview of the `counts`. 
 Hint: use a `$` to extract from the `txi` object. 
 
-```{r, solution=TRUE}
+```{r peek-counts, eval = FALSE, solution=TRUE}
 # Take a peek at the counts by extracting it from your `txi` object. 
-txi$counts
+
 ```
 
 ### Create a SingleCellExperiment object
@@ -320,7 +262,7 @@ To do this, we will use the `SingleCellExperiment::SingleCellExperiment()` funct
 
 ```{r sce-object, solution=TRUE}
 # Create a SingleCellExperiment object by supplying a `list()
-sce <- SingleCellExperiment::SingleCellExperiment(list(counts = txi$counts))
+
 ```
 
 ### Read in and set up the metadata
@@ -331,14 +273,14 @@ First we should specify the file path.
 ```{r metadata-file, solution=TRUE}
 # Specify the file path to the `TM_droplet_metadata.csv` file and call this object, `metadata_file`.
 # Path to the metadata file 
-metadata_file <- file.path("data", "tabula-muris", "TM_droplet_metadata.csv")
+
 ```
 
 Using the `metadata_file` object you just created, read in the file. 
 
 ```{r metadata, solution=TRUE}
 # Read in the CSV file using the readr package
-metadata <- readr::read_csv(metadata_file, guess_max = 10000) 
+
 ```
 
 This metadata contains the information for all the samples, but we are only using `10X_P7_0` sample. 
@@ -346,57 +288,54 @@ Use the [`dplyr::filter`](https://dplyr.tidyverse.org/reference/filter.html) to 
 
 ```{r metadata-filter, solution=TRUE}
 # Filter to 10X_P7_0 corresponding rows only (use the channel column). 
-metadata <- metadata %>%
-  dplyr::filter(channel == "10X_P7_0")
+
 ```
 
-Note that our data in `sce` has cell ids in `colData` (eg.`CAGTCCTTCGGAGCAA`) but without the sample ids at the front end like is in our `metadata` (e.g. `10X_P7_0_CAGTCCTTCGGAGCAA`). 
+Note that our data in `sce` has cell barcodes in `colnames` (*e.g.*`CAGTCCTTCGGAGCAA`) but without the sample ids at the front end like is in our `metadata` (*e.g.* `10X_P7_0_CAGTCCTTCGGAGCAA`). 
 
 ```{r preview-colData}
 # Preview the colData(sce)
-head(colData(sce))
+head(colnames(sce))
 ```
 
-Create a new column in `metadata` from the `cell` column where the `10X_P7_0` part of the string is dropped. 
-This will come in handy for annotating our plots later. 
-You can call this new column `cell_id`. 
-You may want to use a function called [`str_replace()`](https://stringr.tidyverse.org/reference/str_replace.html) to replace all instrances of `"10X_P7_0_"` with an empty string `e.g. ""`. 
+We need to create a new column in `metadata` from the `cell` column where the `10X_P7_0_` part of the string is dropped. 
+We highly recommend looking into the [stringr package](https://stringr.tidyverse.org/articles/stringr.html) functions when you encounter these types of problems. 
 
-```{r, cell_id-mutate, solution=TRUE}
-# Create a new column in `metadata` from the `cell` column where the `10X_P7_0_` part of the string is dropped. 
-metadata <- metadata %>% 
-  dplyr::mutate(cell_id = stringr::str_replace(cell, "10X_P7_0_", ""))
+Here we have set up this step using [`str_replace()`](https://stringr.tidyverse.org/reference/str_replace.html) to replace all instances of `"10X_P7_0_"` with an empty string *e.g.* `""`. 
+
+```{r cell_id-mutate, solution=TRUE}
+# Creating a new column in `metadata` from the `cell` column where the `10X_P7_0_` part of the string is dropped. 
+
 ```
 
 ### Read in and set up mitochondrial genes
 
 ```{r mito-file-path, solution=TRUE}
 # Specify file path to the `mm_mitochondrial_genes.tsv` file
-mito_file <- file.path("data", "tabula-muris", "mm_mitochondrial_genes.tsv")
+
 ```
 
 Read in the mitchondrial TSV file with the `readr` package and name it `mito_genes`. 
-Filter it only to the rownames specified in the `sce` object. 
-Lastly, use `dplyr::pull()` to vectorize only the `gene_id` column. 
+Filter it only to the row names present in the `sce` object. 
+Lastly, use `dplyr::pull()` to extract the `gene_id` column as a vector. 
 
 ```{r mito-genes, solution=TRUE}
 # Read in the mitochondial genes TSV file using the readr package
-mito_genes <- readr::read_tsv(mito_file) %>%
+
   # Filter to the genes in that are included in `rownames(sce)` object
-  dplyr::filter(gene_id %in% rownames(sce)) %>%
-  # Use `dplyr::pull()` to vectorize only the `gene_id` column
-  dplyr::pull(gene_id)
+
+  # Use `dplyr::pull()` to extract the `gene_id` column
+
 ```
 
 ### Quality control filtering with scater
 
-Use `scater::addPerCellQC()` to calculate our QC statistics using the `mito_genes`. 
+Use `scater::addPerCellQC()` to calculate our QC statistics including statistics for the subset of genes that are in our `mito_genes` vector. 
 Store this back into `sce`. 
 
 ```{r calculateQC, solution=TRUE}
-# Use scater::addPerCellQC where subsets are specified as a list version of `mito_genes`.
-sce <- scater::addPerCellQC(sce,
-                            subsets = list(mito = mito_genes)) 
+# Use scater::addPerCellQC where subsets are specified as a named list.
+
 ```
 
 Let's make some plots of the QC data and use it to inform our next steps.
@@ -404,41 +343,36 @@ Create a data.frame from metadata for each cell (the `colData` for the `SingleCe
 
 ```{r cell_qc_df, solution=TRUE}
 # Turn the `colData` for the `SingleCellExperiment` object into its own data.frame called `cell_qc_df`.
-cell_qc_df <- as.data.frame(colData(sce)) 
+
 ```
 
 Use the `cell_qc_df` data frame we just created, to make some plots that can help you decide on cutoffs!
 Your plots should help you decide what mitochondrial percentage cutoff is acceptable per cell. 
 
+Plot the distribution of `subsets_mito_percent` as we did with the bladder data in the previous notebook. 
+Why might the liver be different? Should we use the same cutoffs for our QC filter?
+
 ```{r plot-cell_qc_df, solution=TRUE}
-ggplot(cell_qc_df, 
-       aes(x = sum, y = detected, color = subsets_mito_percent)) +
-  geom_point() +
-  scale_color_viridis_c() +
-  scale_x_log10() +
-  scale_y_log10() +
-  geom_hline(yintercept = 500, color = "red")
+# Plot the distribution of `subsets_mito_percent` from `cell_qc_df`
+
 ```
 
 ```{r plot2-cell_qc_df, solution=TRUE}
-ggplot(cell_qc_df, 
-       aes(x = subsets_mito_percent)) +
-  geom_histogram() + 
-  geom_vline(xintercept = 20, color = "red")
+# Make a second plot with QC data from `cell_qc_df`
+
 ```
 
-Using your QC and plots, create a subset of the `SingleCellExperiment` object, keeping only the columns (samples) that pass your thresholds for the `sce` categories: `$detected` and `$subsets_mito_percent` for each cell. 
+Using your QC and plots, create a subset of the `SingleCellExperiment` object, keeping only the columns (cells) that pass the thresholds you have chosen. 
 
 ```{r qc-pass, solution=TRUE}
 # Create sce_filtered object with just the cells that pass your decided upon filters
 # Construct a logical statement to determine which cells pass your QC filter for 
-qc_pass <- (sce$detected > 500) & (sce$subsets_mito_percent < 20)
 
 # Apply the filter to SCE filter
-sce_filtered <- sce[, qc_pass]
+
 ```
 
-Calculate QC stats for your genes using `scater::addPerFeatureQC()` on your `sce_filtered`. 
+Calculate QC stats for the genes in the data set using `scater::addPerFeatureQC()` on your `sce_filtered`. 
 
 ```{r gene_qc}
 # Calculate QC stats for your genes by using scater::addPerFeatureQC()
@@ -451,26 +385,13 @@ Decide upon a threshold for:
 - a minimum mean `expression` count per gene
 You an use `>5` cells and `> 0.1` mean expression if you wish. 
 
-Create a logical expression for the minimum number of detected cells per gene
-
-```{r detected, solution=TRUE}
-# Create a logical expression for the minimum number of detected cells per gene
-detected <- rowData(sce_filtered)$detected > 5
-```
-
-Create a logical expression for the minimum number of detected cells per gene
-
-```{r expressed, solution=TRUE}
-# Create a logical expression for the minimum number of detected cells per gene
-expressed <- rowData(sce_filtered)$mean > 0.1
-```
-
 Filter `sce_filtered` by only including those genes that are `TRUE` for both the minimum thresholds. 
-(Use `&` with the logical expressions you set up in the last steps)
 
 ```{r gene-filter, solution=TRUE}
+# Create a logical expression for the minimum number of detected cells per gene
+
 # Filter the rows (genes) by those that are TRUE for both the minimum thresholds (hint use &)
-sce_filtered <- sce_filtered[detected & expressed, ]
+
 ```
 
 ### Normalize the data
@@ -481,7 +402,7 @@ First cluster similar cells using `scran::quickCluster()`.
 
 ```{r qclust, solution = TRUE}
 # Cluster similar cells using `scran::quickCluster()`
-qclust <- scran::quickCluster(sce_filtered)
+
 ```
 
 Use `scran::computeSumFactors()` to calculate the the sum factors so we can use them to normalize the data in the next step. 
@@ -489,14 +410,14 @@ You will need to specify the `clusters` argument as the object you obtained from
 
 ```{r computeSumFactors, solution = TRUE}
 # Compute sum factors for each cell cluster grouping for sce_filtered using the `scran::quickCluster()` you performed. 
-sce_filtered <- scran::computeSumFactors(sce_filtered, clusters = qclust)
+
 ```
 
 Normalize and log transform using `scater::logNormCounts()` now that you have calculated the the sum factors (those will be store in the `sce_filtered` object).
 
 ```{r normalize, solution=TRUE}
 # Normalize and log transform. 
-sce_filtered <- scater::logNormCounts(sce_filtered)
+
 ```
 
 ![**Status of the current dataset**](diagrams/tag-based_3.png)
@@ -512,47 +433,42 @@ Use what you have learned about `ggplot2` visualizations and create dimension re
 We recommend using multiple dimension reduction strategies since each have their own strengths and drawbacks. 
 We will take you through the steps for PCA, but you can generally repeat these steps for each dimension reduction strategy but you'll have to determine what changes are needed on your own. 
 Feel free to make the plots your own. 
-You may want to google `ggplot2` ideas for inspiration or take a look at the [ggplot2 cheatsheet](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf) for reference. 
+You may want to Google `ggplot2` ideas for inspiration or take a look at the [ggplot2 cheatsheet](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf) for reference. 
 
 _Step 1)_ Calculate the dimension reduction. 
 
-```{r calculate-pca, solution=TRUE}
+```{r calculate-dr, solution=TRUE}
 # Calculate on your normalized `sce_filtered` object
-tm_pca <- scater::calculatePCA(sce_filtered)
+
 ```
 
 _Step 2)_ Prepare for plotting by combining the dimension reduction calculations with the metadata. 
-Perform an `dplyr::inner_join()` with `tm_pca` and `metadata`. 
+Perform a `dplyr::left_join()` with `tm_pca` and `metadata`. 
+Here a `left_join()` with `tm_pca` on the left will still keep the data on the left and leave `NA`s where/if there is no associated metadata. 
 
-```{r metadata-pca, solution=TRUE}
+```{r add-metadata, solution=TRUE}
 # Combine your dimension reduction results with the metadata
-tm_meta_pca <- tm_pca %>%
-  # You will need to use as.data.frame() to turn the colData() into a data.frame instead of a DataFrame. 
-  as.data.frame() %>%
+
+  # You will need to use as.data.frame() to turn tm_pca into a data.frame instead of a DataFrame. 
+
   # You will also need to use tibble::rownames_to_column()
-  tibble::rownames_to_column("cell_id") %>% 
-  # Perform an dplyr::inner_join()
-  dplyr::inner_join(metadata, by = "cell_id")
+
+  # Perform a dplyr::left_join() with the metdata
+
 ```
 
 _Step 3)_ Plot the dimension reduction and using what you have learned about ggplot2. 
 
 ```{r plot-pca, solution=TRUE}
-# Plot first two PCA or UMAP components using ggplot2. Specify color label if desired. 
-ggplot(data.frame(tm_meta_pca), 
-       aes(x = PC1, y = PC2, color = cell_ontology_class)) + 
-  # Specify as plot type as geom_point()
-  geom_point() +
-  # Adjust color palettes or any other customizations you desire. 
-  scale_color_brewer(palette = "Set1") + # a not terrible color scheme for colorblindness
-  guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))   
+# Plot reduced dimensionality components using ggplot2. Specify a color label if desired! 
+
 ```
 
-Use `ggplot2::ggsave()` to save your plot to the `figures` directory. 
+Use `ggplot2::ggsave()` to save your plot to the `plots` directory. 
 
 ```{r ggsave, solution = TRUE}
 # Save your plot with ggsave()
-ggplot2::ggsave(file.path("figures", "pca_tabula_muris.png"))
+
 ```
 
 Now you can repeat these general steps for the other dimension reduction strategy! 
