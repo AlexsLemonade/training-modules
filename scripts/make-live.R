@@ -14,8 +14,7 @@ library(optparse)
 option_list <- list(
   make_option(
     opt_str = "--skiprendering", action = "store_true",
-    default = FALSE, help = "If used, will skip the markdown::render() steps for all notebooks.",
-    metavar = "character"
+    default = FALSE, help = "If used, will skip the markdown::render() steps for all notebooks."
   )
 )
 
