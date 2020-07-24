@@ -4,6 +4,23 @@
 #
 # Replaces code in chunks with a chunk option of `live = TRUE`
 # Comments are preserved
+#
+# If --skiprendering option is used, the rendering is skipped. 
+
+# Load library:
+library(optparse)
+
+# Set up optparse options
+option_list <- list(
+  make_option(
+    opt_str = "--skiprendering", action = "store_true",
+    default = FALSE, help = "If used, will skip the markdown::render() steps for all notebooks.",
+    metavar = "character"
+  )
+)
+
+# Parse options
+opt <- parse_args(OptionParser(option_list = option_list))
 
 # Install exrcise package if needed.
 if (!"exrcise" %in% installed.packages()){
@@ -35,9 +52,10 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
              )
 
 
-# Rerender notebooks
-purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
-
+# Rerender notebooks if --skiprendering is FALSE
+if (!opt$skiprendering) {
+  purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
+}
 
 # new files will be made with -live.Rmd suffix
 outfiles <- stringr::str_replace(infiles, "(.*)\\.Rmd$", "\\1-live.Rmd")
