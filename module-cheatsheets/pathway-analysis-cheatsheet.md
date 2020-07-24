@@ -21,7 +21,7 @@ Read the `AnnotationDbi` package vignette [**here**](http://bioconductor.org/pac
 
 | Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
 |-----------------------------------------|---------------------------------------------|-------------------------|------------------------------------------------------------------------|
-| `AnnotationDbi`        | [`keytypes()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects)      | Keytypes     | Returns a character vector of column names/keytypes (eg., type of gene identifiers) available in an `AnnotationDbi` package.                                              |
+| `AnnotationDbi`        | [`keytypes()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects)      | Keytypes     | Returns a character vector of column names/keytypes, _i.e._ types of gene identifiers like `ENSEMBL` available in an `AnnotationDbi` package.                                              |
 | `AnnotationDbi`       | [`mapIDs()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects) | Mapped IDs       | Extracts the mapped ids for a set of keys (e.g., gene identifiers) of a specific keytype                                    |  
 
 ### Base `R`
@@ -36,7 +36,7 @@ Read the Base `R` documentation [**here**](https://www.rdocumentation.org/packag
 
 ### `DESeq2`
 
-Read the `DESeq2` package documentation [**here**](https://bioc.ism.ac.jp/packages/3.8/bioc/manuals/DESeq2/man/DESeq2.pdf), and the package vignette by Love, Anders, and Huber [**here**](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
+Read the `DESeq2` package documentation [**here**](https://bioc.ism.ac.jp/packages/3.8/bioc/manuals/DESeq2/man/DESeq2.pdf) and the package vignette by Love, Anders, and Huber [**here**](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
@@ -79,5 +79,4 @@ Read the `qusage` package documentation [**here**](https://www.rdocumentation.or
 
 | Library/Package|Piece of Code| What it's called| What it does  |
 |----------------|-------------|-----------------|---------------|
-| `qusage` | [`read.gmt)`](https://www.rdocumentation.org/packages/qusage/versions/2.4.0/topics/read.gmt) | Read in `.gmt` files | Reads in gene set information from `.gmt` files |
-
+| `qusage` | [`read.gmt()`](https://www.rdocumentation.org/packages/qusage/versions/2.4.0/topics/read.gmt) | Read in `.gmt` files | Reads in gene set information from `.gmt` files |
