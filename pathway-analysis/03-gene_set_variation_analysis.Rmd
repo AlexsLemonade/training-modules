@@ -159,33 +159,43 @@ gsva_results[1:5, 1:5]
 Often the scores of gene set enrichment methods are not comparable between gene sets of different sizes.
 Let's do an experiment using randomly generated gene sets to explore this idea a bit more.
 
-```{r generate_random_genesets}
+We need to get a collection of all possible genes we will sample from to create random gene sets.
+Because we're doing some random sampling, we need to set a seed for this to be reproducible.
+
+```{r random_setup}
 # Use all the gene symbols in the dataset as the pool of possible genes
 all_genes <- rownames(rnaseq_mat)
 
 # Set a seed for reproducibility
 set.seed(2020)
+```
 
+Our minimum gene set size earlier was 15 genes and our maximum gene set size was 500 genes. We'll use the same minimum and maximum values for our random gene sets and some values in between.
+
+```{r}
 # Make a list of integers that indicate the random gene set sizes
 gene_set_size <- list(15, 25, 50, 100, 250, 500)
+```
 
+For each gene set size, we will generate 100 random gene sets
+
+```{r}
+# Set number of replicates
+nreps <-  100
 # Generate 100 random gene sets of each size
 random_gene_sets <- 
   purrr::map(
-    1:100,  # Repeat the function 100 times
-    ~ purrr::map(
-        # For the list of gene set sizes
-        gene_set_size, 
-        # Sample the vector of all genes, choosing the number of items specified
-        # in the element of gene set size
-        ~ base::sample(x = all_genes,
-                     size = .x)
-    )
-  ) %>%
-  # The function above will return a list of lists, remove one layer of the 
-  # hierarchy with flatten()
-  purrr::flatten()
+    rep(gene_set_size, nreps),  # Repeat gene sizes so we run `nreps` times 
+    # Sample the vector of all genes, choosing the number of items specified
+    # in the element of gene set size
+    ~ base::sample(x = all_genes,
+                   size = .x)
+  )
+```
 
+The Hallmarks list we used earlier stored the gene set names as the name of the list, so let's add names to our random gene sets that indicate what size they are and so `gsva()` doesn't get upset.
+
+```{r}
 # We will include the size of the gene set in the gene set name 
 # Start by taking the length of each pathway and appending "pathway_" to that
 # number
@@ -249,12 +259,16 @@ Let's make a violin plot so we can look at the distribution of scores by gene se
 random_long_df %>%
   ggplot2::ggplot(ggplot2::aes(x = gene_set_size, 
                                y = gsva_score)) +
-  # Make a violin plot
-  ggplot2::geom_violin() +
+  # Make a violin plot that's a pretty blue!
+  ggplot2::geom_violin(fill = "#99CCFF", alpha = 0.5) +
   # Add a point with the mean value
   ggplot2::stat_summary(
     geom = "point",
-    fun = "mean"
+    fun = "mean",
+    # Change the aesthetics of the points
+    size = 3,
+    color = "#0066CC",
+    shape = 18
   ) +
   # Flip the axes
   ggplot2::coord_flip() +
@@ -265,6 +279,7 @@ random_long_df %>%
 ```
 
 What do you notice about these distributions?
+How might you use this information to inform your interpretation of GSVA scores?
 
 ### How can you use these scores?
 
