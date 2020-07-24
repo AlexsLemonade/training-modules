@@ -27,7 +27,7 @@ FILES=(`tr -s ' ' < ${data_dir}/md5sum.txt | cut -d ' ' -f 2` release-notes.md)
 # Download the items in FILES if newer than what's on server
 for file in "${FILES[@]}"
 do
-  curl --create-dirs $bucket_url/$RELEASE/$file -o ${data_dir}/$file ${data_dir}/$file
+  curl --create-dirs $bucket_url/$RELEASE/$file -o ${data_dir}/$file
 done
 
 cd ${data_dir}
