@@ -5,7 +5,7 @@
 # Replaces code in chunks with a chunk option of `live = TRUE`
 # Comments are preserved
 #
-# If --skiprendering option is used, the rendering is skipped. 
+# If --skiprendering option is used, the rendering is skipped.
 
 # Load library:
 library(optparse)
@@ -47,7 +47,11 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
                        c("01-openpbta_heatmap.Rmd",
                          "02-openpbta_consensus_clustering.Rmd",
                          "03-openpbta_PLIER.Rmd",
-                         "04-openpbta_plot_LV.Rmd"))
+                         "04-openpbta_plot_LV.Rmd")),
+             file.path(root_dir, "pathway-analysis",
+                       c("01-overrepresentation_analysis.Rmd",
+                         "02-gene_set_enrichment_analysis.Rmd",
+                         "03-gene_set_variation_analysis.Rmd"))
              )
 
 
