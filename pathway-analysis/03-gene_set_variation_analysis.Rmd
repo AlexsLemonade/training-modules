@@ -16,7 +16,12 @@ What if we're less sure about groups in our data or we want to analyze our data 
 
 In this notebook we will cover a method called Gene Set Variation Analysis (GSVA) ([Hänzelmann, Castelo, and Guinney. 2013](https://doi.org/10.1186/1471-2105-14-7)) that allows us to calculate gene set or pathway scores on a per-sample basis.
 
-We'll use the 
+We like this quote from the GSVA paper ([Hänzelmann, Castelo, and Guinney. 2013](https://doi.org/10.1186/1471-2105-14-7)) to set the stage:
+
+> While [gene set enrichment] methods are generally regarded as end points of a bioinformatic analysis, GSVA constitutes a starting point to build pathway-centric models of biology.
+
+Rather than contextualizing some results you _already have_ from another analysis like DGE, GSVA is designed to provide an estimate of pathway variation for each of the samples in an experiment.
+Note that these scores will depend on the samples included in the dataset when you run GSVA; if you added more samples and reran GSVA, you would expect the scores to change.
 
 #### Other resources
 
@@ -124,8 +129,11 @@ rnaseq_mat <- rnaseq_df %>%
 **Figure 1 from [Hänzelmann, Castelo, and Guinney. (2013)](https://doi.org/10.1186/1471-2105-14-7).**
 
 You may notice that GSVA has some commonalities with GSEA.
-Rather than ranking genes based on some statistic, GSVA ranks genes based on their expression level relative to the sample distribution and calculates pathway-level scores.
-The inituition here is that we will get a pathway-level score that indicates if genes in a pathway that act concordantly in one direction (overexpressed or underexpressed relative to the overall population) ([Hänzelmann, Castelo, and Guinney. (2013)](https://doi.org/10.1186/1471-2105-14-7)).
+Rather than ranking genes based on some statistic _we_ selected ahead of time, GSVA fits a model and ranks genes based on their expression level relative to the sample distribution.
+This is a way of asking if a gene _i_ is highly or lowly expressed in a sample _j_ in the context of this experiment and ranking accordingly ([Hänzelmann, Castelo, and Guinney. 2013](https://doi.org/10.1186/1471-2105-14-7)).
+The pathway-level score calculated is a way of asking how genes _within_ a gene set vary as compared to genes that are _outside_ of that gene set ([Malhotra. 2018](https://towardsdatascience.com/decoding-gene-set-variation-analysis-8193a0cfda3)). 
+(This is sometimes called a competitive test in gene set enrichment literature.)
+The inituition here is that we will get a pathway-level score that indicates if genes in a pathway that act concordantly in one direction (overexpressed or underexpressed relative to the overall population) ([Hänzelmann, Castelo, and Guinney. 2013](https://doi.org/10.1186/1471-2105-14-7)).
 
 The output is a gene set by sample matrix of GSVA scores.
 
