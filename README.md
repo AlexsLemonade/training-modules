@@ -35,8 +35,8 @@ These cheatsheets can also be found in the folder named [module-cheatsheets](htt
 - [intro-to-R-tidyverse-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.md)
 - [RNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/RNA-seq-cheatsheet.md)
 - [scRNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-cheatsheet.md)
+- [pathway-analysis-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/pathway-analysis-cheatsheet.md) 
 - [machine-learning-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/machine-learning-cheatsheet.md)  
-
 
   
 
