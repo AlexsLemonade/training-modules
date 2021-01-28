@@ -59,64 +59,15 @@ RUN tar xzf salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
     rm -f salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
     ln -s /usr/local/src/salmon-latest_linux_x86_64/bin/salmon /usr/local/bin/salmon
 
-# renv
+# Use renv for R packages
 ENV RENV_VERSION 0.12.5-2
+RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))"
 RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
 
-# CRAN packages
-ENV CRAN https://packagemanager.rstudio.com/cran/__linux__/focal/2021-01-26
-RUN install2.r --error --skipinstalled -r ${CRAN} \
-    caTools \
-    colorspace \
-    fastqcr \
-    foreach \
-    ggpubr \
-    glmnet \
-    gplots \
-    gtools \
-    hexbin \
-    iterators \
-    igraph \
-    optparse \
-    pheatmap \
-    remotes \
-    rjson \
-    Rtsne \
-    umap \
-    BiocManager
-RUN rm -rf /tmp/downloaded_packages
-
-
-ENV BIOC_VERSION 3.12
-RUN R -e "options(repos = c(CRAN = '${CRAN}'), warn = 2); \
-    BiocManager::install(c( \
-        'alevinQC', \
-        'AnnotationHub', \
-        'ComplexHeatmap', \
-        'ConsensusClusterPlus', \
-        'DESeq2', \
-        'ensembldb', \
-        'GEOquery', \
-        'org.Cf.eg.db',\
-        'org.Dr.eg.db', \
-        'org.Hs.eg.db', \
-        'org.Mm.eg.db', \
-        'qvalue', \
-        'scater', \
-        'scran',  \
-        'tximport', \
-        'vsn'), \
-    version = '${BIOC_VERSION}', update = FALSE)"
-
-# # Use renv for R packages
-# ENV RENV_VERSION 0.12.5-2
-# RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))"
-# RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
-
-# WORKDIR /renv
-# COPY renv.lock renv.lock
-# RUN R -e 'renv::consent(provided = TRUE)'
-# RUN R -e 'renv::restore()'
+WORKDIR /renv
+COPY renv.lock renv.lock
+RUN R -e 'renv::consent(provided = TRUE)'
+RUN R -e 'renv::restore()'
 
 WORKDIR /home/rstudio
 
