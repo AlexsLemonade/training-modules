@@ -15,6 +15,9 @@ dictionary <- readLines(file.path(root_dir, 'components', 'dictionary.txt'))
 # The HTML files produced will be generated from Rmd files
 files <- list.files(pattern = '\\.(Rmd|md)$', recursive = TRUE, full.names = TRUE)
 
+# Remove the LICENSE from the spell check 
+files <- grep('LICENSE.md', files, invert = TRUE, value = TRUE)
+
 # Run spell check
 spelling_errors <- spelling::spell_check_files(files, ignore = dictionary) %>%
   data.frame() %>%
