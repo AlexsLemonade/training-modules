@@ -1,5 +1,21 @@
 # Contributing and Development Guidelines
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+
+- [Development with `renv`](#development-with-renv)
+  - [Typical development workflow](#typical-development-workflow)
+  - [How we use `renv` with Docker](#how-we-use-renv-with-docker)
+- [Docker Image](#docker-image)
+  - [Developing within the Docker container](#developing-within-the-docker-container)
+  - [Testing Docker image builds via GitHub Actions](#testing-docker-image-builds-via-github-actions)
+  - [Pushing to Dockerhub via GitHub Actions](#pushing-to-dockerhub-via-github-actions)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+
 ## Development with `renv` 
 
 We use [`renv`](https://rstudio.github.io/renv/index.html) to manage R package dependencies for this project. 
