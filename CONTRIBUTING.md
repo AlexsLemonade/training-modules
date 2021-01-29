@@ -66,7 +66,7 @@ You can then navigate to `localhost:8787` in your browser and login with usernam
 
 ### Testing Docker image builds via GitHub Actions
 
-When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Action workflow (`build-docker.yml`) will be run to test that the image will successfully build.
+When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Actions workflow (`build-docker.yml`) will be run to test that the image will successfully build.
 
 ### Pushing to Dockerhub via GitHub Actions
 
