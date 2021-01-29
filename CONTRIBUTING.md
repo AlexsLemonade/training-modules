@@ -27,10 +27,31 @@ In practice, this means that you will not need to add individual R packages to t
 
 ## Docker Image
 
+### Developing within the Docker container
+
+To use the Docker image for development, pull from Dockerhub with:
+
 ```
-TODO: Pulling the image once #303 goes in
+docker pull ccdl/training_dev:latest
 ```
+
+To run the contain and mount a local volume, use the following from the root of this repository:
+
+```
+docker run \
+  --mount type=bind,target=/home/rstudio/training-modules,source=$PWD \
+  -e PASSWORD=<PASSWORD> \
+  -p 8787:8787 \
+  ccdl/training_dev:latest
+```
+
+Replacing `<PASSWORD>` with the password of your choice.
+You can then navigate to `localhost:8787` in your browser and login with username `rstudio` and the password you just set via `docker run`.
 
 ### Testing Docker image builds via GitHub Actions
 
 When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Action workflow (`build-docker.yml`) will be run to test that the image will successfully build.
+
+### Pushing to Dockerhub via GitHub Actions
+
+When a pull request is merged into `master`, the `build-and-push-docker.yml` GitHub Actions workflow will be triggered. The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest`.
