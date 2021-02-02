@@ -51,7 +51,7 @@ To use the Docker image for development, pull from Dockerhub with:
 docker pull ccdl/training_dev:latest
 ```
 
-To run the contain and mount a local volume, use the following from the root of this repository:
+To run the container and mount a local volume, use the following from the root of this repository:
 
 ```
 docker run \
@@ -63,6 +63,8 @@ docker run \
 
 Replacing `<PASSWORD>` with the password of your choice.
 You can then navigate to `localhost:8787` in your browser and login with username `rstudio` and the password you just set via `docker run`.
+
+To work on the project, you should then open `training-modules/training-modules.Rproj` on the Rstudio server, then proceed as in the [typical development workflow](#typical-development-workflow).
 
 ### Testing Docker image builds via GitHub Actions
 
