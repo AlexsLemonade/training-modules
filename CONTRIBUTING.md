@@ -70,4 +70,5 @@ When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Act
 
 ### Pushing to Dockerhub via GitHub Actions
 
-When a pull request is merged into `master`, the `build-and-push-docker.yml` GitHub Actions workflow will be triggered. The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest`.
+When a pull request is merged into `master`, the `build-and-push-docker.yml` GitHub Actions workflow will be triggered. 
+The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest`.
