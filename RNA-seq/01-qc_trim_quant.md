@@ -249,7 +249,7 @@ When enabling mapping validation with `--validateMappings`, setting `--rangeFact
 With this option enabled, Salmon will attempt to correct for fragment GC-bias.
 Regions with high or low GC content tend to be underrepresented in sequencing data.
 
-It should be noted that this is only appropriate for use with paired-end reads, as fragment length can not be inferred from single-end reads (see [this Github issue](https://github.com/COMBINE-lab/salmon/issues/83)).
+It should be noted that this is only appropriate for use with paired-end reads, as fragment length can not be inferred from single-end reads (see [this GitHub issue](https://github.com/COMBINE-lab/salmon/issues/83)).
 
 #### `--seqBias`
 
