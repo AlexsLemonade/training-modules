@@ -1,5 +1,21 @@
 # Contributing and Development Guidelines
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+
+- [Development with `renv`](#development-with-renv)
+  - [Typical development workflow](#typical-development-workflow)
+  - [How we use `renv` with Docker](#how-we-use-renv-with-docker)
+- [Docker Image](#docker-image)
+  - [Developing within the Docker container](#developing-within-the-docker-container)
+  - [Testing Docker image builds via GitHub Actions](#testing-docker-image-builds-via-github-actions)
+  - [Pushing to Dockerhub via GitHub Actions](#pushing-to-dockerhub-via-github-actions)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+
 ## Development with `renv` 
 
 We use [`renv`](https://rstudio.github.io/renv/index.html) to manage R package dependencies for this project. 
@@ -27,10 +43,34 @@ In practice, this means that you will not need to add individual R packages to t
 
 ## Docker Image
 
+### Developing within the Docker container
+
+To use the Docker image for development, pull from Dockerhub with:
+
 ```
-TODO: Pulling the image once #303 goes in
+docker pull ccdl/training_dev:latest
 ```
+
+To run the container and mount a local volume, use the following from the root of this repository:
+
+```
+docker run \
+  --mount type=bind,target=/home/rstudio/training-modules,source=$PWD \
+  -e PASSWORD=<PASSWORD> \
+  -p 8787:8787 \
+  ccdl/training_dev:latest
+```
+
+Replacing `<PASSWORD>` with the password of your choice.
+You can then navigate to `localhost:8787` in your browser and login with username `rstudio` and the password you just set via `docker run`.
+
+To work on the project, you should then open `training-modules/training-modules.Rproj` on the Rstudio server, then proceed as in the [typical development workflow](#typical-development-workflow).
 
 ### Testing Docker image builds via GitHub Actions
 
-When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Action workflow (`build-docker.yml`) will be run to test that the image will successfully build.
+When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Actions workflow (`build-docker.yml`) will be run to test that the image will successfully build.
+
+### Pushing to Dockerhub via GitHub Actions
+
+When a pull request is merged into `master`, the `build-and-push-docker.yml` GitHub Actions workflow will be triggered. 
+The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest`.
