@@ -36,7 +36,7 @@ Read the Base `R` package documentation [**here**](https://www.rdocumentation.or
 | Base `R`               | [`table()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/table)    | Create Table       | Creates a contingency table of counts for each combination of factor levels               | 
 | Base `R`               | [`duplicated()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/duplicated)           | Duplicated              | Returns a logical vector, where `TRUE` represents elements of the object that are duplicates               |
 | Base `R`               | [`any()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/any)             | Any      | Checks to see if at least one of the elements are `TRUE` when given a logical vector                                      |
-| Base `R`               | [`cbind()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/cbind)                | Cbind                          | Combines vectors, matrices, or data.frames by columns                                         |
+| Base `R`               | [`cbind()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/cbind)                | Column bind                          | Combines vectors, matrices, or data.frames by columns                                         |
 | Base `R`             | [`pairwise.wilcox.test()`](https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/pairwise.wilcox.test) | Pairwise Wilcoxon Rank Sum Tests | Calculates the pairwise comparisons between group levels                   |
 
  <div style="page-break-after: always;"></div>
