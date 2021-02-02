@@ -99,7 +99,7 @@ It can be found at `QC/gastric_cancer/fastqc_output/SRR585574_1_fastqc.html`.
 ![](diagrams/rna-seq_3.png)
 
 We use [fastp](https://github.com/OpenGene/fastp) to preprocess the FASTQ files ([Chen et al. _Bioinformatics._ 2018.](https://doi.org/10.1093/bioinformatics/bty560)). 
-Note that fastp has quality control functionality and many different options for preprocessing (see [all options on Github](https://github.com/OpenGene/fastp/blob/master/README.md#all-options)), most of which we will not cover.
+Note that fastp has quality control functionality and many different options for preprocessing (see [all options on GitHub](https://github.com/OpenGene/fastp/blob/master/README.md#all-options)), most of which we will not cover.
 Here, we focus on adapter trimming, quality filtering, and length filtering.
 
 Below, we discuss the two commands we used in the script.
