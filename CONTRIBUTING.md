@@ -34,6 +34,8 @@ The steps for development are:
 4. Run `renv::snapshot()` at the end of your session to capture the additional dependencies.
 5. Commit any changes to `renv.lock`.
 
+Note that when you open up the `training-modules.Rproj`, the `.Rprofile` file makes it such that the `renv` library is loaded and the repositories in the `renv.lock` file will be set with `options(repos = ...)`.
+
 ### How we use `renv` with Docker
 
 We use the `renv.lock` file in this repository to install R dependencies on the image per the [`renv` documentation for creating Docker images](https://rstudio.github.io/renv/articles/docker.html#creating-docker-images-with-renv-1).
