@@ -18,6 +18,9 @@ files <- list.files(pattern = '\\.(Rmd|md)$', recursive = TRUE, full.names = TRU
 # Remove the LICENSE from the spell check 
 files <- grep('LICENSE.md', files, invert = TRUE, value = TRUE)
 
+# Remove all live versions so we're not spell checking twice
+files <- grep('-live.Rmd', files, invert = TRUE, value = TRUE)
+
 # Run spell check
 spelling_errors <- spelling::spell_check_files(files, ignore = dictionary) %>%
   data.frame() %>%
