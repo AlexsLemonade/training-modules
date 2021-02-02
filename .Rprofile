@@ -15,7 +15,7 @@ repo_names <- purrr::flatten_chr(
 repo_urls <- purrr::flatten_chr(
   purrr::map(renv_r_repos,
              ~ .x$URL)
-  )
+)
 
 # Set the repo names
 names(repo_urls) <- repo_names
