@@ -59,6 +59,6 @@ Individual samples have two fastq files: one for the cell barcodes and another w
 - [Luecken & Theis (2019)](https://doi.org/10.15252/msb.20188746)  
 - [AlJanahi _et al._ (2018)](https://doi.org/10.1016/j.omtm.2018.07.003)  
 - [Baran-Gale _et al._ (2018)](https://doi.org/10.1093/bfgp/elx035)  
-- [Zeigenhain _et al._ (2018)](http://dx.doi.org/10.1016/j.molcel.2017.01.023)  
+- [Ziegenhain _et al._ (2018)](http://dx.doi.org/10.1016/j.molcel.2017.01.023)  
 - [Zhang _et al._ (2018)](https://doi.org/10.1016/j.molcel.2018.10.020)  
 - [Angerer _et al._ (2017)](http://dx.doi.org/10.1016/j.coisb.2017.07.004)  
