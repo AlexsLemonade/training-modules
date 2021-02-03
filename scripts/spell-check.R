@@ -19,7 +19,7 @@ dictionary <- c(dictionary, spelling::spell_check_text("⚠️")$word)
 files <- list.files(pattern = '\\.(Rmd|md)$', recursive = TRUE, full.names = TRUE)
 
 # remove files in renv library
-files <- grep('^./renv', files, invert = TRUE, value = TRUE)
+files <- grep('^./renv/', files, invert = TRUE, value = TRUE)
 
 # Remove the LICENSE from the spell check 
 files <- grep('LICENSE.md', files, invert = TRUE, value = TRUE)
