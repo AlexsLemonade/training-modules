@@ -160,9 +160,9 @@ A recent preprint from the Salmon authors ([Srivastava et al. _bioRxiv._ 2019.](
 fastp does have [the functionality](https://github.com/OpenGene/fastp#per-read-cutting-by-quality-score) to perform trimming using a sliding window, which must be enabled. 
 We are not using it here.
 
-_Note that there are two kinds of encoding for phred scores, phred33 and phred64. 
-FastQC guessed that the file for SRR585570 uses Sanger/Illumina 1.9 encoding (phred33). 
-If we had phred64 data, we'd use the `--phred64` flag. 
+_Note that there are two kinds of encoding for Phred scores: Phred 33 encoding and Phred 64 encoding. 
+FastQC guessed that the file for SRR585570 uses Sanger/Illumina 1.9 encoding (Phred 33). 
+If we had Phred 64 data, we'd use the `--phred64` flag. 
 You can read a little bit more about the encoding [here](http://resources.qiagenbioinformatics.com/manuals/clcgenomicsworkbench/700/Quality_scores_in_Illumina_platform.html)._
 
 #### `--length_required`
