@@ -20,9 +20,9 @@ ln -s /shared/data/training-data/tabula-muris/fastq data/tabula-muris/fastq-raw
 ln -s /shared/data/training-data/tabula-muris/normalized/TM_normalized.rds data/tabula-muris/normalized/TM_normalized.rds
 
 ```
-## SmartSeq Data
+## Smart-Seq Data
 
-The SmartSeq data we are using comes from the study [GSE84465](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465), which corresponds to the SRA project SRP079058. 
+The Smart-Seq data we are using comes from the study [GSE84465](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465), which corresponds to the SRA project SRP079058. 
 This is glioblastoma data that was Fluorescence-Activated Cell sorted and processed by paired-end sequencing using Smart-seq2 protocol 
 [(Darmanis *et al.* 2017)](https://pubmed.ncbi.nlm.nih.gov/29091775/).
 
