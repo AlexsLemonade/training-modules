@@ -149,7 +149,7 @@ Note that the output is being placed in `data/fastq/gastric_cancer/SRR585570/`, 
 
 ![per-base-quality-screenshot](https://user-images.githubusercontent.com/19534205/59292316-d6292500-8c4a-11e9-967b-132bd8c54577.png)
 
-Anything below 20, where a phred score of 20 represents a 1 in 100 chance that the call is incorrect, is considered poor quality by FastQC.
+Anything below 20, where a Phred score of 20 represents a 1 in 100 chance that the call is incorrect, is considered poor quality by FastQC.
 Using `--qualified_quality_phred 15` (which is the default), means scores >= 15 are considered "qualified." 
 Using the default parameters as we do here, reads will be filtered out if >40% of the bases are unqualified.
 You can read more about the **quality filtering** functionality of fastp [here](https://github.com/OpenGene/fastp/blob/master/README.md#quality-filter).
