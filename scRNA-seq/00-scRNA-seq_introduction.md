@@ -2,7 +2,7 @@
 
 **CCDL 2020**
 
-## Single Cell RNAseq Technologies
+## Single Cell RNA-seq Technologies
 
 For the purposes of this tutorial, we'll group single-cell technologies into two categories based on their capture methods and quantitative nature.
 The pre-processing steps and the biases to look out for in post-processing vary based on technology and how the cells are sorted.
