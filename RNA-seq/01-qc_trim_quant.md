@@ -145,7 +145,7 @@ Note that the output is being placed in `data/fastq/gastric_cancer/SRR585570/`, 
 
 #### `--qualified_quality_phred`
 
-[Phred scores](https://en.wikipedia.org/wiki/Phred_quality_score) are the quality information included in a FASTQ file and the values indicate the chances that a base is called incorrectly. Let's look at a screenshot of the Per Base Sequence Quality module from [FastQC bad illumina example](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/bad_sequence_fastqc.html) we linked to above.
+[Phred scores](https://en.wikipedia.org/wiki/Phred_quality_score) are the quality information included in a FASTQ file and the values indicate the chances that a base is called incorrectly. Let's look at a screenshot of the Per Base Sequence Quality module from [FastQC bad Illumina example](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/bad_sequence_fastqc.html) we linked to above.
 
 ![per-base-quality-screenshot](https://user-images.githubusercontent.com/19534205/59292316-d6292500-8c4a-11e9-967b-132bd8c54577.png)
 
