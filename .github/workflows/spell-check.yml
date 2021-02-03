@@ -5,7 +5,7 @@ name: Spell check R Markdown and Markdown files
 # Pull requests to master only.
 on:
   pull_request:
-    branches: [ master, jaclyn-taroni/fix-spelling-errors ]
+    branches: [ master ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -20,12 +20,12 @@ jobs:
       - uses: actions/checkout@v2
           
       - name: Install packages
-        run: Rscript --vanilla -e "install.packages('spelling')"
+        run: Rscript --vanilla -e "install.packages('spelling', repos = c(CRAN = 'https://cloud.r-project.org'))"
 
       - name: Run spell check
         id: spell_check_run
         run: |
-          results=$(Rscript "scripts/spell-check.R")
+          results=$(Rscript --vanilla "scripts/spell-check.R")
           echo "::set-output name=sp_chk_results::$results"
           cat spell_check_errors.tsv
       - name: Archive spelling errors
