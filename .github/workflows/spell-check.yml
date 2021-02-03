@@ -1,0 +1,40 @@
+
+name: Spell check R Markdown and Markdown files
+
+# Controls when the action will run.
+# Pull requests to master only.
+on:
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "spell check"
+  spell-check:
+    runs-on: ubuntu-latest
+    container:
+      image: rocker/tidyverse:4.0.3
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v2
+          
+      - name: Install packages
+        run: Rscript --vanilla -e "install.packages('spelling', repos = c(CRAN = 'https://cloud.r-project.org'))"
+
+      - name: Run spell check
+        id: spell_check_run
+        run: |
+          results=$(Rscript --vanilla "scripts/spell-check.R")
+          echo "::set-output name=sp_chk_results::$results"
+          cat spell_check_errors.tsv
+      - name: Archive spelling errors
+        uses: actions/upload-artifact@v2
+        with:
+          name: spell-check-results
+          path: spell_check_errors.tsv
+
+      # If there are too many spelling errors, this will stop the workflow
+      - name: Check spell check results - fail if too many errors
+        if: ${{ steps.spell_check_run.outputs.sp_chk_results > 3 }}
+        run: exit 1
