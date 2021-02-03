@@ -11,15 +11,23 @@ root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
 # Read in dictionary
 dictionary <- readLines(file.path(root_dir, 'components', 'dictionary.txt'))
 
+# Add emoji to dictionary
+dictionary <- c(dictionary, spelling::spell_check_text("⚠️")$word)
+
 # The only files we want to check are R Markdown and Markdown files
 # The HTML files produced will be generated from Rmd files
 files <- list.files(pattern = '\\.(Rmd|md)$', recursive = TRUE, full.names = TRUE)
+
+# remove files in renv library
+files <- grep('^./renv/', files, invert = TRUE, value = TRUE)
 
 # Remove the LICENSE from the spell check 
 files <- grep('LICENSE.md', files, invert = TRUE, value = TRUE)
 
 # Remove all live versions so we're not spell checking twice
 files <- grep('-live.Rmd', files, invert = TRUE, value = TRUE)
+
+
 
 # Run spell check
 spelling_errors <- spelling::spell_check_files(files, ignore = dictionary) %>%
