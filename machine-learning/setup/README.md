@@ -17,7 +17,7 @@ The release version can be altered with:
 OPENPBTA_RELEASE=<different release> bash 00-data-download.sh
 ```
 
-But the directory where these data are downloaded is hardcoded.
+But the directory where these data are downloaded is hard coded.
 
 #### Data cleaning
 

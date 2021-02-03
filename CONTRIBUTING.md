@@ -4,7 +4,6 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-
 - [Development with `renv`](#development-with-renv)
   - [Typical development workflow](#typical-development-workflow)
   - [How we use `renv` with Docker](#how-we-use-renv-with-docker)
@@ -12,6 +11,7 @@
   - [Developing within the Docker container](#developing-within-the-docker-container)
   - [Testing Docker image builds via GitHub Actions](#testing-docker-image-builds-via-github-actions)
   - [Pushing to Dockerhub via GitHub Actions](#pushing-to-dockerhub-via-github-actions)
+- [Spell check](#spell-check)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -66,7 +66,7 @@ docker run \
 Replacing `<PASSWORD>` with the password of your choice.
 You can then navigate to `localhost:8787` in your browser and login with username `rstudio` and the password you just set via `docker run`.
 
-To work on the project, you should then open `training-modules/training-modules.Rproj` on the Rstudio server, then proceed as in the [typical development workflow](#typical-development-workflow).
+To work on the project, you should then open `training-modules/training-modules.Rproj` on the RStudio server, then proceed as in the [typical development workflow](#typical-development-workflow).
 
 ### Testing Docker image builds via GitHub Actions
 
@@ -76,3 +76,18 @@ When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Act
 
 When a pull request is merged into `master`, the `build-and-push-docker.yml` GitHub Actions workflow will be triggered. 
 The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest`.
+
+## Spell check
+
+We perform spell checking for every pull request to `master` as part of a GitHub Actions workflow (`spell-check.yml`); it is designed to fail if more than 3 spelling errors are detected.
+You can see what errors are detected in `stdout` for the `Run spell check` step of the workflow.
+This workflow uses a script, `scripts/spell-check.R`, to spell check `.md` and completed `.Rmd` files.
+The custom dictionary we use for the project can be found at `components/dictionary.txt`. 
+
+To run spell check locally, you can run the following from the root of the repository:
+
+```
+Rscript --vanilla scripts/spell-check.R
+```
+
+The spelling errors will be listed in `spell_check_errors.tsv` in the root of the repo; this file is ignored by git.

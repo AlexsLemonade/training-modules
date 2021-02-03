@@ -14,7 +14,7 @@ Read the `AnnotationDbi` package vignette [**here**](http://bioconductor.org/pac
 
 | Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
 |-----------------------------------------|---------------------------------------------|-------------------------|------------------------------------------------------------------------|
-| `AnnotationDbi`        | [`keytypes()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects)      | Keytypes     | Returns a character vector of column names/keytypes (eg., type of gene identifiers) available in an `AnnotationDbi` package.                                              |
+| `AnnotationDbi`        | [`keytypes()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects)      | Keytypes     | Returns a character vector of column names/keytypes (e.g., type of gene identifiers) available in an `AnnotationDbi` package.                                              |
 | `AnnotationDbi`       | [`mapIDs()`](https://www.rdocumentation.org/packages/AnnotationDbi/versions/1.44.0/topics/AnnotationDb-objects) | Mapped IDs       | Extracts the mapped ids for a set of keys (e.g., gene identifiers) of a specific keytype                                    |                                  
 
  <div style="page-break-after: always;"></div>
@@ -31,12 +31,12 @@ Read the Base `R` package documentation [**here**](https://www.rdocumentation.or
 | Base `R`               | [`rowMeans()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/colSums)     | Row Means  | Returns the means of the rows in a numeric array, matrix, or data.frame | 
 | Base `R`               | [`quantile()`](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/quantile)    | Sample Quantiles  | Returns the sample quantiles for a given numeric vector of data and numeric vector of probabilities  |
 | Base `R`               | [`cor()`](https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/cor)        | Correlation     | Computes correlation between columns using a specified correlation method, and returns a correlation matrix        |
-| Base `R`               | [`as.dist()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/Round)         | Distance matrix compution    | Returns a special object of class `dist`, a distance matrix used by the `hclust()` function         |
+| Base `R`               | [`as.dist()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/Round)         | Distance matrix computation    | Returns a special object of class `dist`, a distance matrix used by the `hclust()` function         |
 | Base `R`               | [`hclust()`](https://www.rdocumentation.org/packages/stats/versions/3.5.1/topics/hclust)    | Hierarchical Clustering  | Performs hierarchical clustering analysis on a set of dissimilarities and methods  |
 | Base `R`               | [`table()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/table)    | Create Table       | Creates a contingency table of counts for each combination of factor levels               | 
 | Base `R`               | [`duplicated()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/duplicated)           | Duplicated              | Returns a logical vector, where `TRUE` represents elements of the object that are duplicates               |
 | Base `R`               | [`any()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/any)             | Any      | Checks to see if at least one of the elements are `TRUE` when given a logical vector                                      |
-| Base `R`               | [`cbind()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/cbind)                | Cbind                          | Combines vectors, matrices, or data.frames by columns                                         |
+| Base `R`               | [`cbind()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/cbind)                | Column bind                          | Combines vectors, matrices, or data.frames by columns                                         |
 | Base `R`             | [`pairwise.wilcox.test()`](https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/pairwise.wilcox.test) | Pairwise Wilcoxon Rank Sum Tests | Calculates the pairwise comparisons between group levels                   |
 
  <div style="page-break-after: always;"></div>

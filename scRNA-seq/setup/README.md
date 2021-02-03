@@ -1,6 +1,6 @@
 # Single Cell RNA-seq training data setup"
 
-This document describes how the training data is prepared for the single cell RNAseq training data on the RStudio Server.
+This document describes how the training data is prepared for the single cell RNA-seq training data on the RStudio Server.
 
 The preprocessing for these steps is organized as snakemake workflows.
 Currently, these workflows do not include conda environments or docker, as those are not fully set up on this server.
@@ -20,9 +20,9 @@ ln -s /shared/data/training-data/tabula-muris/fastq data/tabula-muris/fastq-raw
 ln -s /shared/data/training-data/tabula-muris/normalized/TM_normalized.rds data/tabula-muris/normalized/TM_normalized.rds
 
 ```
-## SmartSeq Data
+## Smart-Seq Data
 
-The SmartSeq data we are using comes from the following study: <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465>, which corresponds to the SRA project SRP079058. 
+The Smart-Seq data we are using comes from the study [GSE84465](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465), which corresponds to the SRA project SRP079058. 
 This is glioblastoma data that was Fluorescence-Activated Cell sorted and processed by paired-end sequencing using Smart-seq2 protocol 
 [(Darmanis *et al.* 2017)](https://pubmed.ncbi.nlm.nih.gov/29091775/).
 
@@ -39,7 +39,7 @@ This is a workflow that involves downloading, QC, and quasimapping for large num
 If more cores are available, the `--cores` argument can be increased. 
 
 `--keep-going` and `--restart-times 2` are there because I did have issues with occasional download steps failing.
-This should prevent the whole workflow from requiring repeptition if an individual download fails (and hopefully it will succeed on one of the retries).
+This should prevent the whole workflow from requiring repetition if an individual download fails (and hopefully it will succeed on one of the retries).
 
 ## 10X data
 

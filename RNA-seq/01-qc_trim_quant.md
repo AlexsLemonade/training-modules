@@ -99,7 +99,7 @@ It can be found at `QC/gastric_cancer/fastqc_output/SRR585574_1_fastqc.html`.
 ![](diagrams/rna-seq_3.png)
 
 We use [fastp](https://github.com/OpenGene/fastp) to preprocess the FASTQ files ([Chen et al. _Bioinformatics._ 2018.](https://doi.org/10.1093/bioinformatics/bty560)). 
-Note that fastp has quality control functionality and many different options for preprocessing (see [all options on Github](https://github.com/OpenGene/fastp/blob/master/README.md#all-options)), most of which we will not cover.
+Note that fastp has quality control functionality and many different options for preprocessing (see [all options on GitHub](https://github.com/OpenGene/fastp/blob/master/README.md#all-options)), most of which we will not cover.
 Here, we focus on adapter trimming, quality filtering, and length filtering.
 
 Below, we discuss the two commands we used in the script.
@@ -145,11 +145,11 @@ Note that the output is being placed in `data/fastq/gastric_cancer/SRR585570/`, 
 
 #### `--qualified_quality_phred`
 
-[Phred scores](https://en.wikipedia.org/wiki/Phred_quality_score) are the quality information included in a FASTQ file and the values indicate the chances that a base is called incorrectly. Let's look at a screenshot of the Per Base Sequence Quality module from [FastQC bad illumina example](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/bad_sequence_fastqc.html) we linked to above.
+[Phred scores](https://en.wikipedia.org/wiki/Phred_quality_score) are the quality information included in a FASTQ file and the values indicate the chances that a base is called incorrectly. Let's look at a screenshot of the Per Base Sequence Quality module from [FastQC bad Illumina example](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/bad_sequence_fastqc.html) we linked to above.
 
 ![per-base-quality-screenshot](https://user-images.githubusercontent.com/19534205/59292316-d6292500-8c4a-11e9-967b-132bd8c54577.png)
 
-Anything below 20, where a phred score of 20 represents a 1 in 100 chance that the call is incorrect, is considered poor quality by FastQC.
+Anything below 20, where a Phred score of 20 represents a 1 in 100 chance that the call is incorrect, is considered poor quality by FastQC.
 Using `--qualified_quality_phred 15` (which is the default), means scores >= 15 are considered "qualified." 
 Using the default parameters as we do here, reads will be filtered out if >40% of the bases are unqualified.
 You can read more about the **quality filtering** functionality of fastp [here](https://github.com/OpenGene/fastp/blob/master/README.md#quality-filter).
@@ -160,9 +160,9 @@ A recent preprint from the Salmon authors ([Srivastava et al. _bioRxiv._ 2019.](
 fastp does have [the functionality](https://github.com/OpenGene/fastp#per-read-cutting-by-quality-score) to perform trimming using a sliding window, which must be enabled. 
 We are not using it here.
 
-_Note that there are two kinds of encoding for phred scores, phred33 and phred64. 
-FastQC guessed that the file for SRR585570 uses Sanger/Illumina 1.9 encoding (phred33). 
-If we had phred64 data, we'd use the `--phred64` flag. 
+_Note that there are two kinds of encoding for Phred scores: Phred 33 encoding and Phred 64 encoding. 
+FastQC guessed that the file for SRR585570 uses Sanger/Illumina 1.9 encoding (Phred 33). 
+If we had Phred 64 data, we'd use the `--phred64` flag. 
 You can read a little bit more about the encoding [here](http://resources.qiagenbioinformatics.com/manuals/clcgenomicsworkbench/700/Quality_scores_in_Illumina_platform.html)._
 
 #### `--length_required`
@@ -249,7 +249,7 @@ When enabling mapping validation with `--validateMappings`, setting `--rangeFact
 With this option enabled, Salmon will attempt to correct for fragment GC-bias.
 Regions with high or low GC content tend to be underrepresented in sequencing data.
 
-It should be noted that this is only appropriate for use with paired-end reads, as fragment length can not be inferred from single-end reads (see [this Github issue](https://github.com/COMBINE-lab/salmon/issues/83)).
+It should be noted that this is only appropriate for use with paired-end reads, as fragment length can not be inferred from single-end reads (see [this GitHub issue](https://github.com/COMBINE-lab/salmon/issues/83)).
 
 #### `--seqBias`
 
