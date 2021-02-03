@@ -39,7 +39,7 @@ This is a workflow that involves downloading, QC, and quasimapping for large num
 If more cores are available, the `--cores` argument can be increased. 
 
 `--keep-going` and `--restart-times 2` are there because I did have issues with occasional download steps failing.
-This should prevent the whole workflow from requiring repeptition if an individual download fails (and hopefully it will succeed on one of the retries).
+This should prevent the whole workflow from requiring repetition if an individual download fails (and hopefully it will succeed on one of the retries).
 
 ## 10X data
 
