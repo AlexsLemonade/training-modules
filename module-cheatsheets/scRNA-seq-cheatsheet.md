@@ -56,8 +56,8 @@ In addition to the links above, [Amezquita et al.](https://www.biorxiv.org/conte
 | `scater`| [`addPerCellQC()`](https://rdrr.io/bioc/scater/man/addPerCellQC.html)| Add per cell quality control | For a `SingleCellExperiment` object, calculate and add quality control per cell and store in `colData`  |
 | `scater`| [`addPerFeatureQC()`](https://rdrr.io/bioc/scater/man/addPerCellQC.html)| Add per feature quality control | For a `SingleCellExperiment` object, calculate and add quality control per feature (genes usually) and store in `rowData`|
 | `scater`| [`calculatePCA()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate PCA | Calculates principal components analysis on a `SingleCellExperiment` object |
-| `scater`| [`calculateUMAP()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate UMAP | Calculates uniform manifold appropximate projection on a `SingleCellExperiment` object |
-| `scater`| [`calculateTSNE()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate TSNE | Calculate t-stochastic neighbor embedding on a `SingleCellExperiment` object |
+| `scater`| [`calculateUMAP()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate UMAP | Calculates uniform manifold approximate projection on a `SingleCellExperiment` object |
+| `scater`| [`calculateTSNE()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate t-SNE | Calculate t-stochastic neighbor embedding on a `SingleCellExperiment` object |
 
 <div style="page-break-after: always;"></div>
 
