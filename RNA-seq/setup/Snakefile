@@ -5,13 +5,17 @@ basedir = config["base_dir"]
 data_dir = os.path.join(basedir, "data", config['dataset'])
 qc_dir =  os.path.join(basedir, "QC", config['dataset'])
 
+wildcard_constraints:
+    # read is always a single digit number
+    read = "\d"
+
 rule all:
     input:
         os.path.join(data_dir, config['dataset'] + "_metadata.tsv"),
         expand(os.path.join(data_dir, "salmon_quant", "{run}"), run = config['SRRs']),
         expand(os.path.join(qc_dir, "fastqc", "{run}", "{run}_{read}_fastqc.html"), 
                run = config['SRRs'], read = [1,2]),
-        expand(os.path.join(qc_dir, "fastqc", "{run}_trimmed", "{run}_fastp_{read}_fastqc.html"), 
+        expand(os.path.join(qc_dir, "fastqc", "{run}", "{run}_fastp_{read}_fastqc.html"), 
                run = config['SRRs'], read = [1,2])
 
 rule metadata:
@@ -35,6 +39,16 @@ rule get_fastq:
         " {params.base_url}/{wildcards.run_id}/{wildcards.run_id}_{wildcards.read}.fastq.gz"
         " -O {output} -q"
 
+rule fastqc:
+    # run fastqc
+    input:
+        "{base}/data/{set}/fastq/{run}/{run}_{read}.fastq.gz"
+    output:
+        "{base}/QC/{set}/fastqc/{run}/{run}_{read}_fastqc.html"
+    shell:
+        "fastqc {input} --outdir $(dirname {output}) -q"
+
+
 rule fastp:
     input:
         R1 = "{base}/data/{set}/fastq/{run_id}/{run_id}_1.fastq.gz",
@@ -55,21 +69,12 @@ rule fastp:
         " --html {output.html}"
         " --thread {threads}"
 
-rule fastqc:
-    # run fastqc
-    input:
-        "{base}/data/{set}/fastq/{run}/{reads}.fastq.gz"
-    output:
-        "{base}/QC/{set}/fastqc/{run}/{reads}_fastqc.html"
-    shell:
-        "fastqc {input} --outdir $(dirname {output}) -q"
-
 rule fastqc_trimmed:
     # run fastqc
     input:
-        "{base}/data/{set}/fastq-trimmed/{run}/{reads}.fastq.gz"
+        "{base}/data/{set}/fastq-trimmed/{run}/{run}_fastp_{read}.fastq.gz"
     output:
-        "{base}/QC/{set}/fastqc/{run}_trimmed/{reads}_fastqc.html"
+        "{base}/QC/{set}/fastqc/{run}/{run}_fastp_{read}_fastqc.html"
     shell:
         "fastqc {input} --outdir $(dirname {output}) -q"
 
