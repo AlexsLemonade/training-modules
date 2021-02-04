@@ -1,0 +1,81 @@
+name: Make Live
+# Make live versions of .Rmd files in training modules
+
+# This workflow only runs when it is manually dispatched
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+      tags:
+        description: 'Test scenario tags'
+
+jobs:
+  # This workflow contains a single job called "build-all"
+  make-live:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          # get the full repo
+          fetch-depth: 0
+          # use alexslemonade-docs-bot
+          token: ${{ secrets.DOCS_BOT_GITHUB_TOKEN }}
+
+      # Login to Dockerhub
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_ID }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Set up Docker build
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      # Pull Docker image
+      - name: Pull Docker image
+        uses: docker/build-push-action@v2.2.2
+        run: docker pull ghcr.io/ccdl/training_dev:latest
+
+      # Download data
+      #- name: Download data
+      #  run: bash scripts/download-data.sh
+      #- name: Render all pages to html
+      #  run: |
+      #    docker run \
+      #    --mount type=bind,target=/home/rstudio,source=$PWD \
+      #    ccdl/training_dev:latest \
+      #    snakemake --cores 2 --forceall
+
+      # Run the make-live.R script
+      - name: Run make-live.R
+        id: make_live
+        run: Rscript --vanilla "scripts/make-live.R --skip_rendering"
+
+      # Make changes to pull request here
+      - name: Create PR with rendered notebooks
+        uses: peter-evans/create-pull-request@v3
+
+      # Spit out PR info
+      - name: Check outputs
+        run: |
+          echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+          echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
+
+      # If we have a failure, Slack us
+      - name: Report failure to Slack
+        if: always()
+        uses: ravsamhq/notify-slack-action@v1.1
+        with:
+          status: ${{ job.status }}
+          notify_when: 'failure'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.ACTION_MONITORING_SLACK }}
+          SLACK_MESSAGE: 'Build, Render, and Push failed'
