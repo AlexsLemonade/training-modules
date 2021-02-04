@@ -7,12 +7,10 @@ on:
     branches: [ cansavvy/gha-make-live ]
   workflow_dispatch:
     inputs:
-      logLevel:
+      make-live:
         description: 'make-live.R'
         required: true
         default: 'warning'
-      tags:
-        description: 'Run make-live.R script'
 
 jobs:
   # This workflow contains a single job called "build-all"
@@ -50,20 +48,29 @@ jobs:
       # Make changes to pull request here
       - name: Create PR with rendered notebooks
         uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: Run make-live.R
+          signoff: false
+          branch: run_make-live.R
+          delete-branch: true
+          title: 'GHA: Make live versions of the notebooks'
+          body: |
+            ### Description:
+            This PR auto-generated from github actions running make-live.R with:
+              - The latest notebooks on the master branch
+              - The latest docker image on Dockerhub
+
+            ### Instruction for reviewers:
+              Make sure that all the notebooks have been made into `_live`
+              versions appropriately and have the updates you expect.
+
+          labels: |
+            automated
+          reviewers: $GITHUB_ACTOR
+
 
       # Spit out PR info
       - name: Check outputs
         run: |
           echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
           echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
-
-      # If we have a failure, Slack us
-#      - name: Report failure to Slack
-#        if: always()
-#        uses: ravsamhq/notify-slack-action@v1.1
-#        with:
-#          status: ${{ job.status }}
-#          notify_when: 'failure'
-#        env:
-#          SLACK_WEBHOOK_URL: ${{ secrets.ACTION_MONITORING_SLACK }}
-#          SLACK_MESSAGE: 'Build, Render, and Push failed'
