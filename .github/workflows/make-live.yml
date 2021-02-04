@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       logLevel:
-        description: 'make-liver.R'
+        description: 'make-live.R'
         required: true
         default: 'warning'
       tags:
@@ -19,31 +19,18 @@ jobs:
   make-live:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    container:
+      image: ccdl/training_dev:latest
+
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: checkout
+      - name: Checkout code
         uses: actions/checkout@v2
         with:
           # get the full repo
           fetch-depth: 0
           # use alexslemonade-docs-bot
           token: ${{ secrets.DOCS_BOT_GITHUB_TOKEN }}
-
-      # Login to Dockerhub
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_ID }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # Set up Docker build
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      # Pull Docker image
-      - name: Pull Docker image
-        run: docker pull ghcr.io/ccdl/training_dev:latest
 
       # Download data
       #- name: Download data
