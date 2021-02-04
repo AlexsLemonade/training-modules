@@ -32,12 +32,18 @@ rule get_fastq:
     # Download fastq files from EBI, using the expected directory structure
     output:
         "{base}/fastq/{run_id}/{run_id}_{read}.fastq.gz"
-    params:
-        base_url = "ftp://" + config['ftp_base']
-    shell:
-        "wget "
-        " {params.base_url}/{wildcards.run_id}/{wildcards.run_id}_{wildcards.read}.fastq.gz"
-        " -O {output} -q"
+    run:
+        base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq"
+        prefix = wildcards.run_id[0:6]
+        
+        if len(wildcards.run_id) <= 9:
+            # short ids have  sensible structure
+            url = f"{base_url}/{prefix}/{wildcards.run_id}/{wildcards.run_id}_{wildcards.read}.fastq.gz"
+        else:
+            # long ids need a bit of logic since the final number matters
+            suffix = "00" + wildcards.run_id[-1]
+            url = f"{base_url}/{prefix}/{suffix}/{wildcards.run_id}/{wildcards.run_id}_{wildcards.read}.fastq.gz"
+        shell(f"wget {url} -O {output} -q")
 
 rule fastqc:
     # run fastqc
