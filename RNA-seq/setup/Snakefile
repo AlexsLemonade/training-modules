@@ -1,13 +1,15 @@
 from snakemake.remote.S3 import RemoteProvider as S3RemoteProvider
 S3 = S3RemoteProvider()
 
-# Workflow for downloading and preprocessing RNA-seq data
-configfile: "config.yaml"
+# Important settings are defined in the configfile, so this workflow must be run 
+# with the `--configfile <CONFIG>` option set.
+# If you want to keep fastq files, add the `--notemp` option
+
 
 basedir = config['base_dir']
 data_dir = os.path.join(basedir, "data", config['dataset'])
 qc_dir =  os.path.join(basedir, "QC", config['dataset'])
-s3_data = "/".join([config['S3_base'], "data", config['dataset']]) 
+s3_data = config['S3_base'] + "/data/" + config['dataset'] 
 
 wildcard_constraints:
     # read is always a single digit number
@@ -23,6 +25,7 @@ rule all:
                run = config['SRRs'], read = [1,2])
 
 rule metadata:
+    # copy metadata from S3
     input: 
         S3.remote(s3_data + "/{sample}_metadata.tsv")
     output:
