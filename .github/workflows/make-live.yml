@@ -5,10 +5,10 @@ name: Make Live
 on:
   workflow_dispatch:
     inputs:
-      make-live:
-        description: 'make-live.R'
+      skiprendering:
+        description: Should rendering be skipped? TRUE or FALSE
         required: true
-        default: 'warning'
+        default: 'FALSE'
 
 jobs:
   # This workflow contains a single job called "build-all"
@@ -38,10 +38,17 @@ jobs:
       #    ccdl/training_dev:latest \
       #    snakemake --cores 2 --forceall
 
-      # Run the make-live.R script
-      - name: Run make-live.R
-        id: make_live
+      # Run the make-live.R script but skip rendering
+      - name: Run make-live.R with skiprendering
+        if: skiprendering == 'TRUE'
+        id: make_live skiprendering
         run: Rscript --vanilla scripts/make-live.R --skiprendering
+
+      # Run the make-live.R script but do NOT skip rendering
+      - name: Run make-live.R with rendering
+        if: skiprendering == 'FALSE'
+        id: make_live
+        run: Rscript --vanilla scripts/make-live.R
 
       # Make changes to pull request here
       - name: Create PR with rendered notebooks
@@ -51,7 +58,7 @@ jobs:
           signoff: false
           branch: run_make-live.R
           delete-branch: true
-          title: 'GHA: Make live versions of the notebooks'
+          title: 'GHA: Automated make live versions of the notebooks'
           body: |
             ### Description:
             This PR auto-generated from github actions running make-live.R with:
@@ -59,8 +66,7 @@ jobs:
               - The latest docker image on Dockerhub
 
             ### Instruction for reviewers:
-              Make sure that all the notebooks have been made into `_live`
-              versions appropriately and have the updates you expect.
+              Make sure that all the notebooks have been made into `_live` versions appropriately and have the updates you expect.
 
           labels: |
             automated
