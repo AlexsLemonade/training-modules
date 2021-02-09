@@ -129,7 +129,7 @@ fastp -i data/gastric-cancer/fastq/SRR585570/SRR585570_1.fastq.gz \
     -I data/gastric-cancer/fastq/SRR585570/SRR585570_2.fastq.gz \
     -o data/gastric-cancer/fastq-trimmed/SRR585570/SRR585570_fastp_1.fastq.gz \
     -O data/gastric-cancer/fastq-trimmed/SRR585570/SRR585570_fastp_2.fastq.gz \
-    --qualified_quality_phred 10 \
+    --qualified_quality_phred 15 \
     --length_required 20 \
     --report_title "SRR585570" \
     --json QC/gastric-cancer/fastp/SRR585570_fastp.json \
@@ -164,7 +164,7 @@ You can read more about the **quality filtering** functionality of fastp [here](
 The Salmon documentation notes that, given the way we run `salmon quant`, quantification may be more sensitive to calls that are likely to be erroneous (of low quality) and, therefore, quality trimming may be important. 
 
 Trimming, in contrast to filtering, refers to removing low quality base calls from the (typically 3') end of reads.
-A recent preprint from the Salmon authors ([Srivastava et al. _bioRxiv._ 2019.](https://doi.org/10.1101/657874)) notes that trimming did not affect mapping rates from random publicly available human bulk (paired-end) RNA-seq samples (they used [TrimGalore](https://github.com/FelixKrueger/TrimGalore)). 
+A recent paper from the Salmon authors ([Srivastava _et al._ 2020](https://doi.org/10.1186/s13059-020-02151-8)) notes that trimming did not affect mapping rates from random publicly available human bulk (paired-end) RNA-seq samples (they used [TrimGalore](https://github.com/FelixKrueger/TrimGalore)). 
 fastp does have [the functionality](https://github.com/OpenGene/fastp#per-read-cutting-by-quality-score) to perform trimming using a sliding window, which must be enabled. 
 We are not using it here.
 
@@ -269,5 +269,5 @@ The `--threads` argument controls the number of threads that are available to Sa
 This in essence controls how much of the mapping can occur in parallel.
 If you had access to a computer with many cores, you could increase the number of threads to make quantification go faster.
 
-**Navigate to** `data/gastric-cancer/salmon-quant/aux_info` **and open** `meta_info.json`**.
+**Navigate to** `data/gastric-cancer/salmon-quant/SRR585571/aux_info` **and open** `meta_info.json`**.
 Look for a field called** `percent_mapped` **-- what value does this sample have?**
