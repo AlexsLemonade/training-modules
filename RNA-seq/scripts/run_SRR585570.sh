@@ -16,8 +16,10 @@ fastqc data/gastric-cancer/fastq/SRR585570/SRR585570_1.fastq.gz \
 
 # fastp ------------------------------------------------------------------------
 
-# Create a directory to hold the JSON and HTML output from Fastp
-mkdir -p QC/gastric-cancer/fastp/SRR585570/
+# Create a directory to hold the trimmed fastq files
+mkdir -p data/gastric-cancer/fastq-trimmed/SRR585570
+# Create a directory to hold the QC output from Fastp
+mkdir -p QC/gastric-cancer/fastp/SRR585570
 
 # Run the adapter and quality trimming step -- also produces QC report
 fastp -i data/gastric-cancer/fastq/SRR585570/SRR585570_1.fastq.gz \
@@ -37,9 +39,9 @@ fastp -i data/gastric-cancer/fastq/SRR585570/SRR585570_1.fastq.gz \
 # per the Salmon documentation
 salmon quant -i index/Homo_sapiens/short_index \
     -l A \
-    -1 data/gastric-cancer/fastq_trimmed/SRR585570/SRR585570_fastp_1.fastq.gz \
-    -2 data/gastric-cancer/fastq_trimmed/SRR585570/SRR585570_fastp_2.fastq.gz \
-    -o data/gastric-cancer/salmon-quant/SRR585570 \
+    -1 data/gastric-cancer/fastq-trimmed/SRR585570/SRR585570_fastp_1.fastq.gz \
+    -2 data/gastric-cancer/fastq-trimmed/SRR585570/SRR585570_fastp_2.fastq.gz \
+    -o data/gastric-cancer/salmon_quant/SRR585570 \
     --validateMappings --rangeFactorizationBins 4 \
     --gcBias --seqBias \
     --threads 4

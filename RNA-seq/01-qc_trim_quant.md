@@ -39,7 +39,7 @@ Once we start running the script, we will give a short lecture to introduce this
 **Enter the following in the Terminal to start running the script:**
 
 ```bash
-./scripts/run_SRR585570.sh
+bash scripts/run_SRR585570.sh
 ```
 
 _Note: Don't worry if the Salmon step does not complete by the time we move on to the next notebook.
@@ -50,9 +50,10 @@ This is a time and resource intensive step, so we have prepared the required out
 The raw data FASTQ files (`fastq.gz`) for this sample, SRR585570, are in `data/gastric-cancer/fastq/SRR585570`.
 The first two directories, `data/` and `gastric-cancer/`, tell us that these files are data and which experiment or dataset these data are from. 
 We'll be working with an additional dataset later in the module, so this latter distinction will become more important.
-The third directory, `fastq/`, tells us that the files are fastq files. 
+The third directory, `fastq/`, tells us that this is where we will be storing fastq files. 
 
-The use of the `SRR585570` folder might seem unnecessary because we are only processing a single sample here, but keeping files for individual samples in their own folder keeps things organized for multi-sample workflows.
+The final directory, `SRR585570`, is specific to the sample we are working with.
+The use of the `SRR585570` folder might seem unnecessary because we are only processing a single sample here, but keeping files for individual samples in their own folder helps keep things organized for multi-sample workflows.
 (You can peek ahead and look at the `data/NB-cell/quant` folder for such an example.)
 
 There is no "one size fits all" approach for project organization. 
@@ -109,15 +110,16 @@ We use [fastp](https://github.com/OpenGene/fastp) to preprocess the FASTQ files 
 Note that fastp has quality control functionality and many different options for preprocessing (see [all options on GitHub](https://github.com/OpenGene/fastp/blob/master/README.md#all-options)), most of which we will not cover.
 Here, we focus on adapter trimming, quality filtering, and length filtering.
 
-Below, we discuss the two commands we used in the script.
+Below, we discuss the commands we used in the script.
 
-### Create a directory
+### Create output directories
 
 ```bash
-# Create a directory to hold the JSON and HTML output from fastp
+# Create a directory to hold the trimmed fastq files
+mkdir -p data/gastric-cancer/fastq-trimmed/SRR585570
+# Create a directory to hold the QC output from fastp
 mkdir -p QC/gastric_cancer/fastp/SRR585570
 ```
-
 
 As we'll cover below, fastp essentially has two kinds of output: trimmed and filtered FASTQ files (data) and reports (quality control).
 
@@ -204,9 +206,9 @@ We use Salmon in mapping mode, with mapping validation enabled, using the follow
 # per the Salmon documentation
 salmon quant -i index/Homo_sapiens/short_index \
     -l A \
-    -1 data/gastric-cancer/fastq_trimmed/SRR585570/SRR585570_fastp_1.fastq.gz \
-    -2 data/gastric-cancer/fastq_trimmed/SRR585570/SRR585570_fastp_2.fastq.gz \
-    -o data/gastric-cancer/salmon-quant/SRR585570 \
+    -1 data/gastric-cancer/fastq-trimmed/SRR585570/SRR585570_fastp_1.fastq.gz \
+    -2 data/gastric-cancer/fastq-trimmed/SRR585570/SRR585570_fastp_2.fastq.gz \
+    -o data/gastric-cancer/salmon_quant/SRR585570 \
     --validateMappings --rangeFactorizationBins 4 \
     --gcBias --seqBias \
     --threads 4
@@ -269,5 +271,5 @@ The `--threads` argument controls the number of threads that are available to Sa
 This in essence controls how much of the mapping can occur in parallel.
 If you had access to a computer with many cores, you could increase the number of threads to make quantification go faster.
 
-**Navigate to** `data/gastric-cancer/salmon-quant/SRR585571/aux_info` **and open** `meta_info.json`**.
+**Navigate to** `data/gastric-cancer/salmon_quant/SRR585571/aux_info` **and open** `meta_info.json`**.
 Look for a field called** `percent_mapped` **-- what value does this sample have?**
