@@ -43,3 +43,4 @@ done
 ## link indexes
 mkdir -p RNA-seq/index/Homo_sapiens/
 ln -nsf /shared/data/reference/refgenie/hg38_cdna/salmon_index/short RNA-seq/index/Homo_sapiens/short_index 
+ln -s /shared/data/reference/tx2gene/Homo_sapiens.GRCh38.95_tx2gene.tsv RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
