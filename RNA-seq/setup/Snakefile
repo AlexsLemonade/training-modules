@@ -18,11 +18,11 @@ wildcard_constraints:
 rule all:
     input:
         os.path.join(data_dir, config['dataset'] + "_metadata.tsv"),
-        expand(os.path.join(data_dir, "salmon_quant", "{run}"), run = config['SRRs']),
-        expand(os.path.join(qc_dir, "fastqc", "{run}", "{run}_{read}_fastqc.html"), 
-               run = config['SRRs'], read = [1,2]),
-        expand(os.path.join(qc_dir, "fastqc", "{run}", "{run}_fastp_{read}_fastqc.html"), 
-               run = config['SRRs'], read = [1,2])
+        expand(os.path.join(data_dir, "salmon_quant", "{run_id}"), run_id = config['SRRs']),
+        expand(os.path.join(qc_dir, "fastqc", "{run_id}", "{run_id}_{read}_fastqc.html"), 
+               run_id = config['SRRs'], read = [1,2]),
+        expand(os.path.join(qc_dir, "fastqc", "{run_id}", "{run_id}_fastp_{read}_fastqc.html"), 
+               run_id = config['SRRs'], read = [1,2])
 
 rule metadata:
     # copy metadata from S3
@@ -53,9 +53,9 @@ rule get_fastq:
 rule fastqc:
     # run fastqc
     input:
-        "{base}/data/{set}/fastq/{run}/{run}_{read}.fastq.gz"
+        "{base}/data/{set}/fastq/{run_id}/{run_id}_{read}.fastq.gz"
     output:
-        "{base}/QC/{set}/fastqc/{run}/{run}_{read}_fastqc.html"
+        "{base}/QC/{set}/fastqc/{run_id}/{run_id}_{read}_fastqc.html"
     shell:
         "fastqc {input} --outdir $(dirname {output}) -q"
 
@@ -83,9 +83,9 @@ rule fastp:
 rule fastqc_trimmed:
     # run fastqc
     input:
-        "{base}/data/{set}/fastq-trimmed/{run}/{run}_fastp_{read}.fastq.gz"
+        "{base}/data/{set}/fastq-trimmed/{run_id}/{run_id}_fastp_{read}.fastq.gz"
     output:
-        "{base}/QC/{set}/fastqc/{run}/{run}_fastp_{read}_fastqc.html"
+        "{base}/QC/{set}/fastqc/{run_id}/{run_id}_fastp_{read}_fastqc.html"
     shell:
         "fastqc {input} --outdir $(dirname {output}) -q"
 
