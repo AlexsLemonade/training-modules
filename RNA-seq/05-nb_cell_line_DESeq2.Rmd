@@ -36,7 +36,7 @@ library(DESeq2)
 
 ```{r magrittr}
 # magrittr pipe
-`%>%` <- dplyr::`%>%`
+library(magrittr)
 ```
 
 ## Directories and files
@@ -110,25 +110,25 @@ of `sample_meta_df`
 
 ```{r Status, live = TRUE}
 # Look at the first few entries in the Status column
-head(sample_meta_df$Status)
+head(sample_meta_df$status)
 ```
 
 Let's check that the ordering of samples is the same.
 
 ```{r all.equal}
 tximport_sample_names <- colnames(txi$counts)
-all.equal(tximport_sample_names, sample_meta_df$Sample_SRR_accession)
+all.equal(tximport_sample_names, sample_meta_df$srr_accession)
 ```
 
-Let's reorder by `Sample_SRR_accession` and see if that remedies the ordering.
+Let's reorder by `srr_accession` and see if that remedies the ordering.
 
 ```{r arrange-sample_meta_df}
 sample_meta_df <- sample_meta_df %>%
-  dplyr::arrange(Sample_SRR_accession)
+  dplyr::arrange(srr_accession)
 ```
 
 ```{r all.equal-2}
-all.equal(tximport_sample_names, sample_meta_df$Sample_SRR_accession)
+all.equal(tximport_sample_names, sample_meta_df$srr_accession)
 ```
 
 It worked!
@@ -139,7 +139,7 @@ It worked!
 # Create a DESeq2 dataset - remember Status is the variable of interest here
 ddset <- DESeqDataSetFromTximport(txi = txi,
                                   colData = sample_meta_df,
-                                  design = ~ Status)
+                                  design = ~ status)
 ```
 
 ### Differential expression
@@ -158,7 +158,7 @@ We'll want to use the "Nonamplified" samples as our _reference_.
 Let's look at the `levels` of `Status`.
 
 ```{r levels}
-levels(ddset$Status)
+levels(ddset$status)
 ```
 
 We can see that these are in alphabetical order, so "Amplified" samples would
@@ -166,12 +166,12 @@ be the reference.
 We can use the `relevel` function to remedy this.
 
 ```{r relevel}
-ddset$Status <- relevel(ddset$Status, ref = "Nonamplified")
+ddset$status <- relevel(ddset$status, ref = "Nonamplified")
 ```
 
 ```{r check-levels, live = TRUE}
 # Check what the levels are now
-levels(ddset$Status)
+levels(ddset$status)
 ```
 
 #### Differential expression analysis
@@ -187,7 +187,7 @@ Let's save this to our results file.
 
 ```{r write_rds, live = TRUE}
 # Save the results as an RDS
-readr::write_rds(deseq_object, path = deseq_file)
+readr::write_rds(deseq_object, file = deseq_file)
 ```
 
 Let's take a look at the results table.
@@ -226,7 +226,7 @@ summary(results(deseq_object), alpha = 0.05)
 **Write full data.frame to file**
 
 ```{r write_tsv}
-readr::write_tsv(deseq_df, path = deseq_df_file)
+readr::write_tsv(deseq_df, file = deseq_df_file)
 ```
 
 #### Visualize differentially expressed genes with a heatmap
