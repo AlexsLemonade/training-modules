@@ -4,8 +4,10 @@ share_base=/shared/data/training-modules/
 # RNA-seq module
 mkdir -p RNA-seq/data/gastric-cancer
 mkdir -p RNA-seq/data/gastric-cancer/salmon_quant
+mkdir -p RNA-seq/data/NB-cell
 mkdir -p RNA-seq/QC/gastric-cancer/fastp/
 mkdir -p RNA-seq/QC/gastric-cancer/fastqc/
+
 
 
 link_locs=(
@@ -43,4 +45,4 @@ done
 ## link indexes
 mkdir -p RNA-seq/index/Homo_sapiens/
 ln -nsf /shared/data/reference/refgenie/hg38_cdna/salmon_index/short RNA-seq/index/Homo_sapiens/short_index 
-ln -s /shared/data/reference/tx2gene/Homo_sapiens.GRCh38.95_tx2gene.tsv RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
+ln -sf /shared/data/reference/tx2gene/Homo_sapiens.GRCh38.95_tx2gene.tsv RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
