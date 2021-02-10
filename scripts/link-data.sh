@@ -1,7 +1,19 @@
 #! /bin/bash
 
-share_base=/shared/data/training-modules/
-# RNA-seq module
+# This script is used to establish symlinks for training modules to use data
+# stored in a shared directory.
+
+# Set the working directory to the directory of this file
+cd "$(dirname "${BASH_SOURCE[0]}")"
+# move back up to the training modules root
+cd ..
+
+# location for the data modules
+share_base=/shared/data
+modules_base=${share_base}/training-modules
+
+
+# RNA-seq module directories
 mkdir -p RNA-seq/data/gastric-cancer
 mkdir -p RNA-seq/data/gastric-cancer/salmon_quant
 mkdir -p RNA-seq/data/NB-cell
@@ -39,10 +51,10 @@ link_locs=(
 )
 for loc in ${link_locs[@]}
 do
-  ln -nsf ${share_base}/${loc} ${loc}
+  ln -ns ${modules_base}/${loc} ${loc}
 done
 
 ## link indexes
 mkdir -p RNA-seq/index/Homo_sapiens/
-ln -nsf /shared/data/reference/refgenie/hg38_cdna/salmon_index/short RNA-seq/index/Homo_sapiens/short_index 
-ln -sf /shared/data/reference/tx2gene/Homo_sapiens.GRCh38.95_tx2gene.tsv RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
+ln -ns ${share_base}/reference/refgenie/hg38_cdna/salmon_index/short RNA-seq/index/Homo_sapiens/short_index 
+ln -s ${share_base}/reference/tx2gene/Homo_sapiens.GRCh38.95_tx2gene.tsv RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
