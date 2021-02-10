@@ -115,7 +115,7 @@ Below, we discuss the two commands we used in the script.
 
 ```bash
 # Create a directory to hold the JSON and HTML output from fastp
-mkdir -p QC/gastric_cancer/fastp/
+mkdir -p QC/gastric_cancer/fastp/SRR585570
 ```
 
 
@@ -132,8 +132,8 @@ fastp -i data/gastric-cancer/fastq/SRR585570/SRR585570_1.fastq.gz \
     --qualified_quality_phred 15 \
     --length_required 20 \
     --report_title "SRR585570" \
-    --json QC/gastric-cancer/fastp/SRR585570_fastp.json \
-    --html QC/gastric-cancer/fastp/SRR585570_fastp.html
+    --json QC/gastric-cancer/fastp/SRR585570/SRR585570_fastp.json \
+    --html QC/gastric-cancer/fastp/SRR585570/SRR585570_fastp.html
 ```
 
 Below, we'll walk through the arguments/options we used to run `fastp`.
