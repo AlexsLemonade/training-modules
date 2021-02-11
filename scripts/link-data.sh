@@ -51,10 +51,32 @@ link_locs=(
 )
 for loc in ${link_locs[@]}
 do
-  ln -ns ${modules_base}/${loc} ${loc}
+  # only make the links if replacing an old link or the file doesn't exist
+  if [[ -L ${loc} || ! -e ${loc} ]]
+  then
+    ln -nsf ${modules_base}/${loc} ${loc}
+  else
+    echo "${loc} already exists and is not a link, delete or move it to create a link."
+  fi
 done
 
 ## link indexes
 mkdir -p RNA-seq/index/Homo_sapiens/
-ln -ns ${share_base}/reference/refgenie/hg38_cdna/salmon_index/short RNA-seq/index/Homo_sapiens/short_index 
-ln -s ${share_base}/reference/tx2gene/Homo_sapiens.GRCh38.95_tx2gene.tsv RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
+hs_index_dest=RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
+hs_index_source=${share_base}/reference/refgenie/hg38_cdna/salmon_index/short
+if [[ -L ${hs_index_dest} || ! -e ${hs_index_dest} ]]
+then
+  ln -nsf ${hs_index_source} ${hs_index_dest} 
+else
+  echo "${hs_index_dest} already exists and is not a link, delete or move it to create a link."
+fi
+
+hs_tx2gene_dest=RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
+hs_tx2gene_source=${share_base}/reference/tx2gene/Homo_sapiens.GRCh38.95_tx2gene.tsv
+if [[ -L ${hs_tx2gene_dest} || ! -e ${hs_tx2gene_dest} ]]
+then
+  ln -sf ${hs_tx2gene_source} ${hs_tx2gene_dest}
+else
+  echo "${hs_tx2gene_dest} already exists and is not a link, delete or move it to create a link."
+
+fi
