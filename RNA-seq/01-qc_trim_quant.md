@@ -140,7 +140,7 @@ fastp -i data/gastric-cancer/fastq/SRR585570/SRR585570_1.fastq.gz \
 
 Below, we'll walk through the arguments/options we used to run `fastp`.
 By default, fastp performs adapter trimming, which you can read more about [here](https://github.com/OpenGene/fastp#adapters). 
-For paired-end data like that we have for SRR585570, adapters can be detected automatically without specifying an adapter sequence.
+For paired-end data like the data we have for SRR585570, adapters can be detected automatically without specifying an adapter sequence.
 
 #### Input: `-i` and `-I`
 
