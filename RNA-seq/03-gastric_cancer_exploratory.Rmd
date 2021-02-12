@@ -27,16 +27,23 @@ library(DESeq2)
 ```
 
 ```{r magrittr}
-# magrittr pipe
-`%>%` <- dplyr::`%>%`
+# magrittr for the pipe
+library(magrittr)
 ```
 
 ## Directories and files
 
 ```{r input-files}
+# Main data directory
+data_dir <- file.path("data", "gastric-cancer")
 # directory with the tximport processed data
-txi_dir <- file.path("data", "tximport", "gastric_cancer")
-txi_file <- file.path(txi_dir, "gastric_cancer_tximport.RDS")
+txi_dir <- file.path(data_dir, "tximport")
+txi_file <- file.path(txi_dir, "gastric-cancer_tximport.RDS")
+```
+
+```{r metadata-file}
+# sample metadata file
+meta_file <- file.path(data_dir, "gastric-cancer_metadata.tsv")
 ```
 
 We'll create a directory to hold our plots.
@@ -49,19 +56,13 @@ if (!dir.exists(plots_dir)) {
 }
 ```
 
-```{r metadata-file}
-# sample metadata file
-meta_dir <- file.path("data", "sample_metadata")
-meta_file <- file.path(meta_dir, "gastric_cancer",
-                       "gastric_cancer_sample_metadata.tsv")
-```
 
 **Output**
 
 ```{r output-files, live = TRUE}
 # We will save a PDF copy of the PCA plot to the plots directory
-# and name the file "gastric_cancer_PC_scatter.pdf"
-pca_plot_file <- file.path(plots_dir, "gastric_cancer_PC_scatter.pdf")
+# and name the file "gastric-cancer_PC_scatter.pdf"
+pca_plot_file <- file.path(plots_dir, "gastric-cancer_PC_scatter.pdf")
 ```
 
 ## DESeq2
@@ -104,14 +105,14 @@ We'll reorder the sample metadata to match the order in `txi`
 
 ```{r arrange-sample_meta_df}
 sample_meta_df <- sample_meta_df %>%
-  dplyr::arrange(accession)
+  dplyr::arrange(srr_accession)
 sample_meta_df
 ```
 
 Check if these are in the same order.
 
 ```{r all-equal}
-all.equal(tximport_sample_names, sample_meta_df$accession)
+all.equal(tximport_sample_names, sample_meta_df$srr_accession)
 ```
 
 We use the tissue of origin in the design formula because that will allow us
