@@ -32,7 +32,8 @@ The steps for development are:
 2. If your library isn't set up or in sync with the lockfile, you'll be prompted to run `renv::restore()`. This will happen if you first clone the project or haven't been working within the Docker container in a bit.
 3. Develop as normal.
 4. Run `renv::snapshot()` at the end of your session to capture the additional dependencies.
-5. Commit any changes to `renv.lock`.
+5. If there are dependencies you might want that are not captured automatically by `renv::snapshot()` (this may happen if a package is "recommended" by another, but not required), add them to `scripts/dependencies.R` with a call to `library()` and an explanatory comment. Then rerun `renv::snapshot()`
+6. Commit any changes to `renv.lock` and `dependencies.R`.
 
 Note that when you open up the `training-modules.Rproj`, the `.Rprofile` file makes it such that the `renv` library is loaded and the repositories in the `renv.lock` file will be set with `options(repos = ...)`.
 
