@@ -19,6 +19,7 @@ mkdir -p RNA-seq/data/gastric-cancer/salmon_quant
 mkdir -p RNA-seq/data/NB-cell
 mkdir -p RNA-seq/QC/gastric-cancer/fastp/
 mkdir -p RNA-seq/QC/gastric-cancer/fastqc/
+mkdir -p machine-learning/data
 
 
 
@@ -36,6 +37,7 @@ link_locs=(
   RNA-seq/QC/gastric-cancer/fastqc/SRR585571
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/NB-cell/salmon_quant
+  machine-learning/data/open-pbta
 )
 for loc in ${link_locs[@]}
 do
