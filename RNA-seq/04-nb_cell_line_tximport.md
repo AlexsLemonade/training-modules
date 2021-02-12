@@ -14,7 +14,7 @@ In order to prepare the NB cell line data for differential expression analysis, 
 
 * To create a new notebook, select `File` > `New File` > `R Notebook`. 
 The new notebook should appear in your Source Pane in RStudio.
-Save the new notebook, using Ctrl+S (Cmd+S on Mac) or `File` > `Save`, in the `training-modules/RNA-seq` directory with the name `nb_cell_tximport.Rmd`. 
+Save the new notebook, using Ctrl+S (Cmd+S on Mac) or `File` > `Save`, in the `training-modules/RNA-seq` directory with the name `nb_cell_line_tximport.Rmd`. 
 You can add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
 * Alter the code from `02-gastric_cancer_tximport-live.Rmd` to use the NB cell line data. 
