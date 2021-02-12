@@ -33,19 +33,7 @@ link_locs=(
   RNA-seq/data/gastric-cancer/salmon_quant/SRR585576
   RNA-seq/data/gastric-cancer/salmon_quant/SRR585577
   RNA-seq/QC/gastric-cancer/fastp/SRR585571
-  RNA-seq/QC/gastric-cancer/fastp/SRR585572
-  RNA-seq/QC/gastric-cancer/fastp/SRR585573
-  RNA-seq/QC/gastric-cancer/fastp/SRR585574
-  RNA-seq/QC/gastric-cancer/fastp/SRR585575
-  RNA-seq/QC/gastric-cancer/fastp/SRR585576
-  RNA-seq/QC/gastric-cancer/fastp/SRR585577
   RNA-seq/QC/gastric-cancer/fastqc/SRR585571
-  RNA-seq/QC/gastric-cancer/fastqc/SRR585572
-  RNA-seq/QC/gastric-cancer/fastqc/SRR585573
-  RNA-seq/QC/gastric-cancer/fastqc/SRR585574
-  RNA-seq/QC/gastric-cancer/fastqc/SRR585575
-  RNA-seq/QC/gastric-cancer/fastqc/SRR585576
-  RNA-seq/QC/gastric-cancer/fastqc/SRR585577
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/NB-cell/salmon_quant
 )
