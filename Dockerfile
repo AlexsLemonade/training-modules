@@ -32,10 +32,13 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     autoconf \
     libglpk-dev
 
+# Need this package to make plots colorblind friendly
+RUN Rscript -e "remotes::install_github('clauswilke/colorblindr', ref = '1ac3d4d62dad047b68bb66c06cee927a4517d678', dependencies = TRUE)"
+
 # FastQC
 RUN apt update && apt install -y fastqc
 
-# fastp 
+# fastp
 ENV FASTP_VERSION 0.20.1
 RUN git clone https://github.com/OpenGene/fastp.git
 RUN cd fastp && \
