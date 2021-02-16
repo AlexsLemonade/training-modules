@@ -15,6 +15,10 @@ option_list <- list(
   make_option(
     opt_str = "--skiprendering", action = "store_true",
     default = FALSE, help = "If used, will skip the markdown::render() steps for all notebooks."
+  ),
+  make_option(
+    opt_str = "--getdata", action = "store_true",
+    default = FALSE, help = "If used, will download data from S3 before attempting to render."
   )
 )
 
@@ -57,6 +61,9 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
 
 # Rerender notebooks if --skiprendering is FALSE
 if (!opt$skiprendering) {
+  if (opt$getdata){
+    system('aws sync s3 s3://ccdl-training-data/training-modules .')
+  }
   purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
 }
 
