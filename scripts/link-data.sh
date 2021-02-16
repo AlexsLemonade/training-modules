@@ -52,7 +52,7 @@ done
 
 ## link indexes
 mkdir -p RNA-seq/index/Homo_sapiens/
-hs_index_dest=RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
+hs_index_dest=RNA-seq/index/Homo_sapiens/short_index
 hs_index_source=${share_base}/reference/refgenie/hg38_cdna/salmon_index/short
 if [[ -L ${hs_index_dest} || ! -e ${hs_index_dest} ]]
 then
