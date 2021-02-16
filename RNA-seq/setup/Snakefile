@@ -1,0 +1,115 @@
+from snakemake.remote.S3 import RemoteProvider as S3RemoteProvider
+S3 = S3RemoteProvider()
+
+# Important settings are defined in the configfile, so this workflow must be run 
+# with the `--configfile <CONFIG>` option set.
+# If you want to keep fastq files, add the `--notemp` option
+
+
+basedir = config['base_dir']
+data_dir = os.path.join(basedir, "data", config['dataset'])
+qc_dir =  os.path.join(basedir, "QC", config['dataset'])
+s3_data = config['S3_base'] + "/data/" + config['dataset'] 
+
+wildcard_constraints:
+    # read is always a single digit number
+    read = "\d"
+
+rule all:
+    input:
+        os.path.join(data_dir, config['dataset'] + "_metadata.tsv"),
+        expand(os.path.join(data_dir, "salmon_quant", "{run_id}"), run_id = config['SRRs']),
+        expand(os.path.join(qc_dir, "fastqc", "{run_id}", "{run_id}_{read}_fastqc.html"), 
+               run_id = config['SRRs'], read = [1,2]),
+        expand(os.path.join(qc_dir, "fastqc", "{run_id}", "{run_id}_fastp_{read}_fastqc.html"), 
+               run_id = config['SRRs'], read = [1,2]),
+        expand(os.path.join(qc_dir, "fastp", "{run_id}", "{run_id}_fastp.json"), 
+               run_id = config['SRRs'])
+
+rule metadata:
+    # copy metadata from S3
+    input: 
+        S3.remote(s3_data + "/{sample}_metadata.tsv")
+    output:
+        "{base}/{sample}_metadata.tsv"
+    shell:
+        "cp {input} {output}"
+
+rule get_fastq:
+    # Download fastq files from EBI, using the expected directory structure
+    output:
+        temp("{base}/fastq/{run_id}/{run_id}_{read}.fastq.gz")
+    run:
+        base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq"
+        prefix = wildcards.run_id[0:6]
+        
+        if len(wildcards.run_id) <= 9:
+            # short ids have  sensible structure
+            url = f"{base_url}/{prefix}/{wildcards.run_id}/{wildcards.run_id}_{wildcards.read}.fastq.gz"
+        else:
+            # long ids need a bit of logic since the final number matters
+            suffix = "00" + wildcards.run_id[-1]
+            url = f"{base_url}/{prefix}/{suffix}/{wildcards.run_id}/{wildcards.run_id}_{wildcards.read}.fastq.gz"
+        shell(f"wget {url} -O {output} -q")
+
+rule fastqc:
+    # run fastqc
+    input:
+        "{base}/data/{set}/fastq/{run_id}/{run_id}_{read}.fastq.gz"
+    output:
+        "{base}/QC/{set}/fastqc/{run_id}/{run_id}_{read}_fastqc.html"
+    shell:
+        "fastqc {input} --outdir $(dirname {output}) -q"
+
+
+rule fastp:
+    input:
+        R1 = "{base}/data/{set}/fastq/{run_id}/{run_id}_1.fastq.gz",
+        R2 = "{base}/data/{set}/fastq/{run_id}/{run_id}_2.fastq.gz"
+    output:
+        R1 = temp("{base}/data/{set}/fastq-trimmed/{run_id}/{run_id}_fastp_1.fastq.gz"),
+        R2 = temp("{base}/data/{set}/fastq-trimmed/{run_id}/{run_id}_fastp_2.fastq.gz"),
+        json = "{base}/QC/{set}/fastp/{run_id}/{run_id}_fastp.json",
+        html = "{base}/QC/{set}/fastp/{run_id}/{run_id}_fastp.html"
+    threads: 4
+    shell:
+        "fastp -i {input.R1} -I {input.R2}"
+        " -o {output.R1} -O {output.R2}"
+        " --qualified_quality_phred 15"
+        " --length_required 20"
+        " --report_title '{wildcards.run_id}'"
+        " --json {output.json}"
+        " --html {output.html}"
+        " --thread {threads}"
+
+rule fastqc_trimmed:
+    # run fastqc
+    input:
+        "{base}/data/{set}/fastq-trimmed/{run_id}/{run_id}_fastp_{read}.fastq.gz"
+    output:
+        "{base}/QC/{set}/fastqc/{run_id}/{run_id}_fastp_{read}_fastqc.html"
+    shell:
+        "fastqc {input} --outdir $(dirname {output}) -q"
+
+rule salmon_quant:
+    # run salmon quantification
+    input:
+        index = config['salmon_index'],
+        R1 = "{base}/fastq-trimmed/{run_id}/{run_id}_fastp_1.fastq.gz",
+        R2 = "{base}/fastq-trimmed/{run_id}/{run_id}_fastp_2.fastq.gz"
+    output:
+        dir = directory("{base}/salmon_quant/{run_id}")
+    threads: 4
+    shell:
+        "salmon quant" 
+        " -i {input.index}"
+        " -l A"
+        " -1 {input.R1}"
+        " -2 {input.R2}"
+        " -o {output.dir}"
+        " --validateMappings"
+        " --rangeFactorizationBins 4"
+        " --gcBias"
+        " --seqBias"
+        " --threads {threads}"
+        " --quiet"

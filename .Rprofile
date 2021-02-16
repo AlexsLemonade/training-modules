@@ -1,4 +1,3 @@
-library(renv)
 source("renv/activate.R")
 
 # Set the repos using the renv.lock file
