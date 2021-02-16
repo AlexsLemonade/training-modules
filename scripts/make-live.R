@@ -62,7 +62,7 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
 # Rerender notebooks if --skiprendering is FALSE
 if (!opt$skiprendering) {
   if (opt$getdata){
-    system('aws sync s3 s3://ccdl-training-data/training-modules .')
+    system('aws s3 sync s3://ccdl-training-data/training-modules .')
   }
   purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
 }
