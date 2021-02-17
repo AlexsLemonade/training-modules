@@ -122,20 +122,34 @@ We can use the `class` function to see what type of object `gene_summarized` is.
 class(gene_summarized)
 ```
 
-This tells us that `gene_summarized` is a special type of object called a `SummarizedExperiment` which can be handled by the package of the same name. 
+This tells us that `gene_summarized` is an object called a [`SummarizedExperiment`](https://www.rdocumentation.org/packages/SummarizedExperiment/versions/1.2.3/topics/SummarizedExperiment-class) which can be handled by functions from the package of the same name. 
+We more specifically have a `RangedSummarizedExperiment` which is a more specific type of `SummarizedExperiment`.
 
-Let's take a look at what data we have from this. 
+SummarizedExperiment objects have this general structure ()
+
+![SummarizedExperiment](diagrams/SummarizeExperiment-structure.png)
+
+This figure is from this handy vignette about [`SummarizedExperiment` objects](https://www.bioconductor.org/packages/devel/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
+
+```{r}
+
+```
+
+The `assays` in this `SummarizedExperiment` hold the experiment data, in this case, a gene x sample matrix with gene-level abundance information. 
+
+Multiple `assays` can be stored in an `SummarizedExperiment` and we can use the `assayNames()` function to see what assays are included in `gene_summarized`. 
 
 ```{r assay-names, live = TRUE}
-SummarizedExperiment::assayNames(gene_summarized)
+assayNames(gene_summarized)
 ```
 
 ![tximport assay](diagrams/tximport.png)
 
-If we want to extract the data itself, we can use `SummarizedExperiment::assay()`.
+If we want to extract an `assay` itself, we can use `assay()` function and 
+specify the name of the assay we want to extract.
 
 ```{r assay, live = TRUE}
-counts_mat <- SummarizedExperiment::assay(gene_summarized, "counts")
+counts_mat <- assay(gene_summarized, "counts")
 ```
 
 We can use the `class` function to see what type of object the `tximport`
@@ -148,12 +162,16 @@ class(counts_mat)
 
 ### Save to file
 
-We'll import this with the `DESeq2` package.
+We could use `readr::write_tsv` to save `counts_mat` only but `gene_summarized` 
+has a lot of information stored here beyond the counts, so we may want to save 
+all of this to a RDS object. 
 
 ```{r write-txi, live = TRUE}
 # Write txi to RDS object
 readr::write_rds(txi_meta, file = txi_out_file)
 ```
+
+We'll import this with the `DESeq2` package in the next notebook.
 
 ## Session Info
 
