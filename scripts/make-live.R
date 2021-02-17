@@ -62,7 +62,7 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
 # Rerender notebooks if --rendering is FALSE
 if (opt$rendering) {
   purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
-}x
+}
 
 # new files will be made with -live.Rmd suffix
 outfiles <- stringr::str_replace(infiles, "(.*)\\.Rmd$", "\\1-live.Rmd")
