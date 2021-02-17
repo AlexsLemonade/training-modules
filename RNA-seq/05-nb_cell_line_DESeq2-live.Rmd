@@ -36,15 +36,15 @@ library(DESeq2)
 
 ```{r magrittr}
 # magrittr pipe
-`%>%` <- dplyr::`%>%`
+library(magrittr)
 ```
 
 ## Directories and files
 
 ```{r input-files}
 # directory with the tximport processed data
-txi_dir <- file.path("data", "tximport", "NB_cell_line")
-txi_file <- file.path(txi_dir, "NB_cell_line_tximport.RDS")
+txi_dir <- file.path("data", "NB-cell", "tximport")
+txi_file <- file.path(txi_dir, "NB-cell_tximport.RDS")
 ```
 
 We'll create a results directory to hold our results.
@@ -64,9 +64,8 @@ if (!dir.exists(results_dir)) {
 
 ```{r meta-files}
 # sample metadata path and  file
-meta_dir <- file.path("data", "sample_metadata")
-meta_file <- file.path(meta_dir, "NB_cell_line",
-                       "NB_cell_line_metadata_cleaned.tsv")
+data_dir <- file.path("data", "NB-cell")
+meta_file <- file.path(data_dir, "NB-cell_metadata.tsv")
 ```
 
 **Output**
@@ -74,14 +73,14 @@ meta_file <- file.path(meta_dir, "NB_cell_line",
 ```{r output-files}
 # RDS for the output of DESeq function
 deseq_file <- file.path(results_dir, 
-                        "NB_cell_line_DESeq_amplified_v_nonamplified.RDS")
+                        "NB-cell_DESeq_amplified_v_nonamplified.RDS")
 # DESeq2 results data.frame
 deseq_df_file <- 
   file.path(results_dir,
-            "NB_cell_line_DESeq_amplified_v_nonamplified_results.tsv")
+            "NB-cell_DESeq_amplified_v_nonamplified_results.tsv")
 
 # PNG of the heatmap of DEGs
-heatmap_file <- file.path(plots_dir, "NB_cell_line_heatmap.png")
+heatmap_file <- file.path(plots_dir, "NB-cell_heatmap.png")
 ```
 
 ## DESeq2
@@ -114,18 +113,18 @@ Let's check that the ordering of samples is the same.
 
 ```{r all.equal}
 tximport_sample_names <- colnames(txi$counts)
-all.equal(tximport_sample_names, sample_meta_df$Sample_SRR_accession)
+all.equal(tximport_sample_names, sample_meta_df$srr_accession)
 ```
 
-Let's reorder by `Sample_SRR_accession` and see if that remedies the ordering.
+Let's reorder by `srr_accession` and see if that remedies the ordering.
 
 ```{r arrange-sample_meta_df}
 sample_meta_df <- sample_meta_df %>%
-  dplyr::arrange(Sample_SRR_accession)
+  dplyr::arrange(srr_accession)
 ```
 
 ```{r all.equal-2}
-all.equal(tximport_sample_names, sample_meta_df$Sample_SRR_accession)
+all.equal(tximport_sample_names, sample_meta_df$srr_accession)
 ```
 
 It worked!
@@ -153,7 +152,7 @@ We'll want to use the "Nonamplified" samples as our _reference_.
 Let's look at the `levels` of `Status`.
 
 ```{r levels}
-levels(ddset$Status)
+levels(ddset$status)
 ```
 
 We can see that these are in alphabetical order, so "Amplified" samples would
@@ -161,7 +160,7 @@ be the reference.
 We can use the `relevel` function to remedy this.
 
 ```{r relevel}
-ddset$Status <- relevel(ddset$Status, ref = "Nonamplified")
+ddset$status <- relevel(ddset$status, ref = "Nonamplified")
 ```
 
 ```{r check-levels, live = TRUE}
@@ -221,7 +220,7 @@ summary(results(deseq_object), alpha = 0.05)
 **Write full data.frame to file**
 
 ```{r write_tsv}
-readr::write_tsv(deseq_df, path = deseq_df_file)
+readr::write_tsv(deseq_df, file = deseq_df_file)
 ```
 
 #### Visualize differentially expressed genes with a heatmap
@@ -309,7 +308,7 @@ dev.off()
 
 ## Session Info
 
-Record session info for reproducibility & provenence purposes.
+Record session info for reproducibility & provenance purposes.
 
 ```{r sessioninfo}
 sessionInfo()

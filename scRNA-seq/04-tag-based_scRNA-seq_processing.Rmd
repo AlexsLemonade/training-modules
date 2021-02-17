@@ -46,7 +46,7 @@ Once you are there, you should be able to run the following command in the Termi
 ls data/tabula-muris
 ```
 
-Here you will see the `fastq-raw` directory, which is a actually link to a shared folder with the raw fastq files, split by sample.
+Here you will see the `fastq` directory, which is a actually link to a shared folder with the raw fastq files, split by sample.
 We will use these files, but we will not write to this directory. 
 
 You will also see the file `TM_droplet_metadata.csv`, which contains metadata for the *Tabula Muris* experiments.
@@ -93,13 +93,13 @@ This will take about 20 minutes to run, so we will start now, then talk about th
 
 ```
 salmon alevin -l ISR \
-  -i ~/shared-data/reference/refgenie/mm10_cdna/salmon_index/short/short/ \
-  -1 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L001_R1_001.fastq.gz \
-  -2 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L001_R2_001.fastq.gz \
+  -i ~/shared-data/reference/refgenie/mm10_cdna/salmon_index/short \
+  -1 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L001_R1_001.fastq.gz \
+  -2 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L001_R2_001.fastq.gz \
   --chromium  \
   -p 5 \
   -o data/tabula-muris/alevin-quant/10X_P4_3 \
-  --tgMap data/tabula-muris/mm_ensdb95_tx2gene.tsv \
+  --tgMap index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv \
   --dumpFeatures
 ```
 
@@ -125,7 +125,7 @@ However, Drop-seq data is also supported, and in this case you would use a `--dr
 
 #### `--tgMap`
 This is needed to supply a transcript to gene key that Alevin will use to quantify the genes.
-For our example, we've pre-made the file `mm_ensdb95_tx2gene.tsv` from the Ensembl transcriptome that we indexed above. 
+For our example, we've pre-made the file `Mus_musculus.GRCm38.95.versioned_tx2gene.tsv` from the Ensembl transcriptome that we indexed above. 
 The file is a TSV file with 2 columns: one of transcripts and the other the gene that each comes from.
 
 
@@ -140,7 +140,7 @@ There are also a number of example analyses at the [Alevin tutorial](https://com
 ### Note: Running the FULL sample.
 
 Sequencing runs are often split into multiple `fastq` files, both when a sample was run across multiple lanes and to keep the individual file sizes down. 
-This was the case for the *Tabula Muris* data we used here as well. If you look in the `data/tabula-muris/fastq-raw/10X_P4_3` directory, you will see the following files, representing 2 lanes, with three R1 and three R2 files per lane:
+This was the case for the *Tabula Muris* data we used here as well. If you look in the `data/tabula-muris/fastq/10X_P4_3` directory, you will see the following files, representing 2 lanes, with three R1 and three R2 files per lane:
 
 ```
 10X_P4_3_L001_R1_001.fastq.gz  10X_P4_3_L002_R1_001.fastq.gz
@@ -166,13 +166,13 @@ For this directory, that would look make our full `salmon alevin` command look l
 
 ```
 # salmon alevin -l ISR \
-#   -i ~/shared-data/reference/refgenie/mm10_cdna/salmon_index/short/short/ \
-#   -1 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R1_*.fastq.gz \
-#   -2 data/tabula-muris/fastq-raw/10X_P4_3/10X_P4_3_L*_R2_*.fastq.gz \
+#   -i ~/shared-data/reference/refgenie/mm10_cdna/salmon_index/short/ \
+#   -1 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L*_R1_*.fastq.gz \
+#   -2 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L*_R2_*.fastq.gz \
 #   --chromium  \
 #   -p 4 \
 #   -o data/tabula-muris/alevin-quant/10X_P4_3_full \
-#   --tgMap data/tabula-muris/mm_ensdb95_tx2gene.tsv \
+#   --tgMap index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv \
 #   --dumpFeatures
 ```
 
