@@ -9,11 +9,12 @@ output:
 **CCDL 2018**
 
 In this notebook, we'll import transcript level output from `salmon quant` and
-summarize it to the gene level using [`tximport`](https://bioconductor.org/packages/release/bioc/html/tximport.html).
+summarize it to the gene level using 'transcript expression import' - [`tximport`](https://bioconductor.org/packages/release/bioc/html/tximport.html) and 'tximport meta' - [`tximeta`](https://bioconductor.org/packages/release/bioc/html/tximeta.html). 
+
 
 ![](diagrams/rna-seq_5.png)
 
-For more information about `tximport`, see [this excellent vignette](https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html) from Love, Soneson, and Robinson.
+For more information about `tximeta`, see [this excellent vignette](https://www.bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html) from Love, Soneson, Hickey, and Patro.
 
 We'll need the `quant.sf` files for all the samples in an experiment and a file
 that maps between Ensembl transcript ids and Ensembl gene ids.
@@ -23,8 +24,8 @@ organism.
 ## Libraries and functions
 
 ```{r library, live = TRUE}
-# Load the tximport package
-library(tximport)
+# Load the tximeta package
+library(tximeta)
 ```
 
 ## Directories and files
@@ -80,8 +81,9 @@ sample_names <- stringr::word(sf_files, 4, sep = "/")
 sample_names
 ```
 
-We'll add these names to the file paths vector, that way they are reflected in
-what we do next with `tximport`.
+`tximeta` needs a data.frame with these columns: 
+- a `files` column  with the file paths to the quant.sf files
+- a `names` column with the sample names
 
 ```{r names_sf_files}
 coldata <- data.frame(files = sf_files, 
@@ -91,9 +93,15 @@ coldata <- data.frame(files = sf_files,
 
 ## Set up our tximeta object
 
+Using our `coldata` data frame we set up, we can run the `tximeta()` which will 
+extract species specific information.
+
 ```{r read_tsv, live = TRUE}
-txi_meta <- tximeta::tximeta(coldata)
+txi_meta <- tximeta(coldata)
 ```
+
+*There are extra steps needed if you are using any species other than human and mouse.
+See our other species examples in `tximeta_for_other_species.Rmd`. 
 
 ### Summarize to gene
 
