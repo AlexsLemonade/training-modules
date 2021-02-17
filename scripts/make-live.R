@@ -14,7 +14,7 @@ library(optparse)
 # Set up optparse options
 option_list <- list(
   make_option(
-    opt_str = "--rendering", action = "store", type = "character",
+    opt_str = "--rendering", type = "character", metavar = "character",
     default = "TRUE", help = "Needs a 'TRUE/FALSE' to determine whether the markdown::render() steps will be run for all notebooks."
   )
 )
@@ -59,10 +59,10 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
              )
 
 
-# Rerender notebooks if --skiprendering is FALSE
-if (!opt$skiprendering) {
+# Rerender notebooks if --rendering is FALSE
+if (opt$rendering) {
   purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
-}
+}x
 
 # new files will be made with -live.Rmd suffix
 outfiles <- stringr::str_replace(infiles, "(.*)\\.Rmd$", "\\1-live.Rmd")
