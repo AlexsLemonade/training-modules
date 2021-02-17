@@ -5,3 +5,13 @@ library(magick)
 
 # Recommended by tximport
 library(fishpond)
+
+# Required for DESeq2::lfcShrink()
+library(apeglm)
+
+# Required for scater
+library(uwot)
+library(Rtsne)
+
+# required for enrichplot::upsetplot
+library(ggupset)
