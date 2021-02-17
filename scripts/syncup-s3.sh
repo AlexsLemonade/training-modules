@@ -22,6 +22,7 @@ sync_locs=(
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/index/Mus_musculus
   machine-learning/data/open-pbta/processed
+  pathway-analysis/data/medulloblastoma/medulloblastoma_vst_collapsed.tsv
 )
 
 for loc in ${link_locs[@]}
