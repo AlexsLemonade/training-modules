@@ -1,5 +1,5 @@
 ---
-title: "NB cell line: gene-level summarization with `tximport`"
+title: "Gastric cancer: gene-level summarization with `tximport`"
 output:   
   html_notebook: 
     toc: true
@@ -8,12 +8,10 @@ output:
 
 **CCDL 2018**
 
-This is the solved notebook version as a result of the prompt in `04-nb_cell_line_tximport.md`.
-
 In this notebook, we'll import transcript level output from `salmon quant` and
 summarize it to the gene level using [`tximport`](https://bioconductor.org/packages/release/bioc/html/tximport.html).
 
-![](../diagrams/rna-seq_5.png)
+![](diagrams/rna-seq_5.png)
 
 For more information about `tximport`, see [this excellent vignette](https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html) from Love, Soneson, and Robinson.
 
@@ -34,10 +32,10 @@ library(tximport)
 ```{r directories, live = TRUE}
 # directory where the quant files are located, each sample is its own
 # directory
-quant_dir <- file.path("..", "data", "NB-cell", "salmon_quant")
+quant_dir <- file.path("data", "gastric-cancer", "salmon_quant")
 
 # create a directory to hold the tximport results if it doesn't exist yet
-txi_dir <- file.path("..", "data", "NB-cell", "tximport")
+txi_dir <- file.path("data", "gastric-cancer", "tximport")
 if (!dir.exists(txi_dir)) {
   dir.create(txi_dir, recursive = TRUE)
 }
@@ -49,16 +47,16 @@ sf_files <- list.files(quant_dir, recursive = TRUE, full.names = TRUE,
                        pattern = "quant.sf")
 
 # file that contains the gene to transcript mapping from refine.bio
-tx2gene_file <- file.path("..", "index", "Homo_sapiens",
+tx2gene_file <- file.path("index", "Homo_sapiens",
                           "Homo_sapiens.GRCh38.95_tx2gene.tsv")
 ```
 
 **Output**
 
 ```{r output-names, live = TRUE}
-# Name the output NB-cell_tximport.RDS and use the directory created 
+# Name the output gastric-cancer_tximport.RDS and use the directory created 
 # above as the rest of the path
-txi_out_file <- file.path(txi_dir, "NB-cell_tximport.RDS")
+txi_out_file <- file.path(txi_dir, "gastric-cancer_tximport.RDS")
 ```
 
 ### Naming
@@ -82,7 +80,7 @@ This is exactly what `stringr::word` allows us to do: split up the file paths
 by `/` and extract the sample names.
 
 ```{r sample_names}
-sample_names <- stringr::word(sf_files, 5, sep = "/")
+sample_names <- stringr::word(sf_files, 4, sep = "/")
 sample_names
 ```
 
@@ -185,7 +183,7 @@ str(txi)
 ```
 
 Now, here's a breakdown of the `txi` object.
-![](../diagrams/tximport.png)
+![](diagrams/tximport.png)
 
 Save to file -- we'll import this with the `DESeq2` package.
 
