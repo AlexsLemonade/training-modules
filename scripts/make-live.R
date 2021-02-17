@@ -6,7 +6,7 @@
 # Comments are preserved
 #
 # If --rendering option is FALSE, the rendering is skipped.
-# Default is TRUE -- rendering is not skipped. 
+# Default is TRUE -- rendering is not skipped.
 
 # Load library:
 library(optparse)
@@ -14,7 +14,7 @@ library(optparse)
 # Set up optparse options
 option_list <- list(
   make_option(
-    opt_str = "--rendering", action = "character",
+    opt_str = "--rendering", action = "store", type = "character",
     default = "TRUE", help = "Needs a 'TRUE/FALSE' to determine whether the markdown::render() steps will be run for all notebooks."
   )
 )
