@@ -16,6 +16,10 @@ sync_locs=(
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/NB-cell/tximport
   RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
+  scRNA-seq/data/glioblastoma/preprocessed/tximport/count_matrix.tsv
+  scRNA-seq/data/glioblastoma/preprocessed/darmanis_metadata.tsv
+  scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
+  scRNA-seq/index/Mus_musculus
   machine-learning/data/open-pbta/processed
 )
 
