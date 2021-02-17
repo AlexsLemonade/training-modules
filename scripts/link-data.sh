@@ -19,6 +19,9 @@ mkdir -p RNA-seq/data/gastric-cancer/salmon_quant
 mkdir -p RNA-seq/data/NB-cell
 mkdir -p RNA-seq/QC/gastric-cancer/fastp/
 mkdir -p RNA-seq/QC/gastric-cancer/fastqc/
+mkdir -p scRNA-seq/data/glioblastoma/
+mkdir -p scRNA-seq/data/tabula-muris/
+mkdir -p machine-learning/data
 
 
 
@@ -36,6 +39,10 @@ link_locs=(
   RNA-seq/QC/gastric-cancer/fastqc/SRR585571
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/NB-cell/salmon_quant
+  scRNA-seq/data/glioblastoma/preprocessed
+  scRNA-seq/data/tabula-muris/fastq
+  scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
+  machine-learning/data/open-pbta
 )
 for loc in ${link_locs[@]}
 do
@@ -50,7 +57,7 @@ done
 
 ## link indexes
 mkdir -p RNA-seq/index/Homo_sapiens/
-hs_index_dest=RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
+hs_index_dest=RNA-seq/index/Homo_sapiens/short_index
 hs_index_source=${share_base}/reference/refgenie/hg38_cdna/salmon_index/short
 if [[ -L ${hs_index_dest} || ! -e ${hs_index_dest} ]]
 then
@@ -66,5 +73,16 @@ then
   ln -sf ${hs_tx2gene_source} ${hs_tx2gene_dest}
 else
   echo "${hs_tx2gene_dest} already exists and is not a link, delete or move it to create a link."
+fi
+
+# Mouse tx2gene for single cell
+mkdir -p scRNA-seq/index/Mus_musculus/
+mm_tx2gene_dest=scRNA-seq/index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv
+mm_tx2gene_source=${share_base}/reference/tx2gene/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv
+if [[ -L ${mm_tx2gene_dest} || ! -e ${mm_tx2gene_dest} ]]
+then
+  ln -sf ${mm_tx2gene_source} ${mm_tx2gene_dest}
+else
+  echo "${mm_tx2gene_dest} already exists and is not a link, delete or move it to create a link."
 
 fi

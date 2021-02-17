@@ -45,7 +45,7 @@ if (!dir.exists(results_dir)) {
 
 ```{r input_files}
 histologies_file <- file.path(data_dir, "pbta-histologies-stranded-rnaseq.tsv")
-rnaseq_file <- file.path(data_dir, "pbta-vst-stranded.tsv")
+rnaseq_file <- file.path(data_dir, "pbta-vst-stranded.tsv.gz")
 ```
 
 #### Output files
@@ -253,7 +253,7 @@ umap_plot_df %>%
              y = X2,
              color = molecular_subtype)) +
   geom_point() +
-  scale_color_manual(values = palette.colors(palette = "Okabe-Ito")) +
+  scale_color_manual(values = unname(palette.colors(palette = "Okabe-Ito"))) +
   theme_bw() +
   xlab("UMAP1") +
   ylab("UMAP2")
@@ -287,7 +287,7 @@ pca_plot_df %>%
              y = PC2,
              color = molecular_subtype)) +
   geom_point() +
-  scale_color_manual(values = palette.colors(palette = "Okabe-Ito")) +
+  scale_color_manual(values = unname(palette.colors(palette = "Okabe-Ito"))) +
   theme_bw() +
   xlab("PC1") +
   ylab("PC2")
@@ -301,7 +301,7 @@ pca_plot_df %>%
              y = PC3,
              color = molecular_subtype)) +
   geom_point() +
-  scale_color_manual(values = palette.colors(palette = "Okabe-Ito")) +
+  scale_color_manual(values = unname(palette.colors(palette = "Okabe-Ito"))) +
   theme_bw() +
   xlab("PC2") +
   ylab("PC3")
@@ -322,7 +322,7 @@ pca_importance <- pca_summary$importance[, 1:10]
 pca_importance
 ```
 
-You might consider adding these values to your axis labels to add readers in interpretation.
+You might consider adding these values to your axis labels to aid readers in interpretation.
 (`DESeq2::plotPCA()`, which we used in the bulk RNA-seq module, does this for us!)
 
 [`plotly`](https://plotly.com/r/) is a package that allows us to plot interactive 3D scatterplots.
@@ -335,8 +335,7 @@ pca_3d_plot <- plot_ly(data = pca_plot_df,
                        y = ~ PC2,
                        z = ~ PC3,
                        type = "scatter3d",
-                       color = ~ molecular_subtype,
-                       colors = colorblindr::palette_OkabeIto[1:4])
+                       color = ~ molecular_subtype)
 
 # Add axis labels
 pca_3d_plot <- pca_3d_plot %>% 
