@@ -6,31 +6,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
 RUN apt-get install dialog apt-utils -y
 
 RUN apt-get update -qq && apt-get -y --no-install-recommends install \
+    autoconf \
     build-essential \
+    ca-certificates \
+    curl \
+    g++ \
+    gcc \
+    git \
+    groff \
+    less \
+    libboost-all-dev \
+    libbz2-dev \
+    libglpk-dev \
+    liblzma-dev \
+    libmagick++-dev \
+    libmariadbclient-dev \
+    libmariadbd-dev \
+    libpq-dev \
+    libsqlite-dev \
+    libssh2-1-dev \
     libxml2 \
     libxml2-dev \
-    libsqlite-dev \
-    libmariadbd-dev \
-    libmariadbclient-dev \
-    libpq-dev \
-    libssh2-1-dev \
-    pandoc \
-    libmagick++-dev \
-    time \
-    python3-pip \
-    git \
-    gcc \
     make \
-    g++ \
-    libboost-all-dev \
-    liblzma-dev \
-    libbz2-dev \
-    ca-certificates \
-    zlib1g-dev \
-    curl \
+    pandoc \
+    python3-pip \
+    time \
     unzip \
-    autoconf \
-    libglpk-dev
+    zlib1g-dev 
 
 # AWS
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip" && \
