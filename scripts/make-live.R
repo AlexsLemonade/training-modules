@@ -61,7 +61,7 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
 
 # Rerender notebooks if --rendering is TRUE
 if (opt$rendering) {
-  purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
+  purrr::map(infiles, rmarkdown::render, envir = new.env())
 }
 
 # new files will be made with -live.Rmd suffix
