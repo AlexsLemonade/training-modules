@@ -13,7 +13,6 @@ on:
         default: 'FALSE'
 
 jobs:
-  # This workflow contains a single job called "build-all"
   make-live:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -25,39 +24,47 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Add a download data step here
-      #- name: Download data
+      - name: Set up AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Download data from S3
+        run: |
+          aws s3 sync s3://ccdl-training-data/training-modules/ .
 
       # Run the make-live.R script
       - name: Run make-live.R
         id: make_live
         run: Rscript --vanilla scripts/make-live.R --rendering TRUE
 
-      # Make changes to pull request here
-      - name: Create PR with rendered notebooks
-        uses: peter-evans/create-pull-request@v3
-        with:
-          commit-message: Run make-live.R
-          signoff: false
-          branch: run_make-live.R
-          delete-branch: true
-          title: 'GHA: Automated make live versions of the notebooks'
-          body: |
-            ### Description:
-            This PR auto-generated from github actions running make-live.R with:
-              - The latest notebooks on the master branch
-              - The latest docker image on Dockerhub
+      # # Make changes to pull request here
+      # - name: Create PR with rendered notebooks
+      #   uses: peter-evans/create-pull-request@v3
+      #   with:
+      #     commit-message: Run make-live.R
+      #     signoff: false
+      #     branch: run_make-live.R
+      #     delete-branch: true
+      #     title: 'GHA: Automated make live versions of the notebooks'
+      #     body: |
+      #       ### Description:
+      #       This PR auto-generated from github actions running make-live.R with:
+      #         - The latest notebooks on the master branch
+      #         - The latest docker image on Dockerhub
 
-            ### Instruction for reviewers:
-              Make sure that all the notebooks have been made into `_live` versions appropriately and have the updates you expect.
+      #       ### Instruction for reviewers:
+      #         Make sure that all the notebooks have been made into `_live` versions appropriately and have the updates you expect.
 
-          labels: |
-            automated
-          reviewers: $GITHUB_ACTOR
+      #     labels: |
+      #       automated
+      #     reviewers: $GITHUB_ACTOR
 
 
-      # Spit out PR info
-      - name: Check outputs
-        run: |
-          echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
-          echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
+      # # Spit out PR info
+      # - name: Check outputs
+      #   run: |
+      #     echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+      #     echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
