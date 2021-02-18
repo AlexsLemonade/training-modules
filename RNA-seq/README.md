@@ -14,4 +14,4 @@ The notebooks that comprise this module are (estimated time to complete notebook
 * [Additional exercises](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/06-bulk_rnaseq_exercise.Rmd)
 
 
-_Total estimated time to complete instruction notebooks: 3 hours 10 minutes_
+_Total estimated time to complete instruction notebooks: 3 hours 15 minutes_
