@@ -32,6 +32,11 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     autoconf \
     libglpk-dev
 
+# AWS
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install
+
 # FastQC
 RUN apt update && apt install -y fastqc
 
@@ -41,7 +46,7 @@ RUN git clone https://github.com/OpenGene/fastp.git
 RUN cd fastp && \
     git checkout tags/v${FASTP_VERSION} -b v${FASTP_VERSION} && \
     make && \
-    sudo make install
+    make install 
 
 # MultiQC
 ENV MULTIQC_VERSION 1.9
@@ -67,6 +72,6 @@ RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
 WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
 RUN R -e 'renv::consent(provided = TRUE)'
-RUN R -e 'renv::restore()'
+RUN R -e 'renv::restore()' && rm -r ~/.local/share/renv
 
 WORKDIR /home/rstudio
