@@ -73,17 +73,20 @@ First, let's read in the data we processed with `tximport`.
 
 ```{r read-rds, live = TRUE}
 # Read in the RDS file we created in the last notebook
-txi <- readr::read_rds(txi_file)
+gene_summarized <- readr::read_rds(txi_file)
 ```
 
 ```{r txi-counts, live = TRUE}
+# Extract the counts from the 
+counts <- assay(gene_summarized, "counts")
+
 # Let's look at the first few rows of the gene-level counts
-head(txi$counts)  
+head(counts)  
 ```
 
 ```{r txi-abundance, live = TRUE}
 # Let's look at the first few rows of the gene-level TPM
-head(txi$abundance) 
+head(assay(gene_summarized, "abundance")) 
 ```
 
 And now we'll read in the sample metadata.
@@ -97,7 +100,7 @@ sample_meta_df
 We'll save the column names of the counts to a variable that tells us the order of the sample names in `txi`.
 
 ```{r col-names-txi}
-tximport_sample_names <- colnames(txi$counts)
+tximport_sample_names <- colnames(counts)
 tximport_sample_names
 ```
 
@@ -115,13 +118,19 @@ Check if these are in the same order.
 all.equal(tximport_sample_names, sample_meta_df$srr_accession)
 ```
 
+DESeq2 will want these counts to be rounded numbers. 
+
+```{r}
+counts <- round(counts)
+```
+
 We use the tissue of origin in the design formula because that will allow us
 to model this variable of interest.
 
 ```{r ddset}
-ddset <- DESeqDataSetFromTximport(txi = txi,
-                                  colData = sample_meta_df,
-                                  design = ~ tissue)
+ddset <- DESeqDataSetFromMatrix(counts,
+                                colData = sample_meta_df,
+                                design = ~ tissue)
 ```
 
 ### Variance stabilizing transformation
@@ -179,9 +188,9 @@ Let's rerun the `DESeq2` steps.
 # Rerun the dataset creation step
 # Note: if we were using this for differential expression AND we truly knew
 # the batch, we'd likely use design = ~ batch + tissue
-ddset_batch <- DESeqDataSetFromTximport(txi = txi,
-                                        colData = sample_meta_df,
-                                        design = ~ tissue)
+ddset_batch <- DESeqDataSetFromMatrix(counts,
+                                      colData = sample_meta_df,
+                                      design = ~ tissue)
 # variance stabilizing transformation
 vst_batch <- vst(ddset_batch)
 ```
