@@ -1,0 +1,61 @@
+name: Make Live
+# Make live versions of .Rmd files in training modules
+
+# This workflow only runs when it is manually dispatched
+on:
+  workflow_dispatch:
+    inputs:
+      rendering:
+        description: Should rendering be completed? TRUE or FALSE
+        required: true
+        default: 'FALSE'
+
+jobs:
+  # This workflow contains a single job called "build-all"
+  make-live:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    container:
+      image: ccdl/training_dev:latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Add a download data step here
+      #- name: Download data
+
+      # Run the make-live.R script
+      - name: Run make-live.R
+        id: make_live
+        run: Rscript --vanilla scripts/make-live.R --rendering ${{ github.event.inputs.rendering }}
+
+      # Make changes to pull request here
+      - name: Create PR with rendered notebooks
+        uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: Run make-live.R
+          signoff: false
+          branch: run_make-live.R
+          delete-branch: true
+          title: 'GHA: Automated make live versions of the notebooks'
+          body: |
+            ### Description:
+            This PR auto-generated from github actions running make-live.R with:
+              - The latest notebooks on the master branch
+              - The latest docker image on Dockerhub
+
+            ### Instruction for reviewers:
+              Make sure that all the notebooks have been made into `_live` versions appropriately and have the updates you expect.
+
+          labels: |
+            automated
+          reviewers: $GITHUB_ACTOR
+
+
+      # Spit out PR info
+      - name: Check outputs
+        run: |
+          echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+          echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
