@@ -27,23 +27,16 @@ from Love, Anders, and Huber from which this is adapted
 ```
 
 ```{r magrittr}
-# magrittr for the pipe
-library(magrittr)
+# magrittr pipe
+`%>%` <- dplyr::`%>%`
 ```
 
 ## Directories and files
 
 ```{r input-files}
-# Main data directory
-data_dir <- file.path("data", "gastric-cancer")
 # directory with the tximport processed data
-txi_dir <- file.path(data_dir, "tximport")
-txi_file <- file.path(txi_dir, "gastric-cancer_tximport.RDS")
-```
-
-```{r metadata-file}
-# sample metadata file
-meta_file <- file.path(data_dir, "gastric-cancer_metadata.tsv")
+txi_dir <- file.path("data", "tximport", "gastric_cancer")
+txi_file <- file.path(txi_dir, "gastric_cancer_tximport.RDS")
 ```
 
 We'll create a directory to hold our plots.
@@ -53,12 +46,18 @@ We'll create a directory to hold our plots.
 
 ```
 
+```{r metadata-file}
+# sample metadata file
+meta_dir <- file.path("data", "sample_metadata")
+meta_file <- file.path(meta_dir, "gastric_cancer",
+                       "gastric_cancer_sample_metadata.tsv")
+```
 
 **Output**
 
 ```{r output-files, live = TRUE}
 # We will save a PDF copy of the PCA plot to the plots directory
-# and name the file "gastric-cancer_PC_scatter.pdf"
+# and name the file "gastric_cancer_PC_scatter.pdf"
 
 ```
 
@@ -101,14 +100,14 @@ We'll reorder the sample metadata to match the order in `txi`
 
 ```{r arrange-sample_meta_df}
 sample_meta_df <- sample_meta_df %>%
-  dplyr::arrange(srr_accession)
+  dplyr::arrange(accession)
 sample_meta_df
 ```
 
 Check if these are in the same order.
 
 ```{r all-equal}
-all.equal(tximport_sample_names, sample_meta_df$srr_accession)
+all.equal(tximport_sample_names, sample_meta_df$accession)
 ```
 
 We use the tissue of origin in the design formula because that will allow us
@@ -191,7 +190,7 @@ Let's rerun the `DESeq2` steps.
 percent_var <- round(100 * attr(pca_data, "percentVar"))
 ```
 
-Let's use ggplot to visualize the first two principal components. 
+Let's use ggplot to vizualize the first two principal components. 
 
 ```{r color-by-batch, live = TRUE}
 # Color points by "batch" and use shape to indicate the tissue of origin
@@ -200,7 +199,7 @@ Let's use ggplot to visualize the first two principal components.
 
 ## Session Info
 
-Record session info for reproducibility & provenance purposes.
+Record session info for reproducibility & provenence purposes.
 
 ```{r sessioninfo}
 sessionInfo()
