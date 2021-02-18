@@ -10,8 +10,8 @@ The notebooks that comprise this module are (estimated time to complete notebook
 
 * [Heatmap](https://alexslemonade.github.io/training-modules/machine-learning/01-openpbta_heatmap.nb.html) (1 hr)
 * [Clustering](https://alexslemonade.github.io/training-modules/machine-learning/02-openpbta_consensus_clustering.nb.html) (55 minutes)
-* [PLIER](https://alexslemonade.github.io/training-modules/machine-learning/03-openpbta_PLIER.nb.html) (20 minutes)
-* [Group differences in latent variable (LV) expression](https://alexslemonade.github.io/training-modules/machine-learning/04-openpbta_plot_LV.nb.html)
+* [PLIER](https://alexslemonade.github.io/training-modules/machine-learning/03-openpbta_PLIER.nb.html) (30 minutes)
+* [Group differences in latent variable (LV) expression](https://alexslemonade.github.io/training-modules/machine-learning/04-openpbta_plot_LV.nb.html) (30 minutes)
 * [Additional exercises](https://github.com/AlexsLemonade/training-modules/blob/master/machine-learning/05-machine_learning_exercise.Rmd)
 
-_Total estimated time to complete instruction notebooks: 2 hours 15 minutes_
+_Total estimated time to complete instruction notebooks: 2 hours 55 minutes_
