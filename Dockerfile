@@ -35,11 +35,6 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     zlib1g-dev 
 
 # AWS
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    ./aws/install
-
-# AWS
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.1.27.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install
