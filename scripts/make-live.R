@@ -5,7 +5,8 @@
 # Replaces code in chunks with a chunk option of `live = TRUE`
 # Comments are preserved
 #
-# If --skiprendering option is used, the rendering is skipped.
+# If --rendering option is FALSE, the rendering is skipped.
+# Default is TRUE -- rendering is not skipped.
 
 # Load library:
 library(optparse)
@@ -13,17 +14,16 @@ library(optparse)
 # Set up optparse options
 option_list <- list(
   make_option(
-    opt_str = "--skiprendering", action = "store_true",
-    default = FALSE, help = "If used, will skip the markdown::render() steps for all notebooks."
-  ),
-  make_option(
-    opt_str = "--getdata", action = "store_true",
-    default = FALSE, help = "If used, will download data from S3 before attempting to render."
+    opt_str = "--rendering", type = "character", metavar = "character",
+    default = "TRUE", help = "Needs a 'TRUE/FALSE' to determine whether the markdown::render() steps will be run for all notebooks."
   )
 )
 
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
+
+# Turn character into logical
+opt$rendering <- as.logical(opt$rendering)
 
 # Install exrcise package if needed.
 if (!"exrcise" %in% installed.packages()){
@@ -59,11 +59,8 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
              )
 
 
-# Rerender notebooks if --skiprendering is FALSE
-if (!opt$skiprendering) {
-  if (opt$getdata){
-    system('aws s3 sync s3://ccdl-training-data/training-modules .')
-  }
+# Rerender notebooks if --rendering is TRUE
+if (opt$rendering) {
   purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
 }
 
