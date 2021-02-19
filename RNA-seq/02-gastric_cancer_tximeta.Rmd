@@ -8,19 +8,21 @@ output:
 
 **CCDL 2021**
 
-In this notebook, we'll import transcript level output from `salmon quant` and
-summarize it to the gene level using 'transcript expression import' - [`tximport`](https://bioconductor.org/packages/release/bioc/html/tximport.html) and 'tximport meta' - [`tximeta`](https://bioconductor.org/packages/release/bioc/html/tximeta.html). 
-
+In this notebook, we'll import the transcript expression quantification output from `salmon quant` using the [`tximeta`](https://bioconductor.org/packages/release/bioc/html/tximeta.html) package.
+`tximeta` is in part a wrapper around another package, [`tximport`](https://bioconductor.org/packages/release/bioc/html/tximport.html), which imports transcript expression data and summarizes it to the gene level.
+Working at the gene rather than transcript level has a number of potential advantages for interpretability, efficiency, and reduction of false positives ([Soneson _et al._ 2016](https://doi.org/10.12688/f1000research.7563.2)).
+`tximeta` eases some of the burden of import by automatically identifying the correct set of annotation data to append to many data sets ([Love _et al._ 2020](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007664)).
 
 ![](diagrams/rna-seq_5.png)
 
-For more information about `tximeta`, see [this excellent vignette](https://www.bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html) from Love, Soneson, Hickey, and Patro.
-
-We'll need the `quant.sf` files for all the samples in an experiment.
+For more information about `tximeta`, see [this excellent vignette](https://www.bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html) from Love _et al_.
 
 ## Libraries and functions
 
 ```{r library, live = TRUE}
+# Load magrittr for the pipe
+library(magrittr)
+
 # Load the tximeta package
 library(tximeta)
 
@@ -33,6 +35,7 @@ library(SummarizedExperiment)
 ```{r directories, live = TRUE}
 # directory where the data are located
 data_dir <- file.path("data", "gastric-cancer")
+
 # directory where the quant files are located, each sample is its own
 # directory
 quant_dir <- file.path(data_dir, "salmon_quant")
@@ -43,6 +46,8 @@ if (!dir.exists(txi_dir)) {
   dir.create(txi_dir, recursive = TRUE)
 }
 ```
+
+We'll need the `quant.sf` files for all the samples in an experiment which we have stored in `quant_dir`. 
 
 ```{r input-names}
 # the quant files themselves
@@ -63,32 +68,29 @@ meta_file <- file.path(data_dir, "gastric-cancer_metadata.tsv")
 txi_out_file <- file.path(txi_dir, "gastric-cancer_tximeta.RDS")
 ```
 
-### Naming
+## Naming
 
 All output files from `salmon quant` we'll use with `tximeta` are named 
 `quant.sf`.
-The file names do not have any information about the sample name.
+Unfortunately, this means that the file names themselves do not have any information about the sample they come from!
 
 ```{r sf_files, live = TRUE}
 # Let's look at the full path for the quant.sf files
 sf_files
 ```
 
-Let's extract the _sample_ names from the **file paths** using the `stringr` 
-package.
+Let's extract the _sample_ names from the **file paths** using the `stringr` package.
 
 Notice how the file path is separated by `/`.
-If we were to split up this character by `/`, the fourth item is the sample 
-name.
-This is exactly what `stringr::word` allows us to do: split up the file paths
-by `/` and extract the sample names.
+If we were to split up this character string by `/`, the second to last item is the sample name.
+This is exactly what `stringr::word` allows us to do: split up the file paths by `/` and extract the sample names.
 
 ```{r sample_names}
-sample_names <- stringr::word(sf_files, 4, sep = "/")
+sample_names <- stringr::word(sf_files, -2, sep = "/")
 sample_names
 ```
 
-`tximeta` needs a data.frame with at least these two columns: 
+`tximeta` needs a data frame with at least these two columns: 
 - a `files` column  with the file paths to the quant.sf files
 - a `names` column with the sample names
 
@@ -119,8 +121,7 @@ coldata
 
 ## Set up our tximeta object
 
-Using our `coldata` data frame we set up, we can run the `tximeta()` which will 
-extract species specific information.
+Using our `coldata` data frame we set up, we can run the `tximeta()` which will extract species specific information.
 
 ```{r read_tsv, live = TRUE}
 txi_meta <- tximeta(coldata)
@@ -163,26 +164,29 @@ Multiple `assays` can be stored in an `SummarizedExperiment` and we can use the 
 assayNames(gene_summarized)
 ```
 
-If we want to extract an `assay`'s data, we can use `assay()` function and 
-specify the name of the assay we want to extract.
+If we want to extract an `assay`'s data, we can use `assay()` function and specify the name of the assay we want to extract.
 
 ```{r assay, live = TRUE}
 counts_mat <- assay(gene_summarized, "counts")
 ```
 
-We can use the `class` function to see what type of object the `assay()`
-function returns.
+We can use the `class` function to see what type of object the `assay()` function returns.
 
 ```{r counts, live = TRUE}
 # Check what type of object `counts_mat` is
 class(counts_mat)
 ```
 
+Alternatively, we could extract the TPM data -- called `abundance` from `gene_summarized`.
+
+```{r abundance, live = TRUE}
+# Let's look at the first few rows of the gene-level TPM
+head(assay(gene_summarized, "abundance"))
+```
+
 ### Save to file
 
-We could use `readr::write_tsv` to save `counts_mat` only but `gene_summarized` 
-has a lot of information stored here beyond the counts, so we may want to save 
-all of this to a RDS object. 
+We could use `readr::write_tsv` to save `counts_mat` only but `gene_summarized` has a lot of information stored here beyond the counts, so we may want to save all of this to a RDS object. 
 
 ```{r write-txi, live = TRUE}
 # Write `gene_summarized` to RDS object
