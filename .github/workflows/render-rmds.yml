@@ -1,0 +1,37 @@
+name: Test render notebooks
+# Before merging notebooks, check that they render
+
+# This workflow only runs when it is manually dispatched
+on:
+  pull_request:
+    branches: [ master ]
+  ## run on push for testing 
+  push:
+    branches: [ jashapiro/s3-render ]
+
+jobs:
+  test-render:
+    runs-on: ubuntu-latest
+    container:
+      image: ccdl/training_dev:latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Download data from S3
+        run: |
+          aws s3 sync s3://ccdl-training-data/training-modules/ .
+
+      # Run the make-live.R script
+      - name: Run make-live.R
+        id: make_live
+        run: Rscript --vanilla scripts/make-live.R --rendering TRUE
