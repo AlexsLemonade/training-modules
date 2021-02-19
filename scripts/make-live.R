@@ -54,8 +54,8 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
                         #  "04-openpbta_plot_LV.Rmd")),
              file.path(root_dir, "pathway-analysis",
                        c("01-overrepresentation_analysis.Rmd",
-                         "02-gene_set_enrichment_analysis.Rmd"))
-                        # "03-gene_set_variation_analysis.Rmd"))
+                         "02-gene_set_enrichment_analysis.Rmd",
+                         "03-gene_set_variation_analysis.Rmd"))
              )
 
 
