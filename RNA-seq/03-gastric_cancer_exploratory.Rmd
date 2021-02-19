@@ -36,6 +36,7 @@ library(magrittr)
 ```{r input-files}
 # Main data directory
 data_dir <- file.path("data", "gastric-cancer")
+
 # directory with the tximport processed data
 txi_dir <- file.path(data_dir, "tximport")
 txi_file <- file.path(txi_dir, "gastric-cancer_tximeta.RDS")
@@ -76,52 +77,7 @@ First, let's read in the data we processed with `tximeta`.
 gene_summarized <- readr::read_rds(txi_file)
 ```
 
-```{r counts, live = TRUE}
-# Extract the counts from gene_summarized
-counts <- assay(gene_summarized, "counts")
-
-# Let's look at the first few rows of the gene-level counts
-head(counts)  
-```
-
-Alternatively, we could extract the TPM data from `gene_summarized`.
-
-```{r abundance, live = TRUE}
-# Let's look at the first few rows of the gene-level TPM
-head(assay(gene_summarized, "abundance")) 
-```
-
 ### Set up DESeq2 object
-
-And now we'll read in the sample metadata.
-
-```{r sample_meta_df, live = TRUE}
-# Read in the sample metadata TSV file and have a look
-sample_meta_df <- readr::read_tsv(meta_file)
-sample_meta_df
-```
-
-We'll save the column names of the counts to a variable that tells us the order of the sample names in `counts`.
-
-```{r col-names}
-sample_names <- colnames(counts)
-sample_names
-```
-
-We'll reorder the sample metadata to match the order in `counts`
-
-```{r arrange-sample_meta_df}
-sample_meta_df <- sample_meta_df %>%
-  dplyr::arrange(srr_accession) %>% 
-  dplyr::select(srr_accession, dplyr::everything())
-sample_meta_df
-```
-
-Check if these are in the same order.
-
-```{r all-equal}
-all.equal(sample_names, sample_meta_df$srr_accession)
-```
 
 DESeq2 wants data to be rounded. 
 
