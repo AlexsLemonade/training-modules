@@ -135,10 +135,10 @@ ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
 We don't have batch information (i.e., when the samples were run) for this 
 particular experiment, but let's imagine that `SRR585574` and `SRR585576` were
 run separately from all other samples.
-We'll put this in new "toy" column in `sample_meta_df`.
+We'll put this in new "toy" column in `gene_summarized`.
 
 ```{r batches}
-sample_meta_df$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
+gene_summarized@colData$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
                           "batch1", "batch2", "batch1")
 ```
 
@@ -148,9 +148,9 @@ Let's rerun the `DESeq2` steps.
 # Rerun the dataset creation step
 # Note: if we were using this for differential expression AND we truly knew
 # the batch, we'd likely use design = ~ batch + tissue
-ddset_batch <- DESeqDataSetFromMatrix(counts,
-                                      colData = sample_meta_df,
-                                      design = ~ tissue)
+ddset_batch <- DESeqDataSet(gene_summarized,
+                            design = ~ tissue)
+
 # variance stabilizing transformation
 vst_batch <- vst(ddset_batch)
 ```
@@ -158,7 +158,8 @@ vst_batch <- vst(ddset_batch)
 ```{r plotPCA-2, live = TRUE}
 # PCA plot - tissue *and* batch
 # We want plotPCA to return the data so we can have more control about the plot
-pca_data <- plotPCA(vst_batch, intgroup = c("tissue", "batch"), 
+pca_data <- plotPCA(vst_batch, 
+                    intgroup = c("tissue", "batch"), 
                     returnData = TRUE)
 ```
 
