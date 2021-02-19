@@ -91,6 +91,8 @@ Alternatively, we could extract the TPM data from `gene_summarized`.
 head(assay(gene_summarized, "abundance")) 
 ```
 
+### Set up DESeq2 object
+
 And now we'll read in the sample metadata.
 
 ```{r sample_meta_df, live = TRUE}
@@ -110,7 +112,8 @@ We'll reorder the sample metadata to match the order in `counts`
 
 ```{r arrange-sample_meta_df}
 sample_meta_df <- sample_meta_df %>%
-  dplyr::arrange(srr_accession)
+  dplyr::arrange(srr_accession) %>% 
+  dplyr::select(srr_accession, dplyr::everything())
 sample_meta_df
 ```
 
@@ -120,19 +123,18 @@ Check if these are in the same order.
 all.equal(sample_names, sample_meta_df$srr_accession)
 ```
 
-DESeq2 will want these counts to be rounded numbers. 
+DESeq2 wants data to be rounded. 
 
 ```{r}
-counts <- round(counts)
+assay(gene_summarized) <- round(assay(gene_summarized))
 ```
 
 We use the tissue of origin in the design formula because that will allow us
 to model this variable of interest.
 
 ```{r ddset}
-ddset <- DESeqDataSetFromMatrix(counts,
-                                colData = sample_meta_df,
-                                design = ~ tissue)
+ddset <- DESeqDataSet(gene_summarized,
+                      design = ~ tissue)
 ```
 
 ### Variance stabilizing transformation
