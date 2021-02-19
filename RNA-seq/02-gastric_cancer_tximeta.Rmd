@@ -16,10 +16,7 @@ summarize it to the gene level using 'transcript expression import' - [`tximport
 
 For more information about `tximeta`, see [this excellent vignette](https://www.bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html) from Love, Soneson, Hickey, and Patro.
 
-We'll need the `quant.sf` files for all the samples in an experiment and a file
-that maps between Ensembl transcript ids and Ensembl gene ids.
-In refine.bio, we generate these along side the transcriptome indices for an
-organism.
+We'll need the `quant.sf` files for all the samples in an experiment.
 
 ## Libraries and functions
 
@@ -56,7 +53,7 @@ sf_files <- list.files(quant_dir, recursive = TRUE, full.names = TRUE,
 ```{r output-names, live = TRUE}
 # Name the output gastric-cancer_tximport.RDS and use the directory created 
 # above as the rest of the path
-txi_out_file <- file.path(txi_dir, "gastric-cancer_tximport.RDS")
+txi_out_file <- file.path(txi_dir, "gastric-cancer_tximeta.RDS")
 ```
 
 ### Naming
@@ -103,7 +100,7 @@ extract species specific information.
 txi_meta <- tximeta(coldata)
 ```
 
-*There are extra steps needed if you are using any species other than human and mouse.
+*There are extra steps needed if you are using any species other than human or mouse.
 See our other species examples in `tximeta_for_other_species.Rmd`. 
 
 ### Summarize to gene
@@ -118,14 +115,14 @@ gene_summarized <- summarizeToGene(txi_meta)
 We can use the `class` function to see what type of object `gene_summarized` is.
 
 ```{r class-txi, live = TRUE}
-# Check what type of object gene_summarized is
+# Check what type of object `gene_summarized` is
 class(gene_summarized)
 ```
 
 This tells us that `gene_summarized` is an object called a [`SummarizedExperiment`](https://www.rdocumentation.org/packages/SummarizedExperiment/versions/1.2.3/topics/SummarizedExperiment-class) which can be handled by functions from the package of the same name. 
 We more specifically have a `RangedSummarizedExperiment` which is a more specific type of `SummarizedExperiment`.
 
-SummarizedExperiment objects have this general structure:  
+`SummarizedExperiment` objects have this general structure:  
 
 ![SummarizedExperiment](diagrams/SummarizeExperiment-structure.png)
 
@@ -147,11 +144,11 @@ specify the name of the assay we want to extract.
 counts_mat <- assay(gene_summarized, "counts")
 ```
 
-We can use the `class` function to see what type of object the `tximport`
+We can use the `class` function to see what type of object the `assay()`
 function returns.
 
 ```{r counts, live = TRUE}
-# Check what type of object counts_mat is
+# Check what type of object `counts_mat` is
 class(counts_mat)
 ```
 
@@ -162,7 +159,7 @@ has a lot of information stored here beyond the counts, so we may want to save
 all of this to a RDS object. 
 
 ```{r write-txi, live = TRUE}
-# Write gene_summarized to RDS object
+# Write `gene_summarized` to RDS object
 readr::write_rds(gene_summarized, file = txi_out_file)
 ```
 
