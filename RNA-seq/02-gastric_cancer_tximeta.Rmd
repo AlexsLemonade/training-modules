@@ -119,29 +119,28 @@ coldata <- coldata %>%
 coldata
 ```
 
-## Set up our tximeta object
+## Import expression data with `tximeta`
 
-Using our `coldata` data frame we set up, we can run the `tximeta()` which will extract species specific information.
+Using the `coldata` data frame that we set up, we can now run the `tximeta()` to import our expression data while automatically finding and associating the transcript annotations that were used when we performed the quantification.
 
-```{r read_tsv, live = TRUE}
+```{r tximeta, live = TRUE}
 txi_meta <- tximeta(coldata)
 ```
 
-*There are extra steps needed if you are using any species other than human or mouse.
-See our other species examples in `tximeta_for_other_species.Rmd`. 
+*tximeta currently works easily for most human and mouse datasets, but requires a [few more steps for other species](https://bioconductor.org/packages/release/bioc/vignettes/tximeta/inst/doc/tximeta.html#What_if_checksum_isn%E2%80%99t_known).
 
 ### Summarize to gene
 
 We'll summarize to the gene level using the `summarizeToGene()` function.
 
-```{r make-txi}
+```{r summarize-gene}
 # Summarize to the gene-level
 gene_summarized <- summarizeToGene(txi_meta) 
 ```
 
 We can use the `class` function to see what type of object `gene_summarized` is.
 
-```{r class-txi, live = TRUE}
+```{r class, live = TRUE}
 # Check what type of object `gene_summarized` is
 class(gene_summarized)
 ```
@@ -166,20 +165,20 @@ assayNames(gene_summarized)
 
 If we want to extract an `assay`'s data, we can use `assay()` function and specify the name of the assay we want to extract.
 
-```{r assay, live = TRUE}
+```{r assay-counts, live = TRUE}
 counts_mat <- assay(gene_summarized, "counts")
 ```
 
 We can use the `class` function to see what type of object the `assay()` function returns.
 
-```{r counts, live = TRUE}
+```{r class-counts, live = TRUE}
 # Check what type of object `counts_mat` is
 class(counts_mat)
 ```
 
 Alternatively, we could extract the TPM data -- called `abundance` from `gene_summarized`.
 
-```{r abundance, live = TRUE}
+```{r assay-abundance, live = TRUE}
 # Let's look at the first few rows of the gene-level TPM
 head(assay(gene_summarized, "abundance"))
 ```
