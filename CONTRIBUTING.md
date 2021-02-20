@@ -4,6 +4,10 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
+- [Data file management](#data-file-management)
+  - [Setup directory](#setup-directory)
+  - [Linking shared files](#linking-shared-files)
+  - [Files stored on S3](#files-stored-on-s3)
 - [Development with `renv`](#development-with-renv)
   - [Typical development workflow](#typical-development-workflow)
   - [How we use `renv` with Docker](#how-we-use-renv-with-docker)
@@ -14,6 +18,32 @@
 - [Spell check](#spell-check)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+## Data file management
+
+### Setup directory
+
+Each module should contain a `setup` directory that includes instructions and scripts to download and prepare any input data files used by the notebooks in the module.
+
+### Linking shared files 
+
+When trainings are run from the RStudio server (rstudio.ccdatalab.org), we store large input data files in the `/shared/data/training-modules` directory.
+The organization within this directory should mirror the arrangement of the repository, so that we can easily link files and folders from this shared directory to mirrored paths within a clone of this repository.
+
+Linking files from the shared directory to a cloned repository is done with the `scripts/link-data.sh` bash script, so this script should be kept up to date as any needed files are added to the `/shared/data/training-modules` directory.
+When possible, link to enclosing directories rather than individual files to keep links simpler, but see an important caveat below.
+
+Because this script is also used to set up directories for training, the links should not include _all_ files needed for _every_ notebook: 
+- Files that are created during a training module should not  be included in this script
+- Directories that users will need to write to should not be links, or the user will not be able to write their own files.
+
+
+### Files stored on S3
+
+To facilitate automated testing of training notebooks, all needed input files for training notebooks should be placed in the `ccdl-training-data` bucket on S3 and made publicly accessible. 
+This is facilitated by the `scripts/syncup-s3.sh` bash script, which includes the needed commands for upload/sync, and should include all directories and files needed to run the training notebooks. 
+You will need to set up your AWS credentials with `aws configure` before running the `syncup-s3.sh` script
+As input files are added or change, those changes should be reflected in updates to `syncup-s3.sh`
 
 
 ## Development with `renv` 
@@ -31,7 +61,7 @@ The steps for development are:
 1. Open up `training-modules.Rproj`.
 2. If your library isn't set up or in sync with the lockfile, you'll be prompted to run `renv::restore()`. This will happen if you first clone the project or haven't been working within the Docker container in a bit.
 3. Develop as normal.
-4. Run `renv::snapshot()` at the end of your session to capture the additional dependencies.
+4. Run `renv::snapshot()` at the end of your session to capture the additional dependencies. *Be careful if `renv::snapshot()` suggests removing packages!* If there have been additions to `renv.lock` in another branch while you were working, you may need to run `renv::restore()` again before `renv::snapshot()`.
 5. If there are dependencies you might want that are not captured automatically by `renv::snapshot()` (this may happen if a package is "recommended" by another, but not required), add them to `components/dependencies.R` with a call to `library()` and an explanatory comment. Then rerun `renv::snapshot()`
 6. Commit any changes to `renv.lock` and `dependencies.R`.
 
