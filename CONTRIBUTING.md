@@ -6,6 +6,7 @@
 
 - [Data file management](#data-file-management)
   - [Setup directory](#setup-directory)
+  - [Server shared data folder](#server-shared-data-folder)
   - [Linking shared files](#linking-shared-files)
   - [Files stored on S3](#files-stored-on-s3)
 - [Development with `renv`](#development-with-renv)
@@ -24,19 +25,23 @@
 ### Setup directory
 
 Each module should contain a `setup` directory that includes instructions and scripts to download and prepare any input data files used by the notebooks in the module.
+For scripts designed to be run on the RStudio server (`rstudio.ccdatalab.org`) these input files will usually be placed in the `/shared/data/training-modules` directory and then linked for use, as described below.
+
+### Server shared data folder
+
+When trainings are run from the RStudio server (`rstudio.ccdatalab.org`), we store large input data files in the `/shared/data/training-modules` directory.
+This directory is the implicit "point of truth" for modules
+
+The organization within this directory should mirror the arrangement of the repository, so that we can easily link files and folders from this shared directory to mirrored paths within a clone of this repository.
 
 ### Linking shared files 
 
-When trainings are run from the RStudio server (`rstudio.ccdatalab.org`), we store large input data files in the `/shared/data/training-modules` directory.
-The organization within this directory should mirror the arrangement of the repository, so that we can easily link files and folders from this shared directory to mirrored paths within a clone of this repository.
-
 Linking files from the shared directory to a cloned repository is done with the `scripts/link-data.sh` bash script, so this script should be kept up to date as any needed files are added to the `/shared/data/training-modules` directory.
-When possible, link to enclosing directories rather than individual files to keep links simpler, but see an important caveat below.
+When possible, link to enclosing directories rather than individual files to keep links simpler and allow users to browse a realistic directory context, but see an important caveat below.
 
 Because this script is also used to set up directories for training, the links should not include _all_ files needed for _every_ notebook: 
-- Files that are created during a training module should not  be included in this script
+- Files that are created during a training session should not  be included in this script.
 - Directories that users will need to write to should not be links, or the user will not be able to write their own files.
-
 
 ### Files stored on S3
 
