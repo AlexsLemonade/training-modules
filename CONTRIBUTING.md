@@ -27,7 +27,7 @@ Each module should contain a `setup` directory that includes instructions and sc
 
 ### Linking shared files 
 
-When trainings are run from the RStudio server (rstudio.ccdatalab.org), we store large input data files in the `/shared/data/training-modules` directory.
+When trainings are run from the RStudio server (`rstudio.ccdatalab.org`), we store large input data files in the `/shared/data/training-modules` directory.
 The organization within this directory should mirror the arrangement of the repository, so that we can easily link files and folders from this shared directory to mirrored paths within a clone of this repository.
 
 Linking files from the shared directory to a cloned repository is done with the `scripts/link-data.sh` bash script, so this script should be kept up to date as any needed files are added to the `/shared/data/training-modules` directory.
