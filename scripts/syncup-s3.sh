@@ -1,6 +1,9 @@
 #! /bin/bash
 
 # This script is used to sync files required for training module notebooks to S3
+# To run this script, you must have write permission to the destination bucket 
+# and have set up credentials with `aws configure`
+
 # As new directories and files are required, they should be added to the
 # the `sync_dirs` or `sync_files` arrays below, followed by running this script
 
