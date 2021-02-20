@@ -150,7 +150,7 @@ These arguments specify the read1 input and read2 (sometimes called left and rig
 
 These arguments specify the read1 output and read2 output, respectively.
 Note that the output is being placed in `data/gastric-cancer/fastq-trimmed/SRR585570/`, so the processed FASTQ files will be kept separate from from the original files.
-It is generally good practice to treat your "raw" data and its directories as fixed and separte from any processing and analysis that you do, to prevent accidentally modification of those original files. 
+It is generally good practice to treat your "raw" data and its directories as fixed and separate from any processing and analysis that you do, to prevent accidentally modification of those original files. 
 And in the event that you accidentally do modify the originals, you know exactly which files and directories to reset.
 
 #### `--qualified_quality_phred`
