@@ -62,7 +62,7 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
 # Rerender notebooks if --rendering is TRUE
 if (opt$rendering) {
   # capture to avoid printing to stdout
-  rendered <-purrr::map(infiles, 
+  rendered <- purrr::map(infiles, 
                         function(f){
                           # mini function to track progress
                           message("Rendering ", stringr::str_replace(f, paste0(root_dir, "/"), "")) # hide root
@@ -74,5 +74,5 @@ if (opt$rendering) {
 outfiles <- stringr::str_replace(infiles, "(.*)\\.Rmd$", "\\1-live.Rmd")
 
 # Generate live versions
-
+# capture to avoid printing to stdout
 out <- purrr::map2(infiles, outfiles, exrcise::exrcise, replace_flags = "live")

@@ -139,7 +139,7 @@ The spelling errors will be listed in `spell_check_errors.tsv` in the root of th
 
 ### Rendering Test
 
-Every pull request to `master` that changes `.Rmd` files (or `make-live.R`) will be test rendered in a GitHub Actions workflow (`render-rmds.yml`). 
+Every pull request to `master` that changes `.Rmd` files (or `scripts/make-live.R`) will be tested via a GitHub Actions workflow (`render-rmds.yml`) to ensure that the `.Rmd` files can be run successfully. 
 This action first downloads input files for the notebooks from S3, so if there are changes to the input files, these should be made first, with associated changes as needed to `syncup-s3.sh` (see [Files stored on S3](#files-stored-on-s3)).
 
 
