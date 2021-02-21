@@ -65,7 +65,7 @@ if (opt$rendering) {
   rendered <-purrr::map(infiles, 
                         function(f){
                           # mini function to track progress
-                          message("Rendering ", f)
+                          message("Rendering ", stringr::str_replace(f, root_dir + "/", "")) # hide root
                           rmarkdown::render(f, envir = new.env(), quiet = TRUE)
                         })
 }
