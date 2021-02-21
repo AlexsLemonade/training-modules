@@ -49,9 +49,9 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
                          "05-dimension_reduction_scRNA-seq.Rmd")),
              file.path(root_dir,  "machine-learning",
                        c("01-openpbta_heatmap.Rmd",
-                         "02-openpbta_consensus_clustering.Rmd",
-                         "03-openpbta_PLIER.Rmd",
-                         "04-openpbta_plot_LV.Rmd")),
+                         "02-openpbta_consensus_clustering.Rmd")),
+                        #  "03-openpbta_PLIER.Rmd",
+                        #  "04-openpbta_plot_LV.Rmd")),
              file.path(root_dir, "pathway-analysis",
                        c("01-overrepresentation_analysis.Rmd",
                          "02-gene_set_enrichment_analysis.Rmd",
@@ -61,7 +61,13 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
 
 # Rerender notebooks if --rendering is TRUE
 if (opt$rendering) {
-  purrr::map(infiles, rmarkdown::render, envir = new.env(), quiet = TRUE)
+  # capture to avoid printing to stdout
+  rendered <- purrr::map(infiles, 
+                        function(f){
+                          # mini function to track progress
+                          message("Rendering ", stringr::str_replace(f, paste0(root_dir, "/"), "")) # hide root
+                          rmarkdown::render(f, envir = new.env(), quiet = TRUE)
+                        })
 }
 
 # new files will be made with -live.Rmd suffix
