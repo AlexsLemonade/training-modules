@@ -16,7 +16,10 @@
   - [Developing within the Docker container](#developing-within-the-docker-container)
   - [Testing Docker image builds via GitHub Actions](#testing-docker-image-builds-via-github-actions)
   - [Pushing to Dockerhub via GitHub Actions](#pushing-to-dockerhub-via-github-actions)
-- [Spell check](#spell-check)
+- [Automated Testing & Rendering](#automated-testing--rendering)
+  - [Spell check](#spell-check)
+  - [Rendering Test](#rendering-test)
+  - [Generation of live notebooks and rendering](#generation-of-live-notebooks-and-rendering)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -69,8 +72,12 @@ The steps for development are:
 4. Run `renv::snapshot()` at the end of your session to capture the additional dependencies. *Be careful if `renv::snapshot()` suggests removing packages!* If there have been additions to `renv.lock` in another branch while you were working, you may need to run `renv::restore()` again before `renv::snapshot()`.
 5. If there are dependencies you might want that are not captured automatically by `renv::snapshot()` (this may happen if a package is "recommended" by another, but not required), add them to `components/dependencies.R` with a call to `library()` and an explanatory comment. Then rerun `renv::snapshot()`
 6. Commit any changes to `renv.lock` and `dependencies.R`.
+7. File a pull request with _only_ the changes to the `renv.lock` and `dependencies.R`  before other changes. 
+This is necessary because the automated render testing we do will fail if the Docker image has not been updated (see '[Pushing to Dockerhub via GitHub Actions](#pushing-to-dockerhub-via-github-actions)' below).
 
 Note that when you open up the `training-modules.Rproj`, the `.Rprofile` file makes it such that the `renv` library is loaded and the repositories in the `renv.lock` file will be set with `options(repos = ...)`.
+
+
 
 ### How we use `renv` with Docker
 
@@ -113,7 +120,9 @@ When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Act
 When a pull request is merged into `master`, the `build-and-push-docker.yml` GitHub Actions workflow will be triggered. 
 The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest`.
 
-## Spell check
+## Automated Testing & Rendering
+
+### Spell check
 
 We perform spell checking for every pull request to `master` as part of a GitHub Actions workflow (`spell-check.yml`); it is designed to fail if more than 3 spelling errors are detected.
 You can see what errors are detected in `stdout` for the `Run spell check` step of the workflow.
@@ -127,3 +136,15 @@ Rscript --vanilla scripts/spell-check.R
 ```
 
 The spelling errors will be listed in `spell_check_errors.tsv` in the root of the repo; this file is ignored by git.
+
+### Rendering Test
+
+Every pull request to `master` that changes `.Rmd` files (or `make-live.R`) will be test rendered in a GitHub Actions workflow (`render-rmds.yml`). 
+This action first downloads input files for the notebooks from S3, so if there are changes to the input files, these should be made first, with associated changes as needed to `syncup-s3.sh` (see [Files stored on S3](#files-stored-on-s3)).
+
+
+### Generation of live notebooks and rendering
+
+After a pull request with changes to notebook files has been merged to master, we use the `make-live.yml` workflow to render current versions of the notebooks to html and to make the `-live.Rmd` versions of the files for training sessions.
+This workflow then files a PR to `master` with the rendered and live files.
+`make-live.yml` is currently manually triggered, but will likely change to running automatically on each PR with changes to notebook files in the near future.
