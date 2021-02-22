@@ -81,7 +81,7 @@ sf_files
 Let's extract the _sample_ names from the **file paths** using the `stringr` package.
 
 Notice how the file path is separated by `/`.
-If we were to split up this character string by `/`, the second to last item is the sample name.
+If we were to split up this character string by `/`, the second to last item is the sample names (because we used them as directory names for the `salmon` output).
 This is exactly what `stringr::word()` allows us to do: split up the file paths by `/` and extract the sample names.
 
 ```{r sample_names}
@@ -109,7 +109,7 @@ sample_meta_df <- readr::read_tsv(meta_file)
 sample_meta_df
 ```
 
-We'll want this information to be added to the `coldata`. 
+We'll want this information to be added to the `coldata`, which we can do by using a join function to match up the rows between the two data frames and combine them. 
 
 ```{r join-sample_meta_df}
 coldata <- coldata %>%
@@ -122,8 +122,8 @@ coldata
 
 Using the `coldata` data frame that we set up, we can now run the `tximeta()` to import our expression data while automatically finding and associating the transcript annotations that were used when we performed the quantification.
 
-The first time you run `tximeta()` you will get a message about storing the data in a [cache](https://en.wikipedia.org/wiki/Cache_(computing) so that it will retrieve the data faster the next time.
-We recommend you use the cache.
+The first time you run `tximeta()` you may get a message about storing downloaded transcriptome data in a cache directory so that it can retrieve the data more quickly the next time.
+We recommend you use the cache, and accept the default location.
 
 ```{r tximeta, live = TRUE}
 txi_data <- tximeta(coldata)
@@ -156,16 +156,16 @@ We more specifically have a `RangedSummarizedExperiment` which is a more specifi
 
 This figure is from this handy vignette about [`SummarizedExperiment` objects](https://www.bioconductor.org/packages/devel/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
 
-As shown in the diagram, we can use some of these functions to extract data from our `SummarizedExperiment` object. 
-`rowData()` on our object shows all the gene information that `tximeta` set up!
+As shown in the diagram, we can use some of the functions provided by the `SummarizedExperiment` package to extract data from our `gene_summarized` object. 
+For example, calling `rowData()` on our object shows all the gene information that `tximeta` set up!
 
 ```{r}
 # rowData() shows us our gene annotation
 rowData(gene_summarized)
 ```
 
-The `assay` slot in `SummarizedExperiment`s hold the experiment data, a gene x sample matrix. 
-In this case, it has our gene-level abundance information. 
+The `assay` slot in `SummarizedExperiment`s holds data from the experiment. 
+In this case, it will include our gene-level abundance information stored as a gene x sample matrix. 
 
 Multiple `assays` can be stored in an `SummarizedExperiment` and we can use the `assayNames()` function to see what assays are included in `gene_summarized`. 
 
