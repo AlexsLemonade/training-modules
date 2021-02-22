@@ -17,3 +17,6 @@ snakemake -j ${jobs} --notemp --configfile config-GC.yaml
 
 # create NB cell line files (fastq will be deleted)
 snakemake -j ${jobs} --configfile config-NB.yaml
+
+# create leukemia files
+sankemake -j ${jobs} --configfile config-leuk.yaml
