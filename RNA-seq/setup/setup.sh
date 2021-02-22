@@ -19,4 +19,4 @@ snakemake -j ${jobs} --notemp --configfile config-GC.yaml
 snakemake -j ${jobs} --configfile config-NB.yaml
 
 # create leukemia files
-sankemake -j ${jobs} --configfile config-leuk.yaml
+snakemake -j ${jobs} --configfile config-leuk.yaml
