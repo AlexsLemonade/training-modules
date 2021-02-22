@@ -27,7 +27,7 @@ sync_dirs=(
   intro-to-R-tidyverse/data
   RNA-seq/data/gastric-cancer/salmon_quant
   RNA-seq/data/NB-cell/tximport
-  scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
+  scRNA-seq/data/tabula-muris/alevin/10X_P4_3
   scRNA-seq/index/Mus_musculus
   machine-learning/data/open-pbta/processed
 )
