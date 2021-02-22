@@ -1,5 +1,5 @@
 ---
-title: "Gastric cancer: gene-level summarization with `tximport`"
+title: "Gastric cancer: gene-level summarization with `tximeta`"
 output:   
   html_notebook: 
     toc: true
@@ -19,7 +19,7 @@ For more information about `tximeta`, see [this excellent vignette](https://www.
 
 ## Libraries and functions
 
-```{r library, live = TRUE}
+```{r library}
 # Load magrittr for the pipe
 library(magrittr)
 
@@ -68,7 +68,7 @@ meta_file <- file.path(data_dir, "gastric-cancer_metadata.tsv")
 txi_out_file <- file.path(txi_dir, "gastric-cancer_tximeta.RDS")
 ```
 
-## Naming
+## File names
 
 All output files from `salmon quant` we'll use with `tximeta` are named 
 `quant.sf`.
@@ -83,12 +83,14 @@ Let's extract the _sample_ names from the **file paths** using the `stringr` pac
 
 Notice how the file path is separated by `/`.
 If we were to split up this character string by `/`, the second to last item is the sample name.
-This is exactly what `stringr::word` allows us to do: split up the file paths by `/` and extract the sample names.
+This is exactly what `stringr::word()` allows us to do: split up the file paths by `/` and extract the sample names.
 
 ```{r sample_names}
 sample_names <- stringr::word(sf_files, -2, sep = "/")
 sample_names
 ```
+
+## Set up metadata
 
 `tximeta` needs a data frame with at least these two columns: 
 - a `files` column  with the file paths to the quant.sf files
@@ -96,13 +98,11 @@ sample_names
 
 ```{r names_sf_files}
 coldata <- data.frame(files = sf_files, 
-                      names = sample_names, 
-                      stringsAsFactors = FALSE)
+                      names = sample_names)
 ```
 
-### Set up metadata
-
-And now we'll read in the sample metadata.
+We have more information about these samples stored in the metadata file that we will also want stored in `coldata`. 
+Let's read in the sample metadata from the TSV file.
 
 ```{r sample_meta_df, live = TRUE}
 # Read in the sample metadata TSV file and have a look
@@ -123,19 +123,22 @@ coldata
 
 Using the `coldata` data frame that we set up, we can now run the `tximeta()` to import our expression data while automatically finding and associating the transcript annotations that were used when we performed the quantification.
 
+The first time you run `tximeta()` you will get a message about storing the data in a [cache](https://en.wikipedia.org/wiki/Cache_(computing) so that it will retrieve the data faster the next time.
+We recommend you use the cache.
+
 ```{r tximeta, live = TRUE}
-txi_meta <- tximeta(coldata)
+txi_data <- tximeta(coldata)
 ```
 
 *tximeta currently works easily for most human and mouse datasets, but requires a [few more steps for other species](https://bioconductor.org/packages/release/bioc/vignettes/tximeta/inst/doc/tximeta.html#What_if_checksum_isn%E2%80%99t_known).
 
-### Summarize to gene
+## Summarize to gene
 
 We'll summarize to the gene level using the `summarizeToGene()` function.
 
 ```{r summarize-gene}
-# Summarize to the gene-level
-gene_summarized <- summarizeToGene(txi_meta) 
+# Summarize to the gene level
+gene_summarized <- summarizeToGene(txi_data) 
 ```
 
 We can use the `class` function to see what type of object `gene_summarized` is.
@@ -153,6 +156,14 @@ We more specifically have a `RangedSummarizedExperiment` which is a more specifi
 ![SummarizedExperiment](diagrams/SummarizeExperiment-structure.png)
 
 This figure is from this handy vignette about [`SummarizedExperiment` objects](https://www.bioconductor.org/packages/devel/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
+
+As shown in the diagram, we can use some of these functions to extract data from our `SummarizedExperiment` object. 
+`rowData()` on our object shows all the gene information that `tximeta` set up!
+
+```{r}
+# rowData() shows us our gene annotation
+rowData(gene_summarized)
+```
 
 The `assay` slot in `SummarizedExperiment`s hold the experiment data, a gene x sample matrix. 
 In this case, it has our gene-level abundance information. 
@@ -183,7 +194,7 @@ Alternatively, we could extract the TPM data -- called `abundance` from `gene_su
 head(assay(gene_summarized, "abundance"))
 ```
 
-### Save to file
+## Save to file
 
 We could use `readr::write_tsv` to save `counts_mat` only but `gene_summarized` has a lot of information stored here beyond the counts, so we may want to save all of this to a RDS object. 
 
