@@ -1,0 +1,110 @@
+---
+title: "Prep medulloblastoma data for daily exercise"
+output: html_notebook
+---
+
+We'll use [`SRP150101`](https://www.refine.bio/experiments/SRP150101/transcriptome-analysis-of-group-3-and-4-medulloblastoma-orthotopic-xenograft-mice-with-digoxin-treatment), a medulloblastoma PDX experiment processed with refine.bio, for the daily exercise.
+
+## Obtain RDS from refine.bio
+
+The first step was to download the RDS file from refine.bio using the `generate_rds_urls.py` script in the `training-admin` repository.
+We need to use the same structure as the training material -- `data/tximport/<dataset name>/<tximport RDS>`.
+
+```{sh}
+mkdir -p ../data/tximport/medulloblastoma
+wget --quiet -O ../data/tximport/wo0ddxtakaqjrhx5xr8zumxy_txi_out.RDS https://s3.amazonaws.com/data-refinery-s3-circleci-prod/wo0ddxtakaqjrhx5xr8zumxy_txi_out.RDS
+```
+
+## Clean sample metadata for participants
+
+```{r}
+library(tidyverse)
+```
+
+Using the same structure as training material -- `data/sample_metadata/<dataset name>`
+
+```{r}
+mb_meta_dir <- file.path("..", "data", "sample_metadata", "medulloblastoma")
+dir.create(mb_meta_dir, recursive = TRUE, showWarnings = FALSE)
+```
+
+Unfortunately, this accession doesn't appear to be included in the SRAdb sqlite file we have on the RStudio Server.
+
+So, we've obtained the metadata file from SRA run selection and placed it at `data/sample_metadata/SRP150101_SraRunTable.txt`. 
+
+It is a CSV file.
+
+```{r}
+sra_meta_df <- read_csv(file.path("..", 
+                                  "data", 
+                                  "sample_metadata", 
+                                  "SRP150101_SraRunTable.txt"))
+```
+
+```{r}
+cleaned_sra_meta_df <- sra_meta_df %>%
+  # Select only the "interesting" columns
+  select(Run, Group, disease_state, tissue, treatment) %>%
+  # Clean up treatment and Group columns a bit
+  mutate(treatment = case_when(
+    treatment == "Treat with digoxin" ~ "digoxin",
+    treatment == "No treatment" ~ "none",
+    TRUE ~ treatment
+    ),
+    # We don't want group treated as an integer, so best to head this off now
+    Group = as.character(Group)) %>%
+  mutate(Group = str_c("Group_", Group))
+```
+
+Write to TSV file.
+
+```{r}
+meta_file <- file.path(mb_meta_dir, "SRP150101_metadata.tsv")
+write_tsv(cleaned_sra_meta_df, meta_file)
+```
+
+## Clean up column names for `tximport` object
+
+Sample IDs in the tximport RDS end in `_output`, which would be a stumbling block for training participants.
+
+```{r}
+txi_in_file <- file.path("..",
+                         "data",
+                         "tximport",
+                         "wo0ddxtakaqjrhx5xr8zumxy_txi_out.RDS")
+txi_out_file <- file.path("..", 
+                          "data", 
+                          "tximport", 
+                          "medulloblastoma", 
+                          "medulloblastoma_tximport.RDS")
+txi <- read_rds(txi_in_file)
+```
+
+```{r}
+lapply(txi, colnames)
+```
+
+```{r}
+# there's probably a better way to do this
+remove_output <- function(x) colnames(x) <- str_remove(colnames(x), "_output$")
+new_colnames <- purrr::map_at(txi, 
+                              c("counts", "abundance", "length"), 
+                              ~ remove_output(.x))
+colnames(txi$abundance) <- new_colnames$abundance
+colnames(txi$counts) <- new_colnames$counts
+colnames(txi$length) <- new_colnames$length
+```
+
+```{r}
+lapply(txi, colnames)
+```
+
+```{r}
+write_rds(txi, txi_out_file)
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
