@@ -1,5 +1,5 @@
 name: Make Live
-# Make live versions of .Rmd files in training modules
+# Make live versions of .Rmd files in training modules and optionally rerender notebooks
 
 # This workflow only runs when it is manually dispatched
 on:
@@ -11,7 +11,6 @@ on:
         default: 'FALSE'
 
 jobs:
-  # This workflow contains a single job called "build-all"
   make-live:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -23,8 +22,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Add a download data step here
-      #- name: Download data
+      - name: Set up AWS credentials
+        if: github.event.inputs.rendering == 'TRUE' 
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Download data from S3
+        if: github.event.inputs.rendering == 'TRUE' 
+        run: |
+          aws s3 sync s3://ccdl-training-data/training-modules/ .
 
       # Run the make-live.R script
       - name: Run make-live.R
