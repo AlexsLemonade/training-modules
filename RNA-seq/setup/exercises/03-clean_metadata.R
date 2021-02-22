@@ -6,20 +6,19 @@
 # Output (path hardcoded): a cleaned metadata TSV
 
 `%>%` <- dplyr::`%>%`
-root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
+data_dir <- "/shared/data/training-modules/RNA-seq/data/leukemia"
 
 # files
-sample_info_dir <- file.path(root_dir, "bulk-rnaseq", "data", "sample_metadata")
-output_dir <- file.path(sample_info_dir, "leukemia")
-# obtained from: https://www.ncbi.nlm.nih.gov/Traces/study/?WebEnv=NCID_1_19093743_130.14.22.33_5555_1559150230_374684744_0MetA0_S_HStore&query_key=4
-input_file <- file.path(sample_info_dir, "SRP049821_SraRunTable.txt")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-output_file <- file.path(output_dir, "SRP049821_metadata.tsv")
+
+# obtained from: https://www.ncbi.nlm.nih.gov/Traces/study/?acc=SRP049821&o=acc_s%3Aa
+input_file <- file.path(data_dir, "SRP049821_SraRunTable.txt")
+output_file <- file.path(data_dir, "SRP049821_metadata.tsv")
 
 # read, clean, write
-readr::read_tsv(input_file) %>%
-  dplyr::select(Run, Experiment, SRA_Sample, BioSample, cell_sorting, Organism,
-                cell_type, genotype_variation, strain) %>%
+readr::read_csv(input_file) %>%
+  dplyr::select(Run, Experiment, `Sample Name`, BioSample, cell_sorting, Organism,
+                Cell_type, `genotype/variation`, Strain) %>%
+  dplyr::rename(sample_name = `Sample Name`, genotype_variation = `genotype/variation`)
   dplyr::mutate(cell_sorting = gsub("-", "neg",
                                     gsub("\\+", "pos", cell_sorting))) %>%
   readr::write_tsv(output_file)
