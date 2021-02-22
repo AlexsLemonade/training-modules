@@ -48,15 +48,15 @@ This is a time and resource intensive step, so we have prepared the required out
 ### Input files
 
 The raw data FASTQ files (`fastq.gz`) for this sample, SRR585570, are in `data/gastric-cancer/fastq/SRR585570`.
-The first two directories, `data/` and `gastric-cancer/`, tell us that these files are data and which experiment or dataset these data are from.
+The first two directories, `data/` and `gastric-cancer/`, tell us that these files are data and which experiment or dataset these data are from. 
 We'll be working with an additional dataset later in the module, so this latter distinction will become more important.
-The third directory, `fastq/`, tells us that this is where we will be storing fastq files.
+The third directory, `fastq/`, tells us that this is where we will be storing fastq files. 
 
 The final directory, `SRR585570`, is specific to the sample we are working with.
 The use of the `SRR585570` folder might seem unnecessary because we are only processing a single sample here, but keeping files for individual samples in their own folder helps keep things organized for multi-sample workflows.
 (You can peek ahead and look at the `data/NB-cell/quant` folder for such an example.)
 
-There is no "one size fits all" approach for project organization.
+There is no "one size fits all" approach for project organization. 
 It's most important that it's consistent, easy for you and others to find the files you need quickly, and minimizes the likelihood for errors (e.g., writing over files accidentally).
 
 ## 1. Quality control with FastQC
@@ -94,7 +94,7 @@ fastqc data/gastric-cancer/fastq/SRR585570/SRR585570_1.fastq.gz \
 
 #### `-o`
 
-The `-o` flag allows us to specify where the output of FastQC is saved.
+The `-o` flag allows us to specify where the output of FastQC is saved. 
 Note that this is saved in a separate place than the raw data files and in a directory specifically for quality control information.
 
 For comparison to the report for `SRR585570_1.fastq.gz` we generate with our script, we've prepared a FastQC report for one of the sets of reads for another sample in the experiment.
@@ -106,7 +106,7 @@ It can be found at `QC/gastric-cancer/fastqc/SRR585574/SRR585574_1_fastqc.html`.
 
 ![](diagrams/rna-seq_3.png)
 
-We use [fastp](https://github.com/OpenGene/fastp) to preprocess the FASTQ files ([Chen et al. _Bioinformatics._ 2018.](https://doi.org/10.1093/bioinformatics/bty560)).
+We use [fastp](https://github.com/OpenGene/fastp) to preprocess the FASTQ files ([Chen et al. _Bioinformatics._ 2018.](https://doi.org/10.1093/bioinformatics/bty560)). 
 Note that fastp has quality control functionality and many different options for preprocessing (see [all options on GitHub](https://github.com/OpenGene/fastp/blob/master/README.md#all-options)), most of which we will not cover.
 Here, we focus on adapter trimming, quality filtering, and length filtering.
 
@@ -139,7 +139,7 @@ fastp -i data/gastric-cancer/fastq/SRR585570/SRR585570_1.fastq.gz \
 ```
 
 Below, we'll walk through the arguments/options we used to run `fastp`.
-By default, fastp performs adapter trimming, which you can read more about [here](https://github.com/OpenGene/fastp#adapters).
+By default, fastp performs adapter trimming, which you can read more about [here](https://github.com/OpenGene/fastp#adapters). 
 For paired-end data like the data we have for SRR585570, adapters can be detected automatically without specifying an adapter sequence.
 
 #### Input: `-i` and `-I`
@@ -150,7 +150,7 @@ These arguments specify the read1 input and read2 (sometimes called left and rig
 
 These arguments specify the read1 output and read2 output, respectively.
 Note that the output is being placed in `data/gastric-cancer/fastq-trimmed/SRR585570/`, so the processed FASTQ files will be kept separate from from the original files.
-It is generally good practice to treat your "raw" data and its directories as fixed and separate from any processing and analysis that you do, to prevent accidentally modification of those original files. 
+It is generally good practice to treat your "raw" data and its directories as fixed and separte from any processing and analysis that you do, to prevent accidentally modification of those original files. 
 And in the event that you accidentally do modify the originals, you know exactly which files and directories to reset.
 
 #### `--qualified_quality_phred`
@@ -160,19 +160,19 @@ And in the event that you accidentally do modify the originals, you know exactly
 ![per-base-quality-screenshot](https://user-images.githubusercontent.com/19534205/59292316-d6292500-8c4a-11e9-967b-132bd8c54577.png)
 
 Anything below 20, where a Phred score of 20 represents a 1 in 100 chance that the call is incorrect, is considered poor quality by FastQC.
-Using `--qualified_quality_phred 15` (which is the default), means scores >= 15 are considered "qualified."
+Using `--qualified_quality_phred 15` (which is the default), means scores >= 15 are considered "qualified." 
 Using the default parameters as we do here, reads will be filtered out if >40% of the bases are unqualified.
 You can read more about the **quality filtering** functionality of fastp [here](https://github.com/OpenGene/fastp/blob/master/README.md#quality-filter).
-The Salmon documentation notes that, given the way we run `salmon quant`, quantification may be more sensitive to calls that are likely to be erroneous (of low quality) and, therefore, quality trimming may be important.
+The Salmon documentation notes that, given the way we run `salmon quant`, quantification may be more sensitive to calls that are likely to be erroneous (of low quality) and, therefore, quality trimming may be important. 
 
 Trimming, in contrast to filtering, refers to removing low quality base calls from the (typically 3') end of reads.
-A recent paper from the Salmon authors ([Srivastava _et al._ 2020](https://doi.org/10.1186/s13059-020-02151-8)) notes that trimming did not affect mapping rates from random publicly available human bulk (paired-end) RNA-seq samples (they used [TrimGalore](https://github.com/FelixKrueger/TrimGalore)).
-fastp does have [the functionality](https://github.com/OpenGene/fastp#per-read-cutting-by-quality-score) to perform trimming using a sliding window, which must be enabled.
+A recent paper from the Salmon authors ([Srivastava _et al._ 2020](https://doi.org/10.1186/s13059-020-02151-8)) notes that trimming did not affect mapping rates from random publicly available human bulk (paired-end) RNA-seq samples (they used [TrimGalore](https://github.com/FelixKrueger/TrimGalore)). 
+fastp does have [the functionality](https://github.com/OpenGene/fastp#per-read-cutting-by-quality-score) to perform trimming using a sliding window, which must be enabled. 
 We are not using it here.
 
-_Note that there are two kinds of encoding for Phred scores: Phred 33 encoding and Phred 64 encoding.
-FastQC guessed that the file for SRR585570 uses Sanger/Illumina 1.9 encoding (Phred 33).
-If we had Phred 64 data, we'd use the `--phred64` flag.
+_Note that there are two kinds of encoding for Phred scores: Phred 33 encoding and Phred 64 encoding. 
+FastQC guessed that the file for SRR585570 uses Sanger/Illumina 1.9 encoding (Phred 33). 
+If we had Phred 64 data, we'd use the `--phred64` flag. 
 You can read a little bit more about the encoding [here](http://resources.qiagenbioinformatics.com/manuals/clcgenomicsworkbench/700/Quality_scores_in_Illumina_platform.html)._
 
 #### `--length_required`
@@ -186,7 +186,7 @@ When we look at the HTML report, it's helpful to quickly identify what sample th
 
 #### `--json` and `--html`
 
-With these options, we're specifying where the [JSON](https://en.wikipedia.org/wiki/JSON) and HTML reports will be saved (in the `QC/gastric-cancer/fastp/` directory we created) and what the filenames will be.
+With these options, we're specifying where the [JSON](https://en.wikipedia.org/wiki/JSON) and HTML reports will be saved (in the `QC/gastric-cancer/fastp/` directory we created) and what the filenames will be. 
 Including the sample name in the filenames again may help us with project organization.
 
 **If we look at** `QC/gastric-cancer/fastp/SRR585570_fastp.json` **or the top of the HTML report, we can see that fastp reports certain metrics before and after filtering, which can be very useful in making analysis decisions.**
@@ -249,10 +249,10 @@ Output directory, `salmon quant` should create this for us if it doesn't exist y
 
 #### `--validateMappings` and `--rangeFactorizationBins`
 
-Using `--validateMappings` enables mapping validation, where Salmon checks its mappings using traditional alignment.
+Using `--validateMappings` enables mapping validation, where Salmon checks its mappings using traditional alignment. 
 This helps prevent "spurious mappings" where a read maps to a target but does not arise from it (see [documentation for flag](https://salmon.readthedocs.io/en/latest/salmon.html#validatemappings) and the [release notes for `v0.10.0`](https://github.com/COMBINE-lab/salmon/releases/tag/v0.10.0) where this was introduced).
 
-When enabling mapping validation with `--validateMappings`, setting `--rangeFactorizationBins 4` can improve quantification for certain classes of transcripts ([docs](https://salmon.readthedocs.io/en/latest/salmon.html#rangefactorizationbins)).
+When enabling mapping validation with `--validateMappings`, setting `--rangeFactorizationBins 4` can improve quantification for certain classes of transcripts ([docs](https://salmon.readthedocs.io/en/latest/salmon.html#rangefactorizationbins)). 
 
 #### `--gcBias`
 
@@ -265,7 +265,7 @@ It should be noted that this is only appropriate for use with paired-end reads, 
 
 With this option enabled, Salmon will attempt to correct for the bias that occurs when using random hexamer priming (preferential sequencing of reads when certain motifs appear at the beginning).
 
-#### `--threads`
+#### `--threads` 
 
 The `--threads` argument controls the number of threads that are available to Salmon during quantification.
 This in essence controls how much of the mapping can occur in parallel.
