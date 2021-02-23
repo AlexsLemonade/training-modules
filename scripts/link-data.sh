@@ -41,6 +41,7 @@ link_locs=(
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/NB-cell/salmon_quant
   RNA-seq/data/leukemia/SRP049821_metadata.tsv
+  RNA-seq/data/leukemia/tximport
   scRNA-seq/data/glioblastoma/preprocessed
   scRNA-seq/data/tabula-muris/fastq
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
