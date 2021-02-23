@@ -32,5 +32,7 @@ coldata <- dplyr::inner_join(coldata, metadata,
 
 # tximport + save to file
 txi <- tximeta::tximeta(coldata)
-gene_txi <- tximeta::summarizeToGene(txi_data) 
-saveRDS(gene_txi, file = file.path(output_directory, "leukemia_stem_cell_txi.RDS"))
+gene_txi <- tximeta::summarizeToGene(txi) 
+readr::write_rds(gene_txi, 
+                 file = file.path(output_directory, "leukemia_stem_cell_txi.RDS"),
+                 compress = "gz")
