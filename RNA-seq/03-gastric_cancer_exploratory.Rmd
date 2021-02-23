@@ -151,21 +151,17 @@ colData(gene_summarized) <- sample_info
                             
 Now we need to rerun the `DESeq2` steps with this added toy batch column.
 
-If this batch information were real we would include it in the model stored in our DESeq2 object using the `design` argument. (`design = ~ tissue + batch`). 
+If this batch information were real we would include it in the model stored in our DESeq2 object using the `design` argument. (`design = ~ tissue + batch`) and we would re-run the `DESeqDataSet()` and `vst()` steps we did above. 
 
-```{r rerun-deseq2, live = TRUE}
-# Re-run DESeqDataSet() so `batch` column is included
-ddset_batch <- DESeqDataSet(gene_summarized,
-                            design = ~ tissue)
-
-# Variance stabilizing transformation
-vst_batch <- vst(ddset_batch)
+```{r coldata-vst, live = TRUE}
+# Add coldata() with batch info to vst_data
+colData(vst_data) <- sample_info
 ```
 
 ```{r plotPCA-2, live = TRUE}
 # PCA plot - tissue *and* batch
 # We want plotPCA to return the data so we can have more control about the plot
-pca_data <- plotPCA(vst_batch, 
+pca_data <- plotPCA(vst_data, 
                     intgroup = c("tissue", "batch"), 
                     returnData = TRUE)
 ```
