@@ -28,8 +28,8 @@ files=(
   scRNA-seq/05-dimension_reduction_scRNA-seq.Rmd
   machine-learning/01-openpbta_heatmap.Rmd
   machine-learning/02-openpbta_consensus_clustering.Rmd
-  #  machine-learning/03-openpbta_PLIER.Rmd
-  #  machine-learning/04-openpbta_plot_LV.Rmd
+  machine-learning/03-openpbta_PLIER.Rmd
+  machine-learning/04-openpbta_plot_LV.Rmd
   pathway-analysis/01-overrepresentation_analysis.Rmd
   pathway-analysis/02-gene_set_enrichment_analysis.Rmd
   pathway-analysis/03-gene_set_variation_analysis.Rmd
