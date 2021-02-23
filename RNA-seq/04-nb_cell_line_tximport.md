@@ -20,4 +20,4 @@ You can add a new chunk by clicking the *Insert Chunk* button on the toolbar or 
 * Alter the code from `02-gastric_cancer_tximeta-live.Rmd` to use the NB cell line data.
 The `quant.sf` files for each sample can be found in `data/NB-cell/salmon_quant/<SAMPLE>`.
 
-* Save the `tximeta` output as `data/NB-cell/tximeta/NB-cell_tximeta.RDS`. Note that `data/NB-cell/tximeta/` is a new directory.
+* Save the `tximeta` output as `data/NB-cell/tximport/NB-cell_tximeta.RDS`. Note that `data/NB-cell/tximport/` is a new directory.
