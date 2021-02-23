@@ -6,7 +6,7 @@ output:
     toc_float: true
 ---
 
-**CCDL 2018**
+**CCDL 2021**
 
 In this notebook, we'll import the gastric cancer data and do some exploratory
 analyses and visual inspection.
@@ -57,7 +57,6 @@ if (!dir.exists(plots_dir)) {
 }
 ```
 
-
 **Output**
 
 ```{r output-files, live = TRUE}
@@ -68,7 +67,7 @@ pca_plot_file <- file.path(plots_dir, "gastric-cancer_PC_scatter.pdf")
 
 ## DESeq2
 
-### Creating a DESeq2 dataset from tximeta object
+### Creating a DESeq2 dataset from a tximeta object
 
 First, let's read in the data we processed with `tximeta`.
 
@@ -78,12 +77,6 @@ gene_summarized <- readr::read_rds(txi_file)
 ```
 
 ### Set up DESeq2 object
-
-DESeq2 wants data to be rounded. 
-
-```{r}
-assay(gene_summarized) <- round(assay(gene_summarized))
-```
 
 We use the tissue of origin in the design formula because that will allow us
 to model this variable of interest.
@@ -132,33 +125,38 @@ ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
 
 ## A note on technical effects
 
-We don't have batch information (i.e., when the samples were run) for this 
-particular experiment, but let's imagine that `SRR585574` and `SRR585576` were
-run separately from all other samples.
-We'll put this in new "toy" column in `gene_summarized`.
+We don't have batch information (i.e., when the samples were run) for this particular experiment, but let's imagine that `SRR585574` and `SRR585576` were run separately from all other samples.
+We'll add this as a new "toy" column in the sample data (`colData`).
 
-```{r batches}
-gene_summarized@colData$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
-                          "batch1", "batch2", "batch1")
+```{r extract-sample, live = TRUE}
+# Extract colData
+sample_info <- colData(vst_data)
+
+# Print out preview
+sample_info
 ```
 
-Let's rerun the `DESeq2` steps.
+Now we can add a new column with toy batch information and re-store the `colData()`. 
 
-```{r rerun-deseq2, live = TRUE}
-# Rerun the dataset creation step
-# Note: if we were using this for differential expression AND we truly knew
-# the batch, we'd likely use design = ~ batch + tissue
-ddset_batch <- DESeqDataSet(gene_summarized,
-                            design = ~ tissue)
+```{r add-batch}
+# Add batch information
+sample_info$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
+                       "batch1", "batch2", "batch1")
+```
+                            
+If this batch information were real we would have included it with the sample metadata when we made the original `SummarizedExperiment` object with `tximeta`.
+We would then include it in the model stored in our DESeq2 object using the `design` argument (`design = ~ tissue + batch`) and we would re-run the `DESeqDataSet()` and `vst()` steps we did above. 
+Here we will take a bit of a shortcut and add it directly to the `colData()` for our `vst()`-transformed data.
 
-# variance stabilizing transformation
-vst_batch <- vst(ddset_batch)
+```{r coldata-vst, live = TRUE}
+# Add coldata() with batch info to vst_data
+colData(vst_data) <- sample_info
 ```
 
 ```{r plotPCA-2, live = TRUE}
 # PCA plot - tissue *and* batch
 # We want plotPCA to return the data so we can have more control about the plot
-pca_data <- plotPCA(vst_batch, 
+pca_data <- plotPCA(vst_data, 
                     intgroup = c("tissue", "batch"), 
                     returnData = TRUE)
 ```
