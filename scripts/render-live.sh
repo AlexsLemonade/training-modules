@@ -1,6 +1,10 @@
 #! /bin/bash
 set -euo pipefail
 
+# render-live.sh renders and/or converts to "live" a set of .Rmd notebooks by 
+# calling `make-live.R` for each notebook in turn.
+# Rendering is done by default, but can be skipped  by setting the RENDER_RMD to FALSE:
+# For example: RENDER_RMD=FALSE bash render-live.sh
 
 # Set the working directory to the directory of this file
 cd "$(dirname "${BASH_SOURCE[0]}")"
