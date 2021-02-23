@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script runs two snakemake workflows to populate the 
+# This script runs three snakemake workflows to populate the 
 # `/shared/training-modules/RNA-seq` directory with preprocessed data
 # for the notebooks in that module
 
