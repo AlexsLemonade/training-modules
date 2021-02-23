@@ -30,6 +30,20 @@ if (!"exrcise" %in% installed.packages()){
   remotes::install_github("AlexsLemonade/exrcise", dependencies = TRUE, upgrade = "never")
 }
 
+# Function to render and clean up after rendering
+render_clean <- function(file, base_dir = ""){
+  # get loaded packages
+  package_set <- search()
+  message("Rendering ", stringr::str_replace(file, paste0("^", base_dir, "/"), "")) # hide root
+  rmarkdown::render(file, envir = new.env(), quiet = TRUE)
+  # remove packages that could cause conflicts
+  for (package in search()){
+    if (! package %in% package_set){
+      unloadNamespace(package) 
+    }
+  }
+}
+
 # find the project root
 root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
 
@@ -58,16 +72,13 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
                          "03-gene_set_variation_analysis.Rmd"))
              )
 
-
 # Rerender notebooks if --rendering is TRUE
 if (opt$rendering) {
   # capture to avoid printing to stdout
   rendered <- purrr::map(infiles, 
-                        function(f){
-                          # mini function to track progress
-                          message("Rendering ", stringr::str_replace(f, paste0(root_dir, "/"), "")) # hide root
-                          rmarkdown::render(f, envir = new.env(), quiet = TRUE)
-                        })
+                         render_clean,
+                         base_dir = root_dir
+                         )
 }
 
 # new files will be made with -live.Rmd suffix
