@@ -75,10 +75,7 @@ infiles <- c(file.path(root_dir, "intro-to-R-tidyverse",
 # Rerender notebooks if --rendering is TRUE
 if (opt$rendering) {
   # capture to avoid printing to stdout
-  rendered <- purrr::map(infiles, 
-                         render_clean,
-                         base_dir = root_dir
-                         )
+  rendered <- purrr::map(infiles, render_clean, base_dir = root_dir)
 }
 
 # new files will be made with -live.Rmd suffix
