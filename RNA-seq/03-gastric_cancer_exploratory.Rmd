@@ -125,14 +125,12 @@ ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
 
 ## A note on technical effects
 
-We don't have batch information (i.e., when the samples were run) for this 
-particular experiment, but let's imagine that `SRR585574` and `SRR585576` were
-run separately from all other samples.
-We'll add this as a new "toy" column in the sample data (`colData`) for `gene_summarized`.
+We don't have batch information (i.e., when the samples were run) for this particular experiment, but let's imagine that `SRR585574` and `SRR585576` were run separately from all other samples.
+We'll add this as a new "toy" column in the sample data (`colData`).
 
 ```{r extract-sample, live = TRUE}
 # Extract colData
-sample_info <- colData(gene_summarized)
+sample_info <- colData(vst_data)
 
 # Print out preview
 sample_info
@@ -144,14 +142,11 @@ Now we can add a new column with toy batch information and re-store the `colData
 # Add batch information
 sample_info$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
                        "batch1", "batch2", "batch1")
-
-# Replace the sample information                        
-colData(gene_summarized) <- sample_info
 ```
                             
-Now we need to rerun the `DESeq2` steps with this added toy batch column.
-
-If this batch information were real we would include it in the model stored in our DESeq2 object using the `design` argument. (`design = ~ tissue + batch`) and we would re-run the `DESeqDataSet()` and `vst()` steps we did above. 
+If this batch information were real we would have included it with the sample metadata when we made the original `SummarizedExperiment` object with `tximeta`.
+We would then include it in the model stored in our DESeq2 object using the `design` argument (`design = ~ tissue + batch`) and we would re-run the `DESeqDataSet()` and `vst()` steps we did above. 
+Here we will take a bit of a shortcut and add it directly to the `colData()` for our `vst()`-transformed data.
 
 ```{r coldata-vst, live = TRUE}
 # Add coldata() with batch info to vst_data
