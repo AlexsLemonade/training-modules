@@ -67,7 +67,7 @@ pca_plot_file <- file.path(plots_dir, "gastric-cancer_PC_scatter.pdf")
 
 ## DESeq2
 
-### Creating a DESeq2 dataset from tximeta object
+### Creating a DESeq2 dataset from a tximeta object
 
 First, let's read in the data we processed with `tximeta`.
 
@@ -136,21 +136,35 @@ particular experiment, but let's imagine that `SRR585574` and `SRR585576` were
 run separately from all other samples.
 We'll put this in new "toy" column in `gene_summarized`.
 
-```{r batches}
-gene_summarized@colData$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
-                          "batch1", "batch2", "batch1")
+```{r extract-sample, live = TRUE}
+# Extract colData
+sample_info <- colData(gene_summarized)
+
+# Print out preview
+sample_info
 ```
 
-Let's rerun the `DESeq2` steps.
+Now we can add a new column with toy batch information and re-store the `colData()`. 
+
+```{r add-batch}
+# Add batch information
+sample_info$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
+                       "batch1", "batch2", "batch1")
+
+# Replace the sample information                        
+colData(gene_summarized) <- sample_info
+```
+                            
+Now we need to rerun the `DESeq2` steps with this added toy batch column.
+
+If this batch information were real we would include it in the model stored in our DESeq2 object using the `design` argument. (`design = ~ tissue + batch`). 
 
 ```{r rerun-deseq2, live = TRUE}
-# Rerun the dataset creation step
-# Note: if we were using this for differential expression AND we truly knew
-# the batch, we'd likely use design = ~ batch + tissue
+# Re-run DESeqDataSet() so `batch` column is included
 ddset_batch <- DESeqDataSet(gene_summarized,
                             design = ~ tissue)
 
-# variance stabilizing transformation
+# Variance stabilizing transformation
 vst_batch <- vst(ddset_batch)
 ```
 
