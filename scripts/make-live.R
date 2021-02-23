@@ -5,7 +5,7 @@
 # Replaces code in chunks with a chunk option of `live = TRUE`
 # Comments are preserved
 #
-# If --rendering option is FALSE, the rendering is skipped.
+# If --render option is FALSE, the rendering is skipped.
 # Default is TRUE -- rendering is not skipped.
 
 # Load library:
@@ -25,12 +25,18 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
+# Check that render is TRUE or FALSE (or an obvious variant)
 if (! tolower(opt$render) %in% c("true", "false", "t", "f")){
-  stop("--render option must be TRUE or FALSE")
+  stop("`--render` option must be TRUE or FALSE")
 }
 
 # Turn character into logical
 render <- as.logical(opt$render)
+
+# Check that the file is an Rmarkdown file:
+if (! stringr::str_detect(opt$notebook, "\\.Rmd$")){
+  stop(opt$notebook, " is not a `.Rmd` notebook")
+}
 
 # Install exrcise package if needed.
 if (!"exrcise" %in% installed.packages()){
@@ -39,7 +45,7 @@ if (!"exrcise" %in% installed.packages()){
 
 
 message("Processing ", opt$notebook)
-# Rerender notebooks if --rendering is TRUE
+# Rerender notebooks if --render is TRUE
 if (render) {
   rmarkdown::render(opt$notebook, env = new.env(), quiet = TRUE)
 }
