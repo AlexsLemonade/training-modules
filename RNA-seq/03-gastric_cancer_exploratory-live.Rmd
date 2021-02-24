@@ -6,7 +6,7 @@ output:
     toc_float: true
 ---
 
-**CCDL 2018**
+**CCDL 2021**
 
 In this notebook, we'll import the gastric cancer data and do some exploratory
 analyses and visual inspection.
@@ -36,9 +36,10 @@ library(magrittr)
 ```{r input-files}
 # Main data directory
 data_dir <- file.path("data", "gastric-cancer")
+
 # directory with the tximport processed data
 txi_dir <- file.path(data_dir, "tximport")
-txi_file <- file.path(txi_dir, "gastric-cancer_tximport.RDS")
+txi_file <- file.path(txi_dir, "gastric-cancer_tximeta.RDS")
 ```
 
 ```{r metadata-file}
@@ -53,7 +54,6 @@ We'll create a directory to hold our plots.
 
 ```
 
-
 **Output**
 
 ```{r output-files, live = TRUE}
@@ -64,60 +64,23 @@ We'll create a directory to hold our plots.
 
 ## DESeq2
 
-### Creating a DESeq2 dataset from tximport object
+### Creating a DESeq2 dataset from a tximeta object
 
-First, let's read in the data we processed with `tximport`.
+First, let's read in the data we processed with `tximeta`.
 
 ```{r read-rds, live = TRUE}
 # Read in the RDS file we created in the last notebook
 
 ```
 
-```{r txi-counts, live = TRUE}
-# Let's look at the first few rows of the gene-level counts
-
-```
-
-```{r txi-abundance, live = TRUE}
-# Let's look at the first few rows of the gene-level TPM
-
-```
-
-And now we'll read in the sample metadata.
-
-```{r sample_meta_df, live = TRUE}
-# Read in the sample metadata TSV file and have a look
-
-```
-
-We'll save the column names of the counts to a variable that tells us the order of the sample names in `txi`.
-
-```{r col-names-txi}
-tximport_sample_names <- colnames(txi$counts)
-tximport_sample_names
-```
-
-We'll reorder the sample metadata to match the order in `txi`
-
-```{r arrange-sample_meta_df}
-sample_meta_df <- sample_meta_df %>%
-  dplyr::arrange(srr_accession)
-sample_meta_df
-```
-
-Check if these are in the same order.
-
-```{r all-equal}
-all.equal(tximport_sample_names, sample_meta_df$srr_accession)
-```
+### Set up DESeq2 object
 
 We use the tissue of origin in the design formula because that will allow us
 to model this variable of interest.
 
 ```{r ddset}
-ddset <- DESeqDataSetFromTximport(txi = txi,
-                                  colData = sample_meta_df,
-                                  design = ~ tissue)
+ddset <- DESeqDataSet(gene_summarized,
+                      design = ~ tissue)
 ```
 
 ### Variance stabilizing transformation
@@ -159,24 +122,30 @@ ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
 
 ## A note on technical effects
 
-We don't have batch information (i.e., when the samples were run) for this 
-particular experiment, but let's imagine that `SRR585574` and `SRR585576` were
-run separately from all other samples.
-We'll put this in new "toy" column in `sample_meta_df`.
+We don't have batch information (i.e., when the samples were run) for this particular experiment, but let's imagine that `SRR585574` and `SRR585576` were run separately from all other samples.
+We'll add this as a new "toy" column in the sample data (`colData`).
 
-```{r batches}
-sample_meta_df$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
-                          "batch1", "batch2", "batch1")
+```{r extract-sample, live = TRUE}
+# Extract colData
+
+# Print out preview
+
 ```
 
-Let's rerun the `DESeq2` steps.
+Now we can add a new column with toy batch information and re-store the `colData()`. 
 
-```{r rerun-deseq2, live = TRUE}
-# Rerun the dataset creation step
-# Note: if we were using this for differential expression AND we truly knew
-# the batch, we'd likely use design = ~ batch + tissue
+```{r add-batch}
+# Add batch information
+sample_info$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2", 
+                       "batch1", "batch2", "batch1")
+```
+                            
+If this batch information were real we would have included it with the sample metadata when we made the original `SummarizedExperiment` object with `tximeta`.
+We would then include it in the model stored in our DESeq2 object using the `design` argument (`design = ~ tissue + batch`) and we would re-run the `DESeqDataSet()` and `vst()` steps we did above. 
+Here we will take a bit of a shortcut and add it directly to the `colData()` for our `vst()`-transformed data.
 
-# variance stabilizing transformation
+```{r coldata-vst, live = TRUE}
+# Add coldata() with batch info to vst_data
 
 ```
 
