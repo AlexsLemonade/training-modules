@@ -15,9 +15,9 @@ The `linkedTxome` is information about the transcriptome stored by `tximeta` in 
 
 In this example, we will set up a `linkedTxome` for zebrafish, _Danio rerio_, and use our newly created `linkedTxome` to create and save a gene-level summary for a [zebrafish cortisol experiment dataset](https://www.refine.bio/experiments/SRP073217/response-to-low-dose-cortisol-treatment-in-zebrafish-embryos-larvae).
 
-This example is split into two sections: 
-**Part 1:** [Setting up `linkedTxome` for an "other" species](#setting-up-a-linkedtxome-for-a-non-human-non-mouse-species). 
-**Part 2:** [Running `tximeta` with a new `linkedTxome`](#running-tximeta-for-a-zebrafish-dataset). 
+This example is split into two sections:   
+**Part 1:** [Setting up `linkedTxome` for an "other" species](#setting-up-a-linkedtxome-for-a-non-human-non-mouse-species).  
+**Part 2:** [Running `tximeta` with a new `linkedTxome`](#running-tximeta-for-a-zebrafish-dataset).   
 
 Note that Part 1, the `linkedTxome` set up, only needs to be completed once on your computer per a particular species and genome version combination. 
 Once Part 1 is done, Part 2 almost entirely echoes the same general steps covered in `02-gastric_cancer_tximeta` but is dependent on Part 1 having been completed once before. 
@@ -25,6 +25,8 @@ Once Part 1 is done, Part 2 almost entirely echoes the same general steps covere
 For more information about `tximeta`, see [this excellent vignette](https://www.bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html) from Love _et al_.
 
 ## Libraries
+ 
+These libraries are needed for both parts 1 and 2. 
 
 ```{r library}
 # Load magrittr for the pipe
@@ -50,8 +52,8 @@ The zebrafish salmon index, we used to quantify our data was [built using Ensemb
 
 ### Salmon index 
 
-In this instance, we will need to provide `tximeta` with the salmon index for the species we are using. 
-We have prepared this for zebrafish along with other species which you can find more information about [on GitHub](https://github.com/AlexsLemonade/training-txome-prep).
+We need to provide `tximeta` with the salmon index for the species and genome release we are using. 
+We had prepared our salmon index for zebrafish along with other species which you can find more information about [on GitHub](https://github.com/AlexsLemonade/training-txome-prep).
 If you prepare your own salmon index, just be sure to note what database and release you used to build it. 
 
 ```{r directories}
@@ -68,15 +70,15 @@ You can see the full list of species and FASTA file options (should you be using
 
 If you using a species other than zebrafish, click through the file paths on the [ftp server](http://ftp.ensembl.org/pub/release-95/fasta/) to find the corresponding files for your species of interest. 
 
-We will store the `base_url` where all Ensembl's species FASTA files are located and then the second part of the url is species-specific which you may have to replace. 
-This base URL will not need to change should you use another species from Ensembl's release 95, but should you need a different release, you'll need to change `release-95` part correspondingly. 
+The `base_url` is where all Ensembl's species FASTA files for release 95 are located. 
+This will not need to change should you use another species also from Ensembl's release 95, but if you need a different release, the `release-95` part will need to be changed accordingly. 
 
 ```{r}
 # This base URL will not need to change for other species of the same release
 fasta_base_url <- "ftp://ftp.ensembl.org/pub/release-95/fasta/"
 ```
 
-The second part of this URL is species-specific and will require you to replace the pieces commented on below with your species' equivalent file path. 
+The second part of this URL is species-specific which will require you to update to your species' equivalent file path. 
 Note that the FASTA files used here should be the same as what you used to build your salmon index. 
 If you used multiple FASTA files to build your index, you can make this into a vector and include multiple FASTA files here as well. 
 
@@ -90,7 +92,7 @@ fasta_urls <- paste0(
 
 ### GTF file
 
-Now we can follow a similar series of steps to find the file path for our species for the Gene Transfer Format (GTF) file using this address: 
+Now we can follow a similar series of steps to set up the GTF file's URL for our species using this address: 
 http://ftp.ensembl.org/pub/release-95/gtf/
 
 Again, if you are using a different release, the `release-95` part below will need to be altered. 
@@ -100,7 +102,7 @@ Again, if you are using a different release, the `release-95` part below will ne
 gtf_base_url <- "ftp://ftp.ensembl.org/pub/release-95/gtf/"
 ```
 
-Now this part of the URL will need to be replaced with your species' equivalent file path (if you are not using zebrafish). 
+Similarly, the second part of this URL will need to be replaced with your species' equivalent file path (if you are not using zebrafish). 
 
 ```{r}
 gtf_url <- paste0(
@@ -110,16 +112,15 @@ gtf_url <- paste0(
   )
 ```
 
-Side note, though not necessary, you can download these files and supply them to the next section as file paths to locations on your computer. 
-In R, you can download files with `download.file()` function. 
+Side note, though not necessary, you can download the FASTA and GTF files and supply them to the next section as file path locations on your computer if you want to download files with `download.file()` function. 
 
 ## Create the `linkedTxome`
 
-Now that we have located our files. 
-Create a `linkedTxome` with the links to the FASTA files, GTF file, and salmon index specific to our species. 
+Now that we have located our needed files we can run the main function for creating the `linkedTxome`. 
 
-The arguments, `source`, `organism`, release`, and `genome` are all single character strings that will need to be updated depending on the genome versions and files. 
+The arguments, `source`, `organism`, `release`, and `genome` all need single character strings that will need to be updated depending on the genome versions and files. 
 Fortunately, you already have this information based on the GTF and FASTA files you located in the previous steps. 
+Use the comment prompts to update the arguments accordingly. 
 
 ```{r}
 makeLinkedTxome(indexDir = index_dir, # File path to our salmon index
@@ -137,10 +138,10 @@ From this point on, we are doing the same `tximeta` steps we've used for human a
 # Running tximeta for a zebrafish dataset
 
 The above section only needs to be completed once per species-genome release combination.
-The following steps in this section perform the dataset-specific `tximeta` steps in the same way we would for human and mouse data. 
+The following steps in this section perform the dataset specific `tximeta` steps in the same way we would for human and mouse data. 
 
-For this example, we are using a [zebrafish cortisol experiment dataset](https://www.refine.bio/experiments/SRP073217/response-to-low-dose-cortisol-treatment-in-zebrafish-embryos-larvae) that we have already been quantified with salmon. 
-This means that the `quant.sf` files are ready for use with `tximeta`. 
+For this example, we are using a [zebrafish cortisol experiment dataset](https://www.refine.bio/experiments/SRP073217/response-to-low-dose-cortisol-treatment-in-zebrafish-embryos-larvae) that we have already quantified with salmon. 
+This means that the `quant.sf` files are ready for use with `tximeta()`. 
 
 ![](diagrams/rna-seq_5.png)
 
