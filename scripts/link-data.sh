@@ -76,7 +76,7 @@ do
   
   # Declare the short_index directory and source directory
   index_dest=${index_dir}/short_index
-  index_source=${index_dir_names}
+  index_source=${index_source_names}
   
   if [[ -L ${index_dest} || ! -e ${index_dest} ]]
   then
