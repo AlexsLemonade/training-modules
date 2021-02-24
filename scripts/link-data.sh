@@ -56,7 +56,6 @@ do
 done
 
 
-
 # Link the indices
 
 index_dir_names=(

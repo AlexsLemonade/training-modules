@@ -33,6 +33,9 @@ library(SummarizedExperiment)
 ## Directories and files
 
 ```{r directories}
+# Set up file path to the species we are using
+index_dir <- file.path("index", "Danio_rerio")
+
 # directory where the data are located
 data_dir <- file.path("data", "zebrafish-cortisol")
 
@@ -129,25 +132,41 @@ coldata
 indexDir <- file.path(dir, "Dm.BDGP6.22.98_salmon-0.14.1")
 ```
 
+
+You can go to Ensembl to see the full list of species: http://ftp.ensembl.org/pub/release-98/fasta/
+Click through the file paths to find the file you want to use for annotation. 
+Right click on the file and copy its link address
+We will store the `base_url` where all the species FASTA files are located and then the second part of the url is species specific. 
+
+
 ```{r}
-fastaFTP <- c("ftp://ftp.ensembl.org/pub/release-98/fasta/drosophila_melanogaster/cdna/Drosophila_melanogaster.BDGP6.22.cdna.all.fa.gz",
-              "ftp://ftp.ensembl.org/pub/release-98/fasta/drosophila_melanogaster/ncrna/Drosophila_melanogaster.BDGP6.22.ncrna.fa.gz")
+base_url <- "ftp://ftp.ensembl.org/pub/release-98/fasta/"
+
+fasta_ftp <- c(
+  paste0(base_url, "danio_rerio/cdna/Danio_rerio.GRCz11.cdna.all.fa.gz"),
+  paste0(base_url, "danio_rerio/ncrna/Danio_rerio.GRCz11.ncrna.fa.gz")
+)
 ```
 
+Now you can follow a similar series of steps to obtain the Gene Transfer File (GTF) using this address: 
+http://ftp.ensembl.org/pub/release-103/gtf/
+
 ```{r}
-gtfPath <- file.path(dir, "Drosophila_melanogaster.BDGP6.22.98.gtf.gz")
+base_url <- "ftp://ftp.ensembl.org/pub/release-103/gtf/"
+
+gtf_path <- paste0(base_url, "danio_rerio/Danio_rerio.GRCz11.103.gtf.gz")
 ```
 
-Create a linkedTxome
+Create a linkedTxome with the 
 
 ```{r}
-makeLinkedTxome(indexDir = indexDir,
+makeLinkedTxome(indexDir = index_dir,
                 source = "Ensembl",
-                organism = "Drosophila melanogaster",
+                organism = "Danio rerio", # Replace this with the species name
                 release = "98",
-                genome = "BDGP6.22",
-                fasta = fastaFTP,
-                gtf = gtfPath,
+                genome = "GRCz11.103",
+                fasta = fasta_ftp,
+                gtf = gtf_path,
                 write = FALSE)
 ```
 
