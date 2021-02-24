@@ -1,4 +1,4 @@
-name: Make Live
+name: Make Live Notebooks
 # Make live versions of .Rmd files in training modules and optionally rerender notebooks
 
 # This workflow only runs when it is manually dispatched
@@ -35,20 +35,21 @@ jobs:
         run: |
           aws s3 sync s3://ccdl-training-data/training-modules/ .
 
-      # Run the make-live.R script
-      - name: Run make-live.R
-        id: make_live
-        run: Rscript --vanilla scripts/make-live.R --rendering ${{ github.event.inputs.rendering }}
+      - name: Render notebooks
+        env:
+          RENDER_RMD: ${{ github.event.inputs.rendering }}
+        run: bash scripts/render-live.sh
 
       # Make changes to pull request here
       - name: Create PR with rendered notebooks
         uses: peter-evans/create-pull-request@v3
         with:
-          commit-message: Run make-live.R
+          token: ${{ secrets.DOCS_BOT_GITHUB_TOKEN }}
+          commit-message: Live and rendered notebooks
           signoff: false
-          branch: run_make-live.R
+          branch: auto_render_live
           delete-branch: true
-          title: 'GHA: Automated make live versions of the notebooks'
+          title: 'GHA: Automated live (rendered) versions of the notebooks'
           body: |
             ### Description:
             This PR auto-generated from github actions running make-live.R with:
