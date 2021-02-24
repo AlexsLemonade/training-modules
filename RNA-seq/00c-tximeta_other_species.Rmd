@@ -42,7 +42,7 @@ library(SummarizedExperiment)
 For `tximeta` to run for non-human or non-mouse, we need to provide three sets of files for our species of interest, all of which should be from the same genome version/release:
   
 1) The **salmon index** that was used to quantify the species samples 
-2) **FASTA files** that contain sequence information 
+2) **FASTA file(s)** that contain sequence information 
 3) Gene transfer format (**GTF**) file which contains gene annotation 
 
 Here we will be setting up a `linkedTxome` for zebrafish, _Danio rerio_.
@@ -62,15 +62,13 @@ index_dir <- file.path("index", "Danio_rerio", "short_index")
 ### FASTA sequence files
 
 `tximeta` will need the FASTA files for matching the transcript sequences to our data. 
-It will also conveniently include these sequence ranges in the `tximeta` object should you have an analysis that might need them. 
+These FASTA files should match whatever was used to build your salmon index and can be obtained from Ensembl's ftp server. 
 
-We can obtain these FASTA files from Ensembl's ftp server. 
 You can see the full list of species and FASTA file options (should you be using a different species): http://ftp.ensembl.org/pub/release-95/fasta/
 
 If you using a species other than zebrafish, click through the file paths on the [ftp server](http://ftp.ensembl.org/pub/release-95/fasta/) to find the corresponding files for your species of interest. 
 
 We will store the `base_url` where all Ensembl's species FASTA files are located and then the second part of the url is species-specific which you may have to replace. 
-
 This base URL will not need to change should you use another species from Ensembl's release 95, but should you need a different release, you'll need to change `release-95` part correspondingly. 
 
 ```{r}
@@ -78,21 +76,16 @@ This base URL will not need to change should you use another species from Ensemb
 fasta_base_url <- "ftp://ftp.ensembl.org/pub/release-95/fasta/"
 ```
 
-The second parts of the URL are species specific and will require you to replace the pieces commented on below with your species' equivalent file path. 
+The second part of this URL is species-specific and will require you to replace the pieces commented on below with your species' equivalent file path. 
+Note that the FASTA files used here should be the same as what you used to build your salmon index. 
+If you used multiple FASTA files to build your index, you can make this into a vector and include multiple FASTA files here as well. 
 
 ```{r}
-fasta_urls <- c(
-  paste0(
-    fasta_base_url, 
-    # Replace the file path below to the species specific fasta cDNA file
-    "danio_rerio/cdna/Danio_rerio.GRCz11.cdna.all.fa.gz" 
-    ),
-  paste0(
-    fasta_base_url, 
-    # Replace the non-coding RNA fasta file path so that non-coding genes are also annotated
-    "danio_rerio/ncrna/Danio_rerio.GRCz11.ncrna.fa.gz" 
-    )
-)
+fasta_urls <- paste0(
+  fasta_base_url, 
+  # Replace the file path below to the species-specific fasta cDNA file
+  "danio_rerio/cdna/Danio_rerio.GRCz11.cdna.all.fa.gz" 
+  )
 ```
 
 ### GTF file
