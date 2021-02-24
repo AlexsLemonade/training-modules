@@ -56,35 +56,16 @@ do
 done
 
 
-# Link the indices
-
-index_dir_names=(
-  RNA-seq/index/Homo_sapiens
-  RNA-seq/index/Danio_rerio
-)
-
-index_source_names=(
-  ${share_base}/reference/refgenie/hg38_cdna/salmon_index/short
-  ${share_base}/reference/refgenie/z11_cdna/salmon_index/short
-)
-
-# Run through this for each dir name
-for index_dir in ${index_dir_names[@]}
-do 
-  # Make the directory itself
-  mkdir -p ${index_dir}
-  
-  # Declare the short_index directory and source directory
-  index_dest=${index_dir}/short_index
-  index_source=${index_source_names}
-  
-  if [[ -L ${index_dest} || ! -e ${index_dest} ]]
-  then
-    ln -nsf ${index_source} ${index_dest} 
-  else
-    echo "${index_dest} already exists and is not a link, delete or move it to create a link."
-  fi
-done
+# Link the human indices
+mkdir -p RNA-seq/index/Homo_sapiens/
+hs_index_dest=RNA-seq/index/Homo_sapiens/short_index
+hs_index_source=${share_base}/reference/refgenie/hg38_cdna/salmon_index/short
+if [[ -L ${hs_index_dest} || ! -e ${hs_index_dest} ]]
+then
+  ln -nsf ${hs_index_source} ${hs_index_dest} 
+else
+  echo "${hs_index_dest} already exists and is not a link, delete or move it to create a link."
+fi
 
 hs_tx2gene_dest=RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
 hs_tx2gene_source=${share_base}/reference/tx2gene/Homo_sapiens.GRCh38.95_tx2gene.tsv
@@ -105,4 +86,15 @@ then
 else
   echo "${mm_tx2gene_dest} already exists and is not a link, delete or move it to create a link."
 
+fi
+
+# Link the zebrafish indices
+mkdir -p RNA-seq/index/Danio_rerio/
+dr_index_dest=RNA-seq/index/Danio_rerio/short_index
+dr_index_source=${share_base}/reference/refgenie/z11_cdna/salmon_index/short
+if [[ -L ${dr_index_dest} || ! -e ${dr_index_dest} ]]
+then
+  ln -nsf ${dr_index_source} ${dr_index_dest} 
+else
+  echo "${dr_index_dest} already exists and is not a link, delete or move it to create a link."
 fi
