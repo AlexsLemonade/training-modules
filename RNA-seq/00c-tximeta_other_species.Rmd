@@ -10,14 +10,21 @@ output:
 
 In this notebook, we'll import the transcript expression quantification output from `salmon quant` using the [`tximeta`](https://bioconductor.org/packages/release/bioc/html/tximeta.html) package but for a species not human or mouse. 
 
-The steps for human and mouse are more straightforward and are covered in `02-gastric_cancer_tximeta-live.Rmd`. 
-The main difference for using `tximeta` for other species is that we need to set up the reference data in the form of a `linkedTxome` before running `tximeta()` function. 
+For non-human, non-mouse species, `tximeta` needs a new `linkedTxome` to be created. 
+The `linkedTxome` is information about the transcriptome stored by `tximeta` in a way that it can re-import this species-specific information when the `tximeta()` function is called. 
 
-![](diagrams/rna-seq_5.png)
+In this example, we will set up a `linkedTxome` for zebrafish, _Danio rerio_, and use our newly created `linkedTxome` to create and save a gene-level summary for a [zebrafish cortisol experiment dataset](https://www.refine.bio/experiments/SRP073217/response-to-low-dose-cortisol-treatment-in-zebrafish-embryos-larvae).
+
+This example is split into two sections: 
+**Part 1:** [Setting up `linkedTxome` for an "other" species](#setting-up-a-linkedtxome-for-a-non-human-non-mouse-species). 
+**Part 2:** [Running `tximeta` with a new `linkedTxome`](#running-tximeta-for-a-zebrafish-dataset). 
+
+Note that Part 1, the `linkedTxome` set up, only needs to be completed once on your computer per a particular species and genome version combination. 
+Once Part 1 is done, Part 2 almost entirely echoes the same general steps covered in `02-gastric_cancer_tximeta` but is dependent on Part 1 having been completed once before. 
 
 For more information about `tximeta`, see [this excellent vignette](https://www.bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html) from Love _et al_.
 
-## Libraries and functions
+## Libraries
 
 ```{r library}
 # Load magrittr for the pipe
@@ -30,27 +37,133 @@ library(tximeta)
 library(SummarizedExperiment)
 ```
 
-## Directories and files
+# Setting up a linkedTxome for a non-human, non-mouse species 
+
+For `tximeta` to run for non-human or non-mouse, we need to provide three sets of files for our species of interest, all of which should be from the same genome version/release:
+  
+1) The **salmon index** that was used to quantify the species samples 
+2) **FASTA files** that contain sequence information 
+3) Gene transfer format (**GTF**) file which contains gene annotation 
+
+Here we will be setting up a `linkedTxome` for zebrafish, _Danio rerio_.
+The zebrafish salmon index, we used to quantify our data was [built using Ensembl release 95 files](https://github.com/AlexsLemonade/training-txome-prep/blob/master/00-ensembl_download.sh#L12) so all of our files will be from this database (Ensembl) and release (95). 
+
+### Salmon index 
 
 In this instance, we will need to provide `tximeta` with the salmon index for the species we are using. 
 We have prepared this for zebrafish along with other species which you can find more information about [on GitHub](https://github.com/AlexsLemonade/training-txome-prep).
+If you prepare your own salmon index, just be sure to note what database and release you used to build it. 
 
 ```{r directories}
 # Set up file path to the salmon index for the species we are using
 index_dir <- file.path("index", "Danio_rerio", "short_index")
 ```
 
-These directories and files are for pointing to the `quant.sf` files. 
+### FASTA sequence files
+
+`tximeta` will need the FASTA files for matching the transcript sequences to our data. 
+It will also conveniently include these sequence ranges in the `tximeta` object should you have an analysis that might need them. 
+
+We can obtain these FASTA files from Ensembl's ftp server. 
+You can see the full list of species and FASTA file options (should you be using a different species): http://ftp.ensembl.org/pub/release-95/fasta/
+
+If you using a species other than zebrafish, click through the file paths on the [ftp server](http://ftp.ensembl.org/pub/release-95/fasta/) to find the corresponding files for your species of interest. 
+
+We will store the `base_url` where all Ensembl's species FASTA files are located and then the second part of the url is species-specific which you may have to replace. 
+
+This base URL will not need to change should you use another species from Ensembl's release 95, but should you need a different release, you'll need to change `release-95` part correspondingly. 
 
 ```{r}
-# directory where the data are located
+# This base URL will not need to change for other species of the same release
+fasta_base_url <- "ftp://ftp.ensembl.org/pub/release-95/fasta/"
+```
+
+The second parts of the URL are species specific and will require you to replace the pieces commented on below with your species' equivalent file path. 
+
+```{r}
+fasta_urls <- c(
+  paste0(
+    fasta_base_url, 
+    # Replace the file path below to the species specific fasta cDNA file
+    "danio_rerio/cdna/Danio_rerio.GRCz11.cdna.all.fa.gz" 
+    ),
+  paste0(
+    fasta_base_url, 
+    # Replace the non-coding RNA fasta file path so that non-coding genes are also annotated
+    "danio_rerio/ncrna/Danio_rerio.GRCz11.ncrna.fa.gz" 
+    )
+)
+```
+
+### GTF file
+
+Now we can follow a similar series of steps to find the file path for our species for the Gene Transfer Format (GTF) file using this address: 
+http://ftp.ensembl.org/pub/release-95/gtf/
+
+Again, if you are using a different release, the `release-95` part below will need to be altered. 
+
+```{r}
+# This base URL will not need to change for other species of the same release
+gtf_base_url <- "ftp://ftp.ensembl.org/pub/release-95/gtf/"
+```
+
+Now this part of the URL will need to be replaced with your species' equivalent file path (if you are not using zebrafish). 
+
+```{r}
+gtf_url <- paste0(
+  gtf_base_url, 
+  # Replace the file path below to the species-specific gtf file
+  "danio_rerio/Danio_rerio.GRCz11.103.gtf.gz"
+  )
+```
+
+Side note, though not necessary, you can download these files and supply them to the next section as file paths to locations on your computer. 
+In R, you can download files with `download.file()` function. 
+
+## Create the `linkedTxome`
+
+Now that we have located our files. 
+Create a `linkedTxome` with the links to the FASTA files, GTF file, and salmon index specific to our species. 
+
+The arguments, `source`, `organism`, release`, and `genome` are all single character strings that will need to be updated depending on the genome versions and files. 
+Fortunately, you already have this information based on the GTF and FASTA files you located in the previous steps. 
+
+```{r}
+makeLinkedTxome(indexDir = index_dir, # File path to our salmon index
+                source = "Ensembl", # Database the genome info is from
+                organism = "Danio rerio", # Replace this with the species name
+                release = "95", # Replace this with the release number 
+                genome = "GRCz11.103", # Replace with the genome version noted in the gtf file
+                fasta = fasta_urls,
+                gtf = gtf_url)
+```
+
+Once you have set up the `linkedTxome` for a species, you should not need to do it again (on a particular computer). 
+From this point on, we are doing the same `tximeta` steps we've used for human and mouse. 
+
+# Running tximeta for a zebrafish dataset
+
+The above section only needs to be completed once per species-genome release combination.
+The following steps in this section perform the dataset-specific `tximeta` steps in the same way we would for human and mouse data. 
+
+For this example, we are using a [zebrafish cortisol experiment dataset](https://www.refine.bio/experiments/SRP073217/response-to-low-dose-cortisol-treatment-in-zebrafish-embryos-larvae) that we have already been quantified with salmon. 
+This means that the `quant.sf` files are ready for use with `tximeta`. 
+
+![](diagrams/rna-seq_5.png)
+
+## Directories and file names
+
+These directories and files are set up so we can point to the `quant.sf` files. 
+
+```{r}
+# Directory where the data are located
 data_dir <- file.path("data", "zebrafish-cortisol")
 
-# directory where the quant files are located, each sample is its own
+# Directory where the quant files are located, each sample is its own
 # directory
 quant_dir <- file.path(data_dir, "salmon_quant")
 
-# create a directory to hold the tximport results if it doesn't exist yet
+# Create a directory to hold the tximport results if it doesn't exist yet
 txi_dir <- file.path(data_dir, "tximport")
 if (!dir.exists(txi_dir)) {
   dir.create(txi_dir, recursive = TRUE)
@@ -58,7 +171,7 @@ if (!dir.exists(txi_dir)) {
 ```
 
 ```{r input-names}
-# the quant files themselves
+# Identify the quant files themselves and store them in a vector, `sf_files`
 sf_files <- list.files(quant_dir, recursive = TRUE, full.names = TRUE,
                        pattern = "quant.sf")
 ```
@@ -75,59 +188,6 @@ meta_file <- file.path(data_dir, "zebrafish-cortisol_metadata.tsv")
 # above as the rest of the path
 txi_out_file <- file.path(txi_dir, "zebrafish-cortisol_tximeta.RDS")
 ```
-
-## Set up reference data for a non-human, non-mouse species 
-
-Here we will set this up for zebrafish, _Danio rerio_.
-You can look at Ensembl's ftp server to see the full list of species and fasta file options: http://ftp.ensembl.org/pub/release-98/fasta/
-
-If you are using a species other than zebrafish, click through the file paths to find the file you want to use for annotation. 
-
-We will store the `base_url` where all the species FASTA files are located and then the second part of the url is species-specific which you may have to replace. 
-
-```{r}
-fasta_base_url <- "ftp://ftp.ensembl.org/pub/release-98/fasta/"
-
-fasta_files <- c(
-  paste0(
-    fasta_base_url, 
-    # Replace the file path below to the species specific fasta cDNA file
-    "danio_rerio/cdna/Danio_rerio.GRCz11.cdna.all.fa.gz" 
-    ),
-  paste0(
-    fasta_base_url, 
-    # Replace the non-coding RNA fasta file path so that non-coding genes are also annotated
-    "danio_rerio/ncrna/Danio_rerio.GRCz11.ncrna.fa.gz" 
-    )
-)
-```
-
-Now we can follow a similar series of steps to find the file path for our species for the Gene Transfer File (GTF) using this address: 
-http://ftp.ensembl.org/pub/release-98/gtf/
-
-```{r}
-gtf_base_url <- "ftp://ftp.ensembl.org/pub/release-98/gtf/"
-
-gtf_files <- paste0(
-  gtf_base_url, 
-  # Replace the file path below to the species-specific gtf file
-  "danio_rerio/Danio_rerio.GRCz11.103.gtf.gz"
-  )
-```
-
-Create a `linkedTxome` with the links to the fasta files, gtf file, and salmon index specific to our species. 
-
-```{r}
-makeLinkedTxome(indexDir = index_dir,
-                source = "Ensembl",
-                organism = "Danio rerio", # Replace this with the species name
-                release = "98", # Replace this with the release number you've obtained the files from
-                genome = "GRCz11.103", # Replace with the genome version noted in the gtf file
-                fasta = fasta_files,
-                gtf = gtf_files)
-```
-
-Now we can continue on with the setup and `tximeta` steps we've used for human and mouse. 
 
 ## File names
 
@@ -167,9 +227,11 @@ sample_meta_df
 We'll want this information to be added to the `coldata`, which we can do by using a join function to match up the rows between the two data frames and combine them. 
 
 ```{r join-sample_meta_df}
+# Join on the metadata information to our `coldata`
 coldata <- coldata %>%
   dplyr::inner_join(sample_meta_df, by = c("names" = "refinebio_accession_code"))
 
+# Print out a preview of our `coldata`
 coldata
 ```
 
@@ -181,10 +243,8 @@ Using the `coldata` data frame and the `linkedTxome` we set up, now run the `txi
 txi_data <- tximeta(coldata)
 ```
 
-If you haven't created this linkedTxome before, in the console window, you'll be asked: 
+If you haven't used this `linkedTxome` before, in the console window, you'll be asked: 
 `does not exist, create directory? (yes/no):`, to which you can enter `yes`.
-
-The rest of these steps mirror here what we did in `02-gastric-cancer_tximeta`. 
 
 ## Summarize to gene
 
