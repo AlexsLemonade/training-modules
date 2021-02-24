@@ -1,7 +1,7 @@
 # Data setup for RNA-seq module
 
 This directory contains a snakemake workflow and two configuration files to download and preprocess the required data files for the RNA-seq module notebooks.
-The three config files are:
+The config files are:
 - `config-GC.yaml` for the gastric cancer data files used in the majority of the notebooks.
 - `config-NB.yaml` for the neuroblastoma cell line data used in the guided exercise and beyond.
 - `config-zebrafish.yaml` for the zebrafish data used by the tximeta "other species" example.
