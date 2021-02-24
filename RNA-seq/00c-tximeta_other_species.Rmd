@@ -34,7 +34,7 @@ library(SummarizedExperiment)
 
 ```{r directories}
 # Set up file path to the species we are using
-index_dir <- file.path("index", "Danio_rerio")
+index_dir <- file.path("index", "Danio_rerio", "short_index")
 
 # directory where the data are located
 data_dir <- file.path("data", "zebrafish-cortisol")
@@ -83,10 +83,6 @@ sf_files
 
 Let's extract the _sample_ names from the **file paths** using the `stringr` package.
 
-Notice how the file path is separated by `/`.
-If we were to split up this character string by `/`, the second to last item is the sample names (because we used them as directory names for the `salmon` output).
-This is exactly what `stringr::word()` allows us to do: split up the file paths by `/` and extract the sample names.
-
 ```{r sample_names}
 sample_names <- stringr::word(sf_files, -2, sep = "/")
 sample_names
@@ -128,16 +124,10 @@ coldata
 
 ## Set up reference data for a non-human, non-mouse species 
 
-```{r}
-indexDir <- file.path(dir, "Dm.BDGP6.22.98_salmon-0.14.1")
-```
-
-
 You can go to Ensembl to see the full list of species: http://ftp.ensembl.org/pub/release-98/fasta/
 Click through the file paths to find the file you want to use for annotation. 
 Right click on the file and copy its link address
 We will store the `base_url` where all the species FASTA files are located and then the second part of the url is species specific. 
-
 
 ```{r}
 base_url <- "ftp://ftp.ensembl.org/pub/release-98/fasta/"
@@ -157,10 +147,10 @@ base_url <- "ftp://ftp.ensembl.org/pub/release-103/gtf/"
 gtf_path <- paste0(base_url, "danio_rerio/Danio_rerio.GRCz11.103.gtf.gz")
 ```
 
-Create a linkedTxome with the 
+Create a `linkedTxome` with the links to the fasta files, gtf file, and salmon index specific to our species. 
 
 ```{r}
-makeLinkedTxome(indexDir = index_dir,
+makeLinkedTxome(indexDir = "../../../../../shared/data/reference/refgenie/z11_cdna/salmon_index/short",
                 source = "Ensembl",
                 organism = "Danio rerio", # Replace this with the species name
                 release = "98",
@@ -172,16 +162,13 @@ makeLinkedTxome(indexDir = index_dir,
 
 ## Import expression data with `tximeta`
 
-Using the `coldata` data frame that we set up, we can now run the `tximeta()` to import our expression data while automatically finding and associating the transcript annotations that were used when we performed the quantification.
-
-The first time you run `tximeta()` you may get a message about storing downloaded transcriptome data in a cache directory so that it can retrieve the data more quickly the next time.
-We recommend you use the cache, and accept the default location.
+Using the `coldata` data frame and the `linkedTxome` we set up, now run the `tximeta()` per usual.
 
 ```{r tximeta}
 txi_data <- tximeta(coldata)
 ```
 
-*tximeta currently works easily for most human and mouse datasets, but requires a [few more steps for other species](https://bioconductor.org/packages/release/bioc/vignettes/tximeta/inst/doc/tximeta.html#What_if_checksum_isn%E2%80%99t_known).
+Now the rest of these steps mirror what we did in `02-gastric-cancer_tximeta`. 
 
 ## Summarize to gene
 
@@ -198,7 +185,7 @@ This figure is from this handy vignette about [`SummarizedExperiment` objects](h
 
 ## Save to file
 
-We could use `readr::write_tsv` to save `counts_mat` only but `gene_summarized` has a lot of information stored here beyond the counts, so we may want to save all of this to a RDS object. 
+Now we can save our `tximeta` to a RDS object. 
 
 ```{r write-txi}
 # Write `gene_summarized` to RDS object
