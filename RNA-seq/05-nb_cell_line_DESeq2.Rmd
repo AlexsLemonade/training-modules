@@ -6,7 +6,7 @@ output:
     toc_float: true
 ---
 
-**CCDL 2018**
+**CCDL 2021**
 
 In this notebook, we'll perform an analysis to identify the genes that are 
 differentially expressed in _MYCN_ amplified vs. nonamplified neuroblastoma 
@@ -42,9 +42,9 @@ library(magrittr)
 ## Directories and files
 
 ```{r input-files}
-# directory with the tximport processed data
+# directory with the tximeta processed data
 txi_dir <- file.path("data", "NB-cell", "tximport")
-txi_file <- file.path(txi_dir, "NB-cell_tximport.RDS")
+txi_file <- file.path(txi_dir, "NB-cell_tximeta.RDS")
 ```
 
 We'll create a results directory to hold our results.
@@ -68,7 +68,6 @@ if (!dir.exists(plots_dir)) {
 ```{r meta-files}
 # sample metadata path and  file
 data_dir <- file.path("data", "NB-cell")
-meta_file <- file.path(data_dir, "NB-cell_metadata.tsv")
 ```
 
 **Output**
@@ -88,58 +87,29 @@ heatmap_file <- file.path(plots_dir, "NB-cell_heatmap.png")
 
 ## DESeq2
 
-### Creating a DESeq2 dataset from tximport object
+### Creating a DESeq2 dataset from tximeta object
 
-First, let's read in the data we processed with `tximport`.
+First, let's read in the data we processed with `tximeta`.
 
 ```{r read-rds, live = TRUE}
-# Read the RDS file for the NB cell line data
-txi <- readr::read_rds(txi_file)
+# Read in the RDS file we created in the last notebook
+gene_summarized <- readr::read_rds(txi_file)
 ```
 
-Now, the sample metadata.
-
-```{r sample_meta_df, live = TRUE}
-# Read in the sample metadata TSV file and check it out
-sample_meta_df <- readr::read_tsv(meta_file)
-sample_meta_df
-```
-
-We're most interested in _MYCN_ amplification, which is in the `Status` column
-of `sample_meta_df`
+We're most interested in _MYCN_ amplification, which is in the `status` column
+of the `colData` of `gene_summarized`.
 
 ```{r Status, live = TRUE}
-# Look at the first few entries in the Status column
-head(sample_meta_df$status)
+# Look at the first few entries in the status column
+head(colData(gene_summarized)$status)
 ```
-
-Let's check that the ordering of samples is the same.
-
-```{r all.equal}
-tximport_sample_names <- colnames(txi$counts)
-all.equal(tximport_sample_names, sample_meta_df$srr_accession)
-```
-
-Let's reorder by `srr_accession` and see if that remedies the ordering.
-
-```{r arrange-sample_meta_df}
-sample_meta_df <- sample_meta_df %>%
-  dplyr::arrange(srr_accession)
-```
-
-```{r all.equal-2}
-all.equal(tximport_sample_names, sample_meta_df$srr_accession)
-```
-
-It worked!
 
 #### Dataset creation
 
 ```{r ddset, live = TRUE}
 # Create a DESeq2 dataset - remember Status is the variable of interest here
-ddset <- DESeqDataSetFromTximport(txi = txi,
-                                  colData = sample_meta_df,
-                                  design = ~ status)
+ddset <- DESeqDataSet(gene_summarized,
+                      design = ~ status)
 ```
 
 ### Differential expression
