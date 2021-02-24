@@ -71,57 +71,6 @@ meta_file <- file.path(data_dir, "zebrafish-cortisol_metadata.tsv")
 txi_out_file <- file.path(txi_dir, "zebrafish-cortisol_tximeta.RDS")
 ```
 
-## File names
-
-All output files from `salmon quant` we'll use with `tximeta` are named `quant.sf`.
-Unfortunately, this means that the file names themselves do not have any information about the sample they come from!
-
-```{r sf_files}
-# Let's look at the full path for the quant.sf files
-sf_files
-```
-
-Let's extract the _sample_ names from the **file paths** using the `stringr` package.
-
-```{r sample_names}
-sample_names <- stringr::word(sf_files, -2, sep = "/")
-sample_names
-```
-
-## Set up metadata
-
-`tximeta` needs a data frame with at least these two columns: 
-- a `files` column  with the file paths to the quant.sf files
-- a `names` column with the sample names
-
-```{r names_sf_files}
-coldata <- data.frame(files = sf_files, 
-                      names = sample_names)
-```
-
-We have more information about these samples stored in the metadata file that we will also want stored in `coldata`. 
-Let's read in the sample metadata from the TSV file and do a bit of set up. 
-We really only want two columns from this metadata file, so we will use a `dplyr::select()` to keep only those. 
-
-```{r sample_meta_df}
-# Read in the sample metadata TSV file and have a look
-sample_meta_df <- readr::read_tsv(meta_file) %>% 
-  # Select the two columns we need here
-  dplyr::select(refinebio_accession_code, refinebio_title)
-
-# Take a look at the preview
-sample_meta_df
-```
-
-We'll want this information to be added to the `coldata`, which we can do by using a join function to match up the rows between the two data frames and combine them. 
-
-```{r join-sample_meta_df}
-coldata <- coldata %>%
-  dplyr::inner_join(sample_meta_df, by = c("names" = "refinebio_accession_code"))
-
-coldata
-```
-
 ## Set up reference data for a non-human, non-mouse species 
 
 You can go to Ensembl to see the full list of species: http://ftp.ensembl.org/pub/release-98/fasta/
@@ -160,6 +109,50 @@ makeLinkedTxome(indexDir = "../../../../../shared/data/reference/refgenie/z11_cd
                 write = FALSE)
 ```
 
+## File names
+
+```{r sf_files}
+# Let's look at the full path for the quant.sf files
+sf_files
+```
+
+Let's extract the _sample_ names from the **file paths** using the `stringr` package.
+
+```{r sample_names}
+sample_names <- stringr::word(sf_files, -2, sep = "/")
+sample_names
+```
+
+## Set up metadata
+
+```{r names_sf_files}
+coldata <- data.frame(files = sf_files, 
+                      names = sample_names)
+```
+
+We have more information about these samples stored in the metadata file that we will also want stored in `coldata`. 
+Let's read in the sample metadata from the TSV file and do a bit of set up. 
+We really only want two columns from this metadata file, so we will use a `dplyr::select()` to keep only those. 
+
+```{r sample_meta_df}
+# Read in the sample metadata TSV file and have a look
+sample_meta_df <- readr::read_tsv(meta_file) %>% 
+  # Select the two columns we need here
+  dplyr::select(refinebio_accession_code, refinebio_title)
+
+# Take a look at the preview
+sample_meta_df
+```
+
+We'll want this information to be added to the `coldata`, which we can do by using a join function to match up the rows between the two data frames and combine them. 
+
+```{r join-sample_meta_df}
+coldata <- coldata %>%
+  dplyr::inner_join(sample_meta_df, by = c("names" = "refinebio_accession_code"))
+
+coldata
+```
+
 ## Import expression data with `tximeta`
 
 Using the `coldata` data frame and the `linkedTxome` we set up, now run the `tximeta()` per usual.
@@ -178,10 +171,6 @@ We'll summarize to the gene level using the `summarizeToGene()` function.
 # Summarize to the gene level
 gene_summarized <- summarizeToGene(txi_data) 
 ```
-
-![SummarizedExperiment](diagrams/SummarizeExperiment-structure.png)
-
-This figure is from this handy vignette about [`SummarizedExperiment` objects](https://www.bioconductor.org/packages/devel/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
 
 ## Save to file
 
