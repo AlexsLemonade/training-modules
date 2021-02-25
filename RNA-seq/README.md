@@ -15,3 +15,11 @@ The notebooks that comprise this module are (estimated time to complete notebook
 
 
 _Total estimated time to complete instruction notebooks: 3 hours 15 minutes_
+
+Beyond the notebooks mentioned above, this module has the following structure (note that some of these directories are created during the exercises):
+
+![module project structure](./diagrams/bulk_project_structure.png)
+
+With the format of each subdirectory in `data` being similar to:
+
+![gastric cancer structure](./diagrams/gastric_cancer_structure.png)
