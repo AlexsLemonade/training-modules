@@ -44,7 +44,7 @@ rule alevin:
         index = config["salmon_index"],
         tx2gene = config["tx2gene"]
     output:
-        directory("alevin/{run_id}")
+        directory("alevin-quant/{run_id}")
     threads: 10
     shell:
         "salmon alevin -l ISR"
@@ -59,13 +59,13 @@ rule alevin:
 
 rule alevinQC:
     input:
-        "alevin/{run_id}"
+        "alevin-quant/{run_id}"
     output:
         "qc-reports/alevinQC/{run_id}_alevinqc.html"
     shell:
         # add a null whitelist file if none was generated (append to protect against logic errors)
-        "[ -e {input}/alevin/whitelist.txt ] ||"
-        " echo 'NNNNNNNNNNNNNNNN' >> {input}/alevin/whitelist.txt ; "
+        "[ -e {input}/alevin-quant/whitelist.txt ] ||"
+        " echo 'NNNNNNNNNNNNNNNN' >> {input}/alevin-quant/whitelist.txt ; "
         # run alevinQC
         "Rscript -e "
         " 'alevinQC::alevinQCReport("
