@@ -64,7 +64,8 @@ do
   fi
 done
 
-## link indexes
+
+# Link the human indices
 mkdir -p RNA-seq/index/Homo_sapiens/
 hs_index_dest=RNA-seq/index/Homo_sapiens/short_index
 hs_index_source=${share_base}/reference/refgenie/hg38_cdna/salmon_index/short
@@ -94,4 +95,15 @@ then
 else
   echo "${mm_tx2gene_dest} already exists and is not a link, delete or move it to create a link."
 
+fi
+
+# Link the zebrafish indices
+mkdir -p RNA-seq/index/Danio_rerio/
+dr_index_dest=RNA-seq/index/Danio_rerio/short_index
+dr_index_source=${share_base}/reference/refgenie/z11_cdna/salmon_index/short
+if [[ -L ${dr_index_dest} || ! -e ${dr_index_dest} ]]
+then
+  ln -nsf ${dr_index_source} ${dr_index_dest} 
+else
+  echo "${dr_index_dest} already exists and is not a link, delete or move it to create a link."
 fi
