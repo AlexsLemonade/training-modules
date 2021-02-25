@@ -17,6 +17,8 @@ modules_base=${share_base}/training-modules
 mkdir -p RNA-seq/data/gastric-cancer
 mkdir -p RNA-seq/data/gastric-cancer/salmon_quant
 mkdir -p RNA-seq/data/NB-cell
+mkdir -p RNA-seq/data/leukemia
+mkdir -p RNA-seq/data/medulloblastoma
 mkdir -p RNA-seq/data/zebrafish-cortisol/
 mkdir -p RNA-seq/QC/gastric-cancer/fastp/
 mkdir -p RNA-seq/QC/gastric-cancer/fastqc/
@@ -40,6 +42,10 @@ link_locs=(
   RNA-seq/QC/gastric-cancer/fastqc/SRR585571
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/NB-cell/salmon_quant
+  RNA-seq/data/leukemia/SRP049821_metadata.tsv
+  RNA-seq/data/leukemia/tximport
+  RNA-seq/data/medulloblastoma/SRP150101_metadata.tsv
+  RNA-seq/data/medulloblastoma/tximport
   RNA-seq/data/zebrafish-cortisol/zebrafish-cortisol_metadata.tsv
   RNA-seq/data/zebrafish-cortisol/salmon_quant
   scRNA-seq/data/glioblastoma/preprocessed
