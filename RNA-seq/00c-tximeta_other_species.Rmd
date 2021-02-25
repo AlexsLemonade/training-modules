@@ -48,7 +48,7 @@ For `tximeta` to run for non-human or non-mouse, we need to provide three sets o
 3) Gene transfer format (**GTF**) file which contains gene annotation 
 
 Here we will be setting up a `linkedTxome` for zebrafish, _Danio rerio_.
-The zebrafish salmon index, we used to quantify our data was [built using Ensembl release 95 files](https://github.com/AlexsLemonade/training-txome-prep/blob/master/00-ensembl_download.sh#L12) so all of our files will be from this database (Ensembl) and release (95). 
+The zebrafish salmon index that we used to quantify our data was [built using Ensembl release 95 files](https://github.com/AlexsLemonade/training-txome-prep/blob/master/00-ensembl_download.sh#L12) so all of our files will be from this database (Ensembl) and release (95). 
 
 ### Salmon index 
 
@@ -64,7 +64,8 @@ index_dir <- file.path("index", "Danio_rerio", "short_index")
 ### FASTA sequence files
 
 `tximeta` will need the FASTA files for matching the transcript sequences to our data. 
-These FASTA files should match whatever was used to build your salmon index and can be obtained from Ensembl's ftp server. 
+These FASTA files should match whatever was used to build your salmon index.
+In this case,  the matching files for our index can be obtained from Ensembl's ftp server and correspond to release 95 of the Ensembl database.
 
 You can see the full list of species and FASTA file options (should you be using a different species): http://ftp.ensembl.org/pub/release-95/fasta/
 
@@ -78,7 +79,7 @@ This will not need to change should you use another species also from Ensembl's 
 fasta_base_url <- "ftp://ftp.ensembl.org/pub/release-95/fasta/"
 ```
 
-The second part of this URL is species-specific which will require you to update to your species' equivalent file path. 
+The second part of this URL is species-specific, which will require you to update to your species' equivalent file path. 
 Note that the FASTA files used here should be the same as what you used to build your salmon index. 
 If you used multiple FASTA files to build your index, you can make this into a vector and include multiple FASTA files here as well. 
 
@@ -108,11 +109,11 @@ Similarly, the second part of this URL will need to be replaced with your specie
 gtf_url <- paste0(
   gtf_base_url, 
   # Replace the file path below to the species-specific gtf file
-  "danio_rerio/Danio_rerio.GRCz11.103.gtf.gz"
+  "danio_rerio/Danio_rerio.GRCz11.95.gtf.gz"
   )
 ```
 
-Side note, though not necessary, you can download the FASTA and GTF files and supply them to the next section as file path locations on your computer if you want to download files with `download.file()` function. 
+Note that if you have FASTA and/or GTF files that you have downloaded to your computer (for example to build a salmon index), you can also use file paths instead of urls to provide the locations of these files. 
 
 ## Create the `linkedTxome`
 
@@ -127,7 +128,7 @@ makeLinkedTxome(indexDir = index_dir, # File path to our salmon index
                 source = "Ensembl", # Database the genome info is from
                 organism = "Danio rerio", # Replace this with the species name
                 release = "95", # Replace this with the release number 
-                genome = "GRCz11.103", # Replace with the genome version noted in the gtf file
+                genome = "GRCz11", # Replace with the genome id from the file names
                 fasta = fasta_urls,
                 gtf = gtf_url)
 ```
@@ -158,7 +159,7 @@ data_dir <- file.path("data", "zebrafish-cortisol")
 quant_dir <- file.path(data_dir, "salmon_quant")
 
 # Create a directory to hold the tximport results if it doesn't exist yet
-txi_dir <- file.path(data_dir, "tximport")
+txi_dir <- file.path(data_dir, "txi")
 if (!dir.exists(txi_dir)) {
   dir.create(txi_dir, recursive = TRUE)
 }
@@ -206,13 +207,22 @@ coldata <- data.frame(files = sf_files,
 
 We have more information about these samples stored in the metadata file that we will also want stored in `coldata`. 
 Let's read in the sample metadata from the TSV file and do a bit of set up. 
-We really only want two columns from this metadata file, so we will use a `dplyr::select()` to keep only those. 
 
 ```{r sample_meta_df}
 # Read in the sample metadata TSV file and have a look
-sample_meta_df <- readr::read_tsv(meta_file) %>% 
+sample_meta_df <- readr::read_tsv(meta_file) 
+```
+
+Most of the columns from this metadata file happen to be blank, so we will use a `dplyr::select()` to keep only the ones we need, the accession code and `refinebio_title` which has some information about the treatments. 
+
+```{r}
+sample_meta_df <- sample_meta_df %>% 
   # Select the two columns we need here
-  dplyr::select(refinebio_accession_code, refinebio_title)
+  dplyr::select(refinebio_accession_code, refinebio_title) %>% 
+  # Breakout the treatment information from the title
+  dplyr::mutate(
+    treatment = stringr::word(refinebio_title, sep = "_", 1), 
+    )
 
 # Take a look at the preview
 sample_meta_df
@@ -237,8 +247,11 @@ Using the `coldata` data frame and the `linkedTxome` we set up, now run the `txi
 txi_data <- tximeta(coldata)
 ```
 
-If you haven't used this `linkedTxome` before, in the console window, you'll be asked: 
-`does not exist, create directory? (yes/no):`, to which you can enter `yes`.
+If you haven't used this `linkedTxome` before, you may be asked (in the console window) about whether to create a directory. You can feel free to say yes.
+
+If we did not have a `linkedTxome` for our dataset we tried to run `tximeta()` we would get the following message:
+`couldn't find matching transcriptome, returning non-ranged SummarizedExperiment`
+All your data would still be imported, and you could access the transcript ids with `row.names(txi_data)`, but you won't be able to summarize to the gene level in the next step. 
 
 ## Summarize to gene
 
