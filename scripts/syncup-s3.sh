@@ -26,9 +26,9 @@ bucket=s3://ccdl-training-data/training-modules
 sync_dirs=(
   intro-to-R-tidyverse/data
   RNA-seq/data/gastric-cancer/salmon_quant
-  RNA-seq/data/NB-cell/tximport
-  RNA-seq/data/leukemia/tximport
-  RNA-seq/data/medulloblastoma/tximport
+  RNA-seq/data/NB-cell/txi
+  RNA-seq/data/leukemia/txi
+  RNA-seq/data/medulloblastoma/txi
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/index/Mus_musculus
   machine-learning/data/open-pbta/processed
@@ -40,7 +40,7 @@ sync_files=(
   RNA-seq/data/leukemia/SRP049821_metadata.tsv
   RNA-seq/data/medulloblastoma/SRP150101_metadata.tsv
   RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
-  scRNA-seq/data/glioblastoma/preprocessed/tximport/count_matrix.tsv
+  scRNA-seq/data/glioblastoma/preprocessed/txi/count_matrix.tsv
   scRNA-seq/data/glioblastoma/preprocessed/darmanis_metadata.tsv
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   pathway-analysis/data/medulloblastoma/medulloblastoma_vst_collapsed.tsv

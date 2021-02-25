@@ -51,22 +51,6 @@ multiqc \
 
 Once this completes, you should have a report at `QC/gastric_cancer/multiqc_report.html`.
 
-## tximeta
-
-We use Salmon and tximport to quantify genes in bulk RNA-seq data in this module.
-The authors of these tools have developed [`tximeta`](https://bioconductor.org/packages/release/bioc/html/tximeta.html), a Bioconductor package that has functionality to support reproducible research by automatically adding metadata (e.g., Salmon version used) to a specialized object in R called a [`SummarizedExperiment`](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html) and by linking the transcriptomes used for quantification to public sources (e.g., Ensembl). 
-You can import quantifications from Salmon with `tximeta` and follow a similar path to what we present including the summarization to the gene level and the creation of a DESeq2 dataset.
-
-**Read more about `tximeta` in [the package vignette]((https://bioconductor.org/packages/release/bioc/vignettes/tximeta/inst/doc/tximeta.html)) and [the README on GitHub](https://github.com/mikelove/tximeta/blob/master/README.md).**
-
-If you have time to use `tximeta` with your own data, we encourage you to try it out, follow along the package documentation, and let us know what you think!
-
-`tximeta` is not installed on the RStudio Server we use for training, but it can be installed by running the following command in the R console:
-
-```R
-BiocManager::install("tximeta")
-```
-
 ## Decoy sequence-aware selective alignment with Salmon
 
 In mid-2019, the folks that develop Salmon posted a preprint called _Alignment and mapping methodology influence transcript abundance estimation_ ([Srivastava et al. _bioRxiv._ 2019.](https://doi.org/10.1101/657874)).

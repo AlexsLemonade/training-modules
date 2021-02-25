@@ -10,8 +10,8 @@ data_dir <- "/shared/data/training-modules/RNA-seq/data/leukemia"
 
 meta_file <- file.path(data_dir, "SRP049821_metadata.tsv")
 
-# create a directory to hold the tximport output if it does not yet exist
-output_directory <- file.path(data_dir, "tximport")
+# create a directory to hold the tximeta output if it does not yet exist
+output_directory <- file.path(data_dir, "txi")
 dir.create(output_directory, recursive = TRUE, showWarnings = FALSE)
 
 # salmon output -- need sample names to easier downstream use
@@ -30,7 +30,7 @@ metadata <- readr::read_tsv(meta_file)
 coldata <- dplyr::inner_join(coldata, metadata, 
                              by = c("names" = "Run"))
 
-# tximport + save to file
+# tximeta + save to file
 txi <- tximeta::tximeta(coldata)
 gene_txi <- tximeta::summarizeToGene(txi) 
 readr::write_rds(gene_txi, 
