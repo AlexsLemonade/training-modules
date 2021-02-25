@@ -39,7 +39,6 @@ sync_files=(
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/leukemia/SRP049821_metadata.tsv
   RNA-seq/data/medulloblastoma/SRP150101_metadata.tsv
-  RNA-seq/index/Homo_sapiens/Homo_sapiens.GRCh38.95_tx2gene.tsv
   scRNA-seq/data/glioblastoma/preprocessed/txi/count_matrix.tsv
   scRNA-seq/data/glioblastoma/preprocessed/darmanis_metadata.tsv
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
