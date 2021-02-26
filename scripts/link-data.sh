@@ -43,9 +43,9 @@ link_locs=(
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/NB-cell/salmon_quant
   RNA-seq/data/leukemia/SRP049821_metadata.tsv
-  RNA-seq/data/leukemia/tximport
+  RNA-seq/data/leukemia/txi
   RNA-seq/data/medulloblastoma/SRP150101_metadata.tsv
-  RNA-seq/data/medulloblastoma/tximport
+  RNA-seq/data/medulloblastoma/txi
   RNA-seq/data/zebrafish-cortisol/zebrafish-cortisol_metadata.tsv
   RNA-seq/data/zebrafish-cortisol/salmon_quant
   scRNA-seq/data/glioblastoma/preprocessed

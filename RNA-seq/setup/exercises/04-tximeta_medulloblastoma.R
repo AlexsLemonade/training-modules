@@ -2,13 +2,13 @@
 # Process SRP049821 RNA-seq data with tximeta for bulk RNA-seq exercise
 # notebook
 #
-# Command line usage: Rscript 02-tximeta.R
-# Input (paths hardcoded): quant files from SRP049821
+# Command line usage: Rscript 04-tximeta_medulloblastoma.R
+# Input (paths hardcoded): quant files from SRP150101
 # Output (path hardcoded): output of tximeta (gene summarized)
 
-data_dir <- "/shared/data/training-modules/RNA-seq/data/leukemia"
+data_dir <- "/shared/data/training-modules/RNA-seq/data/medulloblastoma"
 
-meta_file <- file.path(data_dir, "SRP049821_metadata.tsv")
+meta_file <- file.path(data_dir, "SRP150101_metadata.tsv")
 
 # create a directory to hold the tximeta output if it does not yet exist
 output_directory <- file.path(data_dir, "txi")
@@ -34,5 +34,5 @@ coldata <- dplyr::inner_join(coldata, metadata,
 txi <- tximeta::tximeta(coldata)
 gene_txi <- tximeta::summarizeToGene(txi) 
 readr::write_rds(gene_txi, 
-                 file = file.path(output_directory, "leukemia_stem_cell_txi.RDS"),
+                 file = file.path(output_directory, "medulloblastoma_txi.RDS"),
                  compress = "gz")
