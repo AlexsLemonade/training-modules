@@ -6,18 +6,13 @@ output:
     toc_float: true
 ---
 
-**CCDL 2018**
+**CCDL 2021**
 
-In this notebook, we'll perform an analysis to identify the genes that are 
-differentially expressed in _MYCN_ amplified vs. nonamplified neuroblastoma 
-cell lines. 
+In this notebook, we'll perform an analysis to identify the genes that are differentially expressed in _MYCN_ amplified vs. nonamplified neuroblastoma cell lines. 
 
-These RNA-seq data are from 
-[Harenza, et al. _Scientific Data._ 2017.](https://doi.org/10.1038/sdata.2017.33).
+These RNA-seq data are from [Harenza, et al. _Scientific Data._ 2017.](https://doi.org/10.1038/sdata.2017.33).
 
-More information about DESeq2 can be found in the [excellent vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) 
-from Love, Anders, and Huber from which this is adapted 
-(see also: [Love, Anders, and Huber. _Genome Biology_. 2014.](https://doi.org/10.1186/s13059-014-0550-8))
+More information about DESeq2 can be found in the [excellent vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) from Love, Anders, and Huber from which this is adapted (see also: [Love, Anders, and Huber. _Genome Biology_. 2014.](https://doi.org/10.1186/s13059-014-0550-8))
 
 DESeq2 takes unnormalized counts or estimated counts and does the following:
 
@@ -42,16 +37,16 @@ library(magrittr)
 ## Directories and files
 
 ```{r input-files}
-# directory with the tximport processed data
-txi_dir <- file.path("data", "NB-cell", "tximport")
-txi_file <- file.path(txi_dir, "NB-cell_tximport.RDS")
+# directory with the tximeta processed data
+txi_dir <- file.path("data", "NB-cell", "txi")
+txi_file <- file.path(txi_dir, "NB-cell_tximeta.RDS")
 ```
 
 We'll create a results directory to hold our results.
 
 ```{r results-dir}
 # Create a results directory if it doesn't already exist
-results_dir <- "results"
+results_dir <- file.path("results", "NB-cell")
 if (!dir.exists(results_dir)) {
   dir.create(results_dir, recursive = TRUE)
 }
@@ -65,7 +60,6 @@ if (!dir.exists(results_dir)) {
 ```{r meta-files}
 # sample metadata path and  file
 data_dir <- file.path("data", "NB-cell")
-meta_file <- file.path(data_dir, "NB-cell_metadata.tsv")
 ```
 
 **Output**
@@ -85,54 +79,28 @@ heatmap_file <- file.path(plots_dir, "NB-cell_heatmap.png")
 
 ## DESeq2
 
-### Creating a DESeq2 dataset from tximport object
+### Creating a DESeq2 dataset from tximeta object
 
-First, let's read in the data we processed with `tximport`.
+First, let's read in the data we processed with `tximeta`.
 
 ```{r read-rds, live = TRUE}
-# Read the RDS file for the NB cell line data
+# Read in the RDS file we created in the last notebook
 
 ```
 
-Now, the sample metadata.
-
-```{r sample_meta_df, live = TRUE}
-# Read in the sample metadata TSV file and check it out
-
-```
-
-We're most interested in _MYCN_ amplification, which is in the `Status` column
-of `sample_meta_df`
+We're most interested in _MYCN_ amplification, which we had stored in the `status` column of the sample metadata of `gene_summarized`.
+Recall that for a `SummarizedExperiment`, the samples are the columns, so this information is now in the `colData` slot.
 
 ```{r Status, live = TRUE}
-# Look at the first few entries in the Status column
+# Look at the first few entries in the status column
 
 ```
-
-Let's check that the ordering of samples is the same.
-
-```{r all.equal}
-tximport_sample_names <- colnames(txi$counts)
-all.equal(tximport_sample_names, sample_meta_df$srr_accession)
-```
-
-Let's reorder by `srr_accession` and see if that remedies the ordering.
-
-```{r arrange-sample_meta_df}
-sample_meta_df <- sample_meta_df %>%
-  dplyr::arrange(srr_accession)
-```
-
-```{r all.equal-2}
-all.equal(tximport_sample_names, sample_meta_df$srr_accession)
-```
-
-It worked!
 
 #### Dataset creation
 
 ```{r ddset, live = TRUE}
-# Create a DESeq2 dataset - remember Status is the variable of interest here
+# Create a DESeq2 dataset from gene_summarized 
+# remember that `status` is the variable of interest here
 
 ```
 
@@ -155,8 +123,7 @@ Let's look at the `levels` of `Status`.
 levels(ddset$status)
 ```
 
-We can see that these are in alphabetical order, so "Amplified" samples would
-be the reference. 
+We can see that these are in alphabetical order, so "Amplified" samples would be the reference. 
 We can use the `relevel` function to remedy this.
 
 ```{r relevel}
@@ -170,8 +137,7 @@ ddset$status <- relevel(ddset$status, ref = "Nonamplified")
 
 #### Differential expression analysis
 
-We'll use the wrapper function `DESeq` to do our differential expression 
-analysis.
+We'll use the wrapper function `DESeq` to do our differential expression analysis.
 
 ```{r DESeq}
 deseq_object <- DESeq(ddset)
@@ -206,10 +172,7 @@ deseq_df %>%
   dplyr::arrange(dplyr::desc(stat))
 ```
 
-Let's take a look at what the two top genes are:
-
-* [`ENSG00000233718`](https://useast.ensembl.org/Homo_sapiens/Gene/Summary?g=ENSG00000233718;r=2:15921037-15942249)
-* [`ENSG00000134323`](http://useast.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000134323;r=2:15940564-15947007)
+Let's take a look at what the top gene is: [`ENSG00000134323`](http://useast.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000134323)
 
 How many genes were differentially expressed (FDR < 0.05)?
 
@@ -226,9 +189,7 @@ readr::write_tsv(deseq_df, file = deseq_df_file)
 #### Visualize differentially expressed genes with a heatmap
 
 Let's get an overall picture of our results using a heatmap. 
-Before we can do this, we will need to transform our data so that when we make
-the heatmap the genes are on a more similar scale and the heatmap is 
-interpretable. 
+Before we can do this, we will need to transform our data so that when we make the heatmap the genes are on a more similar scale and the heatmap is interpretable. 
 We will use variance stabilizing transformation from DESeq2 to do this.
 Refer to the help page or the DESeq2 docs for more information. 
 
@@ -243,16 +204,14 @@ We need to extract the normalized gene matrix from the `vst_data` object.
 vst_data <- assay(vst_data)
 ```
 
-We will make a heatmap of only the significant genes, so let's obtain the gene 
-IDs that have an adjusted p-value less than 0.05.
+We will make a heatmap of only the significant genes, so let's obtain the gene IDs that have an adjusted p-value less than 0.05.
 
 ```{r signif_genes, live = TRUE}
 # Filter to padj < 0.05 and then only extract the Genes
 
 ```
 
-Now we will use `signif_genes` to filter `vst_data` to only have significant 
-genes' data. 
+Now we will use `signif_genes` to filter `vst_data` to only have significant genes' data. 
 
 ```{r signif_vst_data}
 signif_vst_data <- vst_data %>%
@@ -261,10 +220,8 @@ signif_vst_data <- vst_data %>%
 ```
 
 Let's make the results into a heatmap using the `pheatmap` package. 
-We will use the `scale = "row"` argument so that the data is standardized by
-gene (i.e., will be made into [z-scores](https://www.statisticshowto.datasciencecentral.com/probability-and-statistics/z-score/)). 
-Standardizing the data by gene makes it so our heatmap is more easily 
-interpretable despite how different genes' distributions may be. 
+We will use the `scale = "row"` argument so that the data is standardized by gene (i.e., will be made into [z-scores](https://www.statisticshowto.datasciencecentral.com/probability-and-statistics/z-score/)). 
+Standardizing the data by gene makes it so our heatmap is more easily interpretable despite how different genes' distributions may be. 
 
 ```{r pheatmap}
 pheatmap::pheatmap(signif_vst_data, 
@@ -275,8 +232,7 @@ pheatmap::pheatmap(signif_vst_data,
                                       "yellow"))(25))
 ```
 
-If we want to save this heatmap as a PNG, we have to use the `png` function that 
-is part of base R, run `pheatmap::pheatmap` again, and then use `dev.off()`.
+If we want to save this heatmap as a PNG, we have to use the `png` function that is part of base R, run `pheatmap::pheatmap` again, and then use `dev.off()`.
 
 ```{r png, live = TRUE}
 
@@ -286,8 +242,7 @@ is part of base R, run `pheatmap::pheatmap` again, and then use `dev.off()`.
 
 ```
 
-We can specify the dimensions and resolution of the PNG that is saved by 
-supplying different arguments to the `png` function.
+We can specify the dimensions and resolution of the PNG that is saved by supplying different arguments to the `png` function.
 
 ```{r png-adjust}
 png(filename = heatmap_file, 
