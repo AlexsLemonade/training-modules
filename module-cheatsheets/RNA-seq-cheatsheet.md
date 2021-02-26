@@ -70,10 +70,11 @@ Read the `SummarizedExperiment` package documentation [**here**](http://biocondu
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
-| [`tximeta`](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html)              | [`tximeta()`](https://rdrr.io/bioc/tximeta/man/tximeta.html)           | tximeta           | Imports transcript-level estimates, attaches transcriptome annotation, and returns a `SummarizedExperiment` object  |
-| [`tximeta`](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html)| [`makeLinkedTxome`](https://rdrr.io/bioc/tximeta/man/linkedTxome.html)| Make Linked Transcriptome | Sets up transcriptome annotation to be used by the `tximeta()` function (Only necessary if `tximeta()` fails to find annotation, like for non-human, non-mouse species data) |
+| `tximeta`| [`tximeta()`](https://rdrr.io/bioc/tximeta/man/tximeta.html)           | tximeta           | Imports transcript-level estimates, attaches transcriptome annotation, and returns a `SummarizedExperiment` object  |
+| `tximeta`| [`makeLinkedTxome`](https://rdrr.io/bioc/tximeta/man/linkedTxome.html)| Make Linked Transcriptome | Sets up transcriptome annotation to be used by the `tximeta()` function (Only necessary if `tximeta()` fails to find annotation, like for non-human, non-mouse species data) |
+| `tximeta`| [`summarizeToGene()`](https://rdrr.io/bioc/tximeta/man/summarizeToGene.html)| Summarize to Gene | Takes a `SummarizedExperiment` that was set up by `tximeta` and summarizes transcript data to the gene-level |
 | `SummarizedExperiment`| [`rowData()` `colData()`](https://www.rdocumentation.org/packages/SummarizedExperiment/versions/1.2.3/topics/SummarizedExperiment-class)| Col/Row Data| Accesses the row or column data from a `SummarizedExperiment` object|
-| `SummarizedExperiment`| [`assay() assayNames()`](https://www.rdocumentation.org/packages/SummarizedExperiment/versions/1.2.3/topics/SummarizedExperiment-class)| Assay or AssayNames| Accesses the assay data or the names of the assays from `SummarizedExperiment` object|
+| `SummarizedExperiment`| [`assay()` `assayNames()`](https://www.rdocumentation.org/packages/SummarizedExperiment/versions/1.2.3/topics/SummarizedExperiment-class)| Assay or AssayNames| Accesses the assay data or the names of the assays from `SummarizedExperiment` object|
 
 
 ### `stringr`, `readr`, `dplyr`, `pheatmap`
