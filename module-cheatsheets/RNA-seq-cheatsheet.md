@@ -37,7 +37,7 @@ Read the `DESeq2` package documentation [**here**](https://bioc.ism.ac.jp/packag
 | `DESeq2`                | [`plotPCA()`](https://www.rdocumentation.org/packages/DESeq/versions/1.24.0/topics/plotPCA)             | PCA plot                                        | Produces a principal component analysis plot for transformed data. It can be used to visually inspect the data, which might allow an analyst to identify batch effects.   |
 | `DESeq2`                | [`counts()`](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/counts)              | Counts                                          | Returns count matrix from `DESeqDataSet` object                         |                                                                                         
 | `DESeq2`                | [`results()`](https://www.rdocumentation.org/packages/DESeq/versions/1.24.0/topics/results)             | Results                                         | Returns the results table from a DESeq2 analysis                         |                                                                                        
-| `DESeq2`                | [`assay()`](https://www.bioconductor.org/packages/devel/bioc/manuals/DESeq2/man/DESeq2.pdf)             | Assay                                           | Returns matrix from the `assay` slot of `DESeqDataSet` or `DESeqTransform`                                         |        \
+| `DESeq2`                | [`assay()`](https://www.bioconductor.org/packages/devel/bioc/manuals/DESeq2/man/DESeq2.pdf)             | Assay                                           | Returns matrix from the `assay` slot of `DESeqDataSet` or `DESeqTransform`                                         |
 
 <div style="page-break-after: always;"></div>
 
@@ -65,13 +65,13 @@ Read the `ggplot2` package documentation [**here**](https://www.rdocumentation.o
 <div style="page-break-after: always;"></div>
 
 ### `tximeta` and `SummarizedExperiment`
-Read the `tximeta` package documentation [**here**](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html), and the package vignette by Love _et al._ [**here**](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html).
+Read the `tximeta` package documentation [**here**](https://bioconductor.org/packages/release/bioc/manuals/tximeta/man/tximeta.pdf), and the package vignette by Love _et al._ [**here**](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html).
 Read the `SummarizedExperiment` package documentation [**here**](http://bioconductor.org/packages/release/bioc/manuals/SummarizedExperiment/man/SummarizedExperiment.pdf), and the package vignette by Morgan _et al._ [**here**](https://www.bioconductor.org/packages/release/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `tximeta`| [`tximeta()`](https://rdrr.io/bioc/tximeta/man/tximeta.html)           | tximeta           | Imports transcript-level estimates, attaches transcriptome annotation, and returns a `SummarizedExperiment` object  |
-| `tximeta`| [`makeLinkedTxome`](https://rdrr.io/bioc/tximeta/man/linkedTxome.html)| Make Linked Transcriptome | Sets up transcriptome annotation to be used by the `tximeta()` function (Only necessary if `tximeta()` fails to find annotation, like for non-human, non-mouse species data) |
+| `tximeta`| [`makeLinkedTxome()`](https://rdrr.io/bioc/tximeta/man/linkedTxome.html)| Make Linked Transcriptome | Sets up transcriptome annotation to be used by the `tximeta()` function (Only necessary if `tximeta()` fails to find annotation, like for non-human, non-mouse species data) |
 | `tximeta`| [`summarizeToGene()`](https://rdrr.io/bioc/tximeta/man/summarizeToGene.html)| Summarize to Gene | Takes a `SummarizedExperiment` that was set up by `tximeta` and summarizes transcript data to the gene-level |
 | `SummarizedExperiment`| [`rowData()` `colData()`](https://www.rdocumentation.org/packages/SummarizedExperiment/versions/1.2.3/topics/SummarizedExperiment-class)| Col/Row Data| Accesses the row or column data from a `SummarizedExperiment` object|
 | `SummarizedExperiment`| [`assay()` `assayNames()`](https://www.rdocumentation.org/packages/SummarizedExperiment/versions/1.2.3/topics/SummarizedExperiment-class)| Assay or AssayNames| Accesses the assay data or the names of the assays from `SummarizedExperiment` object|
