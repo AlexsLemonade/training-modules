@@ -1,0 +1,161 @@
+---
+title: "Exercise: Leukemia bulk RNA-seq"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+Here, we'll examine a mouse model of acute myeloid leukemia (AML).
+We're using [`SRP049821`](https://www.ebi.ac.uk/ena/data/view/PRJNA267255).
+Here's the description from the authors:
+
+> Mutant RAS oncoproteins activate signaling molecules that drive oncogenesis in multiple human tumors including acute myelogenous leukemia (AML). However, the specific function of these pathways in AML is unclear. To elucidate the downstream functions of activated NRAS in AML, we employed a murine model of AML harboring Mll-AF9 and NRASG12V. We found that NRASG12V enforced leukemia self-renewal gene expression signatures and was required to maintain an MLL-AF9 and MYB-dependent gene expression program. In a multiplexed analysis of RAS-dependent signaling intermediates, the leukemia stem cell compartment was preferentially sensitive to RAS withdrawal. Use of RAS-pathway inhibitors showed that NRASG12V maintained leukemia self-renewal through mTOR and MEK pathway activation, implicating these pathways as potential targets for cancer stem cell-specific therapies. Overall design: Primary leukemia cells harvested from spleens were sorted into immunophenotypic subpopulations (Mac-1High, Mac-1LowKit–Sca-1–, Mac-1LowKit+Sca-1–, and Mac-1LowKit+Sca-1+). RNA was extracted from this subpopulations of cells and submitted for RNA sequencing.
+
+These data were published as part of Sachs et al. _Blood._ 2014.
+
+### Setup 
+
+We've prepared the expression data all the way through the tximport step.
+This file can be found at: `data/tximport/leukemia/leukemia_stem_cell_txi.RDS`
+
+![](diagrams/rna-seq_6.png)
+
+The metadata for this experiment can be found in this TSV file: `data/sample_metadata/leukemia/SRP049821_metadata.tsv`
+
+Using what we've learned so far, let's ask a series of questions about these
+data using DESeq2.
+
+```{r library, solution = TRUE}
+
+```
+
+We'll use the `%>%` operator as well.
+
+```{r magrittr, solution = TRUE}
+
+```
+
+### What does the relationship between the cell populations look like?
+
+Read in the gene expression data and the metadata into variables called
+`txi` and `metadata_df`.
+The cell population information is in a column called `cell_sorting` in the
+metadata file.
+
+```{r input-files, solution = TRUE}
+# name the file path for the txi_file leukemia_stem_cell_txi.RDS
+
+# read in the RDS files and call it `txi`
+
+```
+
+
+```{r metadata_files, solution = TRUE}
+# name the metadata file path
+
+# read in the metadata data.frame and call it metadata_df
+
+```
+
+```{r metadata-arrange}
+# arrange metadata_df in the order of the sample `Run`
+metadata_df <- metadata_df %>%
+  dplyr::arrange(Run)
+```
+
+```{r check-order, solution = TRUE}
+# check to make sure the metadata and txi object samples are in the same order using all.equal
+
+```
+
+Use DESeq2 functionality to create a dataset, transform, and visualize the data.
+Recall that we are interested in the cell populations.
+
+```{r ddset, solution = TRUE}
+# use DESeq2::DESeqDataSetFromTximport to create a ddset object
+
+```
+
+```{r vst, solution = TRUE}
+# perform vst normalization
+
+```
+
+```{r plotPCA, solution = TRUE}
+# use plotPCA to get a visualization of the `cell_sorting` groups
+
+```
+
+From Sachs et al. _Blood._ 2014 (read it [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4239336/)):
+
+> ...these data identify the Mac-1LowKit+Sca-1+ group as enriched with [leukemia stem-cells] compared with the other groups, particularly the Mac1High group that accounts for the majority of the leukemia population.
+...
+Both of these modalities identify the Mac-1High group as the group with the least stem-cell capacity.
+
+Do the gene expression profiles align with the results from the Sachs et al. 
+experiments?
+
+### What genes are highly expressed in cells with high stem-cell capacity?
+
+Let's compare the `MacLowKitposSca1pos` (high capacity) to `MacHigh` (low 
+capacity) cells.
+
+Perform differential expression analysis.
+
+```{r deseq_object, solution = TRUE}
+# call the resulting object deseq_object
+
+```
+
+Get the results as a data.frame.
+Using the `results` function and its `contrast` argument, we can specify the
+comparison we are interested in.
+Given our research question, which group should be in the numerator of 
+our fold change and which should be in the denominator? 
+Keeping this in mind, go to the help page for the DESeq2 `results` function and 
+look under the `contrast` argument to figure out how to specify the comparison 
+we want. 
+
+```{r deseq_df, solution = TRUE}
+# obtain the results of deseq_object with our desired comparison
+
+  # use this line to make the results into data.frame
+
+  # use this line to make the gene rownames to a column using the   tibble::rownames_to_column 
+
+```
+
+Use `dplyr::arrange` to sort your results so that the genes more highly 
+expressed in `MacLowKitposSca1pos` come first.
+
+```{r arrange-deseq_df, solution = TRUE}
+
+```
+
+```{r jitterplot, solution = TRUE}
+# Check directionality using a gene's data with a plot of your choice
+
+# Set up a data.frame for plotting with ggplot2
+
+# Set up ggplot2 plot basics
+
+  # Make it a jitter plot but narrow the width of where the points will be
+
+  # Add a theme to make it prettier
+
+  # Make it on a log scale
+
+  # Make the x axis lables more legible by turning them
+
+  # The x label isn't particularly helpful
+
+  # The y label should make it clear this is on a log scale
+
+```
+
+### Session Info
+
+```{r sessioninfo}
+sessionInfo()
+```
