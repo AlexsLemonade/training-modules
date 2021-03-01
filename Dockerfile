@@ -23,6 +23,7 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     libmariadbclient-dev \
     libmariadbd-dev \
     libpq-dev \
+    libproj-dev \
     libsqlite-dev \
     libssh2-1-dev \
     libxml2 \
