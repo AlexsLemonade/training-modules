@@ -63,7 +63,7 @@ In the case of journal or preprint publications, we will follow the following ci
 
 ### Notebook data dependencies
 
-Each instruction notebook should be runnable from start to finish when run after the previous notebook(s) in its module. 
+Each instruction notebook should run from start to finish when run after the previous notebook(s) in its module have been run. 
 This means that modules can have dependencies on each other, but those dependencies should be satisfied when run in order.
 In general, input files that are not present in this repository will be linked as part of setting up the repository or user folder, as described in the [Data file management](#data-file-management) section of this document.
 
