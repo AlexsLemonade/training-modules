@@ -69,12 +69,13 @@ RUN tar xzf salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
 
 # Use renv for R packages
 ENV RENV_VERSION 0.12.5-2
+ENV RENV_CONFIG_CACHE_ENABLED FALSE
 RUN R -e "install.packages('remotes')"
 RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
 
 WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
 RUN R -e 'renv::consent(provided = TRUE)'
-RUN R -e 'renv::restore()' && rm -r ~/.local/share/renv
+RUN R -e 'renv::restore()'
 
 WORKDIR /home/rstudio
