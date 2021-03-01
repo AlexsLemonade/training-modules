@@ -76,6 +76,6 @@ RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
 WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
 RUN R -e 'renv::consent(provided = TRUE)'
-RUN R -e 'renv::restore()'
+RUN R -e 'renv::restore()' && rm -rf ~/.local/share/renv
 
 WORKDIR /home/rstudio
