@@ -4,6 +4,11 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
+- [Instruction notebook content](#instruction-notebook-content)
+  - [Learning Objectives](#learning-objectives)
+  - [Style guide](#style-guide)
+  - [References](#references)
+  - [Notebook data dependencies](#notebook-data-dependencies)
 - [Data file management](#data-file-management)
   - [Setup directory](#setup-directory)
   - [Server shared data folder](#server-shared-data-folder)
@@ -22,6 +27,49 @@
   - [Generation of live notebooks and rendering](#generation-of-live-notebooks-and-rendering)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+## Instruction notebook content
+
+### Learning Objectives
+
+Each notebook should begin with a "Learning objectives" section.
+This section contains a compact summary of the goals for the notebook, in the form of a bulleted list of objectives, introduced by the phrase:
+
+> This notebook will demonstrate how to
+
+Each element of the objective list should be a specific concept and/or skill we expect learners to come away from the notebook having gained.
+Phrase the objective with an "action verb" followed by a description of the skill.
+The Carpentries [Curriculum Development Handbook section on learning objectives](https://cdh.carpentries.org/developing-content.html#learning-objectives) has some useful discussion about how to write effective learning objectives for courses like ours.
+
+For most notebooks, 3-5 objectives should be sufficient.
+
+
+### Style guide
+
+More to come, but for now, we should generally follow the style conventions we established in [`refinebio-examples`](https://github.com/AlexsLemonade/refinebio-examples/blob/staging/CONTRIBUTING.md#notebook-text).
+
+### References
+
+We try to maintain good scholarship, citing our sources! 
+Often our sources are vignettes or web pages, for which we usually link directly to a web page.
+When possible we should include the author of the vignette in the text to give proper credit.
+
+In the case of journal or preprint publications, we will follow the following citation conventions:
+
+- `([Author Date](url))` with no reference to journal except in the url (the url should be a DOI if possible).
+- If there are two authors: `([Author1 and Author2 YEAR](url))`
+- If 3 or more: `([Author1 _et al._ YEAR](url))`
+- Citations in text: `As shown by [Author1 _et al._ (YEAR)](url)`.
+
+### Notebook data dependencies
+
+Each instruction notebook should be runnable from start to finish when run after the previous notebook(s) in its module. 
+This means that modules can have dependencies on each other, but those dependencies should be satisfied when run in order.
+In general, input files that are not present in this repository will be linked as part of setting up the repository or user folder, as described in the [Data file management](#data-file-management) section of this document.
+
+An exception is when a notebook relies on the completion of tasks run outside the notebook (salmon mapping, for example).
+In that case, any extra required files should be uploaded to S3 via the [`syncup-s3.sh` script](#files-stored-on-s3) so that the notebook can run to completion during automated testing.
+
 
 ## Data file management
 
