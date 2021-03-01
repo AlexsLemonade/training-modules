@@ -52,7 +52,7 @@ plier_results <- PLIER::PLIER(zscored_matrix[common_genes, ],
 We'll use the Tidyverse quite a bit in this notebook, so use the chunk below to load it.
 
 ```{r libraries, solution = TRUE}
-
+library(tidyverse)
 ```
 
 ### Directories and files
@@ -66,11 +66,14 @@ Set up all the directories you need in the next chunk.
 
 ```{r directories, solution = TRUE}
 # Directory that holds the data
-
+data_dir <- file.path("data", "GSE116436", "processed")
 # Directory with the PLIER model
-
+models_dir <- "models"
 # Plot directory, create it if it doesn't exist yet
-
+plots_dir <- "plots"
+if (!dir.exists(plots_dir)) {
+  dir.create(plots_dir)
+}
 ```
 
 #### Input files
@@ -79,9 +82,9 @@ Use the next chunk to set up your input files.
 
 ```{r input_files, solution = TRUE}
 # Metadata file
-
+metadata_file <- file.path(data_dir, "metadata_GSE116436_cleaned.tsv")
 # PLIER file
-
+plier_file <- file.path(models_dir, "NCI60_PLIER_model.RDS")
 ```
 
 #### Output files
@@ -92,7 +95,7 @@ It's good practice to start a new session and run all chunks (use the `Run` drop
 
 ```{r output_files, solution = TRUE}
 # Plot output file name
-
+png_file <- file.path(plots_dir, "NCI60_lineplot.png")
 ```
 
 ## Read in files
@@ -102,14 +105,14 @@ It's good practice to start a new session and run all chunks (use the `Run` drop
 Read in the metadata file with `readr` and save it to a variable named `metadata_df` in the next chunk.
 
 ```{r read_in_metadata, solution = TRUE}
-
+metadata_df <- read_tsv(metadata_file)
 ```
 
 What metadata do we have for these samples? 
 Use this chunk to explore `metadata_df`.
 
 ```{r explore_metadata, eval = FALSE, solution = TRUE}
-
+View(metadata_df)
 ```
 
 ### PLIER model
@@ -118,7 +121,7 @@ Read in the PLIER model with `readr` and save it as `plier_results`.
 
 ```{r read_in_plier, solution = TRUE}
 # Save as plier_results
-
+plier_results <- read_rds(plier_file)
 ```
 
 ## What pathways are perturbed by the drugs in this experiment?
@@ -129,7 +132,7 @@ It is a data frame (`data.frame`).
 Use this chunk to view the PLIER model `summary`.
 
 ```{r view_summary, solution = TRUE}
-
+plier_results$summary
 ```
 
 Save the summary information as its own data.frame called `summary_df`. 
@@ -137,7 +140,7 @@ We'll use this object to find out more about our model.
 
 ```{r save_summary_df, solution = TRUE}
 # Save the summary data.frame as summary_df
-
+summary_df <- plier_results$summary
 ```
 
 The latent variables from this model will be associated with a pathway if the transcriptomic data supports that there is some shared variation in the expression levels of genes in that pathway.
@@ -173,7 +176,8 @@ Here's an example of what `proteasome_df` should look like in table form (you ca
 
 ```{r proteasome_df, solution = TRUE}
 # Create the proteasome_df data frame
-
+proteasome_df <- data.frame(geo_accession = colnames(plier_results$B),
+                            proteasome_lv = plier_results$B[19, ])
 ```
 
 Now that you have `proteasome_df`, let's join it with our metadata using an `inner_join` from `dplyr` to form a new data frame called `proteasome_meta_df`.
@@ -190,7 +194,8 @@ We can sort `proteasome_meta_df` with `arrange`.
 Use the `Help` panel or `?arrange` to remind ourselves about what to expect from this function.
 
 ```{r sort_proteasome_meta, solution = TRUE}
-
+proteasome_meta_df %>%
+  arrange(desc(proteasome_lv))
 ```
 
 > What do you notice about the samples with the highest values?
@@ -208,10 +213,11 @@ This requires us to do the following:
    Create a new data frame, `df_to_plot`, with only the samples for plotting.
    
 ```{r df_to_plot, solution = TRUE}
-
+df_to_plot <- proteasome_meta_df %>%
   # Use these lines to filter to only the samples that are treated with the drug
   # of interest and to the tissue of your choice
-
+  filter(treatment == "bortezomib",
+         tissue == "Lung")
 ```
 
 2. Make a line graph that tracks the expression value of the proteasome 
@@ -238,17 +244,17 @@ Add `facet_wrap()` to `treatment_plot` (saving `treatment_plot`) such that each 
 ```{r use_facets, solution = TRUE}
 # Update the treatment_plot object by assigning your edits to treatment_plot
 # with <-
-
+treatment_plot <- treatment_plot +
   # Use facets to separate dosages - what column do we need to use?
-
+  facet_wrap(~ dose_nM) +
   # Use this scale for accessibility
-
+  colorblindr::scale_color_OkabeIto()
 ```
 
 Let's see what the plot looks like with this chunk below.
 
 ```{r view_treatment_facet, solution = TRUE}
-
+treatment_plot
 ```
 
 > Based on what you know about the mechanism of action of this drug, do these results look how you expect?
@@ -267,11 +273,13 @@ Using the new theme, label the x-axis "Time (Hours)" and the y-axis "Proteasome 
 Make the title the name of the drug you are plotting data for.
 
 ```{r relabel_plot, solution = TRUE}
-
+treatment_plot + 
   # Add new theme
-
+  theme_bw() +
   # Relabel the axes and add a title
-
+  labs(y = "Proteasome LV Expression Level",
+       x = "Time (hours)",
+       title = "Bortezomib")
 ```
 
 If we wanted to change the spacing of the x-axis, such that the time points are evenly spaced, we'd have to make `time_hours` into a factor.
@@ -288,14 +296,29 @@ class(proteasome_meta_df$time_hours)
 Use `mutate()` and `as.factor()` to make the `time_hours` column into a factor. 
 
 ```{r time_factor, solution = TRUE}
-
+proteasome_meta_df <- proteasome_meta_df %>%
+  mutate(time_hours = as.factor(time_hours))
 ```
 
 Now make a new plot, `treatment_plot_factor`, using the same theme, color scale,
 labels, etc.
 
 ```{r factor_plot, solution = TRUE}
-
+treatment_plot_factor <- proteasome_meta_df %>%
+  filter(treatment == "bortezomib",
+         tissue == "Lung") %>% 
+  ggplot(aes(x = time_hours,
+             y = proteasome_lv,
+             color = cell_line,
+             group = cell_line)) +
+  facet_wrap(~ dose_nM) +
+  geom_point() +
+  geom_line() +
+  colorblindr::scale_color_OkabeIto() +
+  theme_bw() + 
+  labs(y = "Proteasome LV Expression Level",
+       x = "Time (hours)",
+       title = "Bortezomib")
 ```
 
 Display `treatment_plot_factor`.
@@ -313,7 +336,7 @@ See [this post](https://rstudio-pubs-static.s3.amazonaws.com/7433_4537ea5073dc41
 Save the plot of your choosing to the plots directory.
 
 ```{r save_plot, solution = TRUE}
-
+ggsave(png_file, plot = last_plot())
 ```
 
 ## Additional analyses
