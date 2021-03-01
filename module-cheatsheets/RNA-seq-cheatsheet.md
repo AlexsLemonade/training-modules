@@ -37,7 +37,7 @@ Read the `DESeq2` package documentation [**here**](https://bioc.ism.ac.jp/packag
 | `DESeq2`                | [`plotPCA()`](https://www.rdocumentation.org/packages/DESeq/versions/1.24.0/topics/plotPCA)             | PCA plot                                        | Produces a principal component analysis plot for transformed data. It can be used to visually inspect the data, which might allow an analyst to identify batch effects.   |
 | `DESeq2`                | [`counts()`](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/counts)              | Counts                                          | Returns count matrix from `DESeqDataSet` object                         |                                                                                         
 | `DESeq2`                | [`results()`](https://www.rdocumentation.org/packages/DESeq/versions/1.24.0/topics/results)             | Results                                         | Returns the results table from a DESeq2 analysis                         |                                                                                        
-| `DESeq2`                | [`assay()`](https://www.bioconductor.org/packages/devel/bioc/manuals/DESeq2/man/DESeq2.pdf)             | Assay                                           | Returns matrix from the `assay` slot of `DESeqDataSet` or `DESeqTransform`                                         |
+| `DESeq2`                | [`assay()`](https://www.bioconductor.org/packages/devel/bioc/manuals/DESeq2/man/DESeq2.pdf)             | Assay                                           | Returns matrix from the `assay` slot of a `DESeqDataSet` object                                        |
 
 <div style="page-break-after: always;"></div>
 
