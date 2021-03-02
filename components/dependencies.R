@@ -8,6 +8,7 @@ library(fishpond)
 
 # Required for DESeq2::lfcShrink()
 library(apeglm)
+library(ashr)
 
 # Required for scater
 library(uwot)
