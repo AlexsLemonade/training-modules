@@ -37,11 +37,16 @@ library(EnhancedVolcano)
 
 ## Directories and files
 
+**Input**
+
 ```{r input-files}
 # directory with the tximeta processed data
 txi_dir <- file.path("data", "NB-cell", "txi")
 txi_file <- file.path(txi_dir, "NB-cell_tximeta.RDS")
 ```
+
+
+**Output**
 
 We'll create a results directory to hold our results.
 
@@ -53,6 +58,8 @@ if (!dir.exists(results_dir)) {
 }
 ```
 
+We will also need a directory to store our plots.
+
 ```{r plots-dir, live = TRUE}
 # Create a plots directory if it doesn't already exist
 plots_dir <- file.path("plots", "NB-cell")
@@ -61,22 +68,15 @@ if (!dir.exists(plots_dir)) {
 }
 ```
 
-```{r meta-files}
-# sample metadata path and  file
-data_dir <- file.path("data", "NB-cell")
-```
-
-**Output**
 
 ```{r output-files}
 # RDS for the output of DESeq analysis
 deseq_file <- file.path(results_dir, 
                         "NB-cell_DESeq_amplified_v_nonamplified.RDS")
 
-# DESeq2 results data.frame
-deseq_df_file <- 
-  file.path(results_dir,
-            "NB-cell_DESeq_amplified_v_nonamplified_results.tsv")
+# DESeq2 results table
+deseq_df_file <- file.path(results_dir,
+                           "NB-cell_DESeq_amplified_v_nonamplified_results.tsv")
 
 # PNG of the volcano plot
 volcano_file <- file.path(plots_dir, "NB-cell_volcano.png")
@@ -90,7 +90,7 @@ First, let's read in the data we processed with `tximeta`.
 
 #### Preparation
 
-```{r read-rds, live = TRUE}
+```{r read_rds, live = TRUE}
 # Read in the RDS file we created in the last notebook
 gene_summarized <- readr::read_rds(txi_file)
 ```
@@ -143,18 +143,20 @@ ddset <- DESeqDataSet(gene_summarized,
 
 #### Filtering low-expressed genes
 
-Genes that have very low counts are not likely be differentially expressed, so we should do some [pre-filtering](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering). 
+Genes that have very low counts are not likely be differentially expressed, so we will do some light [pre-filtering](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering). 
 We will keep only genes with total counts of at least 10 across all samples.
 
-```{r rowSums}
-genes_to_keep <- which(rowSums(counts(ddset)) >= 10)
+```{r filter_ddset}
+genes_to_keep <- rowSums(counts(ddset)) >= 10
 ddset <- ddset[genes_to_keep, ]
 ```
 
 
 #### Differential expression analysis
 
-We'll now use the wrapper function `DESeq` to do our differential expression analysis.
+We'll now use the wrapper function `DESeq` to perform our differential expression analysis.
+As mentioned earlier, this performs a number of steps, including an [outlier removal procedure](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#approach-to-count-outliers). 
+For this particular data set, there is a pretty large number of outliers, which can be a bit of a red flag, but we will proceed for now.
 
 ```{r DESeq}
 deseq_object <- DESeq(ddset)
@@ -167,28 +169,12 @@ Let's save this to our results file.
 readr::write_rds(deseq_object, file = deseq_file)
 ```
 
-Let's take a look at the results table.
+Now we will have a look at the results table.
 
 ```{r deseq_results}
 deseq_results <- results(deseq_object)
 deseq_results
 ```
-
-```{r arrange-deseq_results}
-# this is of class DESeqResults -- we want a data frame
-deseq_df <- deseq_results %>%
-  # convert to a data frame
-  as.data.frame() %>%
-  # the gene names are rownames -- let's them a column for easy display
-  tibble::rownames_to_column(var = "Gene")
-
-deseq_df %>%
-  # sort by statistic -- the highest values should be genes more expressed
-  # in the MYCN amplified cell lines
-  dplyr::arrange(dplyr::desc(stat))
-```
-
-Let's take a look at what the top gene is: [`ENSG00000134323`](http://useast.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000134323)
 
 How many genes were differentially expressed (FDR < 0.05)?
 
@@ -200,142 +186,113 @@ summary(deseq_results, alpha = 0.05)
 #### Shrinking log2 fold change estimates
 
 The estimates of log2 fold change calculated by `DESeq()` are not corrected for expression level.
-This means that when counts are small, we are likely to end up with large fold change values that overestimate the true extent of the change between conditions.
+This means that when counts are small, we are likely to end up with some large fold change values that overestimate the true extent of the change between conditions.
 
 We can correct this by applying a "shrinkage" procedure, which will adjust large values with small counts downward, while preserving values where we have larger counts, which are likely to be more accurate.
 
-
-
-To do this, we will use the `lfcShrink()` function, but first we need to know the name of the "coefficient" that were calculated by `DESeq()`, which we can do with the `resultsNames()` function
+To do this, we will use the `lfcShrink()` function, but first we need to know the name and/or position of the "coefficient" that was calculated by `DESeq()`, which we can do with the `resultsNames()` function
 
 ```{r deseq_coef}
 # get the deseq coefficient names:
 resultsNames(deseq_object)
 ```
 
+The figure we are interested in is the status measure, which is in position 2.
+
+There are a few options for the shrinkage estimation. 
+The default is `apeglm` ([Zhu _et al._ 2018](https://doi.org/10.1093/bioinformatics/bty895)), but we have found that this can be sensitive to extreme outliers, which are definitely a factor in this data set.
+So for this data set we will be using `ashr` ([Stephens 2017](https://doi.org/10.1093/biostatistics/kxw041)) 
 
 ```{r lfc_shrink}
 # calculate shrunken log2 fold change estimates
 deseq_shrunken <- lfcShrink(deseq_object,
-                            # the lfc coefficient we want to shrink
+                            # the coefficient we want to reestimate
                             coef = 2, 
+                            # We will use `ashr` for estimation
                             type = "ashr"
                             )
 ```
 
-Let's compare the results from the two results tables:
+Let's compare the log2 fold change estimates from from the two results tables:
 
 First we will combine the results into a new data frame.
+
 ```{r compare_shrink}
 comparison_df <- data.frame(
   lfc_original = deseq_results$log2FoldChange,
   lfc_shrunken = deseq_shrunken$log2FoldChange,
-  padj_original = deseq_results$padj,
-  padj_shrunken = deseq_shrunken$padj,
-  total_count = rowSums(counts(deseq_object))
+  logmean = log10(deseq_results$baseMean)
   )
 ```
 
-Now we can plot the original and shrunken values to see what happened.
+Now we can plot the original and shrunken log2 fold change values to see what happened after shrinkage.
 
-```{r}
-ggplot(comparison_df, aes(x = lfc_original, y = lfc_shrunken, color = padj_original)) +
-  geom_point(alpha = 0.1) 
+```{r plot_comparison}
+ggplot(comparison_df, 
+       aes(x = lfc_original, 
+           y = lfc_shrunken, 
+           color = logmean)) +
+  geom_point(alpha = 0.1) +
+  theme_bw() +
+  scale_color_viridis_c() + 
+  coord_cartesian(xlim = c(-10,10), ylim = c(-10,10)) # zoom in on the middle
 ```
 
-```{r}
-ggplot(comparison_df, aes(x = lfc_original, y = lfc_shrunken_ashr)) +
-  geom_point(alpha = 0.1) 
+We will now do a bit of manipulation to store the results in a data frame for easier manipulation.
+
+```{r results_dataframe}
+# this is of class DESeqResults -- we want a data frame
+deseq_df <- deseq_shrunken %>%
+  # convert to a data frame
+  as.data.frame() %>%
+  # the gene ids were stored as row names -- let's them a column for easy display
+  tibble::rownames_to_column(var = "gene_id") %>%
+  # add on the gene names from the original deseq object
+  dplyr::mutate(gene_name = rowData(deseq_object)$gene_name)
 ```
 
+Let's print out the results table, sorted by log2 fold change. 
+The highest values should be genes more expressed in the MYCN amplified cell lines.
 
-**Write full data.frame to file**
+```{r sorted_table, live = TRUE}
+# Print the table sorted by log2FoldChange 
+deseq_df %>% 
+  dplyr::arrange(dplyr::desc(log2FoldChange))
+```
+Now let's write the full results table to a file.
 
 ```{r write_tsv}
 readr::write_tsv(deseq_df, file = deseq_df_file)
 ```
 
-#### Visualize differentially expressed genes with a heatmap
 
-Let's get an overall picture of our results using a heatmap. 
-Before we can do this, we will need to transform our data so that when we make the heatmap the genes are on a more similar scale and the heatmap is interpretable. 
-We will use variance stabilizing transformation from DESeq2 to do this.
-Refer to the help page or the DESeq2 docs for more information. 
+#### Volcano Plot 
 
-```{r vst, live = TRUE}
-# Use the vst function to transform the data
-vst_data <- vst(ddset)
+With these shrunken effect sizes, we will draw a volcano plot, using the [`EnhancedVolcano` package](https://github.com/kevinblighe/EnhancedVolcano) to make it a bit easier.
+`EnhancedVolcano` has many, many options, which is a good thing if you don't like all of it's default settings.
+Even better, it outputs a `ggplot2` object, so if we want to customize it further, we can do that with the same `ggplot2` commands we have used before.
+
+```{r volcano}
+EnhancedVolcano(deseq_df,
+                lab = deseq_df$gene_name,
+                x = 'log2FoldChange',
+                y = 'pvalue',
+                title = NULL,
+                subtitle = NULL,
+                caption = NULL,
+                labSize = 3) +
+  # change the overall theme
+  theme_classic() +
+  # move the legend to the bottom
+  theme(legend.position = "bottom")
 ```
 
-We need to extract the normalized gene matrix from the `vst_data` object. 
+We will save this plot to a file as well:
 
-```{r vst-assay}
-vst_data <- assay(vst_data)
+```{r save_plot}
+ggsave(volcano_file, plot = last_plot())
 ```
 
-We will make a heatmap of only the significant genes, so let's obtain the gene IDs that have an adjusted p-value less than 0.05.
-
-```{r signif_genes, live = TRUE}
-# Filter to padj < 0.05 and then only extract the Genes
-signif_genes <- deseq_df %>%
-  dplyr::filter(padj < 0.05) %>%
-  dplyr::pull(Gene)
-```
-
-Now we will use `signif_genes` to filter `vst_data` to only have significant genes' data. 
-
-```{r signif_vst_data}
-signif_vst_data <- vst_data %>%
-  as.data.frame() %>%
-  dplyr::filter(rownames(vst_data) %in% signif_genes)
-```
-
-Let's make the results into a heatmap using the `pheatmap` package. 
-We will use the `scale = "row"` argument so that the data is standardized by gene (i.e., will be made into [z-scores](https://www.statisticshowto.datasciencecentral.com/probability-and-statistics/z-score/)). 
-Standardizing the data by gene makes it so our heatmap is more easily interpretable despite how different genes' distributions may be. 
-
-```{r pheatmap}
-pheatmap::pheatmap(signif_vst_data, 
-                   show_rownames = FALSE,
-                   scale = "row",
-                   colorRampPalette(c("deepskyblue",
-                                      "black",
-                                      "yellow"))(25))
-```
-
-If we want to save this heatmap as a PNG, we have to use the `png` function that is part of base R, run `pheatmap::pheatmap` again, and then use `dev.off()`.
-
-```{r png, live = TRUE}
-png(filename = heatmap_file)
-# Use the same command to create the heatmap
-pheatmap::pheatmap(signif_vst_data, 
-                   show_rownames = FALSE,
-                   scale = "row",
-                   colorRampPalette(c("deepskyblue",
-                                      "black",
-                                      "yellow"))(25))
-# This shuts down the current graphics device (the PNG we are saving)
-dev.off()
-```
-
-We can specify the dimensions and resolution of the PNG that is saved by supplying different arguments to the `png` function.
-
-```{r png-adjust}
-png(filename = heatmap_file, 
-    width = 7, 
-    height = 7, 
-    units = "in", 
-    res = 300)
-# Heatmap time!
-pheatmap::pheatmap(signif_vst_data, 
-                   show_rownames = FALSE,
-                   scale = "row",
-                   colorRampPalette(c("deepskyblue",
-                                      "black",
-                                      "yellow"))(25))
-# Shut down the current graphics device
-dev.off()
-```
 
 ## Session Info
 
