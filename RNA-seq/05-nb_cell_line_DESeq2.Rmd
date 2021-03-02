@@ -69,16 +69,17 @@ data_dir <- file.path("data", "NB-cell")
 **Output**
 
 ```{r output-files}
-# RDS for the output of DESeq function
+# RDS for the output of DESeq analysis
 deseq_file <- file.path(results_dir, 
                         "NB-cell_DESeq_amplified_v_nonamplified.RDS")
+
 # DESeq2 results data.frame
 deseq_df_file <- 
   file.path(results_dir,
             "NB-cell_DESeq_amplified_v_nonamplified_results.tsv")
 
-# PNG of the heatmap of DEGs
-heatmap_file <- file.path(plots_dir, "NB-cell_heatmap.png")
+# PNG of the volcano plot
+volcano_file <- file.path(plots_dir, "NB-cell_volcano.png")
 ```
 
 ## DESeq2
@@ -87,20 +88,49 @@ heatmap_file <- file.path(plots_dir, "NB-cell_heatmap.png")
 
 First, let's read in the data we processed with `tximeta`.
 
+#### Preparation
+
 ```{r read-rds, live = TRUE}
 # Read in the RDS file we created in the last notebook
 gene_summarized <- readr::read_rds(txi_file)
 ```
 
 We're most interested in _MYCN_ amplification, which we had stored in the `status` column of the sample metadata of `gene_summarized`.
-Recall that for a `SummarizedExperiment`, the samples are the columns, so this information is now in the `colData` slot.
+While the sample metadata is stored internally in the `colData` slot, the `SummarizedExperiment` object makes it easy for us to access it as if it were just a column of a data frame, using the familiar `$` syntax.
+
 
 ```{r Status, live = TRUE}
-# Look at the first few entries in the status column
-head(colData(gene_summarized)$status)
+gene_summarized$status
 ```
 
-#### Dataset creation
+This is stored as a `character` type, but to give a bit more information to `DESeq`, we will convert this to a `factor`.
+
+```{r status_factor, live = TRUE}
+gene_summarized$status <- as.factor(gene_summarized$status)
+```
+
+We'll want to use the "Nonamplified" samples as our _reference_.
+Let's look at the `levels` of `status`.
+
+```{r levels}
+levels(gene_summarized$status)
+```
+
+We can see that these are in alphabetical order, so "Amplified" samples would be the reference. 
+We can use the `relevel` function to remedy this.
+
+```{r relevel}
+gene_summarized$status <- relevel(gene_summarized$status, ref = "Nonamplified")
+```
+
+```{r check-levels, live = TRUE}
+# Check what the levels are now
+levels(gene_summarized$status)
+```
+
+
+
+#### DESeq Dataset creation
 
 ```{r ddset, live = TRUE}
 # Create a DESeq2 dataset from gene_summarized 
@@ -111,38 +141,20 @@ ddset <- DESeqDataSet(gene_summarized,
 
 ### Differential expression
 
-#### Preparation
+#### Filtering low-expressed genes
 
-Let's do some [pre-filtering](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering) 
-to keep rows with 10 or more reads total.
+Genes that have very low counts are not likely be differentially expressed, so we should do some [pre-filtering](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering). 
+We will keep only genes with total counts of at least 10 across all samples.
 
 ```{r rowSums}
-genes_to_keep <- rowSums(counts(ddset)) >= 10
+genes_to_keep <- which(rowSums(counts(ddset)) >= 10)
 ddset <- ddset[genes_to_keep, ]
 ```
 
-We'll want to use the "Nonamplified" samples as our _reference_.
-Let's look at the `levels` of `Status`.
-
-```{r levels}
-levels(ddset$status)
-```
-
-We can see that these are in alphabetical order, so "Amplified" samples would be the reference. 
-We can use the `relevel` function to remedy this.
-
-```{r relevel}
-ddset$status <- relevel(ddset$status, ref = "Nonamplified")
-```
-
-```{r check-levels, live = TRUE}
-# Check what the levels are now
-levels(ddset$status)
-```
 
 #### Differential expression analysis
 
-We'll use the wrapper function `DESeq` to do our differential expression analysis.
+We'll now use the wrapper function `DESeq` to do our differential expression analysis.
 
 ```{r DESeq}
 deseq_object <- DESeq(ddset)
@@ -163,17 +175,16 @@ deseq_results
 ```
 
 ```{r arrange-deseq_results}
-# this is of class DESeqResults -- we want a data.frame
+# this is of class DESeqResults -- we want a data frame
 deseq_df <- deseq_results %>%
-  # make into data.frame
+  # convert to a data frame
   as.data.frame() %>%
-  # the gene names are rownames -- let's make this it's own column for easy 
-  # display
+  # the gene names are rownames -- let's them a column for easy display
   tibble::rownames_to_column(var = "Gene")
 
 deseq_df %>%
-  # let's sort by statistic -- the highest values should be what is up in the
-  # MYCN amplified cell lines
+  # sort by statistic -- the highest values should be genes more expressed
+  # in the MYCN amplified cell lines
   dplyr::arrange(dplyr::desc(stat))
 ```
 
@@ -181,9 +192,62 @@ Let's take a look at what the top gene is: [`ENSG00000134323`](http://useast.ens
 
 How many genes were differentially expressed (FDR < 0.05)?
 
-```{r summary}
-summary(results(deseq_object), alpha = 0.05)
+```{r results_summary}
+summary(deseq_results, alpha = 0.05)
 ```
+
+
+#### Shrinking log2 fold change estimates
+
+The estimates of log2 fold change calculated by `DESeq()` are not corrected for expression level.
+This means that when counts are small, we are likely to end up with large fold change values that overestimate the true extent of the change between conditions.
+
+We can correct this by applying a "shrinkage" procedure, which will adjust large values with small counts downward, while preserving values where we have larger counts, which are likely to be more accurate.
+
+
+
+To do this, we will use the `lfcShrink()` function, but first we need to know the name of the "coefficient" that were calculated by `DESeq()`, which we can do with the `resultsNames()` function
+
+```{r deseq_coef}
+# get the deseq coefficient names:
+resultsNames(deseq_object)
+```
+
+
+```{r lfc_shrink}
+# calculate shrunken log2 fold change estimates
+deseq_shrunken <- lfcShrink(deseq_object,
+                            # the lfc coefficient we want to shrink
+                            coef = 2, 
+                            type = "ashr"
+                            )
+```
+
+Let's compare the results from the two results tables:
+
+First we will combine the results into a new data frame.
+```{r compare_shrink}
+comparison_df <- data.frame(
+  lfc_original = deseq_results$log2FoldChange,
+  lfc_shrunken = deseq_shrunken$log2FoldChange,
+  padj_original = deseq_results$padj,
+  padj_shrunken = deseq_shrunken$padj,
+  total_count = rowSums(counts(deseq_object))
+  )
+```
+
+Now we can plot the original and shrunken values to see what happened.
+
+```{r}
+ggplot(comparison_df, aes(x = lfc_original, y = lfc_shrunken, color = padj_original)) +
+  geom_point(alpha = 0.1) 
+```
+
+```{r}
+ggplot(comparison_df, aes(x = lfc_original, y = lfc_shrunken_ashr)) +
+  geom_point(alpha = 0.1) 
+```
+
 
 **Write full data.frame to file**
 
