@@ -7,6 +7,7 @@
 - [Instruction notebook content](#instruction-notebook-content)
   - [Learning Objectives](#learning-objectives)
   - [Style guide](#style-guide)
+  - [Code Chunks](#code-chunks)
   - [References](#references)
   - [Notebook data dependencies](#notebook-data-dependencies)
 - [Data file management](#data-file-management)
@@ -43,10 +44,20 @@ The Carpentries [Curriculum Development Handbook section on learning objectives]
 
 For most notebooks, 3-5 objectives should be sufficient.
 
-
 ### Style guide
 
-More to come, but for now, we should generally follow the style conventions we established in [`refinebio-examples`](https://github.com/AlexsLemonade/refinebio-examples/blob/staging/CONTRIBUTING.md#notebook-text).
+More to come, but for now, we should generally follow the style conventions we established in [`refinebio-examples`](https://github.com/AlexsLemonade/refinebio-examples/blob/staging/CONTRIBUTING.md#notebook-text) for text.
+
+### Code Chunks
+
+All code chunks should be named.
+This is done to ease orientation and navigation during training.
+
+Code chunks that will be blank at the start of a training session (for live coding) should be tagged with the `live = TRUE` argument.
+These chunks will be stripped of code (but not full line comments) when the `-live.Rmd` version of the notebook is created by the `make-live.R` script.
+This script is not usually run independently; it will usually run as part of the [Make Live Notebooks](https://github.com/AlexsLemonade/training-modules/actions/workflows/make-live.yml) GitHub Action via a[`workflow_dispatch`](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow#running-a-workflow-on-github).
+That action will file a pull request with changes to any `-live.Rmd` notebooks and, optionally, rendered versions of the notebooks. 
+
 
 ### References
 
