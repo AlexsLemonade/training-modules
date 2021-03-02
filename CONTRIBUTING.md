@@ -183,7 +183,7 @@ The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest
 
 ### Spell check
 
-We perform spell checking for every pull request to `master` as part of a GitHub Actions workflow (`spell-check.yml`); it is designed to fail if more than 3 spelling errors are detected.
+We perform spell checking for every pull request to `master` as part of a GitHub Actions workflow (`spell-check.yml`); it is designed to fail if any spelling errors are detected.
 You can see what errors are detected in `stdout` for the `Run spell check` step of the workflow.
 This workflow uses a script, `scripts/spell-check.R`, to spell check `.md` and completed `.Rmd` files.
 The custom dictionary we use for the project can be found at `components/dictionary.txt`. 
