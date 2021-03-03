@@ -270,18 +270,22 @@ readr::write_tsv(deseq_df, file = deseq_df_file)
 #### Volcano Plot 
 
 With these shrunken effect sizes, we will draw a volcano plot, using the [`EnhancedVolcano` package](https://github.com/kevinblighe/EnhancedVolcano) to make it a bit easier.
+This package automatically color codes the points by cutoffs for both significance and fold change and labels many of the significant genes (subject to spacing).
 `EnhancedVolcano` has many, many options, which is a good thing if you don't like all of it's default settings.
 Even better, it outputs a `ggplot2` object, so if we want to customize it further, we can do that with the same `ggplot2` commands we have used before.
 
 ```{r volcano}
 EnhancedVolcano(deseq_df,
-                lab = deseq_df$gene_name,
-                x = 'log2FoldChange',
-                y = 'pvalue',
-                title = NULL,
-                subtitle = NULL,
-                caption = NULL,
-                labSize = 3) +
+                x = 'log2FoldChange', # fold change statistic to plot
+                y = 'pvalue', # significance values
+                lab = deseq_df$gene_symbol, # labels for points
+                pCutoff = 1e-05, # The p value cutoff we will use (default)
+                FCcutoff = 1, # The fold change cutoff (default)
+                title = NULL, # no title
+                subtitle = NULL, # or subtitle
+                caption = NULL, # or caption
+                labSize = 3  # smaller labels
+                ) +
   # change the overall theme
   theme_classic() +
   # move the legend to the bottom
