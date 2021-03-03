@@ -117,7 +117,7 @@ levels(gene_summarized$status)
 ```
 
 We can see that these are in alphabetical order, so "Amplified" samples would be the reference. 
-We can use the `relevel` function to remedy this.
+We can use the `relevel()` function to remedy this.
 
 ```{r relevel}
 gene_summarized$status <- relevel(gene_summarized$status, ref = "Nonamplified")
@@ -133,7 +133,7 @@ levels(gene_summarized$status)
 #### DESeq Dataset creation
 
 ```{r ddset, live = TRUE}
-# Create a DESeq2 dataset from gene_summarized 
+# Create a DESeq2 dataset from `gene_summarized` 
 # remember that `status` is the variable of interest here
 ddset <- DESeqDataSet(gene_summarized,
                       design = ~ status)
@@ -143,7 +143,7 @@ ddset <- DESeqDataSet(gene_summarized,
 
 #### Filtering low-expressed genes
 
-Genes that have very low counts are not likely be differentially expressed, so we will do some light [pre-filtering](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering). 
+Genes that have very low counts are not likely to yield reliable differential expression results, so we will do some light [pre-filtering](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering). 
 We will keep only genes with total counts of at least 10 across all samples.
 
 ```{r filter_ddset}
@@ -154,9 +154,9 @@ ddset <- ddset[genes_to_keep, ]
 
 #### Differential expression analysis
 
-We'll now use the wrapper function `DESeq` to perform our differential expression analysis.
+We'll now use the wrapper function `DESeq()` to perform our differential expression analysis.
 As mentioned earlier, this performs a number of steps, including an [outlier removal procedure](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#approach-to-count-outliers). 
-For this particular data set, there is a pretty large number of outliers, which can be a bit of a red flag, but we will proceed for now.
+For this particular dataset, there is a pretty large number of outliers, which can be a bit of a red flag, but we will proceed for now.
 
 ```{r DESeq}
 deseq_object <- DESeq(ddset)
@@ -188,7 +188,7 @@ summary(deseq_results, alpha = 0.05)
 The estimates of log2 fold change calculated by `DESeq()` are not corrected for expression level.
 This means that when counts are small, we are likely to end up with some large fold change values that overestimate the true extent of the change between conditions.
 
-We can correct this by applying a "shrinkage" procedure, which will adjust large values with small counts downward, while preserving values where we have larger counts, which are likely to be more accurate.
+We can correct this by applying a "shrinkage" procedure, which will adjust large values with small counts downward, while preserving values with larger counts, which are likely to be more accurate.
 
 To do this, we will use the `lfcShrink()` function, but first we need to know the name and/or position of the "coefficient" that was calculated by `DESeq()`, which we can do with the `resultsNames()` function
 
@@ -197,7 +197,7 @@ To do this, we will use the `lfcShrink()` function, but first we need to know th
 resultsNames(deseq_object)
 ```
 
-The figure we are interested in is the status measure, which is in position 2.
+We are interested in the `status` coefficient, which is in position 2.
 
 There are a few options for the shrinkage estimation. 
 The default is `apeglm` ([Zhu _et al._ 2018](https://doi.org/10.1093/bioinformatics/bty895)), but we have found that this can be sensitive to extreme outliers, which are definitely a factor in this data set.
@@ -213,7 +213,7 @@ deseq_shrunken <- lfcShrink(deseq_object,
                             )
 ```
 
-Let's compare the log2 fold change estimates from from the two results tables:
+Let's compare the log2 fold change estimates from the two results tables by creating a plot. 
 
 First we will combine the results into a new data frame.
 
@@ -238,7 +238,7 @@ ggplot(comparison_df,
   coord_cartesian(xlim = c(-10,10), ylim = c(-10,10)) # zoom in on the middle
 ```
 
-We will now do a bit of manipulation to store the results in a data frame for easier manipulation.
+We will now do a bit of manipulation to store the results in a data frame and add the gene symbols.
 
 ```{r results_dataframe}
 # this is of class DESeqResults -- we want a data frame
@@ -247,18 +247,19 @@ deseq_df <- deseq_shrunken %>%
   as.data.frame() %>%
   # the gene ids were stored as row names -- let's them a column for easy display
   tibble::rownames_to_column(var = "gene_id") %>%
-  # add on the gene names from the original deseq object
-  dplyr::mutate(gene_name = rowData(deseq_object)$gene_name)
+  # add on the gene symbols from the original deseq object
+  dplyr::mutate(gene_symbol = rowData(deseq_object)$gene_name)
 ```
 
 Let's print out the results table, sorted by log2 fold change. 
-The highest values should be genes more expressed in the MYCN amplified cell lines.
+The highest values should be genes more expressed in the _MYCN_ amplified cell lines.
 
 ```{r sorted_table, live = TRUE}
 # Print the table sorted by log2FoldChange 
 deseq_df %>% 
   dplyr::arrange(dplyr::desc(log2FoldChange))
 ```
+
 Now let's write the full results table to a file.
 
 ```{r write_tsv}
