@@ -16,3 +16,9 @@ library(Rtsne)
 
 # required for enrichplot::upsetplot
 library(ggupset)
+
+# Organisms we want to support but don't explicitly work with during instruction
+# or exercises
+library(org.Dr.eg.db)
+library(org.Cf.eg.db)
+
