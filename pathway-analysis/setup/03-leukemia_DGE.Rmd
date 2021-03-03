@@ -16,6 +16,7 @@ This showcases one of the advantages of ORA over GSEA; we can easily use it for 
 
 ```{r}
 library(magrittr)
+library(org.Mm.eg.db)
 ```
 
 #### Input
@@ -78,8 +79,23 @@ vs_unsorted_df <- DESeq2::results(deseq_object,
                                                "MacLowKitposSca1pos", 
                                                "unsorted")) %>%
   as.data.frame() %>%
-  tibble::rownames_to_column(var = "Gene") %>%
-  # Also write to file
+  tibble::rownames_to_column(var = "Gene")
+```
+
+So we don't have to do gene identifier conversion _twice_ during instruction, we're going to include gene symbols here.
+
+```{r}
+vs_unsorted_df <- vs_unsorted_df %>%
+  # Add a gene symbol column
+  dplyr::mutate(gene_symbol = mapIds(org.Mm.eg.db, 
+                                     keys = vs_unsorted_df$Gene, 
+                                     column = "SYMBOL", 
+                                     keytype = "ENSEMBL", 
+                                     multiVals = "first")) %>%
+  # Also drop zero expression, low expression (e.g., padj = NA), and no
+  # gene symbol
+  tidyr::drop_na() %>%
+  # Write to file
   readr::write_tsv(vs_unsorted_file)
 ```
 
