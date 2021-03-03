@@ -10,7 +10,7 @@ date: 2020
 
 In this notebook, we'll cover a type of pathway or gene set analysis called over-representation analysis (ORA).
 The idea behind ORA is relatively straightforward: given a set of genes, do these genes overlap with a pathway more than we expect by chance?
-The simplicity of only requiring an input gene set (sort of, more on that below) can be attractive, especially if we want to do something beyond a two group comparison.
+The simplicity of only requiring an input gene set (sort of, more on that below) can be attractive.
 
 ORA has some limitations, outlined nicely (and more extensively!) in [Khatri, Sirota, and Butte (2012)]( https://doi.org/10.1371/journal.pcbi.1002375). 
 One of the main issues with ORA is that typically all genes are treated as equal -- the context of the magnitude of a change we may be measuring is removed and each gene is treated as independent, which can sometimes result in an incorrect estimate of significance.
@@ -280,17 +280,21 @@ When we test **multiple pathways or gene sets**, the p-values then need to be **
 
 ### High stem cell capacity ORA
 
-TODO: Say more about the study here!!! 
-
+Our DGE results are from data published as part of [Sachs _et al._ (2014)](https://dx.doi.org/10.1182%2Fblood-2013-08-521708).
+The authors sorted populations of primary leukemia cells and examined the stem cell capacity of these cell populations.
 (This study may sound familiar if you've worked on one of our bulk RNA-seq exercise notebooks in the past!)
+
+We compared the population that the authors identified as having high stem cell capacity to a low stem cell capacity population.
+We also compared the high stem cell capacity cells to a mix of populations (e.g., unsorted cells).
+You can see the code in [here](https://github.com/AlexsLemonade/training-modules/tree/master/pathway-analysis/setup/03-leukemia_DGE.Rmd).
+<!--TODO: this is about to get renumbered-->
+
+We're interested in what pathways are over-represented in genes that specifically distinguish the high capacity population from the low capacity population.
 
 Let's generate a list of genes that have higher expression in the high stem cell capacity population compared to the low stem cell capacity population, but we'll also want to exclude genes that show up in our _other comparison_ to unsorted cells.
 
 We'll start with the high stem cell capacity vs. low stem cell capacity population comparison.
-
-TODO: Link to setup notebook!
-
-The way we set up the analysis (see `setup`), genes with positive log fold-changes (LFC) should be more highly expressed in the high stem cell capacity cells. 
+Genes with positive log fold-changes (LFC) will be more highly expressed in the high stem cell capacity cells based on how we set up the analysis.
 
 ```{r high_capacity_genes}
 vs_low_genes <- vs_low_df %>%
@@ -305,7 +309,7 @@ Although we're picking a _commonly used_ cutoff (padj < 0.05), it's still arbitr
 When we generate lists of genes of interest for ORA, we typically pick an arbitrary cutoff.
 This is one of the approach's weaknesses -- we've removed all other context.
 
-Now, we'll basically do the same thing for our other results. 
+Now, we'll take the same steps for our other results. 
 
 ```{r unsorted_genes_to_remove, live = TRUE}
 vs_unsorted_genes <- vs_unsorted_df %>%
@@ -330,6 +334,7 @@ Sometimes folks consider genes from the entire genome to comprise the background
 > 17,980 genes detected in a Microarray study 
 
 Where the key phrase is **genes detected**. 
+
 If we are unable to include a gene because, for example, it had low mean expression in our experiment and therefore was filtered out in our `complete.cases()` step, we shouldn't include in our background set.  
 
 We can use another function for set operations, `intersect()`, to get our background set.
@@ -383,24 +388,34 @@ kegg_result_df <- data.frame(kegg_ora_results@result)
 
 We can use a dot plot to visualize our significant enrichment results.
 
-```{r dotplot}
+```{r dotplot, live = TRUE}
 enrichplot::dotplot(kegg_ora_results)
 ```
+
 We can use an [UpSet plot](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4720993/) to visualize the **overlap** between the gene sets that were returned as significant.
 
-```{r upsetplot}
+```{r upsetplot, live = TRUE}
 enrichplot::upsetplot(kegg_ora_results)
 ```
 
+We can see that some of the DNA repair pathways share genes.
 Gene sets or pathways aren't independent, either!
-We can see that some of the DNA repair KEGG pathways share genes.
-We need to be careful in our interpretation of our pathway results, as sometimes multiple pathways coming up is mostly an indication of a handful of genes in our gene list.
+Sometimes multiple pathways that show up in our results as significant are indicative of only a handful of genes in our gene list.
+
+We can look at the `geneID` column of our results to see what genes overlap; it's a good idea to take a look.
+
+```{r look_at_gene_ids, live = TRUE, rownames.print = FALSE}
+kegg_result_df %>%
+  # Use dplyr::select() - the name of the pathway is in the ID column
+  dplyr::select(ID, geneID)
+```
 
 #### Write results to file
 
 ```{r write_results, live = TRUE}
 readr::write_tsv(kegg_result_df, file = kegg_results_file)
 ```
+
 ## Session Info 
 
 ```{r session_info}
