@@ -140,10 +140,10 @@ Note that when you open up the `training-modules.Rproj`, the `.Rprofile` file ma
 For most cases you can create your `renv.lock-only` changes PR by following these steps:
 
 *Step 1)* Create your `renv.lock-only` branch from the latest `master` branch.  
-*Step 2)* In your `renv.lock-only` branch, checkout the renv.lock file from your development branch (where you were generally doing steps 1-6 from the previous section) using `git checkout devbranch renv.lock`.
-*Step 3)* Commit the renv.lock changes you just checked out.
-*Step 4)* Push the changes and file your renv.lock only PR.
-
+*Step 2)* In your `renv.lock-only` branch, checkout the renv.lock file from your development branch (where you were generally doing steps 1-6 from the previous section) using `git checkout devbranch renv.lock`.  
+*Step 3)* Commit the renv.lock changes you just checked out.  
+*Step 4)* Push the changes and file your renv.lock only PR.  
+  
 Note that the `renv::snapshot()` command will skip adding a package to renv.lock if it isn't used in a notebook or script.
 
 #### Multiple renv.lock changes from multiple branches
