@@ -97,8 +97,8 @@ readr::write_tsv(histologies_df, filtered_histologies_file)
 count_tmp <- tempfile(fileext = ".rds")
 curl::curl_download(stranded_counts_url, count_tmp)
 
-# Technically a data.frame, not a matrix
-stranded_count_mat <- readr::read_rds(count_tmp)
+# Read the expression data
+stranded_count_df <- readr::read_rds(count_tmp)
 ```
 
 Reorder the stranded counts matrix such that it is in the same order as the histologies data frame.
@@ -106,7 +106,22 @@ The sample identifiers used in the counts matrix are called `Kids_First_Biospeci
 We'll sometimes refer to them as biospecimen IDs or BSIDs for short!
 
 ```{r}
-stranded_count_mat <- stranded_count_mat %>%
+stranded_count_df <- stranded_count_df %>%
+  # split up the gene_id column into gene_id and gene_symbol
+  tidyr::separate(gene_id, 
+                  into = c("gene_id", "gene_symbol"), 
+                  sep = "_",
+                  extra = "merge" # only split off the first section
+                  ) %>%
+  # filter Y chromosome paralogs
+  dplyr::filter(stringr::str_detect(gene_symbol, "^PAR_Y_", negate = TRUE ))
+
+# Store the gene info
+gene_df <- stranded_count_df %>%
+  dplyr::select(gene_id, gene_symbol)
+
+# Extract the expression data as a matrix
+stranded_count_mat <- stranded_count_df %>%
   # We want to retain the Ensembl gene identifiers as the first column
   dplyr::select(gene_id, histologies_df$Kids_First_Biospecimen_ID) %>%
   # Make the gene identifier column the rownames and make this into a matrix
@@ -123,14 +138,17 @@ mode(stranded_count_mat) <- "integer"
 # In the same order?
 identical(colnames(stranded_count_mat), 
           histologies_df$Kids_First_Biospecimen_ID)
+
+identical(rownames(stranded_count_mat), gene_df$gene_id)
 ```
 
 Make a SummarizedExperiment and save it
 
 ```{r}
-sc_exp <- SummarizedExperiment(assays = list(counts = stranded_count_mat),
-                               colData = histologies_df)
-readr::write_rds(sc_exp, file = rnaseq_summarized_exp_file)
+rnaseq_exp <- SummarizedExperiment(assays = list(counts = stranded_count_mat),
+                                   rowData = gene_df,
+                                   colData = histologies_df)
+readr::write_rds(rnaseq_exp, file = rnaseq_summarized_exp_file)
 ```
 
 
