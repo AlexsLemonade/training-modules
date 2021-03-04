@@ -12,7 +12,7 @@ In this notebook, we'll cover a type of pathway or gene set analysis called over
 The idea behind ORA is relatively straightforward: given a set of genes, do these genes overlap with a pathway more than we expect by chance?
 The simplicity of only requiring an input gene set (sort of, more on that below) can be attractive.
 
-ORA has some limitations, outlined nicely (and more extensively!) in [Khatri, Sirota, and Butte (2012)]( https://doi.org/10.1371/journal.pcbi.1002375). 
+ORA has some limitations, outlined nicely (and more extensively!) in [Khatri _et al._ (2012)]( https://doi.org/10.1371/journal.pcbi.1002375). 
 One of the main issues with ORA is that typically all genes are treated as equal -- the context of the magnitude of a change we may be measuring is removed and each gene is treated as independent, which can sometimes result in an incorrect estimate of significance.
 
 We will use the [`clusterProfiler` package](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html) ([Yu *et al.* 2012](https://doi.org/10.1089/omi.2011.0118.)) to perform ORA. 
@@ -25,7 +25,7 @@ Check out the [_AnnotationDbi: Introduction To Bioconductor Annotation Packages_
 #### Other resources
 
 * For another example using `clusterProfiler`, see [_Intro to DGE: Functional Analysis._ from Harvard Chan Bioinformatics Core Training.](https://hbctraining.github.io/DGE_workshop/lessons/09_functional_analysis.html)
-* [`WebGestaltR`](https://cran.r-project.org/web/packages/WebGestaltR/) is another R package that can be used for ORA that is covered in [one of our refine.bio example notebooks](https://alexslemonade.github.io/refinebio-examples/02-microarray/pathway-analysis/ora_with_webgestaltr.nb.html).
+* [`WebGestaltR`](https://cran.r-project.org/web/packages/WebGestaltR/) is another R package that can be used for ORA.
 
 ## Set up
 
@@ -137,36 +137,18 @@ Our data frame with KEGG terms contains Entrez IDs and gene symbols.
 
 ```{r read_in_dge_results, live = TRUE}
 vs_low_df <- readr::read_tsv(vs_low_file)
-vs_unsorted_df <- readr::read_tsv(vs_unsorted_file)
 ```
 
-Let's take a peek at the top of one of the results data frames.
+Let's take a peek at the top of the DGE results data frame.
 
 ```{r peek_at_dge_results, live = TRUE}
 head(vs_low_df)
 ```
 
-Some of these rows have `NA` values in `padj`, which [can happen for a number of reasons](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA) including when all samples have zero counts.
-
-Let's filter to rows that _do not have any `NA`_ using a function called `complete.cases()`.
-
-```{r complete_cases}
-# Remove rows that are not complete (e.g., contain NAs) by filtering to only 
-# complete rows
-vs_low_df <- vs_low_df %>%
-  # The dot here means "all"
-  dplyr::filter(complete.cases(.))
-
-# Repeat the process for the other DGE results data frame
-vs_unsorted_df <- vs_unsorted_df %>%
-  dplyr::filter(complete.cases(.))
-```
-
-
-In both tables of DGE results, we use Ensembl gene identifiers. 
-So we will need to convert from these identifiers into either the gene symbols or Entrez IDs that are present in the data we extracted from MSigDB.
-
 ### Gene identifier conversion
+
+Our data frame of DGE results contains Ensembl gene identifiers.
+So we will need to convert from these identifiers into either the gene symbols or Entrez IDs that are present in the data we extracted with `msigdbr()`.
 
 We're going to convert our identifiers to gene symbols because they are a bit more human readable, but you can, with the change of a single argument, use the same code to convert to many other types of identifiers!
 
@@ -183,13 +165,6 @@ keytypes(org.Mm.eg.db)
 
 Even though we'll use this package to convert from Ensembl gene IDs (`ENSEMBL`) to gene symbols (`SYMBOL`), we could just as easily use it to convert from an Ensembl transcript ID (`ENSEMBLTRANS`) to Entrez IDs (`ENTREZID`).
 
-First, though, let's take the _union_ of all the identifiers included.
-
-```{r union_of_genes}
-# So we can supply one vector for gene identifier conversion
-genes_to_convert <- union(vs_low_df$Gene, vs_unsorted_df$Gene)
-```
-
 The function we will use to map from Ensembl gene IDs to gene symbols is called `mapIds()`.
 
 ```{r map_to_symbol}
@@ -198,12 +173,12 @@ The function we will use to map from Ensembl gene IDs to gene symbols is called 
 symbols_vector <- mapIds(org.Mm.eg.db,  # Specify the annotation package
                          # The vector of gene identifiers we want to 
                          # map
-                         keys = genes_to_convert, 
-                         # The type of gene identifier we want returned
-                         column = "SYMBOL", 
+                         keys = vs_low_df$Gene, 
                          # What type of gene identifiers we're starting
                          # with
                          keytype = "ENSEMBL", 
+                         # The type of gene identifier we want returned
+                         column = "SYMBOL", 
                          # In the case of 1:many mappings, return the
                          # first one. This is default behavior!
                          multiVals = "first") 
@@ -211,38 +186,48 @@ symbols_vector <- mapIds(org.Mm.eg.db,  # Specify the annotation package
 # We would like a data frame we can join to the DGE results
 symbols_df <- data.frame(
   ensembl_id = names(symbols_vector),
-  gene_symbol = symbols_vector,
-  stringsAsFactors = FALSE
-) %>%
-  # If an Ensembl gene identifier doesn't map to a gene symbol, drop that
-  # from the data frame
-  dplyr::filter(!is.na(gene_symbol))
+  gene_symbol = symbols_vector
+)
 ```
 
 This message is letting us know that sometimes Ensembl gene identifiers will map to multiple gene symbols.
 In this case, it's also possible that a gene symbol will map to multiple Ensembl IDs.
 
-Now we are ready to add the gene symbols to our data frames with the DGE results.
-Here we're using a `dplyr::left_join()` because we only want to retain the genes that have gene symbols and this will filter out anything in our results data frame that does not have gene symbols when we join using the Ensembl gene identifiers.
+Now we are ready to add the gene symbols to our data frame with the DGE results.
+We can use a _join_ function from the `dplyr` package to do this, which will use the Ensembl gene IDs in both data frames to determine how to join the rows.
 
 Let's do this first for the comparison to the low stem cell capacity population.
 
 ```{r add_symbols, live = TRUE}
 vs_low_df <- symbols_df %>%
-  # Using a left join removes the rows without gene symbols because those rows
-  # have already been removed in symbols_df
-  dplyr::left_join(vs_low_df,
-                   # The name of the column that contains the Ensembl gene IDs
-                   # in the left data frame and right data frame
-                   by = c("ensembl_id" = "Gene"))
+  # An *inner* join will only return rows that are in both data frames
+  dplyr::inner_join(vs_low_df,
+                    # The name of the column that contains the Ensembl gene IDs
+                    # in the left data frame and right data frame
+                    by = c("ensembl_id" = "Gene"))
 ```
 
-And repeat the process for the comparison to the unsorted cells.
+### Drop `NA` values
 
-```{r add_symbols_again, live = TRUE}
-vs_unsorted_df <- symbols_df %>%
-  dplyr::left_join(vs_unsorted_df,
-                   by = c("ensembl_id" = "Gene"))
+Some of these rows have `NA` values in `padj`, which [can happen for a number of reasons](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA) including when all samples have zero counts or a gene has low mean expression.
+
+Let's filter to rows that _do not have any `NA`_ using a function `tidyr::drop_na()`.
+This will also drop genes that have an Ensembl gene identifier but no gene symbol!
+
+```{r complete_cases}
+# Remove rows that are not complete (e.g., contain NAs) by filtering to only 
+# complete rows
+vs_low_df <- vs_low_df %>%
+  tidyr::drop_na()
+```
+
+**Now we'll read in our data frame of DGE results from another comparison.**
+To save us some time during instruction, we've already done the gene identifier conversion and filtering to remove `NA` values in [this notebook](https://github.com/AlexsLemonade/training-modules/tree/master/pathway-analysis/setup/03-leukemia_DGE.Rmd). 
+We took a different series of steps to achieve the same thing, which is often possible in R!
+<!--TODO: Numbering of notebook will change--> 
+
+```{r}
+vs_unsorted_df <- readr::read_tsv(vs_unsorted_file)
 ```
 
 ## Over-representation Analysis (ORA)
@@ -253,7 +238,7 @@ To test for over-representation, we can calculate a p-value with a hypergeometri
 
 Where `N` is the number of genes in the background distribution, `M` is the number of genes in a pathway, `n` is the number of genes we are interested in (our marker genes), and `k` is the number of genes that overlap between the pathway and our marker genes.
 
-Borrowing an example from [_clusterProfiler: universal enrichment tool for functional and comparative study_](https://yulab-smu.github.io/clusterProfiler-book/chapter2.html#fn2):
+Borrowing an example from [_clusterProfiler: universal enrichment tool for functional and comparative study_ (Yu )](http://yulab-smu.top/clusterProfiler-book/chapter2.html#over-representation-analysis):
 
 > **Example**: Suppose we have 17,980 genes detected in a Microarray study and 57 genes were differentially expressed. Among the differential expressed genes, 28 are annotated to a gene set.
 
@@ -294,7 +279,7 @@ We're interested in what pathways are over-represented in genes that specificall
 Let's generate a list of genes that have higher expression in the high stem cell capacity population compared to the low stem cell capacity population, but we'll also want to exclude genes that show up in our _other comparison_ to unsorted cells.
 
 We'll start with the high stem cell capacity vs. low stem cell capacity population comparison.
-Genes with positive log fold-changes (LFC) will be more highly expressed in the high stem cell capacity cells based on how we set up the analysis.
+Genes with positive log2 fold-changes (LFC) will be more highly expressed in the high stem cell capacity cells based on how we set up the analysis.
 
 ```{r high_capacity_genes}
 vs_low_genes <- vs_low_df %>%
@@ -335,7 +320,7 @@ Sometimes folks consider genes from the entire genome to comprise the background
 
 Where the key phrase is **genes detected**. 
 
-If we are unable to include a gene because, for example, it had low mean expression in our experiment and therefore was filtered out in our `complete.cases()` step, we shouldn't include in our background set.  
+If we are unable to include a gene because, for example, it had low mean expression in our experiment and therefore was filtered out in our `tidyr::drop_na()` step, we shouldn't include in our background set.  
 
 We can use another function for set operations, `intersect()`, to get our background set.
 
