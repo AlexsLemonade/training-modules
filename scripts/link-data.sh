@@ -22,11 +22,16 @@ mkdir -p RNA-seq/data/medulloblastoma
 mkdir -p RNA-seq/data/zebrafish-cortisol/
 mkdir -p RNA-seq/QC/gastric-cancer/fastp/
 mkdir -p RNA-seq/QC/gastric-cancer/fastqc/
+
+# scRNA-seq module directories
 mkdir -p scRNA-seq/data/glioblastoma/
 mkdir -p scRNA-seq/data/tabula-muris/
+
+# Machine learning module directory
 mkdir -p machine-learning/data
 
-
+# Pathway analysis module directory
+mkdir -p pathway-analysis/data
 
 link_locs=(
   RNA-seq/data/gastric-cancer/gastric-cancer_metadata.tsv
@@ -52,6 +57,7 @@ link_locs=(
   scRNA-seq/data/tabula-muris/fastq
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   machine-learning/data/open-pbta
+  pathway-analysis/data/leukemia
 )
 for loc in ${link_locs[@]}
 do
