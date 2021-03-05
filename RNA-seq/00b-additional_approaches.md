@@ -6,15 +6,8 @@ For your reference, we've put together what we might teach if we had more time o
 This is intended to be an introduction to these approaches and a "jumping off point" for further reading or experimentation.
 We present them in order of increasing difficulty and/or departure from what is presented in training.
 
-### Link to pre-prepared datasets
-
 There are datasets already uploaded to the RStudio Server that you may want use for practicing these approaches or other techniques we've discussed.
-
-You can link these datasets to your own `training-modules` folder by running the following command in Terminal from `~/training-modules`.
-```
-bash scripts/link-data.sh
-```
-Once you've ran this, take a look at the files in `training-modules/RNA-seq/data` to see those pre-prepared datasets.
+Take a look at the files in `~/training-modules/RNA-seq/data` to see those pre-prepared datasets.
 
 ####  Contents
 
