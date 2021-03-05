@@ -13,8 +13,7 @@ OpenPBTA is a collaborative project organized by the CCDL and the Center for Dat
 
 You can read more about the project [here](https://github.com/alexslemonade/openpbta-analysis/#openpbta-analysis).
 
-We've downloaded the publicly available data from the project and performed a variance stabilizing transformation on the stranded RNA-seq dataset.
-(That code is available in `setup`!)
+We've downloaded some of the publicly available expression data from the project and selected a subset with the the most common disease types for analysis here.
 
 We'll use a package called [`ComplexHeatmap`](https://www.bioconductor.org/packages/release/bioc/html/ComplexHeatmap.html) to make our heatmap.
 This package also will perform clustering as part of the heatmap.
@@ -51,14 +50,12 @@ if (!dir.exists(plots_dir)) {
 
 #### Input files
 
-We have created a SummarizedExperiment object to start with.
-
 ```{r input_files}
-
+# The metadata describing the samples
 histologies_file <- file.path(data_dir, "pbta-histologies-subset.tsv")
-rnaseq_file = file.path(data_dir, "pbta-rsem-expected_count-subset.rds")
-# rnaseq_file <- file.path(data_dir, "pbta-vst-stranded.tsv.gz") 
 
+# The RNAseq counts table
+rnaseq_file = file.path(data_dir, "pbta-rsem-expected_count-subset.rds")
 ```
 
 #### Output files
@@ -101,14 +98,17 @@ histology_count_df
 
 ### RNA-seq data
 
+Read in the expression count matrix (stored as a data frame).
+
 ```{r read_in_rnaseq, live = TRUE}
 # Read in and examine the RNA-seq data
 rnaseq_exp <- read_rds(rnaseq_file)
 ```
+
 ### Convert and round
 
 The count data we have is mostly integers, but because of the estimation procedure that RSEM uses, some is not. 
-`DESeq2` expects all integers, so we will round our data. 
+`DESeq2`, which we will be using below expects all integers, so we will round all of the count data. 
 This is easiest if we first convert from a data frame to a matrix.
 
 ```{r convert_round, live = TRUE}
@@ -120,38 +120,53 @@ rnaseq_mat <- rnaseq_exp %>%
   round()
 ```
 
-This matrix still includes the samples that we removed from the histologies file
-
-
 ### Variance Stabilizing Transformation
 
-Since different samples are usually sequenced to different depths, we will want to transform our RNA-seq count data to make different samples more directly comparable. 
-We also want to deal with the fact that genes with low counts are also likely to have higher variance (on a log scale), as that could bias our clustering.
-To handle both of these considerations, we will calculate a Variance Stabilizing Transformation of the count data, and work with that transformed data for our analysis.
+Raw count data is not usually suitable for the algorithms we use for clustering and heatmap display. 
+To improve this, we will transform the count data to create an expression measure that is better suited for these analyses. 
+The core transformation will map the expression to a log2 scale, while accounting for some of the expected variation among samples and genes.
 
-The `DESeq2` package has functions for doing these calculations, so we will convert our count matrix to a DESeq dataset and perform the calculations there.
+Since different samples are usually sequenced to different depths, we want to transform our RNA-seq count data to make different samples more directly comparable. 
+We also want to deal with the fact that genes with low counts are also likely to have higher variance (on the log2 scale), as that could bias our clustering.
+To handle both of these considerations, we can calculate a Variance Stabilizing Transformation of the count data, and work with that transformed data for our analysis.
 
-```{r}
+The `DESeq2` package has functions for doing these calculations, so we will convert our count matrix to a `DESeq2` dataset and perform the calculations there.
+
+Since we are starting from a matrix, not a `SummarizedExperimet` as we did previously, we will need to provide the sample information ourselves.
+Just to be sure nothing is out of order, we will check that the identifiers for the sample information stored in `histologies_df` matches the columns of our matrix.
+
+```{r check-order}
+all.equal(histologies_df$Kids_First_Biospecimen_ID,
+          colnames(rnaseq_mat))
+```
+
+Now we can make our matrix into a `DESeq2` dataset, adding on the sample information from `histologies_df`. 
+Unlike when we were performing differential expression analysis, we won't provide an experimental design at this stage.
+
+```{r make-DESEq}
 ddset <- DESeqDataSetFromMatrix(rnaseq_mat,
                                 colData = histologies_df,
                                 design = ~ 1) # don't store an experimental design
 ```
 
-We will again remove low count genes 
-```{r}
+We will again remove low count genes, as they are not likely to be informative. 
+
+```{r trim}
 genes_to_keep <- rowSums(counts(ddset)) >= 10
 ddset <- ddset[genes_to_keep, ]
 ```
 
-Variance stabilizing transformation.
+Now we can apply the variance stabilizing transformation, saving the results in a new object.
 
 ```{r}
 # apply variance stabilizing transformation
 vst_data <- vst(ddset, blind = TRUE)
 ```
 
+This object stores information about the transformation that was applied, but for now, we will only need the matrix of transformed data, which we can extract with `assay()`.
 
 ```{r select-columns}
+# extract transformed data
 expr_mat <- assay(vst_data)
 ```
 
