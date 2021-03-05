@@ -47,9 +47,9 @@ Run the following command:
 
 ```bash
 multiqc \
-  gastric_cancer/QC \
+  QC/gastric_cancer \
   data/gastric_cancer/salmon_quant/ \
-  --outdir gastric_cancer/QC
+  --outdir QC/gastric_cancer
 ```
 
 Once this completes, you should have a report at `gastric_cancer/QC/multiqc_report.html`.
