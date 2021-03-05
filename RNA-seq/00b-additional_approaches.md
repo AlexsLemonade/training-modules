@@ -5,7 +5,7 @@ As a result, we do not cover every tool or method that would complement what is 
 For your reference, we've put together what we might teach if we had more time or if they required fewer computational resources.
 This is intended to be an introduction to these approaches and a "jumping off point" for further reading or experimentation.
 We present them in order of increasing difficulty and/or departure from what is presented in training.
- 
+
 ####  Contents
 
 * [MultiQC](#multiqc)
@@ -18,13 +18,13 @@ We present them in order of increasing difficulty and/or departure from what is 
 It can be used to combine information, such as FastQC reports, for multiple RNA-seq samples in a project.
 This can be helpful to get an overall picture of the samples in your experiment.
 For example, fastp reports statistics before and after it processes samples.
-If you were to perform _quality trimming_ with fastp and look at the before and after information across samples, it may tell you that, after trimming, a large portion of your reads were too short and were filtered out. 
+If you were to perform _quality trimming_ with fastp and look at the before and after information across samples, it may tell you that, after trimming, a large portion of your reads were too short and were filtered out.
 That's likely information you'd want to know when performing downstream analyses.
-MultiQC supports the three tools we present in the bulk RNA-seq module: FastQC, fastp, and Salmon. 
+MultiQC supports the three tools we present in the bulk RNA-seq module: FastQC, fastp, and Salmon.
 In addition, MultiQC is not limited to RNA-seq data; the website has example reports for Hi-C data and whole genome sequencing.
 
 MultiQC is installed on the RStudio Server we use for training.
-If you want to run it on the gastric cancer samples, we provide instructions below. 
+If you want to run it on the gastric cancer samples, we provide instructions below.
 Note that you will not have FastQC or fastp output for most samples, so there will be some information missing from the report.
 
 #### Running MultiQC on the gastric cancer samples
@@ -44,12 +44,12 @@ Run the following command:
 
 ```bash
 multiqc \
-  QC/gastric_cancer \
-  data/quant/gastric_cancer \
-  --outdir QC/gastric_cancer/
+  gastric_cancer/QC \
+  data/gastric_cancer/salmon_quant/ \
+  --outdir gastric_cancer/QC
 ```
 
-Once this completes, you should have a report at `QC/gastric_cancer/multiqc_report.html`.
+Once this completes, you should have a report at `gastric_cancer/QC/multiqc_report.html`.
 
 ## Decoy sequence-aware selective alignment with Salmon
 
@@ -59,15 +59,15 @@ We're summarizing our understanding of the work here, but we encourage you to ta
 Srivastava et al. demonstrate that transcript abundance estimates from lightweight mapping approaches like Salmon can differ from abundance estimates derived from traditional alignment approaches in experimental data.
 This differs from the takeaway of most prior work comparing lightweight mapping and traditional alignment; this is very likely due to the typical focus on _simulated data_ rather than experimental data.
 
-In the preprint, the authors introduced a new approach termed "selective alignment" that is less computationally costly than traditional alignment while still offering improvements over lightweight mapping. 
+In the preprint, the authors introduced a new approach termed "selective alignment" that is less computationally costly than traditional alignment while still offering improvements over lightweight mapping.
 
 The current version of Salmon (as of writing this) `v1.2.0` allows users to input sequences from unannotated genomic loci that are similar to annotated transcripts, termed decoy sequences, to avoid falsely mapping fragments that arise from these unannotated regions to transcripts.
-This is termed a `salmon_partial_sa_index` [here](https://github.com/COMBINE-lab/salmon/tree/91091fc3650a3220f657a9f31616916513f0ad02#pre-computed-decoy-transcriptomes). 
+This is termed a `salmon_partial_sa_index` [here](https://github.com/COMBINE-lab/salmon/tree/91091fc3650a3220f657a9f31616916513f0ad02#pre-computed-decoy-transcriptomes).
 As of `v1.0.0`, you can use the _full genome_ as decoy ([ref](https://github.com/COMBINE-lab/salmon/tree/91091fc3650a3220f657a9f31616916513f0ad02#pre-computed-decoy-transcriptomes)).
 
 ### Why don't we use decoy-aware selective alignment in training?
 
-We select the methods we cover in training in part because it is feasible to run them on a standard laptop used for scientific computing if necessary. 
+We select the methods we cover in training in part because it is feasible to run them on a standard laptop used for scientific computing if necessary.
 Some laptops (including ones your instructors own!) are not well-equipped to run `salmon quant` with indices that include the decoy sequence information; they are considerably larger than the indices we use in training, which are cDNA-only indices.
 
 ### How can I try it out if I'm interested?
