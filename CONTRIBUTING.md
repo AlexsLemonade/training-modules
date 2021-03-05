@@ -139,24 +139,24 @@ Note that when you open up the `training-modules.Rproj`, the `.Rprofile` file ma
 
 For most cases you can create your `renv.lock-only` changes PR by following these steps:
 
-*Step 1)* Create your `renv.lock-only` branch from the latest `master` branch.  
-*Step 2)* In your `renv.lock-only` branch, checkout the renv.lock file from your development branch (where you were generally doing steps 1-6 from the previous section) using `git checkout devbranch renv.lock`.  
-*Step 3)* Commit the renv.lock changes you just checked out.  
-*Step 4)* Push the changes and file your renv.lock only PR.  
-  
+1. Create your `renv.lock-only` branch from the latest `master` branch.  
+2. In your `renv.lock-only` branch, checkout the renv.lock file from your development branch (where you were generally doing steps 1-6 from the previous section) using `git checkout devbranch renv.lock`.  
+3. Commit the renv.lock changes you just checked out.  
+4. Push the changes and file your renv.lock only PR.  
+
 Note that the `renv::snapshot()` command will skip adding a package to renv.lock if it isn't used in a notebook or script.
 
 #### Multiple renv.lock changes from multiple branches
 
-If there are changes happening on multiple branches that require renv.lock changes, you may need follow a slightly different version of steps:
+If there are changes happening on multiple branches that require renv.lock changes, you may need to follow a slightly different version of steps:
 
-*Step 1)* Create your `renv.lock-only` branch from the latest `master` branch.  
-*Step 2)* Run `renv::restore()`.  
-*Step 3)* Install the packages needed on both branches (`install.packages()` or etc).  
-*Step 4)* Added those packages to `components/dependencies.R`.   
-*Step 5)* Run `renv::snapshot()`.  
-*Step 6)* Only commit the `renv.lock` changes to your branch.  
-*Step 7)* Push the changes and file your renv.lock only PR.  
+1. Create your `renv.lock-only` branch from the latest `master` branch.  
+2. Run `renv::restore()`.  
+3. Install the packages needed on both branches (`install.packages()` or etc).  
+4. Add those packages to `components/dependencies.R`.   
+5. Run `renv::snapshot()`.  
+6. Only commit the `renv.lock` changes to your branch.  
+7. Push the changes and file your renv.lock only PR.  
 
 ### How we use `renv` with Docker
 
