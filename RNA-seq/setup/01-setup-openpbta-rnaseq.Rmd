@@ -8,7 +8,7 @@ author: CCDL for ALSF
 date: 2020
 ---
 
-Here, we'll transform the OpenPBTA stranded RNA-seq data for use in the machine learning module.
+Here, we'll download and trim the OpenPBTA stranded RNA-seq data for use in the RNA-seq heatmap & clustering notebook.
 
 ## Set up
 
@@ -17,9 +17,6 @@ Here, we'll transform the OpenPBTA stranded RNA-seq data for use in the machine 
 ```{r}
 # Pipes
 library(magrittr)
-
-# For transformation
-library(DESeq2)
 ```
 
 ### Directories and files
@@ -27,7 +24,7 @@ library(DESeq2)
 ```{r}
 # Set up the directories - we'll be processing OpenPBTA data 
 # and putting it in the shared directory
-openpbta_dir <- '/shared/data/training-modules/RNA-seq/data/openpbta'
+openpbta_dir <- '/shared/data/training-modules/RNA-seq/data/open-pbta'
 
 # Create the output directory if it doesn't exist yet 
 if (!dir.exists(openpbta_dir)) {
@@ -60,16 +57,16 @@ stranded_counts_url <- paste(base_url,
 
 ```{r}
 # We're going to write out a histologies file that only includes data for the
-# stranded RNA-seq samples
+# stranded RNA-seq samples & top histologies
 filtered_histologies_file <- file.path(openpbta_dir, 
-                                      "pbta-histologies-stranded-rnaseq.tsv")
+                                      "pbta-histologies-subset.tsv")
 
-# Let's write out a SummarizedExperiment object for fun
-rnaseq_summarized_exp_file <- file.path(openpbta_dir, 
-                                        "pbta-stranded-expression.rds")
+# Where we will put the RSEM file
+rnaseq_file <- file.path(openpbta_dir, "pbta-gene-counts-rsem-expected_count.stranded.rds")
 
-# VST transformed values (big file, so we will compress it)
-rnaseq_transformed_file <- file.path(openpbta_dir, "pbta-vst-stranded.tsv.gz")
+# We will filter the RSEM data to just the top histologies
+filtered_rnaseq_file <- file.path(openpbta_dir, "pbta-rsem-expected_count-subset.rds")
+
 ```
 
 ## Data cleaning and transformation
@@ -86,99 +83,36 @@ histologies_df <- readr::read_tsv(histologies_url,
   # Remove columns that are all NA (typically pertain only to the DNA data)
   purrr::discard(~ all(is.na(.)))
 
+# what are the top histologies
+histologies_to_keep <- histologies_df %>%
+  dplyr::count(short_histology) %>%
+  dplyr::filter(n > 50) %>%
+  dplyr::pull(short_histology)
+
+filtered_histologies_df <- histologies_df %>%
+  dplyr::filter(short_histology %in% histologies_to_keep)
+
 # Write cleaned metadata file to the output dir
-readr::write_tsv(histologies_df, filtered_histologies_file)
+readr::write_tsv(filtered_histologies_df, filtered_histologies_file)
 ```
 
 ### RNA-seq data
 
 ```{r}
-# can't read directly from URL, it appears, so we will use a tempfile
-count_tmp <- tempfile(fileext = ".rds")
-curl::curl_download(stranded_counts_url, count_tmp)
+# Download the raw counts data
+curl::curl_download(stranded_counts_url, rnaseq_file)
 
 # Read the expression data
-stranded_count_df <- readr::read_rds(count_tmp)
-```
-
-Reorder the stranded counts matrix such that it is in the same order as the histologies data frame.
-The sample identifiers used in the counts matrix are called `Kids_First_Biospecimen_ID` in `histologies_df`.
-We'll sometimes refer to them as biospecimen IDs or BSIDs for short!
-
-```{r}
-stranded_count_df <- stranded_count_df %>%
-  # split up the gene_id column into gene_id and gene_symbol
-  tidyr::separate(gene_id, 
-                  into = c("gene_id", "gene_symbol"), 
-                  sep = "_",
-                  extra = "merge" # only split off the first section
-                  ) %>%
-  # filter Y chromosome paralogs
-  dplyr::filter(stringr::str_detect(gene_symbol, "^PAR_Y_", negate = TRUE ))
-
-# Store the gene info
-gene_df <- stranded_count_df %>%
-  dplyr::select(gene_id, gene_symbol)
-
-# Extract the expression data as a matrix
-stranded_count_mat <- stranded_count_df %>%
-  # We want to retain the Ensembl gene identifiers as the first column
-  dplyr::select(gene_id, histologies_df$Kids_First_Biospecimen_ID) %>%
-  # Make the gene identifier column the rownames and make this into a matrix
-  tibble::column_to_rownames("gene_id") %>%
-  as.matrix()
-
-# This is the output of RSEM - some values will not be integers, rounding this
-# makes it such that these values are integers
-stranded_count_mat <- round(stranded_count_mat)
-mode(stranded_count_mat) <- "integer"
+stranded_count_df <- readr::read_rds(rnaseq_file)
 ```
 
 ```{r}
-# In the same order?
-identical(colnames(stranded_count_mat), 
-          histologies_df$Kids_First_Biospecimen_ID)
+# filter to match histologies
+filtered_count_df <- stranded_count_df %>%
+  dplyr::select(gene_id, filtered_histologies_df$Kids_First_Biospecimen_ID)
 
-identical(rownames(stranded_count_mat), gene_df$gene_id)
-```
-
-Make a SummarizedExperiment and save it
-
-```{r}
-rnaseq_exp <- SummarizedExperiment(assays = list(counts = stranded_count_mat),
-                                   rowData = gene_df,
-                                   colData = histologies_df)
-readr::write_rds(rnaseq_exp, file = rnaseq_summarized_exp_file)
-```
-
-
-
-We're going to use this for clustering, so we probably want to be blind to the experimental design.
-
-```{r}
-ddset <- DESeqDataSet(sc_exp,
-                      design = ~ 1)
-```
-
-Remove genes with low total counts.
-
-```{r}
-genes_to_keep <- rowSums(counts(ddset)) >= 10
-ddset <- ddset[genes_to_keep, ]
-```
-
-Variance stabilizing transformation and write to file.
-
-```{r}
-# Transformation itself
-vst_data <- vst(ddset, blind = TRUE)
-
-# Now create a data frame where the gene identifiers are in the first column
-vst_df <- data.frame(assay(vst_data)) %>%
-  tibble::rownames_to_column("gene_id")
-
-# Write to TSV!
-readr::write_tsv(vst_df, file = rnaseq_transformed_file)
+# write out filtered counts
+readr::write_rds(filtered_count_df, filtered_rnaseq_file)
 ```
 
 ## Session Info
