@@ -33,6 +33,7 @@ sync_dirs=(
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/index/Mus_musculus
   machine-learning/data/open-pbta/processed
+  pathway-analysis/data/leukemia
 )
 
 sync_files=(
@@ -48,19 +49,27 @@ sync_files=(
 
 for loc in ${sync_dirs[@]}
 do
-  # upload directories to S3, make public, ignore timestamps, ignore hidden files
-  aws s3 sync ${loc} ${bucket}/${loc} \
-   --acl public-read --size-only \
-   --exclude ".*"
+  if [[ -d ${loc} ]]; then
+    # upload directories to S3, make public, ignore timestamps, ignore hidden files
+    aws s3 sync ${loc} ${bucket}/${loc} \
+    --acl public-read --size-only \
+    --exclude ".*"
+  else
+    echo "${loc} does not exist."
+  fi
 done
 
 echo "Directories synced"
 
 for loc in ${sync_files[@]}
 do
-  # upload individual files to S3, make public
-  aws s3 cp ${loc} ${bucket}/${loc} \
-   --acl public-read
+  if [[ -f ${loc} ]]; then
+    # upload individual files to S3, make public
+    aws s3 cp ${loc} ${bucket}/${loc} \
+    --acl public-read
+  else
+    echo "${loc} does not exist."
+  fi
 done
 
 echo "Files uploaded"
