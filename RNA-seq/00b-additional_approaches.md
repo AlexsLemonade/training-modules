@@ -10,7 +10,7 @@ We present them in order of increasing difficulty and/or departure from what is 
 
 There are datasets already uploaded to the RStudio Server that you may want use for practicing these approaches or other techniques we've discussed.
 
-You can link these datasets to your own folder by running the following command in Terminal in your `training-modules` folder.
+You can link these datasets to your own `training-modules` folder by running the following command in Terminal from `~/training-modules`.
 ```
 bash scripts/link-data.sh
 ```
