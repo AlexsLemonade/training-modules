@@ -88,9 +88,14 @@ ddset <- DESeqDataSet(gene_summarized,
 
 ### Variance stabilizing transformation
 
-Before visualizing the data, we'll transform it such that it is on a `log2` 
-scale for large counts and library size is taken into account with the `DESeq2` 
-function for variance stabilizing transformation.
+Raw count data is not usually suitable for the algorithms we use for dimensionality reduction, clustering, or heatmaps. 
+To improve this, we will transform the count data to create an expression measure that is better suited for these analyses. 
+The core transformation will map the expression to a log2 scale, while accounting for some of the expected variation among samples and genes.
+
+Since different samples are usually sequenced to different depths, we want to transform our RNA-seq count data to make different samples more directly comparable. 
+We also want to deal with the fact that genes with low counts are also likely to have higher variance (on the log2 scale), as that could bias our clustering.
+To handle both of these considerations, we can calculate a Variance Stabilizing Transformation of the count data, and work with that transformed data for our analysis.
+
 See [this section of
 the `DESeq2` vignette](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization) 
 for more on this topic. 
@@ -99,16 +104,19 @@ for more on this topic.
 vst_data <- vst(ddset)
 ```
 
-### Principal components analysis
+### Principal component analysis
 
-Principal components analysis (PCA) is a dimensionality reduction technique
-that captures the main sources of variation in our data in the first two 
-principal components (PC1 and PC2).
-Visualizing PC1 and PC2 can give us insight into how different variables (e.g.,
-tissue source) affect our dataset and help us spot any technical effects 
-(more on that below).
+Principal component analysis (PCA) is a dimensionality reduction technique that allows us to identify the largest components of variation in a complex dataset.
+Our expression data can be thought of as mapping each sample in a multidimensional space defined by the expression level of each gene.
+The expression of many of those genes are correlated, so we can often get a better, simpler picture of the data by combining the information from those correlated genes.
 
-`DESeq2` has built-in functionality for performing PCA.
+PCA rotates and transforms this space so that each axis is now a combination of multiple correlated genes, ordered so the first axes capture the most variation from the data. 
+These new axes are the "principal components".
+If we look at the first few components, we can often get a nice overview of relationships among the samples in the data.
+
+The `plotPCA()` function we will use from the `DESeq2` package calculates and plots the first two principal components (PC1 and PC2).
+Visualizing PC1 and PC2 can give us insight into how different variables (e.g., tissue source) affect our dataset and help us spot any technical effects (more on that below).
+
 
 ```{r plotPCA, live = TRUE}
 # DESeq2 built in function is called plotPCA and we want to color points by
