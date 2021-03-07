@@ -8,13 +8,19 @@
 `%>%` <- dplyr::`%>%`
 data_dir <- "/shared/data/training-modules/RNA-seq/data/medulloblastoma"
 
+# temporary workaround for write protected files
+output_dir <- "~/training-modules/pathway-analysis/setup/data"
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
 # files
 
 # obtained from: https://www.ncbi.nlm.nih.gov/Traces/study/?acc=SRP150101&o=acc_s%3Aa
 sra_input_file <- file.path(data_dir, "SRP150101_SraRunTable.txt")
 # obtained from refine.bio on 2021-03-06
 refinebio_input_file <- file.path(data_dir, "metadata_SRP150101.tsv")
-output_file <- file.path(data_dir, "SRP150101_metadata.tsv")
+
+# temporary workaround
+output_file <- file.path(output_dir, "SRP150101_metadata.tsv")
 
 # two metadata data frames enter, one metadata data frame leaves
 sra_metadata <- readr::read_csv(sra_input_file)
