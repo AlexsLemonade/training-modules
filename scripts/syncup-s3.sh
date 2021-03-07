@@ -33,6 +33,7 @@ sync_dirs=(
   scRNA-seq/index/Mus_musculus
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
+  pathway-analysis/data/medulloblastoma
 )
 
 sync_files=(
@@ -43,7 +44,6 @@ sync_files=(
   scRNA-seq/data/glioblastoma/preprocessed/txi/count_matrix.tsv
   scRNA-seq/data/glioblastoma/preprocessed/darmanis_metadata.tsv
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
-  pathway-analysis/data/medulloblastoma/medulloblastoma_vst_collapsed.tsv
 )
 
 for loc in ${sync_dirs[@]}
