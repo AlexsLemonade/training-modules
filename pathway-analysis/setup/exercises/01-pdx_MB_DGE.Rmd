@@ -1,0 +1,106 @@
+---
+title: "Prepare medulloblastoma PDX DGE results"
+output: 
+  html_notebook: 
+    toc: true
+    toc_float: true
+author: CCDL for ALSF
+date: 2021
+---
+
+This notebook prepares DGE results for the ORA and GSEA pathway analysis exercises.
+
+## Set up
+
+### Libraries
+
+```{r}
+# Pipes
+library(magrittr)
+# DGE analysis and transformation
+library(DESeq2)
+```
+
+### Directories and files
+
+```{r}
+input_dir <- "/shared/data/training-modules/RNA-seq/data/medulloblastoma"
+txi_file <- file.path(input_dir, "txi", "medulloblastoma_txi.RDS")
+```
+
+```{r}
+output_dir <- "/shared/data/training-modules/pathway-analysis/data/medulloblastoma"
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+dge_file <- file.path(output_dir, "pdx_medulloblastoma_treatment_dge.tsv")
+```
+
+## Read in data
+
+```{r}
+txi <- readr::read_rds(txi_file)
+```
+
+### Dataset creation
+
+```{r ddset-creation}
+# We have Group 3 and Group 4 MB PDX that were treated with digoxin (or control)
+# We're going to use the treatment results for the exercise, so we put that
+# *last*
+ddset <- DESeq2::DESeqDataSet(txi,
+                              design = ~ Group + Treatment)
+```
+
+We need to collapse technical replicates.
+
+```{r}
+ddset <- DESeq2::collapseReplicates(ddset,
+                                    groupby = ddset$mouse_id)
+```
+
+We want the reference to be the untreated/control samples, check levels to make sure that's the case. 
+
+```{r}
+levels(ddset$Treatment)
+```
+
+We need to relevel.
+
+```{r}
+ddset$treatment <- relevel(ddset$Treatment, ref = "none")
+```
+
+## DGE
+
+```{r}
+ddset <- DESeq(ddset)
+```
+```{r}
+resultsNames(ddset)
+```
+
+We used the design `~ Group + Treatment` when creating the `DESeqDataSet`.
+The results for `Treatment` in our example should be the differences between digoxin vs. none, controlling for differences due to molecular subtype (`Group`).
+
+```{r}
+results_lfc <- lfcShrink(ddset, 
+                         coef = "Treatment_none_vs_digoxin",
+                         type = "ashr")
+```
+
+```{r}
+results_df <- results_lfc %>%
+  data.frame() %>%
+  tibble::rownames_to_column("Gene") %>%
+  # We didn't do any prefiltering to this data set, so there are genes 
+  # with 0 counts
+  dplyr::filter(!is.na(log2FoldChange))
+
+readr::write_tsv(results_df, file = dge_file)
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
+
