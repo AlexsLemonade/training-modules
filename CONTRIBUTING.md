@@ -56,12 +56,12 @@ This is done to ease orientation and navigation during training.
 Code chunks that will be blank at the start of a training session (for live coding) should be tagged with the `live = TRUE` argument.
 These chunks will be stripped of code (but not full line comments) when the `-live.Rmd` version of the notebook is created by the `make-live.R` script.
 This script is not usually run independently; it will usually run as part of the [Make Live Notebooks](https://github.com/AlexsLemonade/training-modules/actions/workflows/make-live.yml) GitHub Action via a[`workflow_dispatch`](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow#running-a-workflow-on-github).
-That action will file a pull request with changes to any `-live.Rmd` notebooks and, optionally, rendered versions of the notebooks. 
+That action will file a pull request with changes to any `-live.Rmd` notebooks and, optionally, rendered versions of the notebooks.
 
 
 ### References
 
-We try to maintain good scholarship, citing our sources! 
+We try to maintain good scholarship, citing our sources!
 Often our sources are vignettes or web pages, for which we usually link directly to a web page.
 When possible we should include the author of the vignette in the text to give proper credit.
 
@@ -74,7 +74,7 @@ In the case of journal or preprint publications, we will follow the following ci
 
 ### Notebook data dependencies
 
-Each instruction notebook should run from start to finish when run after the previous notebook(s) in its module have been run. 
+Each instruction notebook should run from start to finish when run after the previous notebook(s) in its module have been run.
 This means that modules can have dependencies on each other, but those dependencies should be satisfied when run in order.
 In general, input files that are not present in this repository will be linked as part of setting up the repository or user folder, as described in the [Data file management](#data-file-management) section of this document.
 
@@ -96,26 +96,25 @@ This directory is the implicit "point of truth" for modules
 
 The organization within this directory should mirror the arrangement of the repository, so that we can easily link files and folders from this shared directory to mirrored paths within a clone of this repository.
 
-### Linking shared files 
+### Linking shared files
 
 Linking files from the shared directory to a cloned repository is done with the `scripts/link-data.sh` bash script, so this script should be kept up to date as any needed files are added to the `/shared/data/training-modules` directory.
 When possible, link to enclosing directories rather than individual files to keep links simpler and allow users to browse a realistic directory context, but see an important caveat below.
 
-Because this script is also used to set up directories for training, the links should not include _all_ files needed for _every_ notebook: 
+Because this script is also used to set up directories for training, the links should not include _all_ files needed for _every_ notebook:
 - Files that are created during a training session should not  be included in this script.
 - Directories that users will need to write to should not be links, or the user will not be able to write their own files.
 
 ### Files stored on S3
 
-To facilitate automated testing of training notebooks, all needed input files for training notebooks should be placed in the `ccdl-training-data` bucket on S3 and made publicly accessible. 
-This is facilitated by the `scripts/syncup-s3.sh` bash script, which includes the needed commands for upload/sync, and should include all directories and files needed to run the training notebooks. 
+To facilitate automated testing of training notebooks, all needed input files for training notebooks should be placed in the `ccdl-training-data` bucket on S3 and made publicly accessible.
+This is facilitated by the `scripts/syncup-s3.sh` bash script, which includes the needed commands for upload/sync, and should include all directories and files needed to run the training notebooks.
 You will need to set up your AWS credentials with `aws configure` before running the `syncup-s3.sh` script
 As input files are added or change, those changes should be reflected in updates to `syncup-s3.sh`
 
+## Development with `renv`
 
-## Development with `renv` 
-
-We use [`renv`](https://rstudio.github.io/renv/index.html) to manage R package dependencies for this project. 
+We use [`renv`](https://rstudio.github.io/renv/index.html) to manage R package dependencies for this project.
 Using `renv` allows us to keep R packages in sync during _development_ in multiple scenarios – on the RStudio Server, using the project Docker image, or even locally – and generates a lockfile (`renv.lock`) that we can use to install packages on the RStudio Server for participants when it's time for a workshop.
 
 ### Typical development workflow
@@ -131,12 +130,33 @@ The steps for development are:
 4. Run `renv::snapshot()` at the end of your session to capture the additional dependencies. *Be careful if `renv::snapshot()` suggests removing packages!* If there have been additions to `renv.lock` in another branch while you were working, you may need to run `renv::restore()` again before `renv::snapshot()`.
 5. If there are dependencies you might want that are not captured automatically by `renv::snapshot()` (this may happen if a package is "recommended" by another, but not required), add them to `components/dependencies.R` with a call to `library()` and an explanatory comment. Then rerun `renv::snapshot()`
 6. Commit any changes to `renv.lock` and `dependencies.R`.
-7. File a pull request with _only_ the changes to the `renv.lock` and `dependencies.R`  before other changes. 
+7. File a pull request with _only_ the changes to the `renv.lock` and `dependencies.R`  before other changes (see next section for tips on creating this PR).
 This is necessary because the automated render testing we do will fail if the Docker image has not been updated (see '[Pushing to Dockerhub via GitHub Actions](#pushing-to-dockerhub-via-github-actions)' below).
 
 Note that when you open up the `training-modules.Rproj`, the `.Rprofile` file makes it such that the `renv` library is loaded and the repositories in the `renv.lock` file will be set with `options(repos = ...)`.
 
+### Steps for creating renv.lock only changes pull requests
 
+For most cases you can create your `renv.lock-only` changes PR by following these steps:
+
+1. Create your `renv.lock-only` branch from the latest `master` branch.  
+2. In your `renv.lock-only` branch, checkout the renv.lock file from your development branch (where you were generally doing steps 1-6 from the previous section) using `git checkout devbranch renv.lock`.  
+3. Commit the renv.lock changes you just checked out.  
+4. Push the changes and file your renv.lock only PR.  
+
+Note that the `renv::snapshot()` command will skip adding a package to renv.lock if it isn't used in a notebook or script.
+
+#### Multiple renv.lock changes from multiple branches
+
+If there are changes happening on multiple branches that require renv.lock changes, you may need to follow a slightly different version of steps:
+
+1. Create your `renv.lock-only` branch from the latest `master` branch.  
+2. Run `renv::restore()`.  
+3. Install the packages needed on both branches (`install.packages()` or etc).  
+4. Add those packages to `components/dependencies.R`.   
+5. Run `renv::snapshot()`.  
+6. Only commit the `renv.lock` changes to your branch.  
+7. Push the changes and file your renv.lock only PR.  
 
 ### How we use `renv` with Docker
 
@@ -176,7 +196,7 @@ When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Act
 
 ### Pushing to Dockerhub via GitHub Actions
 
-When a pull request is merged into `master`, the `build-and-push-docker.yml` GitHub Actions workflow will be triggered. 
+When a pull request is merged into `master`, the `build-and-push-docker.yml` GitHub Actions workflow will be triggered.
 The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest`.
 
 ## Automated Testing & Rendering
@@ -186,7 +206,7 @@ The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest
 We perform spell checking for every pull request to `master` as part of a GitHub Actions workflow (`spell-check.yml`); it is designed to fail if any spelling errors are detected.
 You can see what errors are detected in `stdout` for the `Run spell check` step of the workflow.
 This workflow uses a script, `scripts/spell-check.R`, to spell check `.md` and completed `.Rmd` files.
-The custom dictionary we use for the project can be found at `components/dictionary.txt`. 
+The custom dictionary we use for the project can be found at `components/dictionary.txt`.
 
 To run spell check locally, you can run the following from the root of the repository:
 
@@ -198,7 +218,7 @@ The spelling errors will be listed in `spell_check_errors.tsv` in the root of th
 
 ### Rendering Test
 
-Every pull request to `master` that changes `.Rmd` files (or one of the rendering scripts) will be tested via a GitHub Actions workflow (`render-rmds.yml`) to ensure that the `.Rmd` files can be run successfully. 
+Every pull request to `master` that changes `.Rmd` files (or one of the rendering scripts) will be tested via a GitHub Actions workflow (`render-rmds.yml`) to ensure that the `.Rmd` files can be run successfully.
 This action first downloads input files for the notebooks from S3, so if there are changes to the input files, these should be made first, with associated changes as needed to `syncup-s3.sh` (see [Files stored on S3](#files-stored-on-s3)).
 
 
