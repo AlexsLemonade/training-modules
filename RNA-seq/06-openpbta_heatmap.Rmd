@@ -1,11 +1,11 @@
 ---
 title: "OpenPBTA: Create a heatmap"
+author: CCDL for ALSF
+date: 2021
 output:   
   html_notebook: 
     toc: true
     toc_float: true
-author: CCDL for ALSF
-date: 2020
 ---
 
 In this notebook, we cluster RNA-seq data from the Open Pediatric Brain Tumor Atlas (OpenPBTA) project and create a heatmap.
@@ -16,7 +16,7 @@ You can read more about the project [here](https://github.com/alexslemonade/open
 We've downloaded some of the publicly available expression data from the project and selected a subset with the the most common disease types for analysis here.
 
 We'll use a package called [`ComplexHeatmap`](https://www.bioconductor.org/packages/release/bioc/html/ComplexHeatmap.html) to make our heatmap.
-This package also will perform clustering as part of the heatmap.
+This package allows us to annotate our heatmap with sample information, and will also will perform clustering as part of generating the heatmap.
 It is highly flexible and opinionated - the data structures we pass `ComplexHeatmap` functions often need to be _just right_.
 See the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/) for more information.
 
@@ -122,15 +122,7 @@ rnaseq_mat <- rnaseq_exp %>%
 
 ### Variance Stabilizing Transformation
 
-Raw count data is not usually suitable for the algorithms we use for clustering and heatmap display. 
-To improve this, we will transform the count data to create an expression measure that is better suited for these analyses. 
-The core transformation will map the expression to a log2 scale, while accounting for some of the expected variation among samples and genes.
-
-Since different samples are usually sequenced to different depths, we want to transform our RNA-seq count data to make different samples more directly comparable. 
-We also want to deal with the fact that genes with low counts are also likely to have higher variance (on the log2 scale), as that could bias our clustering.
-To handle both of these considerations, we can calculate a Variance Stabilizing Transformation of the count data, and work with that transformed data for our analysis.
-
-The `DESeq2` package has functions for doing these calculations, so we will convert our count matrix to a `DESeq2` dataset and perform the calculations there.
+Raw count data is not usually suitable for the algorithms we use for clustering and heatmap display, so we will use the `vst()` function from the `DESeq2` package to transform our data.
 
 Since we are starting from a matrix, not a `SummarizedExperimet` as we did previously, we will need to provide the sample information ourselves.
 Just to be sure nothing is out of order, we will check that the identifiers for the sample information stored in `histologies_df` matches the columns of our matrix.
@@ -158,14 +150,14 @@ ddset <- ddset[genes_to_keep, ]
 
 Now we can apply the variance stabilizing transformation, saving the results in a new object.
 
-```{r}
+```{r vst, live=TRUE}
 # apply variance stabilizing transformation
 vst_data <- vst(ddset, blind = TRUE)
 ```
 
 This object stores information about the transformation that was applied, but for now, we will only need the matrix of transformed data, which we can extract with `assay()`.
 
-```{r select-columns}
+```{r extract_expr, live = TRUE}
 # extract transformed data
 expr_mat <- assay(vst_data)
 ```
@@ -252,6 +244,13 @@ sample_annotation_colors <- list(
     "Unavailable" = "#FFFFFF"  # white for missing data
   )
 )
+
+# Customize the legend titles
+legend_titles =  list(
+    short_histology = list(title = "Histology"),
+    composition = list(title = "Composition"),
+    tumor_descriptor = list(title = "Tumor descriptor")
+    )
 ```
 
 We need to create a special type of object with `HeatmapAnnotation` using the annotation data frame and the list of color vectors.
@@ -259,7 +258,8 @@ We need to create a special type of object with `HeatmapAnnotation` using the an
 ```{r create_annotation, live = TRUE}
 column_annotation <- HeatmapAnnotation(
   df = sample_annotation_df,
-  col = sample_annotation_colors
+  col = sample_annotation_colors,
+  annotation_label = c("Histology", "Composition", "Tumor descriptor")
 )
 ```
 
@@ -267,44 +267,16 @@ column_annotation <- HeatmapAnnotation(
 
 We will z-score the expression values for display.
 This is sometimes called a standardized score.
+Some heatmap plotting packages will do this for you, but `ComplexHeatmap` does not.
 It's calculated for each value in a row (gene) by subtracting the gene's mean and dividing by the gene's standard deviation.
+This will result in every row having a mean of 0 and a standard deviation of 1.
 
-```{r}
+```{r zscore}
 zscores_mat <- 
   (high_var_mat - rowMeans(high_var_mat)) / matrixStats::rowSds(high_var_mat)
 ```
 
-
-Let's look at the mean and standard deviation of values for a randomly selected gene prior to standardization.
-
-```{r random_row_mean}
-mean(high_var_mat[25, ])
-```
-
-```{r random_row_sd}
-sd(high_var_mat[25, ])
-```
-
-And now those values after standardization.
-
-```{r random_z_mean, live = TRUE}
-mean(zscores_mat[25, ])
-```
-
-This value isn't exactly zero but it's very close!
-
-```{r random_z_sd, live = TRUE}
-sd(zscores_mat[25, ])
-```
-
-The standard deviation is now 1.
-That means all the variance values will be equal to one, too.
-
-```{r summary_row_variance}
-summary(matrixStats::rowVars(zscores_mat))
-```
-
-If you're filtering to high variance values, it's important to do that _prior_ to standardizing.
+Since all genes have the same z-score variance (by definition!), if you're filtering to high variance values, it's important to do that _prior_ to standardizing.
 
 ### Heatmap itself!
 
@@ -357,71 +329,54 @@ dev.off()
 
 ### Notes on clustering
 
-You probably noticed that we a couple options in there when we made the heatmap about "clustering".
-These options refer to the hierarchical clustering method that is used to determine the order of rows and columns in the heatmap, bringing samples and genes that show similar patterns together.
-
-We will explore 
-
-
-## Spotlight on medulloblastoma
-
-The heatmap we made with all of the histologies under consideration suggested that there's some structure _within_ histologies.
-Let's take a closer look at the medulloblastoma samples.
-
-```{r mb_sample_ids, live = TRUE}
-medulloblastoma_samples <- histologies_df %>%
-  filter(short_histology == "Medulloblastoma") %>%
-  pull(Kids_First_Biospecimen_ID)
-```
-
-Use all genes to create a matrix that only contains medulloblastoma samples.
-
-```{r mb_mat, live = TRUE}
-medulloblastoma_mat <- expr_mat[, medulloblastoma_samples]
-```
-
-We'll use Pearson correlation for our distance metric here again, but let's break down what goes into hierarchical clustering a bit here.
-
-```{r calculate_cor}
-# cor() will take the correlation between columns - we're interested in the 
-# relationship between medulloblastoma samples, so we don't need to transpose
-# the matrix before using cor()
-mb_sample_correlation <- cor(medulloblastoma_mat,
-                             use = "pairwise.complete.obs",
-                             method = "pearson")
-```
-
-Hierarchical clustering is performed on dissimilarities, so we'll subtract the correlation values from 1 -- now we have distance information.
-To use `hclust()` -- the built-in method for hierarchical clustering in R -- we need a dissimilarity structure.
-`as.dist()` returns a special object of class `dist`, a distance matrix used by `hclust()`.
-
-```{r cor_as_dist, live = TRUE}
-mb_sample_dist <- as.dist(1 - mb_sample_correlation)
-```
-
-Now we're ready to perform [hierarchical clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering) with `hclust()`.
+You probably noticed that there were some arguments that we defined that were related to the clustering of samples and genes when we build the heatmaps.
+The kind of clustering we performed was [hierarchical clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering).
 This is an _agglomerative_ method of clustering - each sample starts in its own cluster and then at each step of the algorithm the two most similar clusters are joined until there's only a single cluster left.
 
-```{r mb_hclust, live = TRUE}
-mb_sample_hclust <- hclust(mb_sample_dist, 
-                           method = "average")
+We defined the distance between samples as 1 minus the correlation between them, and then averaged samples when they were merged into a group.
+The method we're using is also known as [UPGMA (unweighted pair group method with arithmetic mean)](https://en.wikipedia.org/wiki/UPGMA).
+
+It is important to note that the linear arrangement of samples in the the tree is somewhat arbitrary, so we have to be careful not to overintepret it.
+We can rotate around any branch of the tree in our visualization with no change to the tree topology itself.
+In fact, the samples at opposite ends of the heatmap could be right next to one another with the right set of rotations!
+
+
+### PCA as an alternative to clustering
+
+You probably noticed a that the hierarchical clustering we performed didn't perfectly separate out the different cancer subtypes we were looking at. 
+
+What would have happened if we had used PCA to visualize the relationships among samples? 
+Would that have made it easier to separate disease types? 
+Let's try it!
+
+We will use the vst transformed data here too, and the `plotPCA()` function from `DESeq2`.
+
+```{r expr-pca }
+# Use plotPCA, but return the data for custom plotting
+pca_df <- plotPCA(vst_data, 
+        ntop = 5000, # use the top 5000 genes by variance
+        intgroup = "short_histology",
+        returnData = TRUE) 
+
+
+ggplot(pca_df, aes(PC1, PC2, color = short_histology)) + 
+  geom_point() +
+  theme_bw() + 
+  scale_color_manual(
+    values = c("LGAT" = histology_colors[[1]],
+               "Ependymoma" = histology_colors[[2]],
+               "HGAT" = histology_colors[[3]],
+               "Medulloblastoma" = histology_colors[[4]])
+  ) + 
+  labs(color = "Histology")
 ```
 
-Here, `method = "average"` refers to the agglomeration or linkage method used during clustering. 
-The method we're using is also known as [UPGMA (unweighted pair group method with arithmetic mean)](https://en.wikipedia.org/wiki/UPGMA) and is how we specify what formula to use for calculating inter-cluster distances during hierarchical clustering.
-The distance between two clusters is the average distance between all pairs of points in the two clusters, where each pair is comprised of one point from each of the two clusters.
+We can see that neither method perfectly separates the different disease types.
+With PCA, if we didn't color the points, it might even be difficult to identify distinct clusters in the data at all by eye. 
+(We could look at more than two PCs, which might help out, but we would need to use a different function for our calculation, since `plotPCA()` only returns the first two.)
 
-To look at the dendrogram produced by `hclust()`, we can use built-in graphics by calling `plot()`.
+For nice comparison of the relative advantages of these two methods (with a little mention of some further directions), we recommend [blog post by Soneson](https://www.rna-seqblog.com/a-comparison-between-pca-and-hierarchical-clustering/).
 
-```{r mb_dendrogram}
-plot(mb_sample_hclust, 
-     # Put the labels at the same height
-     hang = -1, 
-     # Control the size of the text labels
-     cex = 0.5) 
-```
-
-How many groups of medulloblastoma samples do you think there are?
 
 ## Session Info
 
