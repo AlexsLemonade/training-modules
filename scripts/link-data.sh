@@ -19,9 +19,7 @@ mkdir -p RNA-seq/data/gastric-cancer/salmon_quant
 mkdir -p RNA-seq/data/NB-cell
 mkdir -p RNA-seq/data/leukemia
 mkdir -p RNA-seq/data/medulloblastoma
-mkdir -p RNA-seq/data/zebrafish-cortisol/
-mkdir -p RNA-seq/QC/gastric-cancer/fastp/
-mkdir -p RNA-seq/QC/gastric-cancer/fastqc/
+mkdir -p RNA-seq/data/zebrafish-cortisol
 
 # scRNA-seq module directories
 mkdir -p scRNA-seq/data/glioblastoma/
@@ -34,6 +32,7 @@ mkdir -p machine-learning/data
 mkdir -p pathway-analysis/data
 
 link_locs=(
+  RNA-seq/QC
   RNA-seq/data/gastric-cancer/gastric-cancer_metadata.tsv
   RNA-seq/data/gastric-cancer/fastq
   RNA-seq/data/gastric-cancer/salmon_quant/SRR585571
@@ -43,8 +42,6 @@ link_locs=(
   RNA-seq/data/gastric-cancer/salmon_quant/SRR585575
   RNA-seq/data/gastric-cancer/salmon_quant/SRR585576
   RNA-seq/data/gastric-cancer/salmon_quant/SRR585577
-  RNA-seq/QC/gastric-cancer/fastp/SRR585571
-  RNA-seq/QC/gastric-cancer/fastqc/SRR585571
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/NB-cell/salmon_quant
   RNA-seq/data/leukemia/SRP049821_metadata.tsv

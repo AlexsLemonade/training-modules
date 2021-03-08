@@ -12,7 +12,6 @@ Take a look at the files in `~/training-modules/RNA-seq/data` to see those pre-p
 ####  Contents
 
 * [MultiQC](#multiqc)
-* [tximeta](#tximeta)
 * [Decoy sequence-aware selective alignment with Salmon](#decoy-sequence-aware-selective-alignment-with-salmon)
 
 ## MultiQC
