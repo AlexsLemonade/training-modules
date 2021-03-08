@@ -6,9 +6,6 @@ For your reference, we've put together what we might teach if we had more time o
 This is intended to be an introduction to these approaches and a "jumping off point" for further reading or experimentation.
 We present them in order of increasing difficulty and/or departure from what is presented in training.
 
-There are datasets already uploaded to the RStudio Server that you may want use for practicing these approaches or other techniques we've discussed.
-Take a look at the files in `~/training-modules/RNA-seq/data` to see those pre-prepared datasets.
-
 ####  Contents
 
 * [MultiQC](#multiqc)
@@ -30,6 +27,9 @@ If you want to run it on the gastric cancer samples, we provide instructions bel
 Note that you will not have FastQC or fastp output for most samples, so there will be some information missing from the report.
 
 #### Running MultiQC on the gastric cancer samples
+
+There are datasets already uploaded to the RStudio Server that you may want use for practicing these approaches or other techniques we've discussed.
+For running MultiQC, take a look in the `~/training-modules/RNA-seq/QC` directory to see all the datasets you could run MultiQC on. 
 
 Run the following steps in the `Terminal` tab of RStudio.
 
