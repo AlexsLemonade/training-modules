@@ -47,7 +47,7 @@ Run the following command:
 
 ```bash
 multiqc \
-  QC/gastric_cancer \
+  ~/shared-data/training-modules/RNA-seq/QC/gastric-cancer \
   data/gastric_cancer/salmon_quant/ \
   --outdir QC/gastric_cancer
 ```
