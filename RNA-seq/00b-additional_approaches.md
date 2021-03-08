@@ -64,7 +64,7 @@ This differs from the takeaway of most prior work comparing lightweight mapping 
 
 In the preprint, the authors introduced a new approach termed "selective alignment" that is less computationally costly than traditional alignment while still offering improvements over lightweight mapping.
 
-The current version of Salmon (as of writing this) `v1.2.0` allows users to input sequences from unannotated genomic loci that are similar to annotated transcripts, termed decoy sequences, to avoid falsely mapping fragments that arise from these unannotated regions to transcripts.
+The current version of Salmon (as of writing this) allows users to input sequences from unannotated genomic loci that are similar to annotated transcripts, termed decoy sequences, to avoid falsely mapping fragments that arise from these unannotated regions to transcripts.
 This is termed a `salmon_partial_sa_index` [here](https://github.com/COMBINE-lab/salmon/tree/91091fc3650a3220f657a9f31616916513f0ad02#pre-computed-decoy-transcriptomes).
 As of `v1.0.0`, you can use the _full genome_ as decoy ([ref](https://github.com/COMBINE-lab/salmon/tree/91091fc3650a3220f657a9f31616916513f0ad02#pre-computed-decoy-transcriptomes)).
 
@@ -75,6 +75,6 @@ Some laptops (including ones your instructors own!) are not well-equipped to run
 
 ### How can I try it out if I'm interested?
 
-We have not extensively explored the memory and runtime requirements for selective alignment-mode, but we have successfully run human samples using Salmon `v0.14.0` with an index that includes partial decoy sequences on a Linux Desktop with 64 GB of RAM.
+We have not extensively explored the memory and runtime requirements for selective alignment-mode, but we have successfully run human samples using Salmon with an index that includes partial decoy sequences on a Linux Desktop with 64 GB of RAM.
 
 We recommend checking out [this section of the Salmon README](https://github.com/COMBINE-lab/salmon/tree/91091fc3650a3220f657a9f31616916513f0ad02#pre-computed-decoy-transcriptomes) and following the [selective alignment tutorial](https://combine-lab.github.io/alevin-tutorial/2019/selective-alignment/) from the Salmon authors.
