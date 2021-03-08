@@ -244,16 +244,10 @@ sample_annotation_colors <- list(
     "Unavailable" = "#FFFFFF"  # white for missing data
   )
 )
-
-# Customize the legend titles
-legend_titles =  list(
-    short_histology = list(title = "Histology"),
-    composition = list(title = "Composition"),
-    tumor_descriptor = list(title = "Tumor descriptor")
-    )
 ```
 
 We need to create a special type of object with `HeatmapAnnotation` using the annotation data frame and the list of color vectors.
+We will also make the annotation labels a bit nicer to look at than the raw columns names.
 
 ```{r create_annotation, live = TRUE}
 column_annotation <- HeatmapAnnotation(
@@ -333,8 +327,8 @@ You probably noticed that there were some arguments that we defined that were re
 The kind of clustering we performed was [hierarchical clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering).
 This is an _agglomerative_ method of clustering - each sample starts in its own cluster and then at each step of the algorithm the two most similar clusters are joined until there's only a single cluster left.
 
-We defined the distance between samples as 1 minus the correlation between them, and then averaged samples when they were merged into a group.
-The method we're using is also known as [UPGMA (unweighted pair group method with arithmetic mean)](https://en.wikipedia.org/wiki/UPGMA).
+The arguments we chose for `clustering_distance_*` and `clustering_method_*` told `ComplexHeatmap` to use 1 minus the correlation between samples as the distance measure, and to average samples when they were merged into a group.
+This method is also known as [UPGMA (unweighted pair group method with arithmetic mean)](https://en.wikipedia.org/wiki/UPGMA).
 
 It is important to note that the linear arrangement of samples in the the tree is somewhat arbitrary, so we have to be careful not to overinterpret it.
 We can rotate around any branch of the tree in our visualization with no change to the tree topology itself.
@@ -353,10 +347,10 @@ We will use the vst transformed data here too, and the `plotPCA()` function from
 
 ```{r expr-pca }
 # Use plotPCA, but return the data for custom plotting
-pca_df <- plotPCA(vst_data, 
-        ntop = 5000, # use the top 5000 genes by variance
-        intgroup = "short_histology",
-        returnData = TRUE) 
+pca_df <- plotPCA(vst_data,
+                  ntop = 5000, # use the top 5000 genes by variance
+                  intgroup = "short_histology",
+                  returnData = TRUE) 
 
 
 ggplot(pca_df, aes(PC1, PC2, color = short_histology)) + 
