@@ -31,3 +31,6 @@ snakemake -j ${jobs} --configfile config-leukemia.yaml
 
 # create zebrafish cortisol files (fastq will be deleted)
 snakemake -j ${jobs} --configfile config-zebrafish.yaml
+
+# Get & process OpenPBTA data for heatmaps & clustering
+Rscript --vanilla -e "rmarkdown::render('01-setup-openpbta-rnaseq.Rmd')"
