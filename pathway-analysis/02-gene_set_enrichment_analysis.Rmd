@@ -125,15 +125,15 @@ _Adapted from [refine.bio examples](https://github.com/AlexsLemonade/refinebio-e
 
 ![](diagrams/subramanian_fig1.jpg)
 
-**Figure 1. [Subramanian, Tamayo *et al.* (2005)](https://doi.org/10.1073/pnas.0506580102).**
+**Figure 1. [Subramanian _et al._ (2005)](https://doi.org/10.1073/pnas.0506580102).**
 
 GSEA calculates a pathway-level metric, called an enrichment score (sometimes abbreviated as ES), by ranking genes by a gene-level statistic.
-This score reflects whether or not a gene set or pathway is overrepresented at the top or bottom of the gene rankings ([Subramanian, Tamayo *et al.* 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)) 
+This score reflects whether or not a gene set or pathway is overrepresented at the top or bottom of the gene rankings ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)) 
 
 Specifically, genes are ranked from most positive to most negative based on their statistic and a running sum is calculated by starting with the most highly ranked genes and increasing the score when a gene is in the pathway and decreasing the score when a gene is not.
 In this example, the enrichment score for a pathway is the running sum's maximum deviation from zero.
 GSEA also assesses statistical significance of the scores for each pathway through permutation testing. 
-As a result, each input pathway will have a p-value associated with it that is then corrected for multiple hypothesis testing ([Subramanian, Tamayo *et al.* 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
+As a result, each input pathway will have a p-value associated with it that is then corrected for multiple hypothesis testing ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
 
 The implementation of GSEA we use in here examples requires a gene list ordered by some statistic and input gene sets. 
 When you use previously computed gene-level statistics with GSEA, it is called GSEA pre-ranked.
@@ -152,7 +152,7 @@ sum(duplicated(dge_results_df$gene_symbol))
 
 Compared to the total number of genes that are in our results, there are not a lot of duplicates but we'll still need to make a decision about how to handle them.
 
-Let's get a vector of the duplicated gene sysmbols so we can use it to explore our filtering steps.
+Let's get a vector of the duplicated gene symbols so we can use it to explore our filtering steps.
 
 ```{r gene_dups, live = TRUE}
 duplicated_gene_symbols <- dge_results_df %>%
@@ -170,13 +170,13 @@ dge_results_df %>%
 We can see that the associated values vary for each row.
 
 Let's keep the gene symbols associated with the higher absolute value of the log2 fold change.
-GSEA relies on genes' rankings on the basis of a gene-level statistic and the enrichment score that is calculated reflects the degree to which genes in a gene set are overrepresented in the top or bottom of the rankings ([Subramanian, Tamayo *et al.* 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
+GSEA relies on genes' rankings on the basis of a gene-level statistic and the enrichment score that is calculated reflects the degree to which genes in a gene set are overrepresented in the top or bottom of the rankings ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
 
 Retaining the instance of the gene symbols with the higher absolute value of a gene-level statistic means that we will retain the value that is likely to be more highly- or lowly-ranked or, put another way, the values less likely to be towards the middle of the ranked gene list.
 We should keep this decision in mind when interpreting our results.
 For example, if all the duplicate identifiers happened to be in a particular gene set, we may get an overly optimistic view of how perturbed that gene set is because we preferentially selected instances of the identifier that have a higher absolute value of the statistic used for ranking.
 
-In the next chunk, we are going to filter out the duplicated row using the `dplyr::distinct()` function
+In the next chunk, we are going to filter out the duplicated rows using the `dplyr::distinct()` function
 This will keep the first row with the duplicated value thus keeping the row with the highest absolute value of the log2 fold change.
 
 ```{r filter_dge}
@@ -241,7 +241,7 @@ gsea_results <- GSEA(geneList = lfc_vector,  # ordered ranked gene list
 ```
 The warning about ties means that there are multiple genes that have the same log2 fold change value. 
 This percentage is small and unlikely to impact our results.
-A large number of ties might tell us there's something wrong with our DGE results ([Ballereau et al. 2018.](https://bioinformatics-core-shared-training.github.io/cruk-summer-school-2018/RNASeq2018/html/06_Gene_set_testing.nb.html)).
+A large number of ties might tell us there's something wrong with our DGE results ([Ballereau _et al._ 2018](https://bioinformatics-core-shared-training.github.io/cruk-summer-school-2018/RNASeq2018/html/06_Gene_set_testing.nb.html)).
 
 Let's take a look at the GSEA results.
 
