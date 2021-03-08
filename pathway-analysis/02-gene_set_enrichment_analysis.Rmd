@@ -29,7 +29,7 @@ There are 3 general steps in FCS methods ([Khatri _et al._ 2012]( https://doi.or
 * For another example using `clusterProfiler` for GSEA, see [_Intro to DGE: Functional Analysis._ from Harvard Chan Bioinformatics Core Training.](https://hbctraining.github.io/DGE_workshop/lessons/09_functional_analysis.html)
 * The way we'll use `clusterProfiler` here uses `fgsea` (Fast Gene Set Enrichment Analysis) under the hood.
 You can read more about fgsea in [Korotkevich _et al._ (2021)](https://doi.org/10.1101/060012).
-* [refine.bio examples Gene set enrichment analysis - RNA-seq](https://alexslemonade.github.io/refinebio-examples/03-rnaseq/pathway-analysis_rnaseq_02_gsea.html) from which this material has been adapted
+* [refine.bio examples Gene set enrichment analysis - RNA-seq](https://alexslemonade.github.io/refinebio-examples/03-rnaseq/pathway-analysis_rnaseq_02_gsea.html) from which this material has been adapted.
 
 ## Set up
 
@@ -74,7 +74,26 @@ gsea_results_file <- file.path(output_dir,
                                "NB-cell_gsea_results.tsv")
 ```
 
-## Gene sets
+## Gene Set Enrichment Analysis
+
+_Adapted from [refine.bio examples](https://github.com/AlexsLemonade/refinebio-examples/blob/33cdeff66d57f9fe8ee4fcb5156aea4ac2dce07f/03-rnaseq/pathway-analysis_rnaseq_02_gsea.Rmd)_
+
+![](diagrams/subramanian_fig1.jpg)
+
+**Figure 1. [Subramanian _et al._ (2005)](https://doi.org/10.1073/pnas.0506580102).**
+
+GSEA calculates a pathway-level metric, called an enrichment score (sometimes abbreviated as ES), by ranking genes by a gene-level statistic.
+This score reflects whether or not a gene set or pathway is overrepresented at the top or bottom of the gene rankings ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)) 
+
+Specifically, genes are ranked from most positive to most negative based on their statistic and a running sum is calculated by starting with the most highly ranked genes and increasing the score when a gene is in the pathway and decreasing the score when a gene is not.
+In this example, the enrichment score for a pathway is the running sum's maximum deviation from zero.
+GSEA also assesses statistical significance of the scores for each pathway through permutation testing. 
+As a result, each input pathway will have a p-value associated with it that is then corrected for multiple hypothesis testing ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
+
+The implementation of GSEA we use in here examples requires a gene list ordered by some statistic and input gene sets. 
+When you use previously computed gene-level statistics with GSEA, it is called GSEA pre-ranked.
+
+### Gene sets
 
 In the previous notebook, we used KEGG pathways for over-representation analysis.
 We identified pathways that were significantly over-represented and found that the significant pathways shared genes.
@@ -110,45 +129,19 @@ head(dge_results_df)
 Since this data frame of DGE results includes gene symbols, we do not need to perform any kind of gene identifier conversion.
 We do, however, need to check for duplicate gene symbols. 
 We can accomplish this with `duplicated()`, which returns a logical vector (e.g., `TRUE` or `FALSE`).
-The function `any()` will return `TRUE` if **any** value it is given `TRUE`.
+The function `sum()` will count `TRUE` values as 1s and `FALSE` as 0s, so using it with `duplicated()` will count the number of duplicate values.
 
 ```{r any_duplicated, live = TRUE}
-any(duplicated(dge_results_df$gene_symbol))
+sum(duplicated(dge_results_df$gene_symbol))
 ```
 
 This will cause a problem when we go to run GSEA.
-Let's talk more about the method itself to understand _why_.
-
-## Gene Set Enrichment Analysis
-
-_Adapted from [refine.bio examples](https://github.com/AlexsLemonade/refinebio-examples/blob/33cdeff66d57f9fe8ee4fcb5156aea4ac2dce07f/03-rnaseq/pathway-analysis_rnaseq_02_gsea.Rmd)_
-
-![](diagrams/subramanian_fig1.jpg)
-
-**Figure 1. [Subramanian _et al._ (2005)](https://doi.org/10.1073/pnas.0506580102).**
-
-GSEA calculates a pathway-level metric, called an enrichment score (sometimes abbreviated as ES), by ranking genes by a gene-level statistic.
-This score reflects whether or not a gene set or pathway is overrepresented at the top or bottom of the gene rankings ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)) 
-
-Specifically, genes are ranked from most positive to most negative based on their statistic and a running sum is calculated by starting with the most highly ranked genes and increasing the score when a gene is in the pathway and decreasing the score when a gene is not.
-In this example, the enrichment score for a pathway is the running sum's maximum deviation from zero.
-GSEA also assesses statistical significance of the scores for each pathway through permutation testing. 
-As a result, each input pathway will have a p-value associated with it that is then corrected for multiple hypothesis testing ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
-
-The implementation of GSEA we use in here examples requires a gene list ordered by some statistic and input gene sets. 
-When you use previously computed gene-level statistics with GSEA, it is called GSEA pre-ranked.
 
 ### Removing duplicates
 
 The GSEA approach requires on discriminating between genes that are in a gene set and those that are not. 
 Practically speaking, gene sets are just collections of gene identifiers!
 When the function we use for GSEA pre-ranked gets a list with duplicated gene identifiers, it can produce unexpected results.
-
-Let's use `duplicated()` again, this time with `sum()`, which will tell us how many duplicated gene symbols there are.
-
-```{r how_many_duplicated, live = TRUE}
-sum(duplicated(dge_results_df$gene_symbol))
-```
 
 Compared to the total number of genes that are in our results, there are not a lot of duplicates but we'll still need to make a decision about how to handle them.
 
@@ -160,13 +153,14 @@ duplicated_gene_symbols <- dge_results_df %>%
   dplyr::pull(gene_symbol)
 ```
 
-Now we'll look at the values for the 
+Now we'll look at the values for the the duplicated gene symbols.
 
 ```{r show_gene_dups}
 dge_results_df %>%
   dplyr::filter(gene_symbol %in% duplicated_gene_symbols) %>%
   dplyr::arrange(gene_symbol)
 ```
+
 We can see that the associated values vary for each row.
 
 Let's keep the gene symbols associated with the higher absolute value of the log2 fold change.
@@ -206,8 +200,8 @@ The `GSEA()` function takes a pre-ranked (sorted) named vector of statistics, wh
 This is step 1 -- gene-level statistics.
 
 ```{r lfc_vector}
-lfc_vector <- filtered_dge_df$log2FoldChange
-names(lfc_vector) <- filtered_dge_df$gene_symbol
+lfc_vector <- filtered_dge_df %>%
+  dplyr::pull(log2FoldChange, name = gene_symbol)
 lfc_vector <- sort(lfc_vector, decreasing = TRUE)
 ```
 
@@ -225,7 +219,9 @@ And the bottom of the list.
 tail(lfc_vector)
 ```
 
-### Run GSEA
+## Run GSEA
+
+Now for the analysis!
 
 We can use the `GSEA()` function to perform GSEA with any generic set of gene sets, but there are several functions for using specific, commonly used gene sets (e.g., `gseKEGG()`).
 
@@ -239,6 +235,7 @@ gsea_results <- GSEA(geneList = lfc_vector,  # ordered ranked gene list
                                                gs_name,
                                                gene_symbol))
 ```
+
 The warning about ties means that there are multiple genes that have the same log2 fold change value. 
 This percentage is small and unlikely to impact our results.
 A large number of ties might tell us there's something wrong with our DGE results ([Ballereau _et al._ 2018](https://bioinformatics-core-shared-training.github.io/cruk-summer-school-2018/RNASeq2018/html/06_Gene_set_testing.nb.html)).
