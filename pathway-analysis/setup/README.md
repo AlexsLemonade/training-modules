@@ -10,7 +10,8 @@ For the GSVA notebook, we use a subset of the OpenPBTA stranded dataset (medullo
 
 ### Data Preparation
 
-`01-leukemia_DGE.Rmd` includes two comparisons that generate differential gene expression (DGE) results used in the over-representation analysis notebook.
+`01-leukemia_DGE.Rmd` includes two comparisons that generate differential gene expression (DGE) results used in the over-representation analysis notebook (`pathway-analysis/01-overrepresentation_analysis.Rmd`).
 It uses the same dataset as the `RNA-seq/exercise_02-bulk_rnaseq.Rmd` notebook.
 
 `02-prepare_openpbta_MB_data.Rmd` takes the transformed and filtered OpenPBTA data (processed in `machine-learning/setup`) from `machine-learning/data/open-pbta/processed` and subsets the RNA-seq data and metadata files to medulloblastoma samples only.
+This dataset is used in `pathway-analysis/03-gene_set_variation_analysis.Rmd`. 
