@@ -9,10 +9,10 @@ date: 2020
 ---
 
 In this notebook, we'll cover a type of pathway or gene set analysis called over-representation analysis (ORA).
-The idea behind ORA is relatively straightforward: given a set of genes, do these genes overlap with a pathway more than we expect at random?
+The idea behind ORA is relatively straightforward: given a set of genes, do these genes overlap with a pathway more than we expect by chance?
 The simplicity of only requiring an input gene set (sort of, more on that below) can be attractive.
 
-ORA has some limitations, outlined nicely (and more extensively!) in [Khatri, Sirota, and Butte (2012)]( https://doi.org/10.1371/journal.pcbi.1002375). 
+ORA has some limitations, outlined nicely (and more extensively!) in [Khatri _et al._ (2012)]( https://doi.org/10.1371/journal.pcbi.1002375). 
 One of the main issues with ORA is that typically all genes are treated as equal -- the context of the magnitude of a change we may be measuring is removed and each gene is treated as independent, which can sometimes result in an incorrect estimate of significance.
 
 We will use the [`clusterProfiler` package](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html) ([Yu *et al.* 2012](https://doi.org/10.1089/omi.2011.0118.)) to perform ORA. 
@@ -25,7 +25,7 @@ Check out the [_AnnotationDbi: Introduction To Bioconductor Annotation Packages_
 #### Other resources
 
 * For another example using `clusterProfiler`, see [_Intro to DGE: Functional Analysis._ from Harvard Chan Bioinformatics Core Training.](https://hbctraining.github.io/DGE_workshop/lessons/09_functional_analysis.html)
-* [`WebGestaltR`](https://cran.r-project.org/web/packages/WebGestaltR/) is another R package that can be used for ORA that is covered in [one of our refine.bio example notebooks](https://alexslemonade.github.io/refinebio-examples/02-microarray/pathway-analysis/ora_with_webgestaltr.nb.html).
+* [`WebGestaltR`](https://cran.r-project.org/web/packages/WebGestaltR/) is another R package that can be used for ORA.
 
 ## Set up
 
@@ -38,8 +38,8 @@ library(magrittr)
 library(clusterProfiler)
 # Package that contains MSigDB gene sets in tidy format
 library(msigdbr)
-# Homo sapiens annotation package we'll use for gene identifier conversion
-library(org.Hs.eg.db)
+# Mus musculus annotation package we'll use for gene identifier conversion
+library(org.Mm.eg.db)
 ```
 
 ### Directories and files
@@ -54,11 +54,20 @@ library(org.Hs.eg.db)
 
 #### Input files
 
-For our ORA example, we're going to use one of the tables of marker genes from the Smart-Seq2 glioblastoma dataset we worked with during the scRNA-seq module.
+For our ORA example, we're going to use two tables of differential gene expression (DGE) analysis results.
 
-```{r input_file}
-input_file <- file.path("..", "scRNA-seq", "analysis", "glioblastoma", 
-                        "markers", "Neuron_markers.tsv")
+```{r input_directory}
+input_dir <- file.path("data", "leukemia")
+
+# This file contains the DGE results for a cell population with high stem cell
+# capacity as compared to a cell population 
+vs_low_file <- file.path(input_dir, 
+                         "high_capacity_vs_low_capacity_results.tsv")
+
+# This file contains the DGE results for the high stem cell capacity population
+# vs. unsorted cells (e.g., a mixture of capacities)
+vs_unsorted_file <- file.path(input_dir,
+                              "high_capacity_vs_unsorted_results.tsv")
 ```
 
 #### Output files
@@ -77,12 +86,12 @@ The [`msigdbr`](https://cran.r-project.org/web/packages/msigdbr/index.html) pack
 Let's take a look at what organisms the package supports.
 
 ```{r show_species}
-msigdbr_show_species()
+msigdbr_species()
 ```
 
-The GBM data we're interested in here comes from human samples, so we can obtain just the gene sets relevant to _H. sapiens_ with the `species` argument to `msigdbr()`.
+The results we're interested in here come from mouse samples, so we can obtain just the gene sets relevant to _M. musculus_ with the `species` argument to `msigdbr()`.
 
-```{r hs_df, live = TRUE}
+```{r mm_df, live = TRUE}
 
 ```
 
@@ -104,40 +113,45 @@ In this example, we will use canonical pathways which are ([ref](https://www.gse
 And are a subset of `C2: curated gene sets`.
 Specifically, we will use the [KEGG (Kyoto Encyclopedia of Genes and Genomes)](https://www.genome.jp/kegg/) pathways. 
 
-```{r}
-# Filter the human data frame to the KEGG pathways that are included in the
+```{r filter_to_kegg}
+# Filter the mouse data frame to the KEGG pathways that are included in the
 # curated gene sets
-hs_kegg_df <- hs_msigdb_df %>%
+mm_kegg_df <- mm_msigdb_df %>%
   dplyr::filter(gs_cat == "C2",  # curated gene sets 
                 gs_subcat == "CP:KEGG")  # KEGG pathways 
 ```
 
 *Note: We could specified that we wanted the KEGG gene sets using the `category` and `subcategory` arguments of `msigdbr()`, but we're going for general steps!*
 
-```{r hs_kegg_columns}
-colnames(hs_kegg_df)
+```{r mm_kegg_columns}
+colnames(mm_kegg_df)
 ```
 
 The `clusterProfiler` function we will use requires a data frame with two columns, where one column contains the term identifier or name and one column contains gene identifiers that match our gene lists we want to check for enrichment.
 Our data frame with KEGG terms contains Entrez IDs and gene symbols.
 
-## Read in marker data and prep
+## Read in DGE results and prep
 
-```{r read_in_view_neuron, live = TRUE}
-# Read in and take a look at the neuron markers data frame
+```{r read_in_dge_results, live = TRUE}
 
 ```
 
-In our table of marker genes, we use Ensembl gene identifiers. 
-So we will need to convert our marker genes into either gene symbols or Entrez IDs.
+Let's take a peek at the top of the DGE results data frame.
+
+```{r peek_at_dge_results, live = TRUE}
+
+```
 
 ### Gene identifier conversion
 
+Our data frame of DGE results contains Ensembl gene identifiers.
+So we will need to convert from these identifiers into either the gene symbols or Entrez IDs that are present in the data we extracted with `msigdbr()`.
+
 We're going to convert our identifiers to gene symbols because they are a bit more human readable, but you can, with the change of a single argument, use the same code to convert to many other types of identifiers!
 
-The annotation package `org.Hs.eg.db` contains information for different identifiers.
-`org.Hs.eg.db` is specific to _Homo sapiens_ -- this is what the `Hs` in the package name is referencing.
-To perform gene identifier conversion in mouse (_Mus musculus_) we could use `org.Mm.eg.db`;
+The annotation package `org.Mm.eg.db` contains information for different identifiers.
+`org.Mm.eg.db` is specific to _Mus musculus_ -- this is what the `Mm` in the package name is referencing.
+To perform gene identifier conversion in human (_Homo sapiens_) we could use `org.Hs.eg.db`;
 we would use `org.Dr.eg.db` for zebrafish (_Danio rerio_).
 
 We can see what types of IDs are available to us in an annotation package with `keytypes()`.
@@ -153,44 +167,64 @@ The function we will use to map from Ensembl gene IDs to gene symbols is called 
 ```{r map_to_symbol}
 # This returns a named vector which we can convert to a data frame, where
 # the keys (Ensembl IDs) are the names
-symbols_vector <- mapIds(org.Hs.eg.db,  # Specify the annotation package
+symbols_vector <- mapIds(org.Mm.eg.db,  # Specify the annotation package
                          # The vector of gene identifiers we want to 
                          # map
-                         keys = neuron_markers_df$gene, 
-                         # The type of gene identifier we want returned
-                         column = "SYMBOL", 
+                         keys = vs_low_df$Gene, 
                          # What type of gene identifiers we're starting
                          # with
                          keytype = "ENSEMBL", 
+                         # The type of gene identifier we want returned
+                         column = "SYMBOL", 
                          # In the case of 1:many mappings, return the
                          # first one. This is default behavior!
                          multiVals = "first") 
 
-# We would like a data frame we can join to the marker stats
-neuron_marker_symbols <- data.frame(
+# We would like a data frame we can join to the DGE results
+symbols_df <- data.frame(
   ensembl_id = names(symbols_vector),
-  gene_symbol = symbols_vector,
-  stringsAsFactors = FALSE
-) %>%
-  # If an Ensembl gene identifier doesn't map to a gene symbol, drop that
-  # from the data frame
-  dplyr::filter(!is.na(gene_symbol))
+  gene_symbol = symbols_vector
+)
 ```
 
 This message is letting us know that sometimes Ensembl gene identifiers will map to multiple gene symbols.
 In this case, it's also possible that a gene symbol will map to multiple Ensembl IDs.
 
-Now we are ready to add the gene symbols to our data frame with the marker information.
-Here we're using a `dplyr::left_join()` because we only want to retain the genes that have gene symbols and this will filter out anything in our marker data frame that does not have gene symbols when we join using the Ensembl gene identifiers.
+Now we are ready to add the gene symbols to our data frame with the DGE results.
+We can use a _join_ function from the `dplyr` package to do this, which will use the Ensembl gene IDs in both data frames to determine how to join the rows.
+
+Let's do this first for the comparison to the low stem cell capacity population.
 
 ```{r add_symbols, live = TRUE}
 
-  # Using a left join removes the rows without gene symbols because those rows
-  # have already been removed in neuron_marker_symbols
+  # An *inner* join will only return rows that are in both data frames
 
-                   # The name of the column that contains the Ensembl gene IDs
-                   # in the left data frame and right data frame
+                    # The name of the column that contains the Ensembl gene IDs
+                    # in the left data frame and right data frame
 
+```
+
+### Drop `NA` values
+
+Some of these rows have `NA` values in `padj`, which [can happen for a number of reasons](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA) including when all samples have zero counts or a gene has low mean expression.
+
+Let's filter to rows that _do not have any `NA`_ using a function `tidyr::drop_na()`.
+This will also drop genes that have an Ensembl gene identifier but no gene symbol!
+
+```{r complete_cases}
+# Remove rows that are not complete (e.g., contain NAs) by filtering to only 
+# complete rows
+vs_low_df <- vs_low_df %>%
+  tidyr::drop_na()
+```
+
+**Now we'll read in our data frame of DGE results from another comparison.**
+To save us some time during instruction, we've already done the gene identifier conversion and filtering to remove `NA` values in [this notebook](https://github.com/AlexsLemonade/training-modules/tree/master/pathway-analysis/setup/03-leukemia_DGE.Rmd). 
+We took a different series of steps to achieve the same thing, which is often possible in R!
+<!--TODO: Numbering of notebook will change--> 
+
+```{r read_in_unsorted}
+vs_unsorted_df <- readr::read_tsv(vs_unsorted_file)
 ```
 
 ## Over-representation Analysis (ORA)
@@ -201,7 +235,7 @@ To test for over-representation, we can calculate a p-value with a hypergeometri
 
 Where `N` is the number of genes in the background distribution, `M` is the number of genes in a pathway, `n` is the number of genes we are interested in (our marker genes), and `k` is the number of genes that overlap between the pathway and our marker genes.
 
-Borrowing an example from [_clusterProfiler: universal enrichment tool for functional and comparative study_](https://yulab-smu.github.io/clusterProfiler-book/chapter2.html#fn2):
+Borrowing an example from [_clusterProfiler: universal enrichment tool for functional and comparative study_ (Yu )](http://yulab-smu.top/clusterProfiler-book/chapter2.html#over-representation-analysis):
 
 > **Example**: Suppose we have 17,980 genes detected in a Microarray study and 57 genes were differentially expressed. Among the differential expressed genes, 28 are annotated to a gene set.
 
@@ -226,24 +260,50 @@ fisher.test(gene_table, alternative = "greater")
 
 When we test **multiple pathways or gene sets**, the p-values then need to be **adjusted** for multiple hypothesis testing.
 
-### Neuron marker ORA
+### High stem cell capacity ORA
 
-Let's generate a list of genes that are indicative of neurons in the GBM data.
-We need to use the gene symbols, rather than the Ensembl gene IDs.
+Our DGE results are from data published as part of [Sachs _et al._ (2014)](https://dx.doi.org/10.1182%2Fblood-2013-08-521708).
+The authors sorted populations of primary leukemia cells and examined the stem cell capacity of these cell populations.
+(This study may sound familiar if you've worked on one of our bulk RNA-seq exercise notebooks in the past!)
 
-```{r top_neuron_genes, live = TRUE}
-# Select genes that are in the top 100 for at least one comparison to other
-# cell types
+We compared the population that the authors identified as having high stem cell capacity to a low stem cell capacity population.
+We also compared the high stem cell capacity cells to a mix of populations (e.g., unsorted cells).
+You can see the code in [here](https://github.com/AlexsLemonade/training-modules/tree/master/pathway-analysis/setup/03-leukemia_DGE.Rmd).
+<!--TODO: this is about to get renumbered-->
 
-# Because genes can theoretically be listed as many times as there are other
-# cell types, we need to filter to unique genes
+We're interested in what pathways are over-represented in genes that specifically distinguish the high capacity population from the low capacity population.
+
+Let's generate a list of genes that have higher expression in the high stem cell capacity population compared to the low stem cell capacity population, but we'll also want to exclude genes that show up in our _other comparison_ to unsorted cells.
+
+We'll start with the high stem cell capacity vs. low stem cell capacity population comparison.
+Genes with positive log2 fold-changes (LFC) will be more highly expressed in the high stem cell capacity cells based on how we set up the analysis.
+
+```{r high_capacity_genes}
+vs_low_genes <- vs_low_df %>%
+  # Filter to the positive LFC and filter based on significance too (padj)
+  dplyr::filter(log2FoldChange > 0,
+                padj < 0.05) %>%
+  # Return a vector of gene symbols
+  dplyr::pull(gene_symbol)
+```
+
+Although we're picking a _commonly used_ cutoff (FDR < 0.05), it's still arbitrary and we could just as easily pick a different threshold for our LFC values.
+When we generate lists of genes of interest for ORA, we typically pick an arbitrary cutoff.
+This is one of the approach's weaknesses -- we've removed all other context.
+
+Now, we'll take the same steps for our other results. 
+
+```{r unsorted_genes_to_remove, live = TRUE}
 
 ```
 
-Maybe you're thinking, "Hey, picking the top 100 genes for each comparison seems kind of arbitrary."
-You are correct!
-When we generate lists of genes of interest for ORA, we typically pick an arbitrary cutoff.
-This is one of the approach's weaknesses -- we've removed all other context.
+We want genes that are in the first comparison but not in the second!
+We can use `setdiff()`, a base R function for set operations, to get the list that we want.
+
+```{r setdiff}
+# What genes are in the first set but *not* in the second set
+genes_for_ora <- setdiff(vs_low_genes, vs_unsorted_genes) 
+```
 
 #### Background set
 
@@ -253,11 +313,21 @@ Sometimes folks consider genes from the entire genome to comprise the background
 > 17,980 genes detected in a Microarray study 
 
 Where the key phrase is **genes detected**. 
-If we are unable to detect a gene, we should remove it from our background set.
-In the scRNA-seq module (`01-filtering_scRNA-seq.Rmd` specifically), we filtered out genes that were expressed in less than 200 cells, but all genes that were _detected_ should be in our marker data frame.
 
-```{r detected_genes, live = TRUE}
+If we were unable to include a gene in one of our differential expression comparisons because, for example, it had low mean expression in our experiment and therefore was filtered out in our `tidyr::drop_na()` step, we shouldn't include in our background set.  
 
+We can use another function for set operations, `intersect()`, to get our background set of genes that were included in both comparisons.
+
+```{r get_background_set}
+# intersect() will return the genes in both sets - we are using the entire data
+# frame here (complete cases), not just the significant genes
+background_set <- intersect(vs_low_df$gene_symbol,
+                            vs_unsorted_df$gene_symbol)
+
+# Remove anything that couldn't reliably be measured/assessed in both from the
+# genes of interest list - using intersect() will drop anything in the first set
+# that isn't also in the second set
+genes_for_ora <- intersect(genes_for_ora, background_set)
 ```
 
 #### Run `enricher()`
@@ -266,13 +336,13 @@ Now that we have our background set, our genes of interest, and our pathway info
 
 ```{r kegg_ora}
 kegg_ora_results <- enricher(
-  gene = top_neuron_genes,  # Genes of interest
+  gene = genes_for_ora,  # Genes of interest
   pvalueCutoff = 0.05,  
   pAdjustMethod = "BH",  # FDR
-  universe = detected_genes,  # Background set
+  universe = background_set,  # Background set
   # The pathway information should be a data frame with a term name or 
   # identifier and the gene identifiers
-  TERM2GENE = dplyr::select(hs_kegg_df,  
+  TERM2GENE = dplyr::select(mm_kegg_df,  
                             gs_name,
                             gene_symbol)
 )
@@ -297,19 +367,27 @@ kegg_result_df <- data.frame(kegg_ora_results@result)
 
 We can use a dot plot to visualize our significant enrichment results.
 
-```{r dotplot}
-enrichplot::dotplot(kegg_ora_results)
-```
+```{r dotplot, live = TRUE}
 
-This is arguably more useful when we have a large number of significant pathways.
+```
 
 We can use an [UpSet plot](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4720993/) to visualize the **overlap** between the gene sets that were returned as significant.
 
-```{r upsetplot}
-enrichplot::upsetplot(kegg_ora_results)
+```{r upsetplot, live = TRUE}
+
 ```
 
+We can see that some of the DNA repair pathways share genes.
 Gene sets or pathways aren't independent, either!
+Sometimes multiple pathways that show up in our results as significant are indicative of only a handful of genes in our gene list.
+
+We can look at the `geneID` column of our results to see what genes overlap; it's a good idea to take a look.
+
+```{r look_at_gene_ids, live = TRUE, rownames.print = FALSE}
+
+  # Use dplyr::select() - the name of the pathway is in the ID column
+
+```
 
 #### Write results to file
 
