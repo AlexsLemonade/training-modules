@@ -9,14 +9,14 @@ date: 2020
 ---
 
 So far every pathway analysis method we've covered relies on some information about groups of samples in our data.
-For over-representation analysis (ORA), we took the top 100 genes that distinguished neurons from other cell types in a scRNA-seq experiment -- it relied on cell type labels.
+For over-representation analysis (ORA), we created gene sets from two different two group comparisons.
 In the Gene Set Enrichment Analysis (GSEA) example, we used statistics from a differential gene expression (DGE) analysis where we compared _MYCN_ amplified cell lines to non-amplified cell lines; we needed that amplification status information.
 
 What if we're less sure about groups in our data or we want to analyze our data in a more unsupervised manner?
 
 In this notebook we will cover a method called Gene Set Variation Analysis (GSVA) ([Hänzelmann, Castelo, and Guinney. 2013](https://doi.org/10.1186/1471-2105-14-7)) that allows us to calculate gene set or pathway scores on a per-sample basis.
 
-We like this quote from the GSVA paper ([Hänzelmann, Castelo, and Guinney. 2013](https://doi.org/10.1186/1471-2105-14-7)) to set the stage:
+We like this quote from the GSVA paper ([Hänzelmann _et al._ 2013](https://doi.org/10.1186/1471-2105-14-7)) to set the stage:
 
 > While [gene set enrichment] methods are generally regarded as end points of a bioinformatic analysis, GSVA constitutes a starting point to build pathway-centric models of biology.
 
@@ -45,10 +45,10 @@ library(GSVA)
 ```{r directories}
 # We have some medulloblastoma data from the OpenPBTA project that we've 
 # prepared ahead of time
-input_dir <- file.path("data", "medulloblastoma")
+input_dir <- file.path("data", "open-pbta")
 
-# Create a directory specifically for our GSVA results if it does not yet exist
-output_dir <- file.path("results", "gsva") 
+# Create a directory specifically for the results using this dataset
+output_dir <- file.path("results", "open-pbta") 
 if (!dir.exists(output_dir)) {
   dir.create(output_dir, recursive = TRUE)
 }
@@ -130,10 +130,10 @@ rnaseq_mat <- rnaseq_df %>%
 
 You may notice that GSVA has some commonalities with GSEA.
 Rather than ranking genes based on some statistic _we_ selected ahead of time, GSVA fits a model and ranks genes based on their expression level relative to the sample distribution.
-This is a way of asking if a gene _i_ is highly or lowly expressed in a sample _j_ in the context of this experiment and ranking accordingly ([Hänzelmann, Castelo, and Guinney. 2013](https://doi.org/10.1186/1471-2105-14-7)).
+This is a way of asking if a gene _i_ is highly or lowly expressed in a sample _j_ in the context of this experiment and ranking accordingly ([Hänzelmann _et al._ 2013](https://doi.org/10.1186/1471-2105-14-7)).
 The pathway-level score calculated is a way of asking how genes _within_ a gene set vary as compared to genes that are _outside_ of that gene set ([Malhotra. 2018](https://towardsdatascience.com/decoding-gene-set-variation-analysis-8193a0cfda3)). 
 (This is sometimes called a competitive test in gene set enrichment literature.)
-The intuition here is that we will get pathway-level scores for each sample that indicate if genes in a pathway vary concordantly in one direction (overexpressed or underexpressed relative to the overall population) ([Hänzelmann, Castelo, and Guinney. 2013](https://doi.org/10.1186/1471-2105-14-7)).
+The intuition here is that we will get pathway-level scores for each sample that indicate if genes in a pathway vary concordantly in one direction (overexpressed or underexpressed relative to the overall population) ([Hänzelmann _et al._ 2013](https://doi.org/10.1186/1471-2105-14-7)).
 
 The output is a gene set by sample matrix of GSVA scores.
 
@@ -178,14 +178,14 @@ set.seed(2020)
 
 Our minimum gene set size earlier was 15 genes and our maximum gene set size was 500 genes. We'll use the same minimum and maximum values for our random gene sets and some values in between.
 
-```{r}
+```{r gene_set_sizes}
 # Make a list of integers that indicate the random gene set sizes
 gene_set_size <- list(15, 25, 50, 100, 250, 500)
 ```
 
 For each gene set size, we will generate 100 random gene sets
 
-```{r}
+```{r random_gene_sets}
 # Set number of replicates
 nreps <-  100
 # Generate 100 random gene sets of each size
@@ -201,7 +201,7 @@ random_gene_sets <-
 
 The Hallmarks list we used earlier stored the gene set names as the name of the list, so let's add names to our random gene sets that indicate what size they are and so `gsva()` doesn't get upset.
 
-```{r}
+```{r name_random_gene_sets}
 # We will include the size of the gene set in the gene set name 
 # Start by taking the length of each pathway and appending "pathway_" to that
 # number
@@ -303,7 +303,7 @@ Here's a figure from the OpenPBTA project, where the middle panel is a heatmap o
 gsva_results %>%
   as.data.frame() %>%
   tibble::rownames_to_column("pathway") %>%
-  readr::write_tsv(path = gsva_results_file)
+  readr::write_tsv(file = gsva_results_file)
 ```
 
 ## Session Info
