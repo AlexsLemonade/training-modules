@@ -13,10 +13,10 @@ OpenPBTA is a collaborative project organized by the CCDL and the Center for Dat
 
 You can read more about the project [here](https://github.com/alexslemonade/openpbta-analysis/#openpbta-analysis).
 
-We've downloaded some of the publicly available expression data from the project and selected a subset with the the most common disease types for analysis here.
+We've downloaded some of the publicly available expression data from the project and selected a subset with the most common disease types for analysis here.
 
 We'll use a package called [`ComplexHeatmap`](https://www.bioconductor.org/packages/release/bioc/html/ComplexHeatmap.html) to make our heatmap.
-This package allows us to annotate our heatmap with sample information, and will also will perform clustering as part of generating the heatmap.
+This package allows us to annotate our heatmap with sample information, and will also perform clustering as part of generating the heatmap.
 It is highly flexible and opinionated - the data structures we pass `ComplexHeatmap` functions often need to be _just right_.
 See the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/) for more information.
 
@@ -27,8 +27,10 @@ See the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/Complex
 ```{r load_libraries}
 # We will manipulate RNASeq data with DESeq2 at the start
 library(DESeq2)
+
 # Then we'll be doing a bit of data wrangling with the Tidyverse
 library(tidyverse)
+
 # ComplexHeatmap is the package we'll use for making a heatmap
 # It will do the hierarchical clustering for us as well
 library(ComplexHeatmap)
@@ -54,7 +56,7 @@ if (!dir.exists(plots_dir)) {
 # The metadata describing the samples
 histologies_file <- file.path(data_dir, "pbta-histologies-subset.tsv")
 
-# The RNAseq counts table
+# The RNA-seq counts table
 rnaseq_file = file.path(data_dir, "pbta-rsem-expected_count-subset.rds")
 ```
 
@@ -177,10 +179,13 @@ First, we'll calculate the variance for each gene using `rowVars()` from the `ma
 ```{r high_var_genes}
 # Calculate variance from the expression data 
 gene_variance <- matrixStats::rowVars(expr_mat)
+
 # Find the value that we'll use as a threshold to filter the top 10%
 variance_threshold <- quantile(gene_variance, 0.9)
+
 # Row indices of high variance genes
 high_variance_index <- which(gene_variance > variance_threshold)
+
 # What does a row index look like?
 head(high_variance_index)
 ```
@@ -290,7 +295,7 @@ Heatmap(zscores_mat,
         clustering_method_columns = "average",
         show_row_names = FALSE,
         show_column_names = FALSE,
-        # Add annotation bars to the top of the 
+        # Add annotation bars to the top of the heatmap
         top_annotation = column_annotation,
         # This will be used as the label for the color bar
         # of the cells of the heatmap itself
@@ -330,14 +335,14 @@ This is an _agglomerative_ method of clustering - each sample starts in its own 
 The arguments we chose for `clustering_distance_*` and `clustering_method_*` told `ComplexHeatmap` to use 1 minus the correlation between samples as the distance measure, and to average samples when they were merged into a group.
 This method is also known as [UPGMA (unweighted pair group method with arithmetic mean)](https://en.wikipedia.org/wiki/UPGMA).
 
-It is important to note that the linear arrangement of samples in the the tree is somewhat arbitrary, so we have to be careful not to overinterpret it.
+It is important to note that the linear arrangement of samples in the tree is somewhat arbitrary, so we have to be careful not to overinterpret it.
 We can rotate around any branch of the tree in our visualization with no change to the tree topology itself.
 In fact, the samples at opposite ends of the heatmap could be right next to one another with the right set of rotations!
 
 
 ### PCA as an alternative to clustering
 
-You probably noticed a that the hierarchical clustering we performed didn't perfectly separate out the different cancer subtypes we were looking at. 
+You probably noticed that the hierarchical clustering we performed didn't perfectly separate out the different cancer subtypes we were looking at. 
 
 What would have happened if we had used PCA to visualize the relationships among samples? 
 Would that have made it easier to separate disease types? 
