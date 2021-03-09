@@ -19,9 +19,12 @@ files=(
   intro-to-R-tidyverse/01-intro_to_base_R.Rmd
   intro-to-R-tidyverse/02-intro_to_ggplot2.Rmd
   intro-to-R-tidyverse/03-intro_to_tidyverse.Rmd
+  RNA-seq/01-trim_quant.Rmd
   RNA-seq/02-gastric_cancer_tximeta.Rmd
   RNA-seq/03-gastric_cancer_exploratory.Rmd
+  RNA-seq/04-nb_cell_line_tximeta.Rmd
   RNA-seq/05-nb_cell_line_DESeq2.Rmd
+  RNA-seq/06-openpbta_heatmap.Rmd
   scRNA-seq/01-filtering_scRNA-seq.Rmd
   scRNA-seq/02-normalizing_scRNA-seq.Rmd
   scRNA-seq/04-tag-based_scRNA-seq_processing.Rmd
