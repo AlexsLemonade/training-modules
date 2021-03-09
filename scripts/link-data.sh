@@ -59,6 +59,7 @@ link_locs=(
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
+  pathway-analysis/data/open-pbta
 )
 for loc in ${link_locs[@]}
 do

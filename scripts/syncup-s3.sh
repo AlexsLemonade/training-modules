@@ -34,6 +34,7 @@ sync_dirs=(
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
+  pathway-analysis/data/open-pbta
 )
 
 sync_files=(
