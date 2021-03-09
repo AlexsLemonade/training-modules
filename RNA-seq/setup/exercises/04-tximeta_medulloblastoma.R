@@ -8,8 +8,7 @@
 
 data_dir <- "/shared/data/training-modules/RNA-seq/data/medulloblastoma"
 
-# temporary workaround 
-meta_file <-  "~/training-modules/pathway-analysis/setup/data/SRP150101_metadata.tsv"
+meta_file <- file.path(data_dir, "SRP150101_metadata.tsv")
 
 # create a directory to hold the tximeta output if it does not yet exist
 output_directory <- file.path(data_dir, "txi")
