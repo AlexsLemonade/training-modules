@@ -29,8 +29,8 @@ Note that you will not have FastQC or fastp output for most samples, so there wi
 #### Running MultiQC on the gastric cancer samples
 
 There are datasets already uploaded to the RStudio Server that you may want use for practicing these approaches or other techniques we've discussed.
-For running MultiQC, take a look in the `~/shared-data/training-modules/RNA-seq/QC/` directory to see all the datasets you could run MultiQC on. 
-Note that we have to point you to `~/shared-data/` above because we didn't link all of this to your personal `training-modules` directory. 
+For running MultiQC, take a look in the `~/shared-data/training-modules/RNA-seq/QC/` directory to see QC results from all of the datasets we have processed for training.
+Note that we have to point you to `~/shared-data/` above because we didn't link all of this to your personal `training-modules` directory.
 
 Run the following steps in the `Terminal` tab of RStudio.
 
@@ -56,14 +56,15 @@ Once this completes, you should have a report at `QC/gastric_cancer/multiqc_repo
 
 ## Decoy sequence-aware selective alignment with Salmon
 
-The folks that created Salmon demonstrated that transcript abundance estimates from lightweight mapping approaches like Salmon can differ from abundance estimates derived from traditional alignment approaches in experimental data ([Srivastava _et al._ 2019.](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02151-8)).
+Transcript abundance estimates from lightweight mapping approaches like Salmon can differ from abundance estimates derived from traditional alignment approaches in experimental data ([Srivastava _et al._ 2020.](https://doi.org/10.1186/s13059-020-02151-8)).
 This differs from the takeaway of most prior work comparing lightweight mapping and traditional alignment; this is very likely due to the typical focus on _simulated data_ rather than experimental data.
 
-The authors introduced a new approach termed "selective alignment" that is less computationally costly than traditional alignment while still offering improvements over lightweight mapping.
+To provide better results than lightweight mapping alone, Salmon includes a "selective alignment" method that is less computationally costly than traditional alignment while still offering improvements over lightweight mapping.
 
-The current version of Salmon (as of writing this) allows users to input sequences from unannotated genomic loci that are similar to annotated transcripts, termed decoy sequences, to avoid falsely mapping fragments that arise from these unannotated regions to transcripts.
-This is termed a `salmon_partial_sa_index` [here](https://github.com/COMBINE-lab/salmon/tree/91091fc3650a3220f657a9f31616916513f0ad02#pre-computed-decoy-transcriptomes).
-As of `v1.0.0`, you can use the _full genome_ as decoy ([ref](https://github.com/COMBINE-lab/salmon/tree/91091fc3650a3220f657a9f31616916513f0ad02#pre-computed-decoy-transcriptomes)).
+To apply the selective alignment method, you will need to first have an index that includes not only the transcripts of interest, but also a set of other potentially mapped sequences.
+Instructions on creating such an index can be found in [the Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#preparing-transcriptome-indices-mapping-based-mode).
+One option is to include "decoy sequences" in Salmon index from genomic loci that are similar to annotated transcripts, to avoid falsely mapping fragments that arise from these unannotated regions to the transcripts of interest.
+Alternatively (recommended), you can use the [_full genome_ as a decoy](https://combine-lab.github.io/alevin-tutorial/2019/selective-alignment/).
 
 ### Why don't we use decoy-aware selective alignment in training?
 
