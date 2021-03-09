@@ -19,7 +19,7 @@ files=(
   intro-to-R-tidyverse/01-intro_to_base_R.Rmd
   intro-to-R-tidyverse/02-intro_to_ggplot2.Rmd
   intro-to-R-tidyverse/03-intro_to_tidyverse.Rmd
-  RNA-seq/01-trim_quant.Rmd
+  RNA-seq/01-qc_trim_quant.Rmd
   RNA-seq/02-gastric_cancer_tximeta.Rmd
   RNA-seq/03-gastric_cancer_exploratory.Rmd
   RNA-seq/04-nb_cell_line_tximeta.Rmd
@@ -42,7 +42,7 @@ do
   Rscript --vanilla scripts/make-live.R --notebook ${file} --render ${render}
 done
 
-## remove unnecessary -live files
+# remove unnecessary -live files
 
 rm RNA-seq/01-trim_quant-live.Rmd
 rm RNA-seq/04-nb_cell_line_tximeta-live.Rmd
