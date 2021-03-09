@@ -1,0 +1,123 @@
+---
+title: "Transform OpenPBTA data"
+output: 
+  html_notebook:
+    toc: true
+    toc_float: true
+author: CCDL for ALSF
+date: 2020
+---
+
+Here, we'll download and trim the OpenPBTA stranded RNA-seq data for use in the RNA-seq heatmap & clustering notebook (`06-openpbta_heatmap.Rmd`).
+You can read more about the Open Pediatric Brain Tumor Atlas (OpenPBTA) project [here](https://github.com/alexslemonade/openpbta-analysis/#openpbta-analysis).
+
+## Set up
+
+### Library
+
+```{r}
+# Pipes
+library(magrittr)
+```
+
+### Directories and files
+
+```{r}
+# Set up the directories - we'll be processing OpenPBTA data 
+# and putting it in the shared directory
+openpbta_dir <- '/shared/data/training-modules/RNA-seq/data/open-pbta'
+
+# Create the output directory if it doesn't exist yet 
+if (!dir.exists(openpbta_dir)) {
+  dir.create(openpbta_dir, recursive = TRUE)
+}
+```
+
+#### Input files
+
+```{r}
+
+base_url = 'https://s3.amazonaws.com/kf-openaccess-us-east-1-prd-pbta/data'
+# Current openpbta release as of this notebook
+openpbta_version = 'release-v18-20201123'
+
+# This file contains all the clinical information like disease labels
+histologies_url <- paste(base_url, 
+                         openpbta_version, 
+                         "pbta-histologies.tsv",
+                         sep = '/')
+
+# RSEM expected counts
+stranded_counts_url <- paste(base_url, 
+                             openpbta_version, 
+                             "pbta-gene-counts-rsem-expected_count.stranded.rds",
+                             sep = '/')
+```
+
+#### Output files
+
+```{r}
+# We're going to write out a histologies file that only includes data for the
+# stranded RNA-seq samples & top histologies
+filtered_histologies_file <- file.path(openpbta_dir, 
+                                      "pbta-histologies-subset.tsv")
+
+# Where we will put the RSEM file
+rnaseq_file <- file.path(openpbta_dir, "pbta-gene-counts-rsem-expected_count.stranded.rds")
+
+# We will filter the RSEM data to just the top histologies
+filtered_rnaseq_file <- file.path(openpbta_dir, "pbta-rsem-expected_count-subset.rds")
+
+```
+
+## Data cleaning and transformation
+
+### Clinical/metadata file
+
+```{r}
+histologies_df <- readr::read_tsv(histologies_url,
+                                  guess_max = 10000) %>%
+  # We'll only be looking at the stranded RNA-seq dataset, so filter out
+  # all other samples (e.g., WGS)
+  dplyr::filter(experimental_strategy == "RNA-Seq",
+                RNA_library == "stranded") %>%
+  # Remove columns that are all NA (typically pertain only to the DNA data)
+  purrr::discard(~ all(is.na(.)))
+
+# What are the top histologies
+histologies_to_keep <- histologies_df %>%
+  dplyr::count(short_histology) %>%
+  dplyr::filter(n > 50) %>%
+  dplyr::pull(short_histology)
+
+filtered_histologies_df <- histologies_df %>%
+  dplyr::filter(short_histology %in% histologies_to_keep)
+
+# Write cleaned metadata file to the output dir
+readr::write_tsv(filtered_histologies_df, filtered_histologies_file)
+```
+
+### RNA-seq data
+
+```{r}
+# Download the raw counts data
+curl::curl_download(stranded_counts_url, rnaseq_file)
+
+# Read the expression data
+stranded_count_df <- readr::read_rds(rnaseq_file)
+```
+
+```{r}
+# Filter to match histologies
+filtered_count_df <- stranded_count_df %>%
+  dplyr::select(gene_id, filtered_histologies_df$Kids_First_Biospecimen_ID)
+
+# Write out filtered counts
+readr::write_rds(filtered_count_df, filtered_rnaseq_file)
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```

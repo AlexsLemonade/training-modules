@@ -19,13 +19,14 @@ mkdir -p RNA-seq/data/gastric-cancer/salmon_quant
 mkdir -p RNA-seq/data/NB-cell
 mkdir -p RNA-seq/data/leukemia
 mkdir -p RNA-seq/data/medulloblastoma
-mkdir -p RNA-seq/data/zebrafish-cortisol/
-mkdir -p RNA-seq/QC/gastric-cancer/fastp/
-mkdir -p RNA-seq/QC/gastric-cancer/fastqc/
+mkdir -p RNA-seq/data/zebrafish-cortisol
+mkdir -p RNA-seq/QC/gastric-cancer/fastp
+mkdir -p RNA-seq/QC/gastric-cancer/fastqc
+mkdir -p RNA-seq/data/open-pbta
 
 # scRNA-seq module directories
-mkdir -p scRNA-seq/data/glioblastoma/
-mkdir -p scRNA-seq/data/tabula-muris/
+mkdir -p scRNA-seq/data/glioblastoma
+mkdir -p scRNA-seq/data/tabula-muris
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -53,6 +54,8 @@ link_locs=(
   RNA-seq/data/medulloblastoma/txi
   RNA-seq/data/zebrafish-cortisol/zebrafish-cortisol_metadata.tsv
   RNA-seq/data/zebrafish-cortisol/salmon_quant
+  RNA-seq/data/open-pbta/pbta-histologies-subset.tsv 
+  RNA-seq/data/open-pbta/pbta-rsem-expected_count-subset.rds
   scRNA-seq/data/glioblastoma/preprocessed
   scRNA-seq/data/tabula-muris/fastq
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
