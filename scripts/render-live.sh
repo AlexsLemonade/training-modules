@@ -41,3 +41,8 @@ for file in ${files[@]}
 do
   Rscript --vanilla scripts/make-live.R --notebook ${file} --render ${render}
 done
+
+## remove unnecessary -live files
+
+rm RNA-seq/01-trim_quant-live.Rmd
+rm RNA-seq/04-nb_cell_line_tximeta-live.Rmd
