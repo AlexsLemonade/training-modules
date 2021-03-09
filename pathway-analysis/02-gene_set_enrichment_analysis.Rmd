@@ -85,8 +85,9 @@ _Adapted from [refine.bio examples](https://github.com/AlexsLemonade/refinebio-e
 GSEA calculates a pathway-level metric, called an enrichment score (sometimes abbreviated as ES), by ranking genes by a gene-level statistic.
 This score reflects whether or not a gene set or pathway is overrepresented at the top or bottom of the gene rankings ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)) 
 
-Specifically, genes are ranked from most positive to most negative based on their statistic and a running sum is calculated by starting with the most highly ranked genes and increasing the score when a gene is in the pathway and decreasing the score when a gene is not.
-In this example, the enrichment score for a pathway is the running sum's maximum deviation from zero.
+Specifically, all genes are ranked from most positive to most negative based on their statistic and a running sum is calculated:
+Starting with the most highly ranked genes, the running sum increases for each gene in the pathway and decreases for each gene not in the pathway.
+The enrichment score for a pathway is the running sum's maximum deviation from zero.
 GSEA also assesses statistical significance of the scores for each pathway through permutation testing. 
 As a result, each input pathway will have a p-value associated with it that is then corrected for multiple hypothesis testing ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
 
@@ -164,14 +165,13 @@ dge_results_df %>%
 We can see that the associated values vary for each row.
 
 Let's keep the gene symbols associated with the higher absolute value of the log2 fold change.
-GSEA relies on genes' rankings on the basis of a gene-level statistic and the enrichment score that is calculated reflects the degree to which genes in a gene set are overrepresented in the top or bottom of the rankings ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
 
 Retaining the instance of the gene symbols with the higher absolute value of a gene-level statistic means that we will retain the value that is likely to be more highly- or lowly-ranked or, put another way, the values less likely to be towards the middle of the ranked gene list.
 We should keep this decision in mind when interpreting our results.
 For example, if all the duplicate identifiers happened to be in a particular gene set, we may get an overly optimistic view of how perturbed that gene set is because we preferentially selected instances of the identifier that have a higher absolute value of the statistic used for ranking.
 
-In the next chunk, we are going to filter out the duplicated rows using the `dplyr::distinct()` function
-This will keep the first row with the duplicated value thus keeping the row with the highest absolute value of the log2 fold change.
+In the next chunk, we are going to filter out the duplicated rows using the `dplyr::distinct()` function after sorting by absolute value of the log2 fold change.
+This will keep the first row with the duplicated value thus keeping the row with the largest absolute value.
 
 ```{r filter_dge}
 filtered_dge_df <- dge_results_df %>%
@@ -201,6 +201,7 @@ This is step 1 -- gene-level statistics.
 
 ```{r lfc_vector}
 lfc_vector <- filtered_dge_df %>%
+  # Extract a vector of `log2FoldChange` named by `gene_symbol`
   dplyr::pull(log2FoldChange, name = gene_symbol)
 lfc_vector <- sort(lfc_vector, decreasing = TRUE)
 ```
