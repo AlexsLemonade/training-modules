@@ -1,18 +1,24 @@
 # Introduction to bulk RNA-seq data processing
 
-We will first learn how to process RNA-seq data at the command line using two samples that were assayed with paired-end sequencing.
+
+## Objectives
+
+This notebook will demonstrate how to:
+
+- Navigate the terminal interface  
+- Organize an analysis project 
+- Apply [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) for quality control analysis of Illumina sequencing data
+- Preprocess sequencing reads with [fastp](https://github.com/OpenGene/fastp)
+- Quantify RNA-seq expression with [Salmon](https://combine-lab.github.io/salmon/)
+
+
+We will first learn how to process RNA-seq data at the command line using samples that were assayed with paired-end sequencing.
 
 These samples come from a project ([`PRJNA178120`](https://www.ebi.ac.uk/ena/data/view/PRJNA178120)) that includes 8 samples from normal gastric tissue, gastric cancer cell lines and primary gastric tumor cell cultures.
 
 Here we will perform quality control checks, trimming, and estimate the transcript abundances for a single sample, SRR585570.
 
 ![](diagrams/rna-seq_1.png)
-
-**Our objectives:**
-
-* Get comfortable with the command line
-* Learn about project organization
-* Become familiar with [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/), preprocessing with [fastp](https://github.com/OpenGene/fastp) and quantification with [Salmon](https://combine-lab.github.io/salmon/)
 
 Later, we will use the full dataset (n = 8) to explore how to summarize estimates to the gene level and do some exploratory data analyses with data the course directors have processed ahead of time.
 
