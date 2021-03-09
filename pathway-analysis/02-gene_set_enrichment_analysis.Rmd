@@ -13,15 +13,12 @@ In this notebook, we will perform Gene Set Enrichment Analysis (GSEA) on the neu
 To refresh our memory, we analyzed data from [Harenza *et al.* (2017)](https://doi.org/10.1038/sdata.2017.33) and specifically tested for DGE between with _MYCN_ amplified cell lines and non-amplified cell lines using `DESeq2`.
 We have a table of results that contains our log2 fold changes and adjusted p-values.
 
-*Note: We've taken an additional step to get more accurate log2 fold change estimates. 
-You can see the code for that in `setup/01-prepare_NB_cell_line.Rmd`.*
-
-GSEA is a functional class scoring (FCS) approach to pathway analysis that was first introduced in [Subramanian, Tamayo *et al.* (2005)](https://doi.org/10.1073/pnas.0506580102).
+GSEA is a functional class scoring (FCS) approach to pathway analysis that was first introduced in [Subramanian _et al._ (2005)](https://doi.org/10.1073/pnas.0506580102).
 The rationale behind FCS approaches is that small changes in individual genes that participate in the same biological process or pathway can be significant and of biological interest.
 FCS methods are better suited for identifying these pathways that show coordinated changes than ORA.
 In ORA, we pick a cutoff that _typically_ only captures genes with large individual changes.
 
-There are 3 general steps in FCS methods ([Khatri, Sirota, and Butte. 2012]( https://doi.org/10.1371/journal.pcbi.1002375)):
+There are 3 general steps in FCS methods ([Khatri _et al._ 2012]( https://doi.org/10.1371/journal.pcbi.1002375)):
  
 1. Calculate a gene-level statistic (we'll use log2 fold change from DESeq2 here)
 2. Gene-level statistics are aggregated into a pathway-level statistic
@@ -31,7 +28,8 @@ There are 3 general steps in FCS methods ([Khatri, Sirota, and Butte. 2012]( htt
 
 * For another example using `clusterProfiler` for GSEA, see [_Intro to DGE: Functional Analysis._ from Harvard Chan Bioinformatics Core Training.](https://hbctraining.github.io/DGE_workshop/lessons/09_functional_analysis.html)
 * The way we'll use `clusterProfiler` here uses `fgsea` (Fast Gene Set Enrichment Analysis) under the hood.
-You can read more about fgsea in [Korotkevich, Sukhov, and Sergushichev. (2019)](https://doi.org/10.1101/060012).
+You can read more about fgsea in [Korotkevich _et al._ (2021)](https://doi.org/10.1101/060012).
+* [refine.bio examples Gene set enrichment analysis - RNA-seq](https://alexslemonade.github.io/refinebio-examples/03-rnaseq/pathway-analysis_rnaseq_02_gsea.html) from which this material has been adapted.
 
 ## Set up
 
@@ -42,8 +40,6 @@ You can read more about fgsea in [Korotkevich, Sukhov, and Sergushichev. (2019)]
 library(clusterProfiler)
 # Package that contains the MSigDB gene sets in tidy format
 library(msigdbr)
-# Annotation package that we will use for human gene identifier conversion
-library(org.Hs.eg.db)
 ```
 
 ### Directories and Files
@@ -52,11 +48,11 @@ library(org.Hs.eg.db)
 
 ```{r}
 # Where the DGE results are stored
-input_dir <- file.path("results", "gene-metrics")
+input_dir <- file.path("..", "RNA-seq", "results", "NB-cell")
 
 # We will create a directory to specifically hold our GSEA results if it does 
 # not yet exist
-output_dir <- file.path("results", "gsea")
+output_dir <- file.path("results", "NB-cell")
 if (!dir.exists(output_dir)) {
   dir.create(output_dir, recursive = TRUE)
 }
@@ -67,7 +63,7 @@ if (!dir.exists(output_dir)) {
 ```{r input_files}
 # DGE results
 dge_results_file <- file.path(input_dir,
-                             "nb_cell_line_mycn_amplified_v_nonamplified.tsv")
+                             "NB-cell_DESeq_amplified_v_nonamplified_results.tsv")
 ```
 
 #### Output files
@@ -75,10 +71,30 @@ dge_results_file <- file.path(input_dir,
 ```{r output_files}
 # GSEA pathway-level scores and statistics
 gsea_results_file <- file.path(output_dir,
-                               "nb_cell_line_gsea_results.tsv")
+                               "NB-cell_gsea_results.tsv")
 ```
 
-## Gene sets
+## Gene Set Enrichment Analysis
+
+_Adapted from [refine.bio examples](https://github.com/AlexsLemonade/refinebio-examples/blob/33cdeff66d57f9fe8ee4fcb5156aea4ac2dce07f/03-rnaseq/pathway-analysis_rnaseq_02_gsea.Rmd)_
+
+![](diagrams/subramanian_fig1.jpg)
+
+**Figure 1. [Subramanian _et al._ (2005)](https://doi.org/10.1073/pnas.0506580102).**
+
+GSEA calculates a pathway-level metric, called an enrichment score (sometimes abbreviated as ES), by ranking genes by a gene-level statistic.
+This score reflects whether or not a gene set or pathway is overrepresented at the top or bottom of the gene rankings ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)) 
+
+Specifically, all genes are ranked from most positive to most negative based on their statistic and a running sum is calculated:
+Starting with the most highly ranked genes, the running sum increases for each gene in the pathway and decreases for each gene not in the pathway.
+The enrichment score for a pathway is the running sum's maximum deviation from zero.
+GSEA also assesses statistical significance of the scores for each pathway through permutation testing. 
+As a result, each input pathway will have a p-value associated with it that is then corrected for multiple hypothesis testing ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
+
+The implementation of GSEA we use in here examples requires a gene list ordered by some statistic and input gene sets. 
+When you use previously computed gene-level statistics with GSEA, it is called GSEA pre-ranked.
+
+### Gene sets
 
 In the previous notebook, we used KEGG pathways for over-representation analysis.
 We identified pathways that were significantly over-represented and found that the significant pathways shared genes.
@@ -111,77 +127,121 @@ dge_results_df <- readr::read_tsv(dge_results_file)
 head(dge_results_df)
 ```
 
-We can take the same steps we did earlier to convert these Ensembl gene IDs to Entrez IDs. 
-We have to change the `column` argument to `mapIds()` (and the downstream steps).
+Since this data frame of DGE results includes gene symbols, we do not need to perform any kind of gene identifier conversion.
+We do, however, need to check for duplicate gene symbols. 
+We can accomplish this with `duplicated()`, which returns a logical vector (e.g., `TRUE` or `FALSE`).
+The function `sum()` will count `TRUE` values as 1s and `FALSE` as 0s, so using it with `duplicated()` will count the number of duplicate values.
 
-When `mapIds()` is run with `multiValues = "first"` and it encounters multiple matches, only the first identifier is returned.
-This is the default behavior.
-It will also return a named vector of the IDs you queried for (`column`), where the names are the input identifiers (`keys`), in the same order as the keys which means you can use it directly with `dplyr::mutate()`.
-
-```{r convert_entrez, live = TRUE}
-dge_results_df <- dge_results_df %>%
-  # Create a new column 'entrez_id' that contains the Entrez IDs returned by
-  # mapIds()
-  dplyr::mutate(entrez_id = mapIds(org.Hs.eg.db, 
-                                   keys = dge_results_df$Gene, 
-                                   column = "ENTREZID", 
-                                   keytype = "ENSEMBL", 
-                                   multiVals = "first")
-  ) %>%
-  # We need these gene identifiers to perform our pathway analysis, so remove
-  # any genes where we don't have Entrez IDs
-  dplyr::filter(!is.na(entrez_id))
+```{r any_duplicated, live = TRUE}
+sum(duplicated(dge_results_df$gene_symbol))
 ```
 
-### Preranked list
+This will cause a problem when we go to run GSEA.
 
-The `GSEA()` function takes a preranked (sorted) named vector of statistics, where the names in the vector are gene identifiers.
+### Removing duplicates
+
+The GSEA approach requires on discriminating between genes that are in a gene set and those that are not. 
+Practically speaking, gene sets are just collections of gene identifiers!
+When the function we use for GSEA pre-ranked gets a list with duplicated gene identifiers, it can produce unexpected results.
+
+Compared to the total number of genes that are in our results, there are not a lot of duplicates but we'll still need to make a decision about how to handle them.
+
+Let's get a vector of the duplicated gene symbols so we can use it to explore our filtering steps.
+
+```{r gene_dups, live = TRUE}
+duplicated_gene_symbols <- dge_results_df %>%
+  dplyr::filter(duplicated(gene_symbol)) %>%
+  dplyr::pull(gene_symbol)
+```
+
+Now we'll look at the values for the the duplicated gene symbols.
+
+```{r show_gene_dups}
+dge_results_df %>%
+  dplyr::filter(gene_symbol %in% duplicated_gene_symbols) %>%
+  dplyr::arrange(gene_symbol)
+```
+
+We can see that the associated values vary for each row.
+
+Let's keep the gene symbols associated with the higher absolute value of the log2 fold change.
+
+Retaining the instance of the gene symbols with the higher absolute value of a gene-level statistic means that we will retain the value that is likely to be more highly- or lowly-ranked or, put another way, the values less likely to be towards the middle of the ranked gene list.
+We should keep this decision in mind when interpreting our results.
+For example, if all the duplicate identifiers happened to be in a particular gene set, we may get an overly optimistic view of how perturbed that gene set is because we preferentially selected instances of the identifier that have a higher absolute value of the statistic used for ranking.
+
+In the next chunk, we are going to filter out the duplicated rows using the `dplyr::distinct()` function after sorting by absolute value of the log2 fold change.
+This will keep the first row with the duplicated value thus keeping the row with the largest absolute value.
+
+```{r filter_dge}
+filtered_dge_df <- dge_results_df %>%
+  # Sort so that the highest absolute values of the log2 fold change are at the
+  # top
+  dplyr::arrange(dplyr::desc(abs(log2FoldChange))) %>%
+  # Filter out the duplicated rows using `dplyr::distinct()`
+  dplyr::distinct(gene_symbol, .keep_all = TRUE)
+```
+
+Let's see what happened to our duplicate identifiers.
+
+```{r show_filtered_dge, live = TRUE}
+# Subset to & arrange by gene symbols that were duplicated in the original 
+# data frame of results
+filtered_dge_df %>%
+  dplyr::filter(gene_symbol %in% duplicated_gene_symbols) %>%
+  dplyr::arrange(gene_symbol)
+```
+
+Now we're ready to prep our pre-ranked list for GSEA.
+
+### Pre-ranked list
+
+The `GSEA()` function takes a pre-ranked (sorted) named vector of statistics, where the names in the vector are gene identifiers.
 This is step 1 -- gene-level statistics.
 
 ```{r lfc_vector}
-lfc_vector <- dge_results_df$log2FoldChange
-names(lfc_vector) <- dge_results_df$entrez_id
+lfc_vector <- filtered_dge_df %>%
+  # Extract a vector of `log2FoldChange` named by `gene_symbol`
+  dplyr::pull(log2FoldChange, name = gene_symbol)
 lfc_vector <- sort(lfc_vector, decreasing = TRUE)
 ```
+
+Let's look at the top ranked values.
 
 ```{r head_lfc, live = TRUE}
 # Look at first entries of the log2 fold change vector
 head(lfc_vector)
 ```
 
+And the bottom of the list.
+
 ```{r tail_lfc, live = TRUE}
 # Look at the last entries of the log2 fold change vector
 tail(lfc_vector)
 ```
 
-## GSEA
+## Run GSEA
 
-![](diagrams/subramanian_fig1.jpg)
-
-**Figure 1. [Subramanian, Tamayo *et al.* (2005)](https://doi.org/10.1073/pnas.0506580102).**
-
-The enrichment score (ES) for a pathway, a pathway-level statistic, is calculated using our gene-level statistics.
-Genes are ranked from most highly positive to most highly negative and weighting them according to their gene-level statistic.
-A running score is calculated by starting with the most highly ranked genes and increasing the score when a gene is in the pathway and decreasing the score when a gene is not in the pathway.
-The ES is the maximum deviation from zero.
-Significance is assessed by generating a null distribution by sampling random gene sets of the same size and an FDR (false discovery rate) value is calculated to account for multiple hypothesis testing.
-([Subramanian, Tamayo *et al.* 2005](https://doi.org/10.1073/pnas.0506580102); [Korotkevich, Sukhov, and Sergushichev. 2019](https://doi.org/10.1101/060012)).
+Now for the analysis!
 
 We can use the `GSEA()` function to perform GSEA with any generic set of gene sets, but there are several functions for using specific, commonly used gene sets (e.g., `gseKEGG()`).
 
 ```{r run_gsea}
 gsea_results <- GSEA(geneList = lfc_vector,  # ordered ranked gene list
-                     nPerm = 1000,  # number of permutations
                      minGSSize = 25,  # minimum gene set size
                      maxGSSize = 500,  # maximum gene set set
                      pvalueCutoff = 0.05,
-                     pAdjustMethod = "BH",  # Benjamini-Hochberg correction
+                     pAdjustMethod = "BH",  # correction for multiple hypothesis testing
                      TERM2GENE = dplyr::select(hs_hallmark_df,
                                                gs_name,
-                                               entrez_gene))
+                                               gene_symbol))
 ```
 
-Let's take a look at the results.
+The warning about ties means that there are multiple genes that have the same log2 fold change value. 
+This percentage is small and unlikely to impact our results.
+A large number of ties might tell us there's something wrong with our DGE results ([Ballereau _et al._ 2018](https://bioinformatics-core-shared-training.github.io/cruk-summer-school-2018/RNASeq2018/html/06_Gene_set_testing.nb.html)).
+
+Let's take a look at the GSEA results.
 
 ```{r view_gsea, live = TRUE, eval = FALSE}
 View(gsea_results@result %>%
@@ -197,21 +257,20 @@ Let's write these results to file.
 gsea_results@result %>% readr::write_tsv(gsea_results_file)
 ```
 
-
 ### Visualizing GSEA results
 
 We can visualize GSEA results for individual pathways or gene sets using `enrichplot::gseaplot()`.
-Let's take a look at 3 different pathways -- one with a highly positive NES, one with a highly negative NES, and one somewhere in the middle -- to get more insight into how ES are calculated.
+Let's take a look at 3 different pathways -- one with a highly positive NES, one with a highly negative NES, and one that was not a significant result -- to get more insight into how ES are calculated.
 
 #### Highly Positive NES
 
-The gene set `HALLMARK_MYC_TARGETS_V2` had high positive log2 fold changes.
+The gene set `HALLMARK_MYC_TARGETS_V1` had high positive log2 fold changes.
 Recall a positive log2 fold change means a it had a higher expression value in _MYCN_ amplified cell lines.
 
-```{r myc_v2}
+```{r myc_v1}
 enrichplot::gseaplot(gsea_results,
-                     geneSetID = "HALLMARK_MYC_TARGETS_V2",
-                     title = "HALLMARK_MYC_TARGETS_V2",
+                     geneSetID = "HALLMARK_MYC_TARGETS_V1",
+                     title = "HALLMARK_MYC_TARGETS_V1",
                      color.line = "#0066FF")
 ```
 
@@ -219,23 +278,23 @@ Notice how the genes that are in the gene set, indicated by the black bars, tend
 
 #### Highly Negative NES
 
-The gene set `HALLMARK_INFLAMMATORY_RESPONSE` had a highly negative NES.
+The gene set `HALLMARK_INTERFERON_ALPHA_RESPONSE` had a highly negative NES.
 
 ```{r inflammatory}
 enrichplot::gseaplot(gsea_results,
-                     geneSetID = "HALLMARK_INFLAMMATORY_RESPONSE",
-                     title = "HALLMARK_INFLAMMATORY_RESPONSE",
+                     geneSetID = "HALLMARK_INTERFERON_ALPHA_RESPONSE",
+                     title = "HALLMARK_INTERFERON_ALPHA_RESPONSE",
                      color.line = "#0066FF")
 ```
 
 This gene set shows the opposite pattern -- genes in the pathway tend to be on the right side of the graph.
 
-#### Somewhere in the middle
+#### A non-significant result
 
-A moderately negative NES is somewhere in the middle in this particular experiment.
-Let's look at `HALLMARK_P53_PATHWAY`.
+The `@results` slot will only show gene sets that pass the `pvalueCutoff` threshold we supplied to `GSEA()`, but we can plot any gene set so long as we know its name.
+Let's look at `HALLMARK_P53_PATHWAY`, which was not in the results we viewed earlier.
 
-```{r p53}
+```{r p53, live = TRUE}
 enrichplot::gseaplot(gsea_results,
                      geneSetID = "HALLMARK_P53_PATHWAY",
                      title = "HALLMARK_P53_PATHWAY",
@@ -244,7 +303,7 @@ enrichplot::gseaplot(gsea_results,
 
 Genes in the pathway are distributed more evenly throughout the ranked list, resulting in a more "middling" score.
 
-*Note: The plots returned by `enrichplot::gseaplot` are ggplots, so we can use `ggplot2::ggsave()` to save them to file.*
+*Note: The plots returned by `enrichplot::gseaplot` are ggplots, so we could use `ggplot2::ggsave()` to save them to file if we wanted to.*
 
 ## Session Info
 
