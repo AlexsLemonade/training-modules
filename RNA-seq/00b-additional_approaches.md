@@ -56,7 +56,7 @@ Once this completes, you should have a report at `QC/gastric_cancer/multiqc_repo
 
 ## Decoy sequence-aware selective alignment with Salmon
 
-Transcript abundance estimates from lightweight mapping approaches like Salmon can differ from abundance estimates derived from traditional alignment approaches in experimental data ([Srivastava _et al._ 2020.](https://doi.org/10.1186/s13059-020-02151-8)).
+Transcript abundance estimates from lightweight mapping approaches like Salmon can differ from abundance estimates derived from traditional alignment approaches in experimental data ([Srivastava _et al._ 2020](https://doi.org/10.1186/s13059-020-02151-8)).
 This differs from the takeaway of most prior work comparing lightweight mapping and traditional alignment; this is very likely due to the typical focus on _simulated data_ rather than experimental data.
 
 To provide better results than lightweight mapping alone, Salmon includes a "selective alignment" method that is less computationally costly than traditional alignment while still offering improvements over lightweight mapping.
@@ -75,4 +75,4 @@ Some laptops (including ones your instructors own!) are not well-equipped to run
 
 We have not extensively explored the memory and runtime requirements for the selective alignment mode, but we have successfully run human samples using Salmon with an index that includes partial decoy sequences on a Linux Desktop with 64 GB of RAM.
 
-We recommend checking out [this section of the Salmon README](https://github.com/COMBINE-lab/salmon/tree/91091fc3650a3220f657a9f31616916513f0ad02#pre-computed-decoy-transcriptomes) and following the [selective alignment tutorial](https://combine-lab.github.io/alevin-tutorial/2019/selective-alignment/) from the Salmon authors.
+We recommend checking out [the Salmon documentation on indices](https://salmon.readthedocs.io/en/latest/salmon.html#preparing-transcriptome-indices-mapping-based-mode) for more information, and following the [selective alignment tutorial](https://combine-lab.github.io/alevin-tutorial/2019/selective-alignment/) from the Salmon authors.
