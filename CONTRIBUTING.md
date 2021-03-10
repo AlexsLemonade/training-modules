@@ -34,15 +34,25 @@
 ### Learning Objectives
 
 Each notebook should begin with a "Learning objectives" section.
-This section contains a compact summary of the goals for the notebook, in the form of a bulleted list of objectives, introduced by the phrase:
+This section contains a compact summary of the goals for the notebook, in the form of a bulleted list of objectives, preceded by the following header:
 
-> This notebook will demonstrate how to
+```
+## Objectives
 
+This notebook will demonstrate how to:
+
+```
 Each element of the objective list should be a specific concept and/or skill we expect learners to come away from the notebook having gained.
 Phrase the objective with an "action verb" followed by a description of the skill.
 The Carpentries [Curriculum Development Handbook section on learning objectives](https://cdh.carpentries.org/developing-content.html#learning-objectives) has some useful discussion about how to write effective learning objectives for courses like ours.
 
 For most notebooks, 3-5 objectives should be sufficient.
+
+The objectives list should be followed by a horizontal rule for visual distinction: 
+
+```
+---
+```
 
 ### Style guide
 
