@@ -37,6 +37,8 @@ metadata <- metadata %>%
   dplyr::mutate(
     # everything but the last 5 characters is the mouse ID
     mouse_id = stringr::str_sub(metadata$refinebio_title, 1, -6),
+    # simplify mouse ids
+    Mouse = forcats::fct_anon(as.factor(mouse_id), "M"),
     # the last four characters of the title tells us about the lane
     replicate_id = stringr::str_sub(metadata$refinebio_title, -4),
     Treatment = dplyr::case_when(
