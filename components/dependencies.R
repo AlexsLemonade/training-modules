@@ -22,5 +22,3 @@ library(ggupset)
 library(org.Dr.eg.db)
 library(org.Cf.eg.db)
 
-# Required for vsn plots in RNA-seq 
-library(hexbin)
