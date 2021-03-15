@@ -14,7 +14,7 @@ This notebook will demonstrate how to:
 
 - Identify when Gene Set Variation Analysis (GSVA) is well-suited for an analysis
 - Perform GSVA on transformed RNA-seq data with the `GSVA` package
-- Generate random gene sets using functional programming tools from the [`purrr` package](https://purrr.tidyverse.org/)
+- Explore the dependence of GSVA scores on gene set size with random gene sets
 
 ---
 
@@ -216,12 +216,15 @@ The Hallmarks list we used earlier stored the gene set names as the name of the 
 # We will include the size of the gene set in the gene set name 
 # Start by taking the length of each pathway and appending "pathway_" to that
 # number
-lengths_vector <- purrr::map(random_gene_sets, ~ length(.x)) %>%
+lengths_vector <- random_gene_sets %>%
+  # Get the length of each gene set (number of genes)
+  purrr::map(~ length(.x)) %>%
+  # Make it "pathway_<gene set size>"
   purrr::map(~ paste0("pathway_", .x)) %>%
   # Return a vector
   purrr::flatten_chr()
 
-# Add the names in lengths_vector to the list
+# Add the names in lengths_vector to the list - "pathway_<gene set size>"
 random_gene_sets <- random_gene_sets %>% 
   # make.names() appends a "version" if something is not unique
   purrr::set_names(nm = make.names(lengths_vector, unique = TRUE))
