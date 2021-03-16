@@ -47,7 +47,8 @@ if (!"exrcise" %in% installed.packages()){
 message("Processing ", opt$notebook)
 # Rerender notebooks if --render is TRUE
 if (render) {
-  rmarkdown::render(opt$notebook, env = new.env(), quiet = TRUE)
+  options(max.print = 100)
+  rmarkdown::render(opt$notebook, quiet = TRUE)
 }
 
 # new files will be made with -live.Rmd suffix
