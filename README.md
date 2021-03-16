@@ -12,7 +12,7 @@ workshop.
 
 ### Structure of each module:
 
-![structure](structure_course.png)
+![structure](module_structure_detail.png)
 
 ### Background slides:
 
