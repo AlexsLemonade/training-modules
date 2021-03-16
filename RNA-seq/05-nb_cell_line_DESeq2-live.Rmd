@@ -1,12 +1,23 @@
 ---
 title: "Neuroblastoma Cell Line: Differential expression analysis with DESeq2"
+author: CCDL for ALSF
+date: 2021
 output:   
   html_notebook: 
     toc: true
     toc_float: true
 ---
 
-**CCDL 2021**
+
+## Objectives
+
+This notebook will demonstrate how to:
+
+- Perform differential expression analysis with `DESeq2`
+- Apply a shrinkage algorithm to improve estimates of expression changes
+- Draw a volcano plot with the `EnhancedVolcano` package
+
+---
 
 In this notebook, we'll perform an analysis to identify the genes that are differentially expressed in _MYCN_ amplified vs. nonamplified neuroblastoma cell lines. 
 
@@ -135,9 +146,9 @@ gene_summarized$status <- relevel(gene_summarized$status, ref = "Nonamplified")
 
 ```
 
-### Differential expression
+## Differential expression analysis
 
-#### Filtering low-expressed genes
+### Filtering low-expressed genes
 
 Genes that have very low counts are not likely to yield reliable differential expression results, so we will do some light [pre-filtering](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering). 
 We will keep only genes with total counts of at least 10 across all samples.
@@ -148,7 +159,7 @@ ddset <- ddset[genes_to_keep, ]
 ```
 
 
-#### Differential expression analysis
+### The `DESeq()` function
 
 We'll now use the wrapper function `DESeq()` to perform our differential expression analysis.
 As mentioned earlier, this performs a number of steps, including an [outlier removal procedure](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#approach-to-count-outliers). 
@@ -179,7 +190,7 @@ summary(deseq_results, alpha = 0.05)
 ```
 
 
-#### Shrinking log2 fold change estimates
+### Shrinking log2 fold change estimates
 
 The estimates of log2 fold change calculated by `DESeq()` are not corrected for expression level.
 This means that when counts are small, we are likely to end up with some large fold change values that overestimate the true extent of the change between conditions.
@@ -262,7 +273,7 @@ readr::write_tsv(deseq_df, file = deseq_df_file)
 ```
 
 
-#### Volcano Plot 
+## Making a Volcano Plot 
 
 With these shrunken effect sizes, we will draw a volcano plot, using the [`EnhancedVolcano` package](https://github.com/kevinblighe/EnhancedVolcano) to make it a bit easier.
 This package automatically color codes the points by cutoffs for both significance and fold change and labels many of the significant genes (subject to spacing).
