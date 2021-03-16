@@ -1,0 +1,380 @@
+---
+title: "OpenPBTA: Create a heatmap"
+author: CCDL for ALSF
+date: 2021
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+
+## Objectives
+
+This notebook will demonstrate how to:
+
+- Load tabular expression data and prepare it for use with `DESeq2`
+- Create an annotated heatmap of gene expression variation using the `ComplexHeatmap` package
+- Customize a PCA plot and compare the output with hierarchical clustering of the same data 
+
+---
+
+In this notebook, we cluster RNA-seq data from the Open Pediatric Brain Tumor Atlas (OpenPBTA) project and create a heatmap.
+OpenPBTA is a collaborative project organized by the CCDL and the Center for Data-Driven Discovery in Biomedicine (D3b) at the Children's Hospital of Philadelphia conducted openly on GitHub.
+
+You can read more about the project [here](https://github.com/alexslemonade/openpbta-analysis/#openpbta-analysis).
+
+We've downloaded some of the publicly available expression data from the project and selected a subset with the most common disease types for analysis here.
+
+We'll use a package called [`ComplexHeatmap`](https://www.bioconductor.org/packages/release/bioc/html/ComplexHeatmap.html) to make our heatmap.
+This package allows us to annotate our heatmap with sample information, and will also perform clustering as part of generating the heatmap.
+It is highly flexible and opinionated - the data structures we pass `ComplexHeatmap` functions often need to be _just right_.
+See the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/) for more information.
+
+## Set up
+
+### Libraries
+
+```{r load_libraries}
+# We will manipulate RNASeq data with DESeq2 at the start
+library(DESeq2)
+
+# Then we'll be doing a bit of data wrangling with the Tidyverse
+library(tidyverse)
+
+# ComplexHeatmap is the package we'll use for making a heatmap
+# It will do the hierarchical clustering for us as well
+library(ComplexHeatmap)
+```
+
+### Directories and files
+
+We have stored the data we'll use in this notebook in `data/open-pbta`. 
+
+```{r directories, live = TRUE}
+
+# We'll store the heatmap in plots/open-pbta - create directory if it doesn't exist yet
+
+```
+
+#### Input files
+
+```{r input_files}
+# The metadata describing the samples
+histologies_file <- file.path(data_dir, "pbta-histologies-subset.tsv")
+
+# The RNA-seq counts table
+rnaseq_file = file.path(data_dir, "pbta-rsem-expected_count-subset.rds")
+```
+
+#### Output files
+
+```{r png_output, live = TRUE}
+
+```
+
+## Read in and prepare data
+
+### Metadata 
+
+Let's read in the metadata file file and take a look at the data.
+
+```{r read_rds, live = TRUE}
+
+```
+
+Use the chunk below to explore the metadata data frame.
+
+```{r explore_histologies_df, live = TRUE, eval = FALSE}
+
+```
+
+We'll use the disease labels in a column called `short_histology` when we label the heatmap.
+Let's count how many samples are assigned each `short_histology` label using the Tidyverse.
+
+```{r count_histologies}
+histology_count_df <- histologies_df %>%
+  # Count how many samples are in each short_histology and name the column 
+  # with that number n
+  count(short_histology) %>%
+  # Sort from largest number of samples to smallest number of samples in a 
+  # histology
+  arrange(desc(n))
+
+histology_count_df
+```
+
+### RNA-seq data
+
+Read in the expression count matrix (stored as a data frame).
+
+```{r read_in_rnaseq, live = TRUE}
+# Read in and examine the RNA-seq data
+
+```
+
+### Convert and round
+
+The count data we have consists mostly of integers, but because of the estimation procedure that RSEM uses, some counts are fractional. 
+`DESeq2`, which we will be using below expects all integers, so we will round all of the count data. 
+This is easiest if we first convert from a data frame to a matrix.
+
+```{r convert_round, live = TRUE}
+
+  # move gene_id to the rownames
+
+  # convert to a matrix and round
+
+```
+
+### Variance Stabilizing Transformation
+
+Raw counts are not usually suitable for the algorithms we use for clustering and heatmap display, so we will use the `vst()` function from the `DESeq2` package to transform our data.
+
+Since we are starting from a matrix, not a `SummarizedExperiment` as we did previously, we will need to provide the sample information ourselves.
+Just to be sure nothing is out of order, we will check that the identifiers for the sample information stored in `histologies_df` matches the columns of our matrix.
+
+```{r check-order}
+all.equal(histologies_df$Kids_First_Biospecimen_ID,
+          colnames(rnaseq_mat))
+```
+
+Now we can make our matrix into a `DESeq2` dataset, adding on the sample information from `histologies_df`. 
+Unlike when we were performing differential expression analysis, we won't provide an experimental design at this stage.
+
+```{r make-DESEq}
+ddset <- DESeqDataSetFromMatrix(rnaseq_mat,
+                                colData = histologies_df,
+                                design = ~ 1) # don't store an experimental design
+```
+
+We will again remove low count genes, as they are not likely to be informative. 
+
+```{r trim}
+genes_to_keep <- rowSums(counts(ddset)) >= 10
+ddset <- ddset[genes_to_keep, ]
+```
+
+Now we can apply the variance stabilizing transformation, saving the results in a new object.
+
+```{r vst, live=TRUE}
+# apply variance stabilizing transformation
+
+```
+
+This object stores information about the transformation that was applied, but for now, we will only need the matrix of transformed data, which we can extract with `assay()`.
+
+```{r extract_expr, live = TRUE}
+# extract transformed data
+
+```
+
+What are the dimensions of this transformed RNA-seq data matrix?
+
+```{r rnaseq_dim, live = TRUE}
+
+```
+
+Almost 50k genes would be hard to visualize on a single heatmap!
+If we are making a heatmap to get an idea of the structure in our data, it can be helpful to subset to high variance genes.
+This is because the genes that *don't* vary are not likely to contribute much to the overall patterns we are interested in.
+
+First, we'll calculate the variance for each gene using `rowVars()` from the `matrixStats` package and then take the genes in the top 10%.
+
+```{r high_var_genes}
+# Calculate variance from the expression data 
+gene_variance <- matrixStats::rowVars(expr_mat)
+
+# Find the value that we'll use as a threshold to filter the top 10%
+variance_threshold <- quantile(gene_variance, 0.9)
+
+# Row indices of high variance genes
+high_variance_index <- which(gene_variance > variance_threshold)
+
+# What does a row index look like?
+head(high_variance_index)
+```
+
+```{r high_var_mat, live = TRUE}
+# Get a matrix that is subset to just the high variance genes
+
+```
+
+## Heatmap
+
+### Annotation
+
+First, we'll set up the metadata that we want to use to label samples in the heatmap.
+In `ComplexHeatmap` terminology, this is called annotation, or `HeatmapAnnotation`, specifically.
+
+```{r sample_annotation_df}
+sample_annotation_df <- histologies_df %>%
+  # Select only the columns that we'll use
+  select(Kids_First_Biospecimen_ID,
+         short_histology,
+         composition,
+         tumor_descriptor)
+
+# Let's examine these columns
+sample_annotation_df
+```
+`ComplexHeatmap` is going to want the data frame we provide to have the sample identifiers as row names, so let's set that up. 
+
+```{r annotation_as_df, live = TRUE}
+
+```
+
+To specify the colors in our annotation bar, we need to create a list of named vectors.
+The names of the list need to *exactly* match the column names in `sample_annotation_df` and the names in each vector need to *exactly* match the values in those columns.
+
+```{r color_palettes}
+# The Okabe Ito palette is recommended for those with color vision deficiencies  
+histology_colors <- palette.colors(palette = "Okabe-Ito")[2:5]
+# `palette.colors()` returns a named vector, which can cause trouble
+histology_colors <- unname(histology_colors)
+
+# annotation color list for ComplexHeatMap
+sample_annotation_colors <- list(
+  short_histology = c(
+    "LGAT" = histology_colors[[1]],
+    "Ependymoma" = histology_colors[[2]],
+    "HGAT" = histology_colors[[3]],
+    "Medulloblastoma" = histology_colors[[4]]
+  ),
+  composition = c(
+    "Solid Tissue" = "#A0A0A0",  # light grey
+    "Derived Cell Line" = "#000000"  # black
+  ),
+  tumor_descriptor = c(
+    "Initial CNS Tumor" = "#3333FF",
+    "Progressive" = "#FFFF99",
+    "Recurrence" = "#CCCCFF",
+    "Second Malignancy" = "#000033",
+    "Unavailable" = "#FFFFFF"  # white for missing data
+  )
+)
+```
+
+We need to create a special type of object with `HeatmapAnnotation` using the annotation data frame and the list of color vectors.
+We will also make the annotation labels a bit nicer to look at than the raw columns names.
+
+```{r create_annotation, live = TRUE}
+
+```
+
+### Values for display
+
+We will z-score the expression values for display.
+This is sometimes called a standardized score.
+Some heatmap plotting packages will do this for you, but `ComplexHeatmap` does not.
+It's calculated for each value in a row (gene) by subtracting the gene's mean and dividing by the gene's standard deviation.
+This will result in every row having a mean of 0 and a standard deviation of 1.
+
+```{r zscore}
+zscores_mat <- 
+  (high_var_mat - rowMeans(high_var_mat)) / matrixStats::rowSds(high_var_mat)
+```
+
+Since all genes have the same z-score variance (by definition!), if you're filtering to high variance values, it's important to do that _prior_ to standardizing.
+
+### Heatmap itself!
+
+Okay, now we're ready to make a heatmap complete with annotation bars.
+
+```{r make_heatmap}
+Heatmap(zscores_mat,
+        # The distance metric used for clustering the rows
+        # This is different from the default (Euclidean)
+        clustering_distance_rows = "pearson",
+        # Linkage method for row clustering
+        # This is different from the default (complete)
+        clustering_method_rows = "average",
+        # Distance metric for columns
+        clustering_distance_columns = "pearson",
+        # Linkage for columns
+        clustering_method_columns = "average",
+        show_row_names = FALSE,
+        show_column_names = FALSE,
+        # Add annotation bars to the top of the heatmap
+        top_annotation = column_annotation,
+        # This will be used as the label for the color bar
+        # of the cells of the heatmap itself
+        name = "z-score")
+```
+
+`ComplexHeatmap` gives a few warning here, but nothing to be concerned about. 
+One is complaining that the color scale may be truncated relative to our data.
+The other warns that our very large heatmap itself is being drawn at a lower resolution to speed things up.
+
+We have to create the heatmap _twice_ -- once for display in the notebook and once to save to a PNG file.
+For the second drawing we will deal with the raster warning and produce a higher resolution output.
+
+```{r save_heatmap_png, live = TRUE}
+# Open PNG plot device
+
+# Heatmap, again!
+
+# Shut down current graphics device
+
+```
+
+### Notes on clustering
+
+You probably noticed that there were some arguments that we defined that were related to the clustering of samples and genes when we built the heatmaps.
+The clustering determines the arrangement of genes and samples in the heatmap, making it so genes or samples with similar expression patterns are grouped.
+If we didn't do that, we would have a heatmap that looked basically like random static!
+
+The kind of clustering we performed was [hierarchical clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering).
+This is an _agglomerative_ method of clustering - each sample starts in its own cluster and then at each step of the algorithm the two most similar clusters are joined until there's only a single cluster left.
+
+The arguments we chose for `clustering_distance_*` and `clustering_method_*` told `ComplexHeatmap` to use 1 minus the correlation between samples as the distance measure, and to average samples when they were merged into a group.
+This method is also known as [UPGMA (unweighted pair group method with arithmetic mean)](https://en.wikipedia.org/wiki/UPGMA).
+
+The result of this clustering process is a tree (dendrogram), which is shown at the top for samples and to the left for genes.
+It is important to note that the linear arrangement of samples in the tree is somewhat arbitrary, so we have to be careful not to overinterpret it.
+We can rotate around any branch of the tree in our visualization with no change to the tree topology itself.
+In fact, the samples at opposite ends of the heatmap could be right next to one another with the right set of rotations!
+
+
+### PCA as an alternative to clustering
+
+You probably noticed that the hierarchical clustering we performed didn't perfectly separate out the different cancer subtypes we were looking at. 
+
+What would have happened if we had used PCA to visualize the relationships among samples? 
+Would that have made it easier to separate disease types? 
+Let's try it!
+
+We will use the VST transformed data here too, and the `plotPCA()` function from `DESeq2`.
+
+```{r expr-pca }
+# Use plotPCA, but return the data for custom plotting
+pca_df <- plotPCA(vst_data,
+                  ntop = 5000, # use the top 5000 genes by variance
+                  intgroup = "short_histology",
+                  returnData = TRUE) 
+
+
+ggplot(pca_df, aes(PC1, PC2, color = short_histology)) + 
+  geom_point() +
+  theme_bw() + 
+  scale_color_manual(
+    values = c("LGAT" = histology_colors[[1]],
+               "Ependymoma" = histology_colors[[2]],
+               "HGAT" = histology_colors[[3]],
+               "Medulloblastoma" = histology_colors[[4]])
+  ) + 
+  labs(color = "Histology")
+```
+
+We can see that neither method perfectly separates the different disease types.
+With PCA, if we didn't color the points, it might even be difficult to identify distinct clusters in the data at all by eye. 
+(We could look at more than two PCs, which might help out, but we would need to use a different function for our calculation, since `plotPCA()` only returns the first two.)
+
+For nice comparison of the relative advantages of these two methods (with a little mention of some further directions), we recommend [blog post by Soneson](https://www.rna-seqblog.com/a-comparison-between-pca-and-hierarchical-clustering/).
+
+
+## Session Info
+
+```{r session_info}
+sessionInfo()
+```
