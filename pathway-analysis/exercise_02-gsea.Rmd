@@ -1,0 +1,176 @@
+---
+title: "Exercise: Gene Set Enrichment Analysis of medulloblastoma PDX results"
+output: 
+  html_notebook:
+    toc: true
+    toc_float: true
+author: CCDL for ALSF
+date: 2021
+---
+
+In this exercise notebook, we will perform Gene Set Enrichment Analysis (GSEA) on differential gene expression analysis results from a PDX model of medulloblastoma.
+This is the same dataset we worked with in `exercise_01-ora.Rmd`, where we describe the experimental setup; you may find it helpful to revisit the ORA notebook as you work through this one.
+
+These data are from from [Huang _et al._ (2018)](https://doi.org/10.1126/scitranslmed.aat0150). 
+We prepared the results you'll be working with in [this notebook](https://github.com/AlexsLemonade/training-modules/blob/master/pathway-analysis/setup/exercises/01-pdx_MB_DGE.Rmd).
+
+We've set this exercise up to run through minimal inspection of GSEA results, but we encourage you to explore!
+You can insert new chunks (`Cmd + Option + I` on Mac, `Ctrl + Alt + I` on Windows) to do so.
+
+## Set up
+
+### Libraries
+
+Load in `magrittr`, `clusterProfiler`, `msigdbr`, and, `org.Hs.eg.db`.
+
+```{r libraries, solution = TRUE}
+
+```
+
+### Directories and files
+
+The DGE results are available at `data/medulloblastoma/pdx_medulloblastoma_treatment_dge.tsv`.
+Use the next chunk to assign the path to the results file to a variable called `dge_results_file`.
+
+```{r input_file, solution = TRUE}
+
+```
+
+Let's save the GSEA results to `results/medulloblastoma`.
+This directory might not exist yet, so you'll need to use the next chunk to assign the output directory to a variable called `output_dir` and create it if it doesn't exist yet.
+
+```{r output_directory, solution = TRUE}
+
+```
+
+We'll also save a plot at the end of the notebook, so we'll set up the directory and file name here.
+
+```{r plot_output}
+plots_dir <- "plots"
+if (!dir.exists(plots_dir)) {
+  dir.create(plots_dir)
+}
+
+# We're going to save the GSEA plot of the pathway with the highest normalized
+# enrichment score
+plot_file <- file.path(plots_dir, "most_positive_NES.png")
+```
+
+## Gene Sets
+
+We can retrieve _all_ of the gene sets available for human in the `msigdbr` package with the command in the following chunk.
+
+```{r msigdbr}
+hs_msigdb_df <- msigdbr(species = "Homo sapiens")
+head(hs_msigdb_df)
+```
+
+Take a look at the collections here: https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
+The `gs_cat` and `gs_subcat` columns of `hs_msigdb_df` contain the collection information.
+Once you've decided on what collection you want to use for your pathway analysis, use the next chunk to filter `hs_msigdb_df` for that collection and assign to a new data frame called `gene_set_df`. 
+(Hint: We haven't loaded in the `dplyr` package.)
+
+_Just a heads up, the solved version will use Hallmark gene sets, but that doesn't mean you need to!_
+
+```{r filter_gene_sets, solution = TRUE}
+# Save the new filtered data frame as gene_set_df
+
+```
+
+## Read in previously prepared DGE results
+
+Use the chunk below to read in the DGE results and save them as `dge_results_df`.
+
+```{r read_in_dge, solution = TRUE}
+
+```
+Use the next chunk to explore `dge_results_df` - what kind of gene identifiers do we have?
+
+```{r dge_peek, solution = TRUE}
+
+```
+
+### Gene identifier conversion
+
+Use the next chunk to convert the identifiers in `Gene` column in the data frame of DGE results to gene symbols, which are identifiers you can use with `gene_set_df`.
+Store the Entrez IDs in a new column (hint: use `dplyr::mutate()`) called `gene_symbol`.
+You should also remove rows that contain `NA` values.
+
+```{r identifier_conversion, solution = TRUE}
+# Map from the identifiers in the DGE results data frame to one of the types of
+# identifiers in gene_set_df and save the new identifier
+
+  # Remove rows with NAs
+
+```
+
+### Prepare statistics for `GSEA()`
+
+This next chunk will filter out duplicate gene symbols, retaining the instance of the symbol with the highest absolute log2 fold change.
+
+```{r filter_dge}
+filtered_dge_df <- dge_results_df %>%
+  # Sort so that the highest absolute values of the log2 fold change are at the
+  # top
+  dplyr::arrange(dplyr::desc(abs(log2FoldChange))) %>%
+  # Filter out the duplicated rows using `dplyr::distinct()`
+  dplyr::distinct(gene_symbol, .keep_all = TRUE)
+```
+
+Use the next chunk to prepare the pre-ranked named vector you'll pass to `GSEA()`. 
+
+```{r prep_lfc_vector, solution = TRUE}
+
+  # Extract a vector of `log2FoldChange` named by `gene_symbol`
+
+# Sort in decreasing order
+
+```
+
+## GSEA
+
+Use this chunk to run GSEA.
+
+```{r run_gsea, solution = TRUE}
+
+```
+### Results
+
+Adding `@result` to the end of the object you saved in the last step will return the statistics we're interested in in a tabular format.
+Use the next chunk to sort the tabular results by the `NES` column.
+Reminder that a very positive NES means that gene set contains many genes near the top of the ranked list. 
+A very negative NES means that gene set contains many genes near the bottom of the ranked list. 
+
+```{r sort_nes, solution = TRUE, rownames.print = FALSE}
+
+```
+
+### Visualization
+
+Use the next chunk to make a plot with `enrichplot::gseaplot()` for the pathway with the highest (most positive) NES value.
+
+```{r gseaplot, solution = TRUE}
+
+```
+
+The output of `enrichplot::gseaplot()` is a `ggplot`.
+Use the next chunk to save it with `ggplot2::ggsave()`.
+
+```{r ggsave, solution = TRUE}
+
+```
+
+## Closing thoughts
+
+Quoting from the results section of [Huang _et al._ (2018)](https://doi.org/10.1126/scitranslmed.aat0150) here:
+
+> Tumor cells harvested from mice undergoing digoxin treatment showed an increase in apoptosis compared to untreated tumors or those that progressed after completion of treatment (Fig. 6A). We subsequently performed deep RNA-seq (GSE115542) on group 3 (ICb-2555MB) and group 4 (ICb-1078MB) tumors harvested before and immediately after completion of digoxin treatment to evaluate changes in gene expression (Fig. 6 and tables S10 and S11). 
+
+In our DGE results, genes with positive fold changes will be more highly expressed in samples with digoxin.
+Do the GSEA results align with the authors' findings?
+
+## Session Info
+
+```{r session_info}
+sessionInfo()
+```

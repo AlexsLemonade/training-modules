@@ -1,6 +1,6 @@
 ---
 title: "Introduction to RNA-seq exploratory data analysis - Exercises"
-author: "Jaclyn Taroni for CCDL"
+author: "CCDL for ALSF"
 date: "2020"
 output:
   html_notebook:
@@ -28,87 +28,34 @@ You can read more about these subgroups of medulloblastoma in [Menyhárt et al. 
 
 # Load in ggplot2
 
-```
+# Load the SummarizedExperiment package
 
-```{r magrittr}
-`%>%` <- dplyr::`%>%`
+# Load the magrittr package for the %>% operator
+
 ```
 
 ## Read in and reorder data
 
-We have prepared an RDS file that contains the output of `tximport` and a TSV file that contains metadata for the experiment.
+We have prepared an RDS file that contains the output of `tximeta` steps in the form of a `SummarizedExperiment` object. 
 
 ```{r input-files}
-tximport_file <- file.path("data", 
-                           "medulloblastoma",
-                           "tximport", 
-                           "medulloblastoma_tximport.RDS")
-metadata_file <- file.path("data",
-                           "medulloblastoma",
-                           "sample_metadata",
-                           "SRP150101_metadata.tsv")
+txi_file <- file.path("data",
+                      "medulloblastoma",
+                      "txi",
+                      "medulloblastoma_txi.RDS")
 ```
 
-Use the chunk below to read in the tximport object and metadata; save them as `txi` and `metadata_df`, respectively.
+Use the chunk below to read in the gene-level summarized `tximeta` object and save it as `gene_summarized`.
 
 ```{r read-in-files, solution = TRUE}
-# Read in the tximport file and save it as an object called txi
-
-# Read in the TSV file that contains the metdata and save it as an object called
-# metadata_df
-
-```
-
-Use the chunk below to look at the contents of `metadata_df`.
-
-```{r examine-metadata, solution = TRUE}
-
-```
-
-Let's check if samples are in the same order.
-
-```{r samples-same-order}
-# Here we're saving the column names of the first matrix in the tximport object.
-# tximport_sample_names will tell us the order of samples in the this object 
-# because samples are columns.
-tximport_sample_names <- colnames(txi$abundance)
-# The Run column of the metadata contains the run accession code from SRA
-# We're checking this against the column order in txi
-all.equal(metadata_df$Run, tximport_sample_names)
-```
-
-Let's look at the order of the samples in `txi`. 
-
-```{r order-in-txi}
-tximport_sample_names
-```
-
-The sample names are not in ascending order, which is what we saw in the notebook we went through together, so we can't just use `dplyr::arrange` without taking additional steps in this case.
-Although these samples look like they're in descending order, we'll use the chunk below to show you a more general strategy for reordering metadata to match the expression data.
-
-```{r reorder-metadata}
-metadata_df <- metadata_df %>%
-  # The levels of a factor determine how ordering is performed when we use
-  # dplyr::arrange - here we're setting the levels equal to the order of the
-  # samples in the tximport object txi
-  dplyr::mutate(Run = factor(Run, levels = tximport_sample_names)) %>%
-  # Ordering should be the same as samples in txi
-  dplyr::arrange(Run) %>%
-  # Convert back to a character from a factor
-  dplyr::mutate(Run = as.character(Run))
-```
-
-Let's use the chunk below to check the ordering again.
-
-```{r samples-same-order-again, solution = TRUE}
-# Now check if the samples are in the same order again
+# Read in the tximeta file and save it as an object called gene_summarized
 
 ```
 
 ## DESeq2 
 
-Now we're ready to create a `DESeqDataSet` from the tximport object.
-Because we plan to use the `DESeqDataSet` to compare samples in a manner that is unbiased by the prior information about samples, we don't need to enter information about the experimental design to the `design` argument of `DESeqDataSetFromTximport()`; we can use `~ 1` instead.
+Now we're ready to create a `DESeqDataSet` from the `tximeta` object.
+Because we plan to use the `DESeqDataSet` to compare samples in a manner that is unbiased by the prior information about samples, we don't need to enter information about the experimental design to the `design` argument of `DESeqDataSet()`; we can use `~ 1` instead.
 
 A few things to note:
 
@@ -116,11 +63,10 @@ A few things to note:
 2. If we wanted to go on to perform differential expression analysis or other downstream analyses, we'd want to create a new object where we specified information about the experimental design to `design`.
 
 ```{r ddset-creation}
-ddset <- DESeqDataSetFromTximport(txi = txi,
-                                  colData = metadata_df,
-                                  # using design = ~ 1 blinds the DESeq2 object
-                                  # from the experimental design
-                                  design = ~ 1)
+ddset <- DESeqDataSet(gene_summarized,
+                      # using design = ~ 1 blinds the DESeq2 object
+                      # from the experimental design
+                      design = ~ 1)
 ```
 
 ### Normalized counts
@@ -132,6 +78,7 @@ Dividing samples by their size factor will bring the counts to a common scale, m
 ```{r normalized-counts}
 # Using estimateSizeFactors() will add the size factors to the ddset object
 ddset <- estimateSizeFactors(ddset)
+
 # The counts() function, when used with normalized = TRUE, will return the 
 # scaled counts as a matrix
 normalized_counts <- counts(ddset, normalized = TRUE)
@@ -175,7 +122,7 @@ Now make the same plot as you did above with `vsn::meanSdPlot()` using the trans
 ### Principal Components Analysis
 
 Make a PCA plot using `plotPCA()`, which takes the `vst()`-transformed object.
-The `intgroup` argument of `plotPCA()` takes the column name(s) from the metadata and will use that to color the points in the PCA plot.
+The `intgroup` argument of `plotPCA()` takes the column name(s) from the `colData()` and will use that to color the points in the PCA plot.
 
 ```{r plot-pca-1, solution = TRUE}
 # Perform PCA and color the points by whether or not a sample is treated with

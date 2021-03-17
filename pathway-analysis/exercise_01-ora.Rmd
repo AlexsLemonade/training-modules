@@ -1,0 +1,197 @@
+---
+title: "Exercise: Over-representation analysis of medulloblastoma PDX results"
+output: 
+  html_notebook:
+    toc: true
+    toc_float: true
+author: CCDL for ALSF
+date: 2021
+---
+
+In this exercise notebook, we will perform over-representation analysis (ORA) on differential gene expression analysis results from a PDX model of medulloblastoma.
+
+## Introduction to the dataset
+
+We will use an RNA-seq experiment comprised of medulloblastoma orthotopic patient-derived xenograft (PDX) models from [Huang *et al.* (2018)](https://doi.org/10.1126/scitranslmed.aat0150) to practice pathway analysis.
+
+Here's an excerpt of [the experiment description](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA475298):
+
+> RNA-seq data of Group 3 and 4 medulloblastoma with digoxin treatment.
+
+Group 3 and Group 4 are subgroups of medulloblastoma. 
+You can read more about these subgroups of medulloblastoma in [Menyhárt *et al.* (2019)](https://doi.org/10.1186/s13045-019-0712-y).
+
+[Digoxin](https://en.wikipedia.org/wiki/Digoxin) is a treatment for various cardiovascular diseases.
+
+*You may remember this dataset from the bulk RNA-seq exercise for exploratory data analysis!*
+
+### DGE results
+
+We've performed the differential gene expression analysis steps for you (you can see what we did [here](https://github.com/AlexsLemonade/training-modules/blob/master/pathway-analysis/setup/exercises/01-pdx_MB_DGE.Rmd)).
+
+**Some things to note:**
+
+* For the treatment comparison, `none` was the reference. 
+  Genes with higher expression in `digoxin` will have positive fold change values.
+* The design formula when we set up the `DESeqDataSet` was `~ Group + treatment`.
+  The differential gene expression results for `treatment` in our example should be the differences between digoxin vs. none, controlling for differences due to molecular subtype (`Group`).
+  
+## Set up
+
+### Libraries
+
+Load in `magrittr`, `clusterProfiler`, `msigdbr`, and, `org.Hs.eg.db`.
+
+```{r libraries, solution = TRUE}
+
+```
+
+### Directories and files
+
+The DGE results are available at `data/medulloblastoma/pdx_medulloblastoma_treatment_dge.tsv`.
+Use the next chunk to assign the path to the results file to a variable called `dge_results_file`.
+
+```{r input_file, solution = TRUE}
+
+```
+
+Let's save the results of your over-representation analysis to `results/medulloblastoma`.
+This directory might not exist yet, so you'll need to use the next chunk to assign the output directory to a variable called `output_dir` and create it if it doesn't exist yet.
+
+```{r output_directory, solution = TRUE}
+
+```
+
+## Gene Sets
+
+We can retrieve _all_ of the gene sets available for human in the `msigdbr` package with the command in the following chunk.
+
+```{r msigdbr}
+hs_msigdb_df <- msigdbr(species = "Homo sapiens")
+head(hs_msigdb_df)
+```
+
+Take a look at the collections here: https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
+The `gs_cat` and `gs_subcat` columns of `hs_msigdb_df` contain the collection information.
+Once you've decided on what collection you want to use for your pathway analysis, use the next chunk to filter `hs_msigdb_df` and assign to a new data frame called `gene_set_df`. 
+(Hint: We haven't loaded in the `dplyr` package.)
+
+_Just a heads up, the solved version will use KEGG gene sets, but that doesn't mean you need to!_
+
+```{r filter_gene_sets, solution = TRUE}
+# Save the new filtered data frame as gene_set_df
+
+```
+
+## Read in data and convert gene identifiers
+
+Use the next chunk to read in the DGE results and assign it to `dge_results_df`.
+
+```{r read_in_dge, solution = TRUE}
+
+```
+
+> What gene identifiers are used in the DGE results?
+  What gene identifiers are available in `gene_set_df`? 
+  
+To answer the first question, we can look at the `Gene` column that contains the gene identifiers.
+The column name `Gene` doesn't tell us what kind of identifier we have!
+When your instructors encounter an unfamiliar identifier, they often copy and paste one into Dr. Google.
+All joking aside, for human datasets, you can search [GeneCards](https://www.genecards.org/).
+
+For the first item in the list we searched the identifier in the `Gene` column: https://www.genecards.org/cgi-bin/carddisp.pl?gene=TSPAN6&keywords=ENSG00000000003
+Notice under `External Ids for TSPAN6 Gene` that it indicates that this is an Ensembl identifier.
+We can tell it's a _gene_ identifier because the prefix ends in `G`, rather than `T` which would indicate a transcript.
+
+We'll need to convert the gene identifiers we have in the DGE results to something we can use for pathway analysis.
+
+Let's remind ourselves what different gene identifiers are called in the `org.Hs.eg.db` package.
+
+```{r keytypes}
+keytypes(org.Hs.eg.db)
+```
+
+Use the next chunk to convert the identifiers in `Gene` column in the data frame of DGE results to Entrez IDs, which are identifiers you can use with `gene_set_df`.
+Store the Entrez IDs in a new column (hint: use `dplyr::mutate()`) called `entrez_id`.
+
+```{r identifier_conversion, solution = TRUE}
+# Map from the identifiers in the DGE results data frame to one of the types of
+# identifiers in gene_set_df and save the new identifier
+
+```
+
+## ORA
+
+Now that we have our DGE results and have converted the gene identifiers, we're ready to perform ORA.
+ORA requires a list of genes of interest, so we'll need to filter to some set of genes we'll use in our analysis.
+
+Use the next chunk to get a list of genes you'll use for ORA.
+Let's focus on genes that increase with treatment with digoxin.
+Given what we know about how the results were obtained (see: [_DGE results_](#dge-results)), consider:
+
+* Which columns of the DGE results do we need to use to filter?
+* What thresholds should we use?
+
+```{r genes_of_interest, solution = TRUE}
+
+  # Filter to significant results & to genes with higher expression in digoxin
+  # treated samples
+
+  # Use dplyr::pull() to get a vector of gene identifiers
+
+```
+
+We want to remove any `NA` values (`!is.na()`) from the vector of genes and also make sure we don't include duplicates (`unique()`).
+
+```{r unique_not_na}
+significant_digoxin_genes <- unique(significant_digoxin_genes[!is.na(significant_digoxin_genes)])
+```
+
+In the next chunk, we generate the background set for our ORA. 
+We are testing a list of _differentially expressed genes_, but not every gene in our list will be able to be **detected** by DGE.
+For example, DESeq2 includes a step called independent filtering, where genes with low mean normalized counts will have adjusted p-values that are set to `NA` ([docs](https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#independent-filtering-of-results)).
+So to get our background set, we'll filter to remove genes (rows) that have no `NA` values associated with them with `tidyr::drop_na()`.
+(This will also remove any genes without Entrez IDs.)
+
+```{r background_set}
+detected_genes <- unique(  # Only unique gene identifiers
+  dge_results_df %>%
+    # Remove any rows with NA
+    tidyr::drop_na() %>%
+    # Return a vector of Entrez IDs
+    dplyr::pull(entrez_id)
+)
+```
+
+Use the next chunk for the ORA step itself.
+
+```{r run_ora, solution = TRUE}
+
+```
+
+`enricher()` returns a specialized object that has _slots_.
+Slots can be accessed with `@` the same way you can get a column of a data frame with `$` and the column name.
+`@result` will return the statistics you are likely most interested in in a tabular format.
+
+```{r explore_ora, solution = TRUE, eval = FALSE}
+# Use this chunk to explore the ORA results
+
+```
+
+Write the ORA results to file.
+
+```{r write_ora, solution = TRUE}
+# Save the file name to a variable - you'll probably want to customize the name
+# of this file based on the analysis you choose to do (e.g., what gene sets)
+
+# Save the results slot as a data frame
+
+# Write to file with readr::write_tsv()
+
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
