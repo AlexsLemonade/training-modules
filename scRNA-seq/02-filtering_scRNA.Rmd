@@ -171,7 +171,7 @@ ggplot(mapping = aes(x = gene_means)) +
   xlab("Mean gene count") 
 ```
 
-That plot is not quite as informative as we might like, as a few genes with very high expression are making the scale just a *bit* wide.
+That plot is not quite as informative as we might like, as a few genes with high expression are making the scale just a *bit* wide.
 Lets zoom in on the left part of the graph by adding an `xlim()` argument. 
 (Note that `xlim()` will remove points outside the specified range, so you will get a warning.)
 
@@ -183,12 +183,12 @@ ggplot(mapping = aes(x = gene_means)) +
   xlim(0, 5)
 ```
 
-Even as we zoom in, the counts data has many zeroes, which we actually expect in a single cell RNA-seq experiment.
+Even as we zoom in, the counts data has many zeroes, which we actually expect in a single cell RNA-seq experiment (and even more so in a partial data set like this one).
 
 Let's calculate what proportion of the data is zeros:
 
 ```{r zero_fraction, live = TRUE}
-sum(sc_data == 0)/(nrow(sc_data) * ncol(sc_data))
+sum(sc_counts == 0)/(nrow(sc_counts) * ncol(sc_counts))
 ```
 
 
@@ -205,7 +205,7 @@ For this we will use `colSums()`, as each column represents a different sampled 
 
 ```{r total_counts, live = TRUE}
 # Make a vector of total_counts number of counts per sample using colSums()
-total_counts <- colSums(sc_data)
+total_counts <- colSums(sc_counts)
 ```
 
 
@@ -214,7 +214,7 @@ total_counts <- colSums(sc_data)
 summary(total_counts)
 ```
 
-Yikes, one of the samples has only 413 counts, compared to the median of ~950,000!
+Yikes, one of the samples has only 22 counts, compared to the median of 1001!
 It's highly likely that this 'cell' is either an empty well or did not get sequenced properly. 
 
 Let's visualize the distribution of total counts to see if the 413 count sample is the only one we should get rid of.
