@@ -24,3 +24,6 @@ library(org.Cf.eg.db)
 
 # Required for vsn plots in RNA-seq exercise
 library(hexbin)
+
+# AlevinQC was not getting noticed for some reason
+library(alevinQC)
