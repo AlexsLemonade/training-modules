@@ -124,11 +124,18 @@ sc_data
 Doing this added a couple of (currently empty) slots for things like dimensionality reduction results and alternative feature experiments. Foreshadowing!
 
 
+## Summarizing expression  
+
+For a first pass at the data, we will extract just the counts matrix from the `SingleCellExperiment` object, and use some base R functions to look at our results.
+
+We can extract the gene by cell count matrix using the `counts()` function.
+This actually returns a special format of matrix called a "sparse" matrix. 
+Since single cell count data is mostly zeros, this format (a `dgCMatrix` object) allows R to save a lot of memory.
+This object takes up about 6.4 MB, but if we stored it in the normal format, it would be closer to 100 MB!
+Thankfully, most of the functions that we use to work with regular matrices work just fine with these as well.
 
 ```{r make_matrix}
-# Set the column as the gene names
-sc_data <- tibble::column_to_rownames(sc_data, "gene")
-sc_data <- as.matrix(sc_data)
+sc_counts <- counts(sc_data)
 ```
 
 Let's look at the mean expression of the genes in this dataset. 
@@ -140,17 +147,17 @@ In the code chunk below, use `apply()` with the correct arguments to calculate t
 
 ```{r means, live = TRUE}
 # Let's calculate the gene means (by row)
-gene_means <- apply(sc_data, 1, mean)
+gene_means <- apply(sc_counts, 1, mean)
 ```
 
 This works just fine, but you may have noticed it is a bit slow.
 For a few common summary functions like means and sums, R has much more efficient functions to calculate across rows or columns. 
-In this case, we can use `rowMeans()` to do the same calculation, much more quickly.
+In this case, we can use `rowMeans()` to do the same calculation much more quickly.
 
 
 ```{r rowmeans}
 # use rowMeans() to calculate gene means
-gene_means <- rowMeans(sc_data)
+gene_means <- rowMeans(sc_counts)
 ```
 
 Let's make our first density plot with these data.
@@ -173,7 +180,7 @@ Lets zoom in on the left part of the graph by adding an `xlim()` argument.
 ggplot(mapping = aes(x = gene_means)) +
   geom_density() +
   xlab("Mean gene count") +
-  xlim(0, 100)
+  xlim(0, 5)
 ```
 
 Even as we zoom in, the counts data has many zeroes, which we actually expect in a single cell RNA-seq experiment.
