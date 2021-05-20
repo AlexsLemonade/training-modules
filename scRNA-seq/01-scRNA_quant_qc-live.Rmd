@@ -1,20 +1,14 @@
 ---
 title: "Processing tag-based single-cell RNA-seq data with Alevin"
-author: CCDL for ALSF
-date: 2021
+output:   
   html_notebook: 
     toc: true
     toc_float: true
+editor_options: 
+  chunk_output_type: inline
 ---
 
-## Objectives
-
-This notebook will demonstrate how to:
-
-- Navigate the terminal interface  
-- 
-
----
+**CCDL 2020**
 
 In this notebook, we will be running through the basics of processing raw single-cell RNA-seq data.
 
@@ -44,20 +38,11 @@ However, most public data is available in `fastq` format, so that is where we wi
 
 If you have opened the `scRNA-seq.Rproj` file, your Terminal should already be set to the `scRNA-seq` directory, but it is worth checking with the `pwd` command in the Terminal 
 (or by looking at the path shown in the command prompt or at the top of the Terminal pane). 
-
 If you are in a different directory, we will want to use `cd` to change to the `training-modules/scRNA-seq` directory. 
-Note that for the first section 
-
-```bash
-cd ~/training-modules/scRNA-seq
-```
-
-Copy and paste the text in the code blocks below into your `Terminal` window in RStudio.
-It should be in the lower left hand corner as a tab next to `Console`.
 
 Once you are there, you should be able to run the following command in the Terminal to look at the contents of the `data/tabula-muris` directory:
 
-```bash
+```
 ls data/tabula-muris
 ```
 
@@ -71,7 +56,7 @@ You will also see the file `TM_droplet_metadata.csv`, which contains metadata fo
 Now that we are in `scRNA-seq`, we'll make a directory for us to store our quantification files in.
 In `Terminal`, run the following command:
 
-```bash
+```
 mkdir -p data/tabula-muris/alevin-quant/10X_P4_3
 ```
 
@@ -79,8 +64,9 @@ In this scenario, `10X_P4_3` refers to the sample name that we will be processin
 
 ## Step 3: Index the mouse transcriptome with Salmon
 
-Before you can quantify with Salmon and [Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) we need to index the transcriptome for the species we will be mapping to
-This step would be the same for mapping bulk RNA-seq data, and you can use the same transcriptome indexes as bulk RNA-seq, however, due to the shorter read lengths in the 10X sequencing, we may to use shorter kmers than the default index size that salmon uses.
+Before you can quantify with Salmon and [Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) we need our species' [transcriptome to be indexed](https://github.com/AlexsLemonade/training-txome-prep), just was we did with bulk RNA-seq. 
+
+You can use the same transcriptome indexes as bulk RNA-seq, however, due to the shorter read lengths in the 10X sequencing, we will want to use shorter kmers than the default.
 In this instance, we used a `-k` of 23.
 
 In the interest of time, we have already run the command below and have the index built and ready for you in a shared directory.
@@ -93,64 +79,59 @@ But for your own reference, here is how you might do it yourself:
 #  -k 23
 ```
 
-Scripts to build the indexes like those we are using here (and others) can be found in [this repository](https://github.com/AlexsLemonade/training-txome-prep). 
+The scripts we used to build the index we are using here (and others) can be found in [this repository](https://github.com/AlexsLemonade/training-txome-prep)
 
-## Step 4: Running Salmon Alevin
+## Step 4: For each sample, run [Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) for quantification
 
-[Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) is run from the command line (Terminal) to perform mapping and quantification of tag-based single cell expression data. 
+From the command line, running Alevin is not too much different from running
+Salmon for bulk RNA-seq.
 
 ### Running Salmon Alevin
 
 Copy and paste this in your `Terminal` to run the Alevin quantification.
 This will take about 20 minutes to run, so we will start now, then talk about the options.
 
-```bash
-salmon alevin \
-  -i index/Mus_musculus/short_index \
+```
+salmon alevin -l ISR \
+  -i ~/shared-data/reference/refgenie/mm10_cdna/salmon_index/short \
   -1 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L001_R1_001.fastq.gz \
   -2 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L001_R2_001.fastq.gz \
-  -o data/tabula-muris/alevin-quant/10X_P4_3 \
-  -p 4 \
-  -l ISR \
   --chromium  \
+  -p 5 \
+  -o data/tabula-muris/alevin-quant/10X_P4_3 \
   --tgMap index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv \
   --dumpFeatures
 ```
 
 ### Salmon/Alevin Options
 
-Many of the options for the `salmon alevin` command are the same as those you would see when mapping and quantifying bulk RNA-seq data with `salmon quant`:
+You'll recognize a lot of these options as the same as regular `Salmon` such as
+- `-l` to designate library type
+- `-1` and `-2` for file input
+- `-o` to designate a folder for output
 
-- `-i` gives the location of the transcriptome index
-- `-1` and `-2` are the paired read input files
-- `-o` designates the output folder
-- `-p` allows us to specify how many processors to use; in this case we will use 4
-
-
+Notation for these 10X files is:
+- `R1` files contain the barcodes for cells as well as the UMIs
+- `R2` files contain the full reads for that sample.  
 
 #### `-l`
-The `-l` option is for designating library format 
-For most single-cell quantification, you will want to use the `ISR` library type.
+As mentioned, `-l` is for designating library type. For all single-cell quant,
+you will want to use the `ISR` library type.
 See [Salmon's documentation](https://salmon.readthedocs.io/en/latest/library_type.html) for more information on fragment library types.
 
 #### `--chromium`
-Because we are using 10X v2 chromium data, we have to use this flag to tell `alevin` where to expect the barcodes, UMIs and sequence data.
-If we were using 10X v3 data, we would need the `--chromiumV3` flag instead. 
-Drop-seq data is also supported, and in this case you would use a `--dropseq` flag instead of this.
-
-For 10X data, the two read files are organized as follows:
-- `R1` files contain the barcodes for cells as well as the UMIs
-- `R2` files contain the RNA-seq reads for that sample.  
+Because we are using 10X chromium data, we have to use this flag. 
+However, Drop-seq data is also supported, and in this case you would use a `--dropseq` flag instead of this.
 
 #### `--tgMap`
-The transcriptome file that we are mapping to has separate sequences for each transcript of a gene, but due to the sparse nature of single-cell data, we are not likely to be able to meaningfully distinguish among different transcripts.
-For this reason, `alevin` will quantify our results at the gene level, so we need to provide a file that maps each transcript to its gene.
-For this example, we've pre-made the file `Mus_musculus.GRCm38.95.versioned_tx2gene.tsv` from the Ensembl transcriptome that we indexed above. 
-The file is a TSV (tab-separated values) file with 2 columns: one of transcripts and the other the gene that each comes from.
+This is needed to supply a transcript to gene key that Alevin will use to quantify the genes.
+For our example, we've pre-made the file `Mus_musculus.GRCm38.95.versioned_tx2gene.tsv` from the Ensembl transcriptome that we indexed above. 
+The file is a TSV file with 2 columns: one of transcripts and the other the gene that each comes from.
 
 
 #### `--dumpFeatures`
-This option will print out information that we will use for quality checks later on, including files with information on the UMIs and cell barcodes.
+This option will print out information that we will need for quality checks
+later on, including files with information on the UMIs and cell barcodes.
 
 See the [Alevin documentation](https://salmon.readthedocs.io/en/latest/alevin.html) for a complete list of the Alevin options.
 There are also a number of example analyses at the [Alevin tutorial](https://combine-lab.github.io/alevin-tutorial/#blog) website.
@@ -159,7 +140,7 @@ There are also a number of example analyses at the [Alevin tutorial](https://com
 ### Note: Running the FULL sample.
 
 Sequencing runs are often split into multiple `fastq` files, both when a sample was run across multiple lanes and to keep the individual file sizes down. 
-This was the case for the *Tabula Muris* data we used here as well. If you look in the `data/tabula-muris/fastq/10X_P4_3` directory, you will see the following files, representing 2 lanes worth of data, with three R1 and three R2 files per lane:
+This was the case for the *Tabula Muris* data we used here as well. If you look in the `data/tabula-muris/fastq/10X_P4_3` directory, you will see the following files, representing 2 lanes, with three R1 and three R2 files per lane:
 
 ```
 10X_P4_3_L001_R1_001.fastq.gz  10X_P4_3_L002_R1_001.fastq.gz
@@ -170,7 +151,7 @@ This was the case for the *Tabula Muris* data we used here as well. If you look 
 10X_P4_3_L001_R2_003.fastq.gz  10X_P4_3_L002_R2_003.fastq.gz
 ```
 
-We should really run all of these through Salmon, though that will take about six times as long as the single pair of reads we used. 
+We should really run all of these through Salmon, though that will take ~six times as long as the single pair of reads we used. 
 To do this, we could list each R1 and R2 file (space separated) after the `-1` and `-2` arguments, respectively.
 But that is a lot of typing, so a nice shortcut is to use a `*` character to represent a wildcard that will be filled in with whatever characters are present in the files at the given path.
 In the pattern `10X_P4_3_L*_R1_*.fastq.gz`, this would allow any lane number and any subset, so would match all of the following files (all the R1 files in this case):
@@ -184,14 +165,13 @@ In the pattern `10X_P4_3_L*_R1_*.fastq.gz`, this would allow any lane number and
 For this directory, that would look make our full `salmon alevin` command look like this (don't run this now!):
 
 ```
-# salmon alevin \
-#   -i index/Mus_musculus/short_index \
+# salmon alevin -l ISR \
+#   -i ~/shared-data/reference/refgenie/mm10_cdna/salmon_index/short/ \
 #   -1 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L*_R1_*.fastq.gz \
 #   -2 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L*_R2_*.fastq.gz \
-#   -o data/tabula-muris/alevin-quant/10X_P4_3 \
-#   -p 4 \
-#   -l ISR \
 #   --chromium  \
+#   -p 4 \
+#   -o data/tabula-muris/alevin-quant/10X_P4_3_full \
 #   --tgMap index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv \
 #   --dumpFeatures
 ```
@@ -225,10 +205,33 @@ Look for the `10X_P4_3_qc_report.html` file created in the `qc-reports` director
 
 We have also placed an example of a poor quality sample alevinQC report in the `qc-reports` directory, with the name `Bad_Example_10X_P4_2_qc_report.html`.
 
-## Next steps: Loading Alevin output into R
+## Step 7: Loading Alevin output into R
 
-After we have successfully quantified our tag-based scRNA-seq data (and done some QC), we will want to read it into R to start to analyze it. 
-The easiest way to do this is to use the `tximeta` package, which we will introduce in the next notebook.
+After we have successfully quantified our tag-based scRNA-seq data (and optionally done some QC), we will want to read it into R to start to analyze it.
+
+Doing this is similar to what we have done before, using our old friend `tximport`. 
+First we will set up the paths to the directory we created, and to the relevant file that `tximport` needs within that directory, which is called `quants_mat.gz`.
+It is located in the `alevin` subdirectory of the output directory that is automatically created by Alevin.
+
+```{r files}
+# the directory we created for alevin output
+quant_dir <- file.path("data", "tabula-muris", "alevin-quant", "10X_P4_3")
+# the quant matrix file
+quant_file <- file.path(quant_dir, "alevin", "quants_mat.gz")
+```
+
+Now we can read in the data with the `tximport()` function, specifying the type as `"alevin"`.
+
+```{r tximport}
+txi <- tximport::tximport(quant_file, type = "alevin")
+```
+
+Now we can make the imported count matrix into a SingleCellExperiment for downstream processing, if we like.
+
+```{r SingleCell}
+sce <- SingleCellExperiment::SingleCellExperiment(list(counts = txi$counts))
+```
+
 
 
 ## Session Info
