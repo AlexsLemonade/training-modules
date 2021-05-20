@@ -26,7 +26,7 @@ files=(
   RNA-seq/05-nb_cell_line_DESeq2.Rmd
   RNA-seq/06-openpbta_heatmap.Rmd
   scRNA-seq/01-scRNA_quant_qc.Rmd
-  # scRNA-seq/02-filtering_scRNA.Rmd
+  scRNA-seq/02-filtering_scRNA.Rmd
   # scRNA-seq/03-normalizing_scRNA.Rmd
   # scRNA-seq/04-dimension_reduction_scRNA.Rmd
   machine-learning/01-openpbta_heatmap.Rmd
