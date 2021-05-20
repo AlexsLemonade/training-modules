@@ -47,7 +47,6 @@ If you have opened the `scRNA-seq.Rproj` file, your Terminal should already be s
 (or by looking at the path shown in the command prompt or at the top of the Terminal pane). 
 
 If you are in a different directory, we will want to use `cd` to change to the `training-modules/scRNA-seq` directory. 
-Note that for the first section 
 
 ```bash
 cd ~/training-modules/scRNA-seq
@@ -73,7 +72,7 @@ Now that we are in `scRNA-seq`, we'll make a directory for us to store our quant
 In `Terminal`, run the following command:
 
 ```bash
-mkdir -p data/tabula-muris/alevin-quant/10X_P4_3
+mkdir -p data/tabula-muris/alevin-quant/10X_P4_3_subset
 ```
 
 In this scenario, `10X_P4_3` refers to the sample name that we will be processing this time, which contains data from mouse bladder cells.
@@ -109,11 +108,11 @@ This will take about 20 minutes to run, so we will start now, then talk about th
 ```bash
 salmon alevin \
   -i index/Mus_musculus/short_index \
+  -l ISR \
   -1 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L001_R1_001.fastq.gz \
   -2 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L001_R2_001.fastq.gz \
-  -o data/tabula-muris/alevin-quant/10X_P4_3 \
+  -o data/tabula-muris/alevin-quant/10X_P4_3_subset \
   -p 4 \
-  -l ISR \
   --chromium  \
   --tgMap index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv \
   --dumpFeatures
@@ -130,9 +129,10 @@ Many of the options for the `salmon alevin` command are the same as those you wo
 
 
 #### `-l`
-The `-l` option is for designating library format 
+The `-l` option is for designating the library format. 
 For most single-cell quantification, you will want to use the `ISR` library type.
 See [Salmon's documentation](https://salmon.readthedocs.io/en/latest/library_type.html) for more information on fragment library types (and all of the other options available).
+Note that this option must come *before* the read files.
 
 #### `--chromium`
 Because we are using 10X v2 chromium data, we have to use this flag to tell `alevin` where to expect the barcodes, UMIs and sequence data.
@@ -187,11 +187,11 @@ For this directory, that would look make our full `salmon alevin` command look l
 ```
 # salmon alevin \
 #   -i index/Mus_musculus/short_index \
+#   -l ISR \
 #   -1 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L*_R1_*.fastq.gz \
 #   -2 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L*_R2_*.fastq.gz \
 #   -o data/tabula-muris/alevin-quant/10X_P4_3 \
 #   -p 4 \
-#   -l ISR \
 #   --chromium  \
 #   --tgMap index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv \
 #   --dumpFeatures
@@ -216,13 +216,13 @@ The rest of `alevinQCReport()`'s arguments tell R where to put the output QC rep
 
 ```{r alevinQC, eval = FALSE}
 # Produce a QC report
-alevinQC::alevinQCReport("data/tabula-muris/alevin-quant/10X_P4_3",
-                         sampleId = "10X_P4_3",
-                         outputFile = "10X_P4_3_qc_report.html",
+alevinQC::alevinQCReport("data/tabula-muris/alevin-quant/10X_P4_3_subset",
+                         sampleId = "10X_P4_3_subset",
+                         outputFile = "10X_P4_3_subset-qc_report.html",
                          outputDir = "qc-reports")
 ```
 
-Look for the `10X_P4_3_qc_report.html` file created in the `qc-reports` directory to examine the quality of your data and performance of Alevin.
+Look for the `10X_P4_3_subset-qc_report.html` file created in the `qc-reports` directory to examine the quality of your data and performance of Alevin.
 
 We have also placed an example of a poor quality sample alevinQC report in the `qc-reports` directory, with the name `Bad_Example_10X_P4_2_qc_report.html`.
 
