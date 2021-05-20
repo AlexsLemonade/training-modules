@@ -26,7 +26,7 @@ These data also have [Unique Molecular Identifiers (UMIs)](http://www.nature.com
 **Relative workflow for tag-based data**
 ![](diagrams/tag-based_1.png)
 
-## Step 0: About the data
+## About the data
 
 We obtained these data from Tabula Muris project's [Figshare](https://figshare.com/projects/Tabula_Muris_Transcriptomic_characterization_of_20_organs_and_tissues_from_Mus_musculus_at_single_cell_resolution/27733).
 The BAM files that were on Figshare were converted to `fastq` files using
@@ -39,7 +39,7 @@ we are only running part of the sample's reads.
 However, most public data is available in `fastq` format, and most sequencing cores will generate the `.fastq` files, so that is where we will start.
 
 
-## Step 1: Checking your directories
+## Checking directories and files
 
 If you have opened the `scRNA-seq.Rproj` file, your Terminal should already be set to the `scRNA-seq` directory, but it is worth checking with the `pwd` command in the Terminal 
 (or by looking at the path shown in the command prompt or at the top of the Terminal pane). 
@@ -65,7 +65,7 @@ We will use these files, but we will not write to this directory.
 
 You will also see the file `TM_droplet_metadata.csv`, which contains metadata for the *Tabula Muris* experiments.
 
-## Step 2: Set up your output directory
+### Set up output directory
 
 Now that we are in `scRNA-seq`, we'll make a directory for us to store our quantification files in.
 In `Terminal`, run the following command:
@@ -76,7 +76,11 @@ mkdir -p data/tabula-muris/alevin-quant/10X_P4_3
 
 In this scenario, `10X_P4_3` refers to the sample name that we will be processing this time.
 
-## Step 3: Index the mouse transcriptome with Salmon
+## Quantifying cell expression with Salmon Alevin
+
+[Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) is run from the command line (Terminal) to perform mapping and quantification of tag-based single cell expression data. 
+
+### Indexing the mouse transcriptome 
 
 Before you can quantify with Salmon and [Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) we need to index the transcriptome for the species we will be mapping to
 This step would be the same for mapping bulk RNA-seq data, and you can use the same transcriptome indexes as bulk RNA-seq, however, due to the shorter read lengths in the 10X sequencing, we may to use shorter kmers than the default index size that salmon uses.
@@ -94,9 +98,6 @@ But for your own reference, here is how you might do it yourself:
 
 Scripts to build the indexes like those we are using here (and others) can be found in [this repository](https://github.com/AlexsLemonade/training-txome-prep). 
 
-## Step 4: Running Salmon Alevin
-
-[Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) is run from the command line (Terminal) to perform mapping and quantification of tag-based single cell expression data. 
 
 ### Running Salmon Alevin
 
@@ -116,7 +117,7 @@ salmon alevin \
   --dumpFeatures
 ```
 
-### Salmon/Alevin Options
+### Salmon Alevin command line options
 
 Many of the options for the `salmon alevin` command are the same as those you would see when mapping and quantifying bulk RNA-seq data with `salmon quant`:
 
@@ -199,7 +200,7 @@ In general, you will want to run all lanes and all files for a given sample toge
 But **DO NOT** combine multiple *samples* into a single `alevin` quantification!
 Keep separate samples (and replicates) separate!
 
-## Step 6: Perform QC checks with `alevinQC`
+## Initial quality control with `alevinQC`
 
 Now that we have quantified our data with Alevin, we are ready to perform quality control checks.
 
