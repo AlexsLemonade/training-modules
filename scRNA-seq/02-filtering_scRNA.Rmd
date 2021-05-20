@@ -1,16 +1,22 @@
 ---
 title: "Single cell RNA-seq quality control and filtering"
-output:   
+author: CCDL for ALSF
+date: 2021
   html_notebook: 
     toc: true
     toc_float: true
 ---
 
-**CCDL 2020**
+## Objectives
 
-In this notebook, we'll perform quality control analyses of scRNA-seq count data. 
-The [data set](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465) we are using is cells from a glioblastoma sample that were Fluorescence-Activated Cell sorted (FACS) and then processed by paired end sequencing of RNA using the [Smart-seq2 protocol](http://www.nature.com/doifinder/10.1038/nmeth.2639) 
-[(Darmanis *et al.* 2017)](https://www.ncbi.nlm.nih.gov/pubmed/29091775).
+This notebook will demonstrate how to:
+
+- Import alevin results with tximeta
+- 
+
+---
+
+We will continue with the tabula muris data set that we started with in the previous notebook. 
 
   
 ## Set Up 
@@ -19,51 +25,46 @@ The [data set](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465) we a
 # Magrittr for the pipe %>%
 library(magrittr)
 
+# tximeta for importing alevin results
+library(tximeta)
+
+# SingleCellExperiment package for organizing our results
+library(SingleCellExperiment)
+
 # GGPlot2 for the plots
 library(ggplot2)
 ```
 
-## Import single-cell RNA-seq counts matrix
+## Import single-cell RNA-seq quantification
 
-The Smart-seq2 sequencing results in separate paired fastq files for each processed cell (in this case over 7000 total fastq files).
-We have processed this data with `salmon quant` and used `tximport` to create a gene-level count matrix, filtering samples to only include those with at least 30% of reads mapping.
 
-![](diagrams/full-length_1.png) 
-
-We will discuss *tag-based* scRNA-seq data (such as 10X), in a later notebook, where you will learn how to process raw data to a count matrix and could apply these same types of steps to filter and normalize the data.
 
 ### Directories and files
 
-The data files we will be using for this part of the project are in the `data/glioblastoma` subdirectory of the `scRNA-seq` directory where this file is located.
-The main files we will be using at this stage are further located in the `preprocessed` subdirectory (or a subdirectory of that subdirectory). 
-A figure of the (partial) directory structure for this module is shown below.
+The data files we will be using for this part of the project are in the `data/tabula-muris` subdirectory of the `scRNA-seq` directory where this notebook is located.
 
-![](diagrams/glioblastoma_dir_structure.png)
-
-Importantly, the `preprocessed` directory is actually a *link* (think of a shortcut or alias) to a shared folder, so everyone is looking at exactly the same sets of files in there, and you will not be able to write to that directory.
-It's good practice to store your data in a place that you should never write to, except when adding new data.
-Not so much the shared directory or links, but to think of the place where raw data is stored as one that you should never write to, except when adding new data.
-This can save many headaches of accidentally changing or overwriting raw data (we've all done it!).
-
-We will write our output file for this stage in the `data/glioblastoma/filtered` directory, which may not exist yet, so we will also have to make it.
-
-
+The main files we will be using at this stage are the results from our earlier quantification, are further located in the `alevin-quant` subdirectory (or a subdirectory of that subdirectory). 
 
 ```{r filepaths}
 # main data directory
-data_dir <- file.path("data", "glioblastoma")
+data_dir <- file.path("data", "tabula-muris")
 
-# Count matrix file location
-gene_matrix_file <- file.path(data_dir,
-                              "preprocessed",
-                              "txi", 
-                              "count_matrix.tsv")
+# Path to the single-sample alevin results
+alevin_file <- file.path(data_dir, "alevin-quant", 
+                         "10X_P4_3", "alevin", "quants_mat.gz")
 
-# Metadata file location
-metadata_file <- file.path(data_dir, "preprocessed", "darmanis_metadata.tsv")
+# normalized multi-sample Tabula Muris Data
+tm_normalized_file <- file.path(data_dir, "normalized",
+                                "TM_normalized.rds" )
 
-# Mitochondrial genes
-mito_genes_file <- file.path(data_dir, "hs_mitochondrial_genes.tsv")
+# Path to the metadata file 
+metadata_file <- file.path(data_dir, 
+                           "TM_droplet_metadata.csv")
+
+# Mitochondrial gene table
+mito_file <- file.path(data_dir,
+                       "mm_mitochondrial_genes.tsv")
+
 
 # create the output directory
 filtered_dir <- file.path(data_dir, "filtered")
@@ -75,38 +76,54 @@ if (!dir.exists(filtered_dir)) {
 filtered_count_file <- file.path(filtered_dir, "filtered_count_matrix.tsv")
 ```
 
-Let's import the gene matrix and metadata. 
+
+## Importing alevin results with tximeta
+
+`tximeta` needs a data frame with at least these two columns: 
+- a `files` column  with the file paths to the quant.mat.gz files
+- a `names` column with the sample names
+
+In this case, we are onlu importing a single experiment, so we will create a data frame with only one row.
+
+```{r names_sf_files}
+coldata <- data.frame(files = alevin_file, 
+                      names = "10X_P4_3")
+```
+
+Using the `coldata` data frame that we set up, we can now run the `tximeta()` to import our expression data while automatically finding and associating the transcript annotations that were used when we performed the quantification.
+
+The first time you run `tximeta()` you may get a message about storing downloaded transcriptome data in a cache directory so that it can retrieve the data more quickly the next time.
+We recommend you use the cache, and accept the default location.
 
 ```{r read_data}
-# Read in the data
-sc_data <- readr::read_tsv(gene_matrix_file, progress = FALSE)
-
-# Read in the metadata
-sc_metadata <- readr::read_tsv(metadata_file, progress = FALSE)
+# Read in alevin results with tximeta
+sc_data <- tximeta(coldata, type = "alevin")
 ```
 
-Now that we have loaded our data, let's take a look at the general format
-Use a command we have used previously to look at the first few rows of `sc_data`.
+`tximeta` reads the data in as a `RangedSummarizedExperiment`, which we will look at briefly.
 
-```{r peek_data, live = TRUE}
-# Put a command here that would allow you to see the first few rows of `sc_data`
-head(sc_data)
+```{r view_scdata}
+sc_data
 ```
 
-You'll notice the first column contains the gene information and the rest are samples. 
+The main component is the `counts` matrix, which is stored as an "assay", with a row for each gene and a column for each cell. 
+In this case, we can see there is information for 35,429 genes, and Alevin reports data for 343 cells (remember, this is a small subset of the full data!).
 
-Do the sample ids match what we have in the metadata? 
-For now, we will not worry about order, but just check that we have metadata for every sample.
+`tximeta` also automatically added some annotation information about each gene, which can be seen by extracting the `rowData` table.
 
-```{r sample_match, live = TRUE}
-samples <- colnames(sc_data)[-1]
-all(samples %in% sc_metadata$geo_accession)
+```{r}
+rowData(sc_data)
 ```
 
+We could leave the object as it is, but we can unlock some extra functionality by converting this from a `SummarizedExperiment`object to a `SingleCellExperiment`, so we will go ahead and do that now.
 
-For the analyses in this notebook, the gene column (which is a `character` type), will get in the way, so we will turn this column into the rownames instead, and convert the rest to a matrix.
-Recall that we can do this because all the remaining data has the same type.
-While not strictly necessary, having the data in the form of a matrix will make some calculations more efficient.
+```{r}
+sc_data <- as(sc_data, "SingleCellExperiment")
+sc_data
+```
+Doing this added a couple of (currently empty) slots for things like dimensionality reduction results and alternative feature experiments. Foreshadowing!
+
+
 
 ```{r make_matrix}
 # Set the column as the gene names
