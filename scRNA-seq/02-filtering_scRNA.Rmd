@@ -99,13 +99,13 @@ We recommend you use the cache, and accept the default location.
 
 ```{r read_data}
 # Read in alevin results with tximeta
-sc_data <- tximeta(coldata, type = "alevin")
+bladder_sce <- tximeta(coldata, type = "alevin")
 ```
 
 `tximeta` reads the data in as a `RangedSummarizedExperiment`, which we will look at briefly.
 
 ```{r view_scdata}
-sc_data
+bladder_sce
 ```
 
 The main component is the `counts` matrix, which is stored as an "assay", with a row for each gene and a column for each cell. 
@@ -114,14 +114,14 @@ In this case, we can see there is information for 35,429 genes, and Alevin repor
 `tximeta` also automatically added some annotation information about each gene, which can be seen by extracting the `rowData` table.
 
 ```{r}
-rowData(sc_data)
+rowData(bladder_sce)
 ```
 
 We could leave the object as it is, but we can unlock some extra functionality by converting this from a `SummarizedExperiment`object to a `SingleCellExperiment`, so we will go ahead and do that now.
 
 ```{r}
-sc_data <- as(sc_data, "SingleCellExperiment")
-sc_data
+bladder_sce <- as(bladder_sce, "SingleCellExperiment")
+bladder_sce
 ```
 Doing this added a couple of (currently empty) slots for things like dimensionality reduction results and alternative feature experiments. Foreshadowing!
 
@@ -137,7 +137,7 @@ This object takes up about 6.4 MB, but if we stored it in the normal format, it 
 Thankfully, most of the functions that we use to work with regular matrices work just fine with these as well.
 
 ```{r make_matrix}
-sc_counts <- counts(sc_data)
+sc_counts <- counts(bladder_sce)
 ```
 
 Let's look at the mean expression of the genes in this dataset. 
@@ -264,9 +264,9 @@ Let's plot this using the same style and type of graph as above.
 
 ```{r genes_expressed_plot, live = TRUE}
 ggplot(mapping = aes(x = num_genes_exp)) +
-  geom_density(fill = "lightblue") + 
+  geom_density(fill = "lightblue") +  
   xlab("Number of genes expressed") +
-  theme_classic() # Adding this to make it a prettier style aesthetically
+  theme_classic() 
 ```
 
 
@@ -320,18 +320,21 @@ If we use strict cutoffs to select which cells are "valid", there is the possibi
 
 If a cell is dead or dying, its mRNA will tend to leak out of the cell, leaving an overabundance of mitochondrial RNA, which is more likely to stay within the mitochondria longer. 
 To look for this, we would like to calculate the fraction of mitochondrial expression for each cell as well.
-First, we will need a list of the mitochondrial genes, which we have prepared in a tsv file `hs_mitochondrial_genes.tsv` that we will now read in:
+First, we will need a list of the mitochondrial genes, which we have prepared in a tsv file `hs_mitochondrial_genes.tsv` that we will now read in, and filter to just the genes that are found in the data set.  
 
 ```{r read_mito}
 # read `mm_mitochondrial_genes.tsv` from data_dir
-mito_genes_df <- readr::read_tsv(mito_file) 
+mito_genes <- readr::read_tsv(mito_file) %>%
+  # filter to only gene in the sce object
+  dplyr::filter(gene_id %in% rownames(bladder_sce)) %>%
+  dplyr::pull(gene_id)
 ```
 
-Now we can use the `gene_id`s from that list to select only the rows of the count matrix that correspond to the mitochondrial genes and sum their expression for each sample.
+Now we can use the genes from that list to select only the rows of the count matrix that correspond to the mitochondrial genes and sum their expression for each sample.
 
 ```{r mito_filter, live = TRUE}
 # create a mito_rows vector that is TRUE for mitochondrial genes in our dataset
-mito_rows <- rownames(sc_counts) %in% mito_genes_df$gene_id
+mito_rows <- rownames(sc_counts) %in% mito_genes
 
 # sum the counts from just those genes for all samples
 mito_counts <- colSums(sc_counts[mito_rows, ])
@@ -370,7 +373,7 @@ ggplot(qc_df, aes (x = total_counts,
                    color = mito_fraction)) +
   geom_point(alpha = 0.5) +
   scale_color_viridis_c() + 
-  geom_vline(xintercept = 2000, color = "red") +
+  geom_vline(xintercept = 1000, color = "red") +
   geom_hline(yintercept = 500, color = "red") +
   labs(x = "Total Count",
        y = "Number of Genes Expressed",
@@ -383,12 +386,79 @@ If we want to filter our data based on these measures and cutoffs we like, we ca
 ```{r qc_filter, live = TRUE}
 # create a filtered_samples data frame from qc_df
 filtered_samples <- qc_df %>%
-  dplyr::filter(total_counts > 2000,
+  dplyr::filter(total_counts > 1000,
                 num_genes_exp > 500,
                 mito_fraction < 0.1)
-# select only passing samples for sc_data_filtered
+# select only passing samples for bladder_sce_filtered
 sc_counts_filtered <- sc_counts[, filtered_samples$barcode]
 ```
+
+## Filtering the `SingleCellExperiment` directly
+
+### Calculating cell QC stats with `scater`
+
+The methods above were nice for demonstrating the kinds of filtering we might do, but all the steps would certainly be repetitive if we had to do them for each sample.
+Thankfully, there are some nice methods that have been developed in packages like `scater` to perform them all at once and add the results to the `SingleCellExperiment` object.
+The advantages of using functions like this are that we can keep all of the metadata together, filter directly on the object of interest, avoid a lot of repetition, and in doing so avoid many potential errors. 
+
+We will start with the function `addPerCellQC()`, which takes a `SingleCellExperiment` and a list of gene sets that that we might want to calculate subset information for.
+In our case, we will just look at mitochondrial genes again.
+
+```{r}
+bladder_sce <- scater::addPerCellQC(
+  bladder_sce,
+  # a list of named gene subsets that we want stats for
+  # here we are using mitochondrial genes
+  subsets = list(mito = mito_genes)
+  )
+```
+
+The results of these calculations are now stored as a data frame in the `colData` slot of the `SingleCellExperiment` object, which we can pull out with the `colData()` function.
+(Unfortunately, it is not quite a regular data frame, but we can easily convert it to one.)
+Even nicer, we can access the QC data in those columns directly with just the familiar `$` syntax!
+
+The calculated statistics include `sum`, the total UMI count for the cell, `detected`, the number of genes detected, and a few different statistics for each subset that we gave, including the percent (not fraction!) of all UMIs from the subset. 
+Since the subset we used was named `mito`, this column is called `subsets_mito_percent`.
+
+Using these, we can recreate the plot from before:
+
+```{r replot}
+# extract the column data and conver to a data frame
+bladder_qc <- as.data.frame(colData(bladder_sce))
+
+# plot with the qc data frame
+ggplot(bladder_qc, aes (x = sum,
+                        y = detected, 
+                       color = subsets_mito_percent)) +
+  geom_point(alpha = 0.5) +
+  scale_color_viridis_c() + 
+  labs(x = "Total Count",
+       y = "Number of Genes Expressed",
+       color = "Mitochondrial\nFraction") + 
+  theme_bw()
+```
+### Applying a filter to a `SingleCellExperiment`
+
+Filtering the `SingleCellExperiment` object is done as if it were just the counts matrix, with brackets and indexes. 
+While this will look much like what we did before, it is better, because it will also keep the filtered QC stats alongside, in case we wanted to revisit them later.
+Otherwise, we would have to filter ourQC results separately, which is an easy place for errors to creep in.
+
+```{r filter_sce}
+# create a boolean vector of QC filters
+cells_to_keep <- bladder_sce$sum > 1000 & 
+  bladder_sce$detected > 500 &
+  bladder_sce$subsets_mito_percent < 10
+
+# filter the sce object (cells are columns)
+bladder_sce_filtered <- bladder_sce[, cells_to_keep]
+```
+
+Just to check, we should have the same number of cells in `bladder_sce_filtered` and our previous `sc_counts_filtered`.
+
+```{r check_cell_count}
+ncol(sc_counts_filtered) == ncol(bladder_sce_filtered)
+```
+
 
 
 ## Number of cells that express a gene as a quality measure
@@ -396,7 +466,7 @@ sc_counts_filtered <- sc_counts[, filtered_samples$barcode]
 Now we have an idea of what cells we probably want to get rid of.
 But what if our data contains genes that we can't reliably measure in these cells?
 
-Let's use our `detection_mat` to add up how many cells express each of these genes so we can try to filter out unreliably measured genes.  
+We could use our `detection_mat` to add up how many cells express each gene so we can try to filter out unreliably measured genes.  
 
 ```{r sample_exp, live = TRUE}
 # Make a num_samples_exp vector that contains the 
@@ -426,8 +496,8 @@ To filter the genes that are not expressed in many samples, we will take a somew
 
 ```{r filter_genes}
 cutoff <- 10
-# filter sc_data_filtered to only genes above cutoff value
-# save as sc_data_filtered_gene_express
+# filter bladder_sce_filtered to only genes above cutoff value
+# save as bladder_sce_filtered_gene_express
 sc_counts_filtered_gene <- sc_counts_filtered[num_samples_exp >= cutoff, ]
 ```
 
@@ -438,8 +508,8 @@ sc_counts_filtered_gene <- sc_counts_filtered[num_samples_exp >= cutoff, ]
 To save our filtered count matrix, we will first convert it back to a data frame, adding back the gene ids which were in the matrix row names. 
 
 ```{r df_convert}
-sc_filtered_df <- tibble::as_tibble(sc_data_filtered_gene_express) %>%
-  dplyr::mutate(gene = rownames(sc_data_filtered_gene_express)) %>%
+sc_filtered_df <- tibble::as_tibble(bladder_sce_filtered_gene_express) %>%
+  dplyr::mutate(gene = rownames(bladder_sce_filtered_gene_express)) %>%
   dplyr::select(gene, dplyr::everything()) # make the genes the first column
 ```
 
