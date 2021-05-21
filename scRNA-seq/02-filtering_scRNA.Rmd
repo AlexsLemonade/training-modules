@@ -2,6 +2,7 @@
 title: "Single cell RNA-seq quality control and filtering"
 author: CCDL for ALSF
 date: 2021
+output:
   html_notebook: 
     toc: true
     toc_float: true
@@ -12,7 +13,7 @@ date: 2021
 This notebook will demonstrate how to:
 
 - Import alevin results with tximeta
-- 
+- Calculate and examine cell quality measures
 
 ---
 
@@ -75,7 +76,7 @@ if (!dir.exists(filtered_dir)) {
 }
 
 # Output file 
-filtered_count_file <- file.path(filtered_dir, "filtered_count_matrix.tsv")
+filtered_sce_file <- file.path(filtered_dir, "filtered_sce.rds")
 ```
 
 
@@ -453,7 +454,7 @@ cells_to_keep <- bladder_sce$sum > 1000 &
 bladder_sce_filtered <- bladder_sce[, cells_to_keep]
 ```
 
-Just to check, we should have the same number of cells in `bladder_sce_filtered` and our previous `sc_counts_filtered`.
+Just to check, we should have the same number of cells in `bladder_sce_filtered` as our previous `sc_counts_filtered`.
 
 ```{r check_cell_count}
 ncol(sc_counts_filtered) == ncol(bladder_sce_filtered)
@@ -466,58 +467,53 @@ ncol(sc_counts_filtered) == ncol(bladder_sce_filtered)
 Now we have an idea of what cells we probably want to get rid of.
 But what if our data contains genes that we can't reliably measure in these cells?
 
-We could use our `detection_mat` to add up how many cells express each gene so we can try to filter out unreliably measured genes.  
+We could use our earlier `detection_mat` to add up how many cells express each gene, but we will skip straight to the `scater` function this time, which is called `addPerFeatureQC()`.
+This will add QC statistics to the `rowData` for each gene (alongside the annotation data we already had there)
+The columns it adds are the average expression level of each gene (`mean`) and the percentage of cells in which it was detected (`detected`).
 
 ```{r sample_exp, live = TRUE}
-# Make a num_samples_exp vector that contains the 
-# number of cells that express a particular gene
-num_samples_exp <- rowSums(detection_mat)
+bladder_sce_filtered <- scater::addPerFeatureQC(bladder_sce_filtered)
+
 ```
 
-Let's make another density plot with the number of samples that express each gene:
+Let's make another density plot with the percentage of samples that express each gene:
 
 ```{r sample_exp_plot}
-# Let's take a look at what this looks like:
-ggplot(mapping = aes(x = num_samples_exp)) +
+# extract the gene information with 
+gene_info <- as.data.frame(rowData(bladder_sce_filtered))
+
+# Plot the detected percentage
+ggplot(gene_info, aes(x = detected) )+
   geom_density(fill = "lightblue") +
-  geom_vline(xintercept = 10, col = "red") +
-  xlab("Number of Samples Expressing Each Gene") + 
+  xlab("Percent of Cells Expressing Each Gene") + 
   theme_classic()
 ```
 
-How many genes will be excluded if we draw our cutoff at 10 cells?
+How many genes will be excluded if we draw our cutoff at 5% of cells?
 
 ```{r filter_effect, live = TRUE}
-sum(num_samples_exp < 10)
+sum(gene_info$detected < 5)
 ```
 That's a lot! How do we feel about that?
 
-To filter the genes that are not expressed in many samples, we will take a somewhat simpler approach, and use base R to select the rows from our matrix (already filtered by sample) that are above the cutoff.
-
 ```{r filter_genes}
-cutoff <- 10
+cutoff <- 2
 # filter bladder_sce_filtered to only genes above cutoff value
-# save as bladder_sce_filtered_gene_express
-sc_counts_filtered_gene <- sc_counts_filtered[num_samples_exp >= cutoff, ]
+bladder_sce_filtered <- bladder_sce_filtered[gene_info$detected >= cutoff, ]
 ```
 
-
+How big is it now?
+gene_info$detected
+```{r}
+dim(bladder_sce_filtered)
+```
 
 ## Save the filtered data
 
-To save our filtered count matrix, we will first convert it back to a data frame, adding back the gene ids which were in the matrix row names. 
+We will save the filtered `SingleCellExperiment` object as a `.rds` file for later use.
 
-```{r df_convert}
-sc_filtered_df <- tibble::as_tibble(bladder_sce_filtered_gene_express) %>%
-  dplyr::mutate(gene = rownames(bladder_sce_filtered_gene_express)) %>%
-  dplyr::select(gene, dplyr::everything()) # make the genes the first column
-```
-
-Write the output file. 
-This is still a large matrix, it might take some time!
-
-```{r write_df}
-readr::write_tsv(sc_filtered_df, filtered_count_file)
+```{r}
+readr::write_rds(bladder_sce_filtered, file = filtered_sce_file)
 ```
 
 
