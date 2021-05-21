@@ -26,7 +26,7 @@ mkdir -p RNA-seq/data/open-pbta
 
 # scRNA-seq module directories
 mkdir -p scRNA-seq/data/glioblastoma
-mkdir -p scRNA-seq/data/tabula-muris
+mkdir -p scRNA-seq/data/tabula-muris/alevin-quant
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -57,6 +57,7 @@ link_locs=(
   RNA-seq/data/open-pbta/pbta-histologies-subset.tsv 
   RNA-seq/data/open-pbta/pbta-rsem-expected_count-subset.rds
   scRNA-seq/data/glioblastoma/preprocessed
+  scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/fastq
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   machine-learning/data/open-pbta
