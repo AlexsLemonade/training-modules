@@ -72,10 +72,10 @@ Now that we are in `scRNA-seq`, we'll make a directory for us to store our quant
 In `Terminal`, run the following command:
 
 ```bash
-mkdir -p data/tabula-muris/alevin-quant/10X_P7_14_subset
+mkdir -p data/tabula-muris/alevin-quant/10X_P4_3_subset
 ```
 
-In this scenario, `10X_P7_14` refers to the sample name that we will be processing this time, which contains data from mouse limb muscle cells.
+In this scenario, `10X_P4_3` refers to the sample name that we will be processing this time, which contains data from mouse bladder cells.
 
 ## Quantifying cell expression with Salmon Alevin
 
@@ -109,9 +109,9 @@ This will take about 20 minutes to run, so we will start now, then talk about th
 salmon alevin \
   -i index/Mus_musculus/short_index \
   -l ISR \
-  -1 data/tabula-muris/fastq/10X_P7_14/10X_P7_14_L001_R1_001.fastq.gz \
-  -2 data/tabula-muris/fastq/10X_P7_14/10X_P7_14_L001_R2_001.fastq.gz \
-  -o data/tabula-muris/alevin-quant/10X_P7_14_subset \
+  -1 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L001_R1_001.fastq.gz \
+  -2 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L001_R2_001.fastq.gz \
+  -o data/tabula-muris/alevin-quant/10X_P4_3_subset \
   -p 4 \
   --chromium  \
   --tgMap index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv \
@@ -163,12 +163,12 @@ Sequencing runs are often split into multiple `fastq` files, both when a sample 
 This was the case for the *Tabula Muris* data we used here as well. If you look in the `data/tabula-muris/fastq/10X_P4_3` directory, you will see the following files, representing 2 lanes worth of data, with three R1 and three R2 files per lane:
 
 ```
-10X_P7_14_L001_R1_001.fastq.gz  10X_P7_14_L002_R1_001.fastq.gz
-10X_P7_14_L001_R1_002.fastq.gz  10X_P7_14_L002_R1_002.fastq.gz
-10X_P7_14_L001_R1_003.fastq.gz  10X_P7_14_L002_R1_003.fastq.gz
-10X_P7_14_L001_R2_001.fastq.gz  10X_P7_14_L002_R2_001.fastq.gz
-10X_P7_14_L001_R2_002.fastq.gz  10X_P7_14_L002_R2_002.fastq.gz
-10X_P7_14_L001_R2_003.fastq.gz  10X_P7_14_L002_R2_003.fastq.gz
+10X_P4_3_L001_R1_001.fastq.gz  10X_P4_3_L002_R1_001.fastq.gz
+10X_P4_3_L001_R1_002.fastq.gz  10X_P4_3_L002_R1_002.fastq.gz
+10X_P4_3_L001_R1_003.fastq.gz  10X_P4_3_L002_R1_003.fastq.gz
+10X_P4_3_L001_R2_001.fastq.gz  10X_P4_3_L002_R2_001.fastq.gz
+10X_P4_3_L001_R2_002.fastq.gz  10X_P4_3_L002_R2_002.fastq.gz
+10X_P4_3_L001_R2_003.fastq.gz  10X_P4_3_L002_R2_003.fastq.gz
 ```
 
 We should really run all of these through Salmon, though that will take about six times as long as the single pair of reads we used. 
@@ -177,9 +177,9 @@ But that is a lot of typing, so a nice shortcut is to use a `*` character to rep
 In the pattern `10X_P4_3_L*_R1_*.fastq.gz`, this would allow any lane number and any subset, so would match all of the following files (all the R1 files in this case):
 
 ```
-10X_P7_14_L001_R1_001.fastq.gz  10X_P7_14_L002_R1_001.fastq.gz
-10X_P7_14_L001_R1_002.fastq.gz  10X_P7_14_L002_R1_002.fastq.gz
-10X_P7_14_L001_R1_003.fastq.gz  10X_P7_14_L002_R1_003.fastq.gz
+10X_P4_3_L001_R1_001.fastq.gz  10X_P4_3_L002_R1_001.fastq.gz
+10X_P4_3_L001_R1_002.fastq.gz  10X_P4_3_L002_R1_002.fastq.gz
+10X_P4_3_L001_R1_003.fastq.gz  10X_P4_3_L002_R1_003.fastq.gz
 ```
 
 For this directory, that would look make our full `salmon alevin` command look like this (don't run this now!):
@@ -188,9 +188,9 @@ For this directory, that would look make our full `salmon alevin` command look l
 # salmon alevin \
 #   -i index/Mus_musculus/short_index \
 #   -l ISR \
-#   -1 data/tabula-muris/fastq/10X_P7_14/10X_P4_3_L*_R1_*.fastq.gz \
-#   -2 data/tabula-muris/fastq/10X_P7_14/10X_P4_3_L*_R2_*.fastq.gz \
-#   -o data/tabula-muris/alevin-quant/10X_P7_14 \
+#   -1 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L*_R1_*.fastq.gz \
+#   -2 data/tabula-muris/fastq/10X_P4_3/10X_P4_3_L*_R2_*.fastq.gz \
+#   -o data/tabula-muris/alevin-quant/10X_P4_3 \
 #   -p 4 \
 #   --chromium  \
 #   --tgMap index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv \
@@ -217,8 +217,8 @@ The rest of `alevinQCReport()`'s arguments tell R where to put the output QC rep
 ```{r alevinQC, eval = FALSE}
 # Produce a QC report
 alevinQC::alevinQCReport("data/tabula-muris/alevin-quant/10X_P4_3_subset",
-                         sampleId = "10X_P7_14_subset",
-                         outputFile = "10X_P7_14_subset-qc_report.html",
+                         sampleId = "10X_P4_3_subset",
+                         outputFile = "10X_P4_3_subset-qc_report.html",
                          outputDir = "qc-reports")
 ```
 
