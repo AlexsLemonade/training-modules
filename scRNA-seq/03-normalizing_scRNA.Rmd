@@ -75,80 +75,47 @@ bladder_sce <- readr::read_rds(filtered_sce_file)
 sc_metadata <- readr::read_csv(metadata_file, guess_max = 10000)
 ```
 
-
-
-## Set up a SingleCellExperiment object from count data
-
-Now that we have filtered our data, we are ready to normalize it.
-To do this, we are going to use some single-cell RNA-seq R packages called `scater` and `scran`. 
-
-![](diagrams/full-length_2.png)
-
-The functions in these packages require the data to be in their own special object type (not an uncommon thing for R packages to do) called `SingleCellExperiment`.
-So first, we are going to set up our data in this format.
-To learn more about `SingleCellExperiment` objects and how it works with Bioconductor packages, we recommend this article: [Amezquita *et al.* 2020.](https://www.nature.com/articles/s41592-019-0654-x).
-
-
-```{r}
-# Set up the Single Cell Experiment object 
-gbm_sce <- SingleCellExperiment(list(counts = as.matrix(sc_data_filtered[, -1])))
-
-# Store the gene names in this object
-rownames(gbm_sce) <-  sc_data_filtered$gene
-```
-
-In the intro-to-R-tidyverse module notebook, `01-intro-to-base_R.Rmd`, we discuss base R object types, but there are some 'special' object types that are package-specific. 
-`SingleCellExperiment` objects, for example, are what a lot of single-cell analysis R packages use, so we will try to get acquainted with them. 
-
-Use this chunk we've set up below to do some exploring of the `SingleCellExperiment` object you just made.
-
-```{r Explore_SCEstructure, live = TRUE, eval = FALSE}
-# The SingleCellExperiment is a special type of object used by scater and scran
-# R packages, explore its properties here. 
-# Also check it out in the environment tab.
-gbm_sce
-```
-
-Below is a figure from [Amezquita *et al.* (_bioRxiv._ 2019)](https://www.biorxiv.org/content/10.1101/590562v1) (the preprint version of the above-linked paper) that shows the general structure of `SingleCellExperiment` objects. 
-
-![](figures/sce_structure.png)
-
-Note that each function which transforms the `SingleCellExperiment` object can store its results back into the object (or a new copy of the object, but that tends to be a waste of space).
-Each of these transformation functions also have a corresponding extraction function that allow you extract (or set) those results from the `SingleCellExperiment` object. 
-
-For more information on `SingleCellExperiment` objects, check out this [excellent vignette](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html)
-and/or [Amezquita *et al.* (2020)](https://www.nature.com/articles/s41592-019-0654-x)
-
 ### Adding more metadata to the SCE object
+
+In a previous notebook, we used some of the data from the Tabula Muris project analysis to tag our cells for visualization.
+Note that we would normally **NOT** have this information until later in the analysis pipeline!
+Nonetheless, adding it here will be useful for visualizing the results of our normalization (and demonstrating how one might add metadata to the SingleCellExperiment object).
 
 
 ```{r sample_info}
-# get the sample names and put them in a data frame (1 column)
-sample_info <- tibble::tibble(geo_accession = colnames(gbm_sce)) %>%
-  # join to the metadata
-  dplyr::left_join(sc_metadata) %>%
-  dplyr::select(geo_accession,
-                title,
-                cell_type = cell.type.ch1,
-                tissue = characteristics_ch1.3
-                ) %>%
-  # clean up tissue
-  dplyr::mutate(tissue = stringr::str_remove(tissue, "tissue: "))
+
+# get the column (cell) metadata (this includes earlier QC stats!)
+# and convert to a data frame
+cell_info <- data.frame(colData(bladder_sce)) %>%
+  # convert the row names of this data frame to a separate column
+  tibble::rownames_to_column("barcode")
+
+cell_metadata <- sc_metadata %>%
+  # filter to just the sample we are working with
+  dplyr::filter(channel == "10X_P4_3") %>%
+  # extract 16 nt cell barcodes from the `cell` column
+  dplyr::mutate(barcode = stringr::str_sub(cell, start= -16)) %>%
+  # choose only the columns we want to add
+  dplyr::select(c("barcode", "cell_ontology_class", "free_annotation"))
+
+# Join the tables together, using `left_join()` to preserve all rows in cell_info
+cell_info <- cell_info %>%
+  dplyr::left_join(cell_metadata)
 ```
 
-Check that the sample info accession ids are the same as the columns of our data
+Check that the sample info accession ids are still the same as the columns of our data
 
 ```{r check_sampleinfo, live = TRUE}
-all.equal(sample_info$geo_accession, colnames(gbm_sce))
+all.equal(cell_info$barcode, colnames(bladder_sce))
 ```
 
-Now add that data to the SCE object.
+Now we can add that data back to the SCE object.
 For unclear reasons, we have to convert our table to a `DataFrame` object in order for this to work.
 Just to keep things confusing, a `DataFrame` is not the same as a `data.frame` that we have been using throughout. 
-We also need to be sure to include the `row.names` argument to keep those properly attached
+We also need to be sure to include the `row.names` argument to keep those properly attached.
 
 ```{r}
-colData(gbm_sce) <- DataFrame(sample_info, row.names = sample_info$geo_accession)
+colData(bladder_sce) <- DataFrame(cell_info, row.names = cell_info$barcode)
 ```
 
 
@@ -167,17 +134,15 @@ The group normalization is then applied back to the individual cells within the 
 In this case, we will also log-transform the normalized counts to get a less skewed distribution of expression measures. 
 Note that because of the zero counts, the `logNormCounts()` function will add a pseudocount of 1 to each value before computing the log.
 
-*These steps may take a minute or so.*
-
 ```{r sce_normalize}
 # Step 1) Group cells with other like cells by clustering.  
-qclust <- scran::quickCluster(gbm_sce)
+qclust <- scran::quickCluster(bladder_sce)
 
 # Step 2) Compute sum factors for each cell cluster grouping.  
-gbm_sce <- scran::computeSumFactors(gbm_sce, clusters = qclust)
+bladder_sce <- scran::computeSumFactors(bladder_sce, clusters = qclust)
 
 # Step 3) Normalize using these pooled sum factors and log transform. 
-gbm_sce <- scater::logNormCounts(gbm_sce)
+bladder_sce <- scater::logNormCounts(bladder_sce)
 ```
 
 ## Compare normalized data to count data
@@ -193,12 +158,12 @@ To do this we will use the `log1p()` function, which is specifically designed fo
 
 ```{r pca}
 # Use PCA for dimension reduction of cells' scran normalized data
-norm_pca <- scater::calculatePCA(gbm_sce, ntop = nrow(gbm_sce)) 
+norm_pca <- scater::calculatePCA(bladder_sce, ntop = nrow(bladder_sce)) 
 
 # PCA on the raw counts, log transformed
-log_pca <- counts(gbm_sce) %>% # get the raw counts
+log_pca <- counts(bladder_sce) %>% # get the raw counts
   log1p() %>% # log transform to make these more comparable to the normalized values
-  scater::calculatePCA(ntop = nrow(gbm_sce)) # calculate PCA scores
+  scater::calculatePCA(ntop = nrow(bladder_sce)) # calculate PCA scores
 
 ```
 
@@ -214,10 +179,10 @@ Next we will arrange the PCA scores for plotting, adding a column with the cell-
 # Set up the PCA scores for plotting
 norm_pca_scores <- data.frame(norm_pca,
                               geo_accession = rownames(norm_pca),
-                              cell_type = gbm_sce$cell_type)
+                              cell_type = bladder_sce$cell_ontology_class)
 log_pca_scores <- data.frame(log_pca,
                              geo_accession = rownames(log_pca),
-                             cell_type = gbm_sce$cell_type)
+                             cell_type = bladder_sce$cell_ontology_class)
 ```
 
 Now we will plot the unnormalized PCA scores with their cell labels:
@@ -227,7 +192,8 @@ Now we will plot the unnormalized PCA scores with their cell labels:
 ggplot(log_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
   ggtitle("Log counts (unnormalized) PCA scores") + 
-  scale_fill_manual(values = unname(palette.colors(palette = "Okabe-Ito"))) # We are adding this so it is colorblind friendly
+  scale_color_brewer(palette = "Dark2", na.value = "grey70") + # add a visually distinct color palette
+  theme_bw()
 ```
 
 We've plotted the counts data for you. Knowing that we want the same graph, but different data, use the above template to plot the normalized data. 
@@ -239,7 +205,8 @@ Let's plot the `norm_pca_scores` data:
 ggplot(norm_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
   ggtitle("Normalized log counts PCA scores") + 
-  scale_color_manual(values = unname(palette.colors(palette = "Okabe-Ito")))
+  scale_color_brewer(palette = "Dark2", na.value = "grey70") + # add a visually distinct color palette
+  theme_bw()
 ```
 
 Do you see an effect from the normalization in the comparison between these plots?
@@ -253,7 +220,7 @@ This is useful because we generally expect the variance to increase as mean expr
 We will do this modeling of variance by expression with the `scran::modelGeneVar()` function, saving the results to a new variable. 
 
 ```{r model_variance}
-gbm_variance <- scran::modelGeneVar(gbm_sce)
+gene_variance <- scran::modelGeneVar(bladder_sce)
 ```
 
 Now let's plot the relationship between gene expression and variance we were discussing.
@@ -261,11 +228,12 @@ Here we will also add the fitting curve that `scran::modelGeneVar()` created, wh
 We can add a function like that curve to a `ggplot` with a `stat_function` layer.
 
 ```{r plot_variance}
-ggplot(as.data.frame(gbm_variance), aes(x = mean, y = total)) +
-  geom_point(alpha = 0.05) +
-  stat_function(fun = metadata(gbm_variance)$trend, color = "blue") + 
+ggplot(as.data.frame(gene_variance), aes(x = mean, y = total)) +
+  geom_point(alpha = 0.1) +
+  stat_function(fun = metadata(gene_variance)$trend, color = "blue") + 
   xlab("Mean log-expression") + 
-  ylab("Variance")
+  ylab("Variance") +
+  theme_bw()
 
 ```
 
@@ -273,29 +241,30 @@ Now we can use `scran::getTopHVGs()` to select the genes that have the most biol
 Here we are picking the 500 top genes.
 
 ```{r get_highvar}
-highvar_genes <- scran::getTopHVGs(gbm_variance, n = 500)
-highvar_pca <- scater::calculatePCA(gbm_sce, subset_row = highvar_genes)
+highvar_genes <- scran::getTopHVGs(gene_variance, n = 500)
+highvar_pca <- scater::calculatePCA(bladder_sce, subset_row = highvar_genes)
 ```
 
 ```{r highvar_df}
 highvar_pca_scores <- data.frame(highvar_pca,
                                  geo_accession = rownames(highvar_pca),
-                                 cell_type = gbm_sce$cell_type)
+                                 cell_type = bladder_sce$cell_ontology_class)
 ```
 
 ```{r plot_highvar}
 ggplot(highvar_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
   ggtitle("High variance gene PCA scores") + 
-  scale_color_manual(values = unname(palette.colors(palette = "Okabe-Ito")))
+  scale_color_brewer(palette = "Dark2", na.value = "grey70") + 
+  theme_bw()
 ```
 
 Now what we didn't tell you before, but will tell you now, is that the default for `calculatePCA()` is to use the top 500 highest variance genes. 
 This is what we were overriding when we used `ntop = nrow(gbm_sce)`.
 *However*, that filter is based on total variance, not biological variance, as we have done here. 
 
-In most cases, the list of genes will be pretty similar; if you were to plot the biological variance (`gbm_variance$bio`) against the total variance (`gbm_variance$total`), you would see a very strong relationship at the top end. 
-So if we want to shortcut what we did to get the above plot (or one very close to it), we could have done it with `scater::calculatePCA(gbm_sce)` using no additional arguments.
+In most cases, the list of genes will be pretty similar; if you were to plot the biological variance (`gene_variance$bio`) against the total variance (`gene_variance$total`), you would see a very strong relationship at the top end. 
+So if we want to shortcut what we did to get the above plot (or one very close to it), we could have done it with `scater::calculatePCA(bladder_sce)` using no additional arguments.
 
 *Why didn't we do that first?*
 Well, it wouldn't have shown you the effects of normalization or making the choice to include only high variance genes. 😉
