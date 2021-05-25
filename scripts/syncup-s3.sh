@@ -30,6 +30,7 @@ sync_dirs=(
   RNA-seq/data/leukemia/txi
   RNA-seq/data/medulloblastoma/txi
   RNA-seq/data/open-pbta
+  scRNA-seq/data/hodgkins/cellranger
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/index/Mus_musculus
   machine-learning/data/open-pbta/processed
