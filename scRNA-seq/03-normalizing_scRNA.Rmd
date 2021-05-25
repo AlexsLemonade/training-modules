@@ -280,23 +280,25 @@ to a tsv file.
 In order to do this we need to extract our normalized counts from `bladder_sce`. 
 Refer back to the `SingleCellExperiment` figure above to determine why we are using this `logcounts()` function.
 
-```{r Save Data to .tsv}
+Recall that `readr::write_tsv` requires a data frame so we need to convert 
+our the logcounts matrix to a data frame. 
+We will actually have to do this in two steps: first by making the sparse matrix to a standard R matrix, then converting that to a data frame.
+
+```{r save_tsv}
 # Save this gene matrix to a tsv file
-logcounts(gbm_sce) %>% 
+logcounts(bladder_sce) %>% 
+  as.matrix() %>%
   as.data.frame() %>%
   readr::write_tsv(file.path(norm_dir, "scran_norm_gene_matrix.tsv"))
 ```
 
-Recall that `readr::write_tsv` requires a data frame; so we need to convert 
-our `matrix` to a data frame.
-
-We will return to our normalized `bladder_sce` object in the exercise, so we will 
+We may want to return to our normalized `bladder_sce` object in the future, so we will 
 also save our data in an RDS file so that we can re-load it into our R 
 environment as a `SingleCellExperiment` object.
 
 ```{r}
 # Save the data as an RDS
-readr::write_rds(gbm_sce, file.path(norm_dir, "normalized_bladder_sce.rds"))
+readr::write_rds(bladder_sce, file.path(norm_dir, "normalized_bladder_sce.rds"))
 ```
 
 ### Print session info
