@@ -16,6 +16,8 @@ When we also have hundreds or thousands of individual samples, as in the case of
 
 A common practice is to common to use dimension reduction techniques so all of the data is in a more manageable form for plotting, clustering, and other downstream analyses. 
 
+
+
 ## Set Up 
 
 ```{r setup}
@@ -31,54 +33,120 @@ library(magrittr)
 set.seed(12345)
 ```
 
-For this module, we are going to use the dataset that we processed part of in 
-`04-tag-based_scRNA-seq_processing.Rmd`
+
 
 ## Directories and files
 
+The data we will be using for this module comes from a a 10X Genomics data set of expression data from a  Hodgkin's Lymphoma tumor. 
+The data was generated with the 10Xv3.1 chemistry, and processed with Cell Ranger and 10X Genomics standard pipeline.
+https://support.10xgenomics.com/single-cell-gene-expression/datasets/4.0.0/Parent_NGSC3_DI_HodgkinsLymphoma
+
+There are a variety of files that you will often see as part of the standard output from Cell Ranger, which are described in detail in [10X Genomics documentation](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/output/overview).
+We have included some of these in the `data/hodkins/cellranger` directory, including the `web_summary.html` file that includes some similar QC statistics to those we generated with `alevinQC`.
+The main file we will be working with are the feature by barcode matrices.
+Cell Ranger does some filtering on its own, but we will start with the raw data.
+
+
+
 ```{r filepaths}
 # main data directory
-data_dir <- file.path("data", "tabula-muris")
+data_dir <- file.path("data", "hodgkins")
 
-# Path to the single-sample alevin results
-alevin_file <- file.path(data_dir, "alevin-quant", 
-                         "10X_P4_3", "alevin", "quants_mat.gz")
+# Path to the Cell Ranger matrix
+raw_matrix_dir <- file.path(data_dir, "cellranger", 
+                            "raw_feature_bc_matrix")
 
-# normalized multi-sample Tabula Muris Data
-tm_normalized_file <- file.path(data_dir, "normalized",
-                                "TM_normalized.rds" )
-
-# Path to the metadata file 
-metadata_file <- file.path(data_dir, 
-                           "TM_droplet_metadata.csv")
-
-# Mitochondrial gene table
-mito_file <- file.path(data_dir,
-                       "mm_mitochondrial_genes.tsv")
+# Path to mitochondrial genes table
+mito_file <- file.path(data_dir, "hs_mitochondrial_genes.tsv")
 ```
 
-## Single sample QC and normalization
+## Reading Cell Ranger data
 
-```{r tximport_sce}
-tm_txi <- tximport::tximport(alevin_file, type = "alevin")
-tm_sce <- SingleCellExperiment(list(counts = tm_txi$counts))
+Cell Ranger output includes count data in two main formats.
+The first is a folder with a feature list, a barcode list, and a sparse matrix in ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html). 
+The `DropletUtils::read10xCounts()` function takes this directory and reads in the data from these three files, assembling the `SingleCellExperiment` object we have worked with before. 
+
+Alternatively, we could use the HDF5 format file that Cellranger outputs as a file with the `.h5` extension, which contains the same data. 
+For whatever reason, the way you read the data affects how it is stored in R, with the net result that reading from the directory results in smaller objects in R, so that is what we will do here. 
+
+Cell Ranger also outputs both filtered and raw matrices; today we will start with the raw matrix and perform our own filtering.
+
+```{r}
+hodgkins_sce <- DropletUtils::read10xCounts(raw_matrix_dir)
 ```
 
-```{r read_metadata}
-tm_metadata <- readr::read_csv(metadata_file, guess_max = 10000) %>%
-  dplyr::filter(channel == "10X_P4_3")
+How many potential cells are there here?
+
+```{r}
+dim(hodgkins_sce)
 ```
 
-As we did before with the Smart-seq2 data, we will want to filter and normalize this data with `scran/scater`.
-While we did the filtering manually before, we can actually do most of the same analyses with `scran`.
+That is a lot of cells! 
+In fact, it is really every possible barcode, whether there were reads associated with it or not.
+We should probably do something about that.
 
-First we want to get our mitochondrial genes list again.
+
+## QC and normalization
+
+### Basic QC stats
+
+We will start by calculating the basic QC stats as we have done previously, adding those to our `SingleCellExperiment` object.
+
+The first step again is reading in our table of mitochrondrial genes and finding the ones that were quantified our data set.
 
 ```{r mitogenes}
 mito_genes <- readr::read_tsv(mito_file) %>%
-  dplyr::filter(gene_id %in% rownames(tm_sce)) %>%
+  dplyr::filter(gene_id %in% rownames(hodgkins_sce)) %>%
   dplyr::pull(gene_id)
 ```
+
+Next we will calculate the QC stats that we used before.
+Note that this is much slower than before, as we have many more genes in the unfiltered set!
+
+```{r calculateQC}
+hodgkins_sce <- scater::addPerCellQC(
+  hodgkins_sce, 
+  subsets = list(mito = mito_genes))
+```
+
+We can now do the most basic level of filtering: getting rid of "cells" with no reads.
+
+```{r remove_zero}
+hodgkins_sce <- hodgkins_sce[, hodgkins_sce$total > 0]
+dim(hodgkins_sce)
+```
+
+### EmptyDrops
+
+The `DropletUtils` package that we used to read in the 10X data has a number of other useful features. 
+One is the `emptyDrops()` function, which uses the overall expression patterns in the sample to identify droplets that are likely to not contain an intact cell, but may simply have contained loose ambient RNA released during cell separation. 
+This method, described in [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y), uses the droplets with very low UMI counts to estimate the "ambient" expression pattern, then scores the remaining cells based how much they deviate from that pattern.
+This method seems to perform well to exclude false "cells" while retaining cells with distinct expression profiles but low counts that might have failed a simple cutoff. 
+
+The `emptyDrops()` function takes the `counts` matrix from our SingleCellExperiment, and returns a data frame with the statistics it calculated.
+This will take a few minutes to run, but we can speed it up by allowing parallel processing.
+
+
+```{r emptydrops}
+droplet_stats <- DropletUtils::emptyDrops(
+  counts(hodgkins_sce),
+  # use multiprocessing
+  BPPARAM = BiocParallel::MulticoreParam(4))
+```
+
+
+We will use a false discovery rate (FDR) of 0.01 as our cutoff for "real" cells. 
+Since `emptyDrops()` uses low count cells to estimate the "ambient" expression pattern, those cells are not assigned an FDR value, and have a value of NA.
+These NAs can be a problem for filtering with a boolean vector, as we did above, so we use the `which()` function to get the positions of the cells that pass our filter.
+
+```{r filter}
+cells_to_retain <- which(droplet_stats$FDR <= 0.01)
+
+hodgkins_filtered_sce <- hodgkins_sce[, cells_to_retain]
+dim(hodgkins_filtered_sce)
+```
+
+
 
 ### Quality Control and Filtering
 
@@ -87,13 +155,6 @@ We are adding the `subsets` argument, which allows us to specify a named list of
 These might be spike-in controls, mitochondrial genes, rRNA, or whatever class of genes you would like. 
 The name of each subset is used in the statistic labels, so keep them short. 
 Here we will calculate statistics for only the mitochondrial genes, and we have given that set the name `mito`.
-
-```{r calculateQC}
-tm_sce <- scater::addPerCellQC(
-  tm_sce, 
-  # a list of named gene subsets that we want stats for
-  # here we are using mitochondrial genes
-  subsets = list(mito = mito_genes)) 
 
 cell_qc_df <- as.data.frame(colData(tm_sce)) 
 ```
