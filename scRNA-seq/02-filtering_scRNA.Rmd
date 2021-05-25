@@ -17,7 +17,7 @@ This notebook will demonstrate how to:
 
 ---
 
-We will continue with the tabula muris data set that we started with in the previous notebook. 
+We will continue with the Tabula Muris data set that we started with in the previous notebook. 
 
   
 ## Set Up 
@@ -103,29 +103,45 @@ We recommend you use the cache, and accept the default location.
 bladder_sce <- tximeta(coldata, type = "alevin")
 ```
 
-`tximeta` reads the data in as a `RangedSummarizedExperiment`, which we will look at briefly.
+In the intro-to-R-tidyverse module notebook, `01-intro-to-base_R.Rmd`, we discuss base R object types, but there are some 'special' object types that are package-specific. 
+`tximeta` creates a `SummarizedExperiment` object (or more specifically a `RangedSummearizedExperiment` object.), which is used by many Bioconductor packages to store and process results from gene expression studies.
 
-```{r view_scdata}
+```{r view_scdata, live = TRUE}
+# Explore the SummarizedExperiment data
 bladder_sce
 ```
 
-The main component is the `counts` matrix, which is stored as an "assay", with a row for each gene and a column for each cell. 
+The main component we are concerned with for now is the `counts` matrix, which is stored as an "assay", with a row for each gene and a column for each cell. 
 In this case, we can see there is information for 35,429 genes, and Alevin reports data for 344 cells.
 
 `tximeta` also automatically added some annotation information about each gene, which can be seen by extracting the `rowData` table.
 
-```{r}
+```{r view_annoation, live = TRUE}
+# Examine row (gene) metadata
 rowData(bladder_sce)
 ```
 
-We could leave the object as it is, but we can unlock some extra functionality by converting this from a `SummarizedExperiment`object to a `SingleCellExperiment`, so we will go ahead and do that now.
+We could leave the object as it is, but we can unlock some extra functionality by converting this from a `SummarizedExperiment`object to a `SingleCellExperiment`, so we will go ahead and do that next.
+`SingleCellExperiment` objects are a subtype of this that a lot of single-cell analysis R packages use, so we will try to get acquainted with them. 
 
-```{r}
+Below is a figure from [Amezquita *et al.* (_bioRxiv._ 2019)](https://www.biorxiv.org/content/10.1101/590562v1) (the preprint version of the above-linked paper) that shows the general structure of `SingleCellExperiment` objects. 
+
+![](figures/sce_structure.png)
+
+Note that each function which transforms the `SingleCellExperiment` object can store its results back into the object (or a new copy of the object, but that tends to be a waste of space).
+Each of these transformation functions also have a corresponding extraction function that allow you extract (or set) those results from the `SingleCellExperiment` object. 
+
+For more information on `SingleCellExperiment` objects, check out this [excellent vignette](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html) and/or [Amezquita *et al.* (2020)](https://www.nature.com/articles/s41592-019-0654-x)
+
+To perform the conversion to a `SingleCellExperiment`, we will use the R function `as()`, which "coerces" objects from one type to another.
+
+```{r convert_sce, live = TRUE}
+# Convert the SummarizedExperiment to a SingleCellExperiment
 bladder_sce <- as(bladder_sce, "SingleCellExperiment")
 bladder_sce
 ```
-Doing this added a couple of (currently empty) slots for things like dimensionality reduction results and alternative feature experiments. Foreshadowing!
 
+Doing this added a couple of (currently empty) slots for things like dimensionality reduction results and alternative feature experiments. Foreshadowing!
 
 ## Summarizing expression  
 
@@ -442,7 +458,7 @@ ggplot(bladder_qc, aes (x = sum,
 
 Filtering the `SingleCellExperiment` object is done as if it were just the counts matrix, with brackets and indexes. 
 While this will look much like what we did before, it is better, because it will also keep the filtered QC stats alongside, in case we wanted to revisit them later.
-Otherwise, we would have to filter ourQC results separately, which is an easy place for errors to creep in.
+Otherwise, we would have to filter our QC results separately, which is an easy place for errors to creep in.
 
 ```{r filter_sce}
 # create a boolean vector of QC filters
