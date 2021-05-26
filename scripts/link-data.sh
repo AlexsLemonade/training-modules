@@ -96,8 +96,17 @@ else
   echo "${hs_tx2gene_dest} already exists and is not a link, delete or move it to create a link."
 fi
 
-# Mouse tx2gene for single cell
+# Link mouse indices to single cell
 mkdir -p scRNA-seq/index/Mus_musculus/
+mm_index_dest=scRNA-seq/index/Mus_musculus/short_index
+mm_index_source=${share_base}/reference/refgenie/mm10_cdna/salmon_index/short
+if [[ -L ${mm_index_dest} || ! -e ${mm_index_dest} ]]
+then
+  ln -nsf ${mm_index_source} ${mm_index_dest} 
+else
+  echo "${mm_index_dest} already exists and is not a link, delete or move it to create a link."
+fi
+
 mm_tx2gene_dest=scRNA-seq/index/Mus_musculus/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv
 mm_tx2gene_source=${share_base}/reference/tx2gene/Mus_musculus.GRCm38.95.versioned_tx2gene.tsv
 if [[ -L ${mm_tx2gene_dest} || ! -e ${mm_tx2gene_dest} ]]
