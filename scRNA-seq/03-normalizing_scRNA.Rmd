@@ -78,13 +78,13 @@ sc_metadata <- readr::read_csv(metadata_file, guess_max = 10000)
 
 ### Adding more metadata to the SCE object
 
-In a previous notebook, we used some of the data from the Tabula Muris project analysis to tag our cells for visualization.
+Because the Tabula Muris project is a well-studied data set, we actually have some cell type information for this data set that we can refer to.
+
 Note that we would normally **NOT** have this information until later in the analysis pipeline!
 Nonetheless, adding it here will be useful for visualizing the results of our normalization (and demonstrating how one might add metadata to the SingleCellExperiment object).
 
 
 ```{r sample_info}
-
 # get the column (cell) metadata (this includes earlier QC stats!)
 # and convert to a data frame
 cell_info <- data.frame(colData(bladder_sce)) %>%
@@ -94,7 +94,7 @@ cell_info <- data.frame(colData(bladder_sce)) %>%
 cell_metadata <- sc_metadata %>%
   # filter to just the sample we are working with
   dplyr::filter(channel == "10X_P4_3") %>%
-  # extract 16 nt cell barcodes from the `cell` column
+  # extract the 16 nt cell barcodes from the `cell` column
   dplyr::mutate(barcode = stringr::str_sub(cell, start= -16)) %>%
   # choose only the columns we want to add
   dplyr::select(c("barcode", "cell_ontology_class", "free_annotation"))
@@ -104,20 +104,21 @@ cell_info <- cell_info %>%
   dplyr::left_join(cell_metadata)
 ```
 
-Check that the sample info accession ids are still the same as the columns of our data
+Check that the sample info accession ids are still the same as the columns of our data.
 
 ```{r check_sampleinfo, live = TRUE}
 all.equal(cell_info$barcode, colnames(bladder_sce))
 ```
 
-Now we can add that data back to the SCE object.
-For unclear reasons, we have to convert our table to a `DataFrame` object in order for this to work.
+Now we can add that data back to the `SingleCellExperiment` object.
+To keep with the format of that object, we have to convert our table to a `DataFrame` object in order for this to work.
 Just to keep things confusing, a `DataFrame` is not the same as a `data.frame` that we have been using throughout. 
 We also need to be sure to include the `row.names` argument to keep those properly attached.
 
-Note that this will replace all of the previous column (cell) metadata, which is why we had to pull out the previous content first.
+Note that this will replace all of the previous column (cell) metadata, which is part of the reason that we pulled out all previous column data content first.
 
-```{r replace_coldata}
+```{r replace_coldata, live = TRUE}
+# add new metadata data back to `bladder_sce`
 colData(bladder_sce) <- DataFrame(cell_info, row.names = cell_info$barcode)
 ```
 
@@ -151,12 +152,13 @@ bladder_sce <- scater::logNormCounts(bladder_sce)
 ### Compare normalized data to count data
 
 One way to determine whether our normalization yields biologically relevant results is to plot it and see if similarly labeled samples and cells end up together.
-Because plotting 1000's of genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis (PCA). 
+Because plotting expression for thousands genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis (PCA). 
 
-We will also log transform the raw counts to make their scaling more comparable to the normalized data. 
+We will also make the same plot with our *unnormalized* data, to visualize the effect of normalization on our sample.
+
+Before plotting the unnormalized data, we will log transform the raw counts to make their scaling more comparable to the normalized data. 
 To do this we will use the `log1p()` function, which is specifically designed for the case where we want to add 1 to all of our values before taking the log, as we do here.
 (We could do something like `log(counts + 1)`, but this is both more efficient and more accurate.)
-
 
 
 ```{r pca}
@@ -199,7 +201,8 @@ ggplot(log_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
   theme_bw()
 ```
 
-We've plotted the counts data for you. Knowing that we want the same graph, but different data, use the above template to plot the normalized data. 
+We've plotted the unnormalized data for you. 
+Knowing that we want the same graph, but different data, use the above template to plot the normalized data. 
 Feel free to customize the plot with a different theme or color scheme!
 
 Let's plot the `norm_pca_scores` data:
@@ -237,25 +240,32 @@ ggplot(as.data.frame(gene_variance), aes(x = mean, y = total)) +
   xlab("Mean log-expression") + 
   ylab("Variance") +
   theme_bw()
-
 ```
 
 Now we can use `scran::getTopHVGs()` to select the genes that have the most biological variation (according to the model) and calculate PCA scores using only those genes. 
 Here we are picking the 500 top genes.
 
-```{r get_highvar}
+```{r get_highvar, live = TRUE}
+# select the most variable genes
 highvar_genes <- scran::getTopHVGs(gene_variance, n = 500)
+# calculate a PCA matrix using those genes
 highvar_pca <- scater::calculatePCA(bladder_sce, subset_row = highvar_genes)
 ```
 
+Once we have the matrix, we will convert it to a data frame and add annotation information.
+
 ```{r highvar_df}
-highvar_pca_scores <- data.frame(highvar_pca,
-                                 geo_accession = rownames(highvar_pca),
-                                 cell_type = bladder_sce$cell_ontology_class)
+# convert to a data frame and add 
+highvar_pca_df <- data.frame(highvar_pca,
+                             geo_accession = rownames(highvar_pca),
+                             cell_type = bladder_sce$cell_ontology_class)
 ```
 
-```{r plot_highvar}
-ggplot(highvar_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+Now we can make a plot of the PCA from high variance genes only.
+
+```{r plot_highvar, live = TRUE}
+# plot the high variance pca results, colored by cell type
+ggplot(highvar_pca_df, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
   ggtitle("High variance gene PCA scores") + 
   scale_color_brewer(palette = "Dark2", na.value = "grey70") + 
@@ -295,13 +305,13 @@ We may want to return to our normalized `bladder_sce` object in the future, so w
 also save our data in an RDS file so that we can re-load it into our R 
 environment as a `SingleCellExperiment` object.
 
-```{r}
+```{r save_rds}
 # Save the data as an RDS
 readr::write_rds(bladder_sce, file.path(norm_dir, "normalized_bladder_sce.rds"))
 ```
 
 ### Print session info
 
-```{r}
+```{r sessioninfo}
 sessionInfo()
 ```
