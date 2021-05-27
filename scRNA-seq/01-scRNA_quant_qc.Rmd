@@ -23,7 +23,7 @@ In this notebook, we will be running through the basics of processing raw single
 We will be using a tag-based scRNA-seq sample from the [*Tabula Muris* project](https://www.nature.com/articles/s41586-018-0590-4).
 This dataset is made of 20 mouse organs that were sequenced using 10X Genomics Chromium single cell sequencing methods.
 For 10X Genomics scRNA-seq data, cells are separated by emulsion/droplets, and individual cells are given barcodes (often abbreviated 'CB' in documentation).
-These data also have [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772) which allow us to examine PCR amplification errors and biases.
+Each transcript will also contain a [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772) which allow us to examine PCR amplification errors and biases.
 
 **Relative workflow for tag-based data**
 ![](diagrams/tag-based_1.png)
@@ -48,12 +48,12 @@ If you have opened the `scRNA-seq.Rproj` file, your Terminal should already be s
 
 If you are in a different directory, we will want to use `cd` to change to the `training-modules/scRNA-seq` directory. 
 
+Copy and paste the text in the code blocks below into your `Terminal` window in RStudio.
+It should be in the lower left hand corner as a tab next to `Console`.
+
 ```bash
 cd ~/training-modules/scRNA-seq
 ```
-
-Copy and paste the text in the code blocks below into your `Terminal` window in RStudio.
-It should be in the lower left hand corner as a tab next to `Console`.
 
 Once you are there, you should be able to run the following command in the Terminal to look at the contents of the `data/tabula-muris` directory:
 
@@ -63,6 +63,36 @@ ls data/tabula-muris
 
 Here you will see the `fastq` directory, which is a actually link to a shared folder with the raw fastq files, split by sample.
 We will use these files, but we will not write to this directory. 
+
+We can look inside the contents of the `fastq` directory, and we should see 16 subfolders corresponding to 16 different samples. 
+Within each of these folders should be the `fastq` files associated with that sample. 
+Again, we can use the `ls` command to show the contents of each of the directories. 
+
+In this scenario, `10X_P4_3` refers to the sample name that we will be processing, which contains data from mouse bladder cells.
+
+```bash
+ls data/tabula-muris/fastq/10X_P4_3
+```
+
+You should see a list of multiple `fastq` files all starting with `10X_P4_3`, indicating the sample name. 
+
+If you notice, each `fastq` file name contains either `R1` or `R2`.
+These correspond to the two sequencing reads of a paired-end library.
+For 10X data, the first read (the `R1` file) will contain the cell barcode and UMI sequence, and the second read (the `R2` file) will contain a cDNA sequence corresponding to the captured transcript.
+We will need both of these files to quantify our data. 
+
+```
+10X_P4_3_L001_R1_001.fastq.gz  10X_P4_3_L002_R1_001.fastq.gz
+10X_P4_3_L001_R1_002.fastq.gz  10X_P4_3_L002_R1_002.fastq.gz
+10X_P4_3_L001_R1_003.fastq.gz  10X_P4_3_L002_R1_003.fastq.gz
+10X_P4_3_L001_R2_001.fastq.gz  10X_P4_3_L002_R2_001.fastq.gz
+10X_P4_3_L001_R2_002.fastq.gz  10X_P4_3_L002_R2_002.fastq.gz
+10X_P4_3_L001_R2_003.fastq.gz  10X_P4_3_L002_R2_003.fastq.gz
+```
+
+Sequencing runs are often split into multiple `fastq` files, both when a sample was run across multiple lanes and to keep the individual file sizes down. 
+This was the case for the *Tabula Muris* data we are using here as well. 
+The files that you see in the `data/tabula-muris/fastq/10X_P4_3` directory shown above represent 2 lanes worth of data, with three R1 and three R2 files per lane.
 
 You will also see the file `TM_droplet_metadata.csv`, which contains metadata for the *Tabula Muris* experiments.
 
@@ -74,8 +104,6 @@ In `Terminal`, run the following command:
 ```bash
 mkdir -p data/tabula-muris/alevin-quant/10X_P4_3_subset
 ```
-
-In this scenario, `10X_P4_3` refers to the sample name that we will be processing this time, which contains data from mouse bladder cells.
 
 ## Quantifying cell expression with Salmon Alevin
 
@@ -104,6 +132,9 @@ Scripts to build the indexes like those we are using here (and others) can be fo
 
 Copy and paste this in your `Terminal` to run the Alevin quantification.
 This will take about 20 minutes to run, so we will start now, then talk about the options.
+
+Note that here we are only giving the full paths to one of the `R1` files and one of the `R2` files. 
+For the sake of time, we are only going to be running this on a subset of reads, but will also show you how to run it on the full sample.  
 
 ```bash
 salmon alevin \
@@ -141,9 +172,6 @@ Because we are using 10X v2 chromium data, we have to use this flag to tell `ale
 If we were using 10X v3 data, we would need the `--chromiumV3` flag instead. 
 Drop-seq data is also supported, for which we would use the `--dropseq` flag instead of this.
 
-For 10X data, the two read files are organized as follows:
-- `R1` files contain the barcodes for cells as well as the UMIs
-- `R2` files contain the RNA-seq reads for that sample.  
 
 #### `--tgMap`
 The transcriptome file that we are mapping to has separate sequences for each transcript of a gene, but due to the sparse nature of single-cell data, we are not likely to be able to meaningfully distinguish among different transcripts.
@@ -161,17 +189,7 @@ There are also a number of example analyses at the [Alevin tutorial](https://com
 
 ### Note: Running the FULL sample.
 
-Sequencing runs are often split into multiple `fastq` files, both when a sample was run across multiple lanes and to keep the individual file sizes down. 
-This was the case for the *Tabula Muris* data we used here as well. If you look in the `data/tabula-muris/fastq/10X_P4_3` directory, you will see the following files, representing 2 lanes worth of data, with three R1 and three R2 files per lane:
-
-```
-10X_P4_3_L001_R1_001.fastq.gz  10X_P4_3_L002_R1_001.fastq.gz
-10X_P4_3_L001_R1_002.fastq.gz  10X_P4_3_L002_R1_002.fastq.gz
-10X_P4_3_L001_R1_003.fastq.gz  10X_P4_3_L002_R1_003.fastq.gz
-10X_P4_3_L001_R2_001.fastq.gz  10X_P4_3_L002_R2_001.fastq.gz
-10X_P4_3_L001_R2_002.fastq.gz  10X_P4_3_L002_R2_002.fastq.gz
-10X_P4_3_L001_R2_003.fastq.gz  10X_P4_3_L002_R2_003.fastq.gz
-```
+When we took a look at the `data/tabula-muris/fastq/10X_P4_3` directory earlier, we noticed that there were multiple files representing 2 lanes worth of data, with three R1 and three R2 files per lane:
 
 We should really run all of these through Salmon, though that will take about six times as long as the single pair of reads we used. 
 To do this, we could list each R1 and R2 file (space separated) after the `-1` and `-2` arguments, respectively.
