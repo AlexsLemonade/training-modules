@@ -25,10 +25,10 @@ files=(
   RNA-seq/04-nb_cell_line_tximeta.Rmd
   RNA-seq/05-nb_cell_line_DESeq2.Rmd
   RNA-seq/06-openpbta_heatmap.Rmd
-  scRNA-seq/01-filtering_scRNA-seq.Rmd
-  scRNA-seq/02-normalizing_scRNA-seq.Rmd
-  scRNA-seq/04-tag-based_scRNA-seq_processing.Rmd
-  scRNA-seq/05-dimension_reduction_scRNA-seq.Rmd
+  scRNA-seq/01-scRNA_quant_qc.Rmd
+  scRNA-seq/02-filtering_scRNA.Rmd
+  # scRNA-seq/03-normalizing_scRNA.Rmd
+  # scRNA-seq/04-dimension_reduction_scRNA.Rmd
   machine-learning/01-openpbta_heatmap.Rmd
   machine-learning/02-openpbta_consensus_clustering.Rmd
   machine-learning/03-openpbta_PLIER.Rmd

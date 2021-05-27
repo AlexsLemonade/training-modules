@@ -58,6 +58,7 @@ link_locs=(
   RNA-seq/data/zebrafish-cortisol/salmon_quant
   RNA-seq/data/open-pbta/pbta-histologies-subset.tsv 
   RNA-seq/data/open-pbta/pbta-rsem-expected_count-subset.rds
+  scRNA-seq/data/glioblastoma/preprocessed
   scRNA-seq/data/hodgkins/cellranger
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/fastq
