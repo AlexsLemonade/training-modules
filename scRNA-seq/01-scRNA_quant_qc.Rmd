@@ -246,6 +246,29 @@ Look for the `10X_P4_3_subset-qc_report.html` file created in the `qc-reports` d
 
 We have also placed an example of a poor quality sample alevinQC report in the `qc-reports` directory, with the name `Bad_Example_10X_P4_2_qc_report.html`.
 
+This report will show a few key metrics that inform you about the quality of your sample. 
+There is a lot of information included in the report, so some key metrics to note are included in the `Summary tables`:
+
+- Fraction of reads in whitelist barcodes 
+- Mean number of reads per cell
+- Median number of detected genes per cell 
+
+The fraction of reads in whitelist barcodes is particularly important as a low percentage here means the library contains many reads that do not contain the expected cell barcodes. 
+This is indicative of poor single-cell capture during library construction. 
+
+The mean number of reads per cell and median number of detected genes per cell can be helpful in understanding how deeply the library was sequenced. 
+The higher these numbers are, the more information you will obtain per cell. 
+
+The `knee plot` shows the number of distinct UMIs for each possible cell barcode on the y-axis, with the barcodes ranked from the most UMIs to the fewest along the x-axis.
+
+Cell barcodes with low UMI counts are likely to be empty droplets that did not contain a cell. 
+These droplets must be filtered out so we only consider true cells for downstream analysis.
+
+To do this, we can look for a `knee` on the curve where the number of UMIs per barcode starts to drop off rapidly, with the intuition that this is where we are reaching the end of the UMIs per cell distribution for true cells.
+We can then choose a threshold below the knee and only include barcodes above this threshold in the final cell barcode list.
+
+Alevin, and [`cellranger count`](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/using/count), both use knee-based filtering.  
+
 ## Next steps: Loading Alevin output into R
 
 After we have successfully quantified our tag-based scRNA-seq data (and done some QC), we will want to read it into R to start to analyze it. 
