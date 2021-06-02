@@ -13,7 +13,8 @@ output:
 This notebook will demonstrate how to:
 
 - Read Cell Ranger data into R 
-- Apply dimensionality reduction methods to Single Cell Data
+- Filter post-quantification cells using `emptyDrops()`
+- Apply dimensionality reduction methods to single cell data
 - Visualize reduced dimensionality data
 
 ---
@@ -138,9 +139,13 @@ dim(hodgkins_sce)
 ### Filtering with `emptyDrops()`
 
 The `DropletUtils` package that we used to read in the 10X data has a number of other useful features. 
-One is the `emptyDrops()` function, which uses the overall expression patterns in the sample to identify droplets that are likely to not contain an intact cell, but may simply have contained loose ambient RNA released during cell separation. 
-This method, described in [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y), uses the droplets with very low UMI counts to estimate the "ambient" expression pattern, then scores the remaining cells based how much they deviate from that pattern.
+One is the `emptyDrops()` function, which uses the overall gene expression patterns in the sample to identify droplets that are likely to not contain an intact cell, but may simply have contained loose ambient RNA released during cell separation. 
+
+This method, described in [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y), uses the droplets with very low UMI counts to estimate the "ambient" expression pattern, then scores the remaining cells based how much they deviate from that pattern, assigning a P value based on the null hypothesis that the droplet's expression matches the ambient expression pattern.
+
 This method seems to perform well to exclude false "cells" while retaining cells with distinct expression profiles but low counts that might have failed a simple cutoff. 
+Note that this method also requires that the data has already been quantified, with reads mapped (or pseudomapped) to genes, as compared to a simple total UMI count filter which can be performed much earlier in the pipeline.
+
 
 The `emptyDrops()` function takes the `counts` matrix from our SingleCellExperiment, and returns a data frame with the statistics it calculated.
 This will take a few minutes to run, but we can speed it up by allowing parallel processing.
@@ -216,11 +221,24 @@ qclust <- scran::quickCluster(filtered_sce)
 filtered_sce <- scran::computeSumFactors(filtered_sce, clusters = qclust)
 
 # Normalize and log transform. 
-filtered_sce <- scater::logNormCounts(filtered_sce)
+normalized_sce <- scater::logNormCounts(filtered_sce)
+```
+
+At this point, we have a few different versions of our `SingleCellExperiment` object.
+The original (mostly) unfiltered version is in `hodgkins_sce`, the filtered version in `filtered_sce`, and the normalized version in `normalized_sce`.
+We can clean those up a bit to save memory, keeping only the latest `normalized_sce` version, which now has two `assay`s: 
+`counts` with the raw data and `logcounts` with the normalized and transformed data.
+
+```{r clean_up, live = TRUE}
+assayNames(normalized_sce)
+rm(hodgkins_sce, filtered_sce)
 ```
 
 
+
 ![**Status of the current dataset**](diagrams/tag-based_3.png)
+
+
 
 ## Dimensionality reduction and display
 
@@ -232,11 +250,11 @@ The idea of PCA is that it finds the axes which explain the greatest amount of v
 
 ```{r PCA}
 # Run PCA
-hodgkins_pca <- calculatePCA(filtered_sce)
+hodgkins_pca <- calculatePCA(normalized_sce)
 ```
 
 ```{r plot_pca}
-# Plot this with ggplot2 
+# Plot PCA results with ggplot2 
 ggplot(data.frame(hodgkins_pca), 
        aes(x = PC1, y = PC2)) + 
   geom_point(alpha = 0.2) +
@@ -246,32 +264,32 @@ It looks like there may be a few clusters there, though they are not very distin
 Sometimes looking at higher dimensions can show more (or different) structure, so lets have a look there too.
 
 ```{r plot_pca2}
-# Plot this with ggplot2 
+# Plot a higher set of dimensions
 ggplot(data.frame(hodgkins_pca), 
        aes(x = PC3, y = PC4)) + 
   geom_point(alpha = 0.2) +
   theme_bw()
 ```
 
-### Storing PCA results with the data
+#### Storing PCA results with the data
 
 Let's store the PCA results in our `SingleCellExperiment` object, as we might want to use them later.
 To do this, we will use the `runPCA()` function from scater, which performs the same calculation as above, but returns a new object with the results stored in the `reducedDim` slot.
 
 ```{r}
-filtered_sce <- runPCA(filtered_sce)
+normalized_sce <- runPCA(normalized_sce)
 ```
 
 We can see what reduced dimensionality matrixes are stored in the object with `reducedDimNames()`.
 
 ```{r}
-reducedDimNames(filtered_sce)
+reducedDimNames(normalized_sce)
 ```
 
 To extract them by name, we use the `reducedDim()` function, much like the `assay()` function to extract original data.
 
 ```{r}
-reducedDim(filtered_sce, "PCA")[1:10, 1:5]
+reducedDim(normalized_sce, "PCA")[1:10, 1:5]
 ```
 
 
@@ -288,7 +306,7 @@ There is some ongoing debate about which of these two techniques is superior, an
 Regardless of why, in our experience, UMAP seems to produce slightly better results and run a bit faster, but the differences can be subtle.
 
 
-### Default parameters
+#### Default parameters
 
 For ease of use with this data, we will be using the `scater::calculateUMAP()` and `scater::runUMAP()` function to apply UMAP to our single cell data, but similar functions the `uwot` package (notably `uwot::umap()`) can be used to apply UMAP to any numerical matrix.
 
@@ -302,7 +320,7 @@ Let's see how it looks with the default parameters:
 
 ```{r calculate_umap, live = TRUE}
 # Run umap
-filtered_sce <- runUMAP(filtered_sce)
+normalized_sce <- runUMAP(normalized_sce)
 ```
 
 If we have the UMAP results stored in the `SingleCellExperiment` object, we can use the `scater::plotReducedDim()` function to plot it a bit more easily!
@@ -310,7 +328,7 @@ This function still uses `ggplot2`, so if we wanted to customize it later, we co
 
 ```{r plot_umap, live = TRUE}
 # make a UMAP plot with `plotReducedDim()`
-plotReducedDim(filtered_sce, "UMAP", colour_by = "subsets_mito_percent")
+plotReducedDim(normalized_sce, "UMAP", colour_by = "detected")
 
 ```
 
@@ -319,18 +337,96 @@ Do the clusters we see differentiate cell types? How should we divide them up?
 
 We will come back to this question later!
 
+### UMAP experiments
+
+Now that we have an idea of what a UMAP plot with the default parameters looks like, let's try experimenting with the `n_neighbors` parameter. 
+First, we should see what this parameter is, and what the default value is.
+In the console, run `?scater::calculateUMAP` to see what this (and other parameters) are.
+For even more parameters, you can look at the underlying implementation code that `calculateUMAP()` uses, which is the function `uwot::umap()`
+
+In order to make our experimentation easier, we will create a *function* that allows us to rerun the same code easily, but create an argument that allows us to change one variable: the n_neighbors variable.
+Here we are saving only a line of code, but we could apply this to a much more complex series of operations if we wanted to!
+
+
+```{r UMAP-function}
+UMAP_plot_wrapper <- function(sce = normalized_sce, nn_param = 15) {
+  # Purpose: Run UMAP and plot the output
+  # Args: nn_param: a single numeric argument that will change the 
+  #                 n_neighbors variable in the calculateUMAP() function. 
+  # Output: a scatterplot with the two UMAP coordinates plotted and 
+  #         cell-types labeled with data point colors. 
+
+  # Run UMAP with a specified n_neighbors parameter
+  sce_umap <- scater::runUMAP(sce, n_neighbors = nn_param)
+  scater::plotReducedDim(sce_umap, "UMAP", colour_by = "detected") +
+    # make the legend label more informative (this is ggplot2 code!)
+    guides(color = guide_colourbar(title="genes\nexpressed"))
+}
+```
+
+Let's make sure that works and gives the same result as before when we use the default parameters.
+
+```{r function-test}
+UMAP_plot_wrapper(nn_param = 15)
+```
+
+*Kind of?*
+
+This isn't your fault! 
+UMAP is a non-deterministic function, which means that there is a random component to the results. 
+We can use `set.seed()` to be sure that an individual run (or set of runs) is the same every time you run your analysis, but it is important to check your results a few times with different random starting points to be sure that the random component is not giving you anomalous results.
+Setting a different random number seed with `set.seed()` is one way to do this, or you can run the analysis multiple times in the same session, as we have done here.
+
+Fill in the next few code chunks with the function and the `n_neighbors` argument you would like to use for each. 
+(Feel free to add more tests!)
+Then run the chunks and compare your output graphs.
+
+```{r run-UMAP-1, live = TRUE}
+# Try something low?
+UMAP_plot_wrapper(nn_param = 3)
+```
+
+```{r run-UMAP-2, live = TRUE}
+# Try something high?
+UMAP_plot_wrapper(nn_param = 100)
+```
+
+```{r run-UMAP-3, live = TRUE}
+# Try whatever you like!
+UMAP_plot_wrapper(nn_param = 5)
+```
+
+#### Some 'big picture' thoughts to take from this experiment: 
+
+1. Analyses such as UMAP have various limitations for interpretability. 
+The coordinates of UMAP output for any given cell can change dramatically depending on parameters, and even run to run with the same parameters. 
+This probably means that you shouldn't rely on the exact values of UMAP's output. 
+
+    - One particular limitation of UMAP (and t-SNE) is that while observed clusters have some meaning, the distance *between* clusters usually does not (nor does cluster density). 
+    The fact that two clusters are near each other should NOT be interpreted to mean that they are more related to each other than to more distant clusters. 
+    (There is some disagreement about whether UMAP distances have more meaning, but it is probably safer to assume they don't.)
+
+
+2. Playing with parameters so you can fine-tune them is a good way to give you more information about a particular analysis as well as the data itself. 
+
+3. Where results are consistent, they are more likely to have meaning. 
+While we do not have labeled cell types in this case, there does seem to be some consistency of the overall patterns that we see (if not precise values), and this likely reflects biological information (or technical artifacts).
+   
+In summary, if the results of an analysis can be completely changed by changing its parameters, you should be more cautious when it comes to the conclusions you draw from it as well as having good rationale for the parameters you choose. 
+
+
 
 ### t-SNE comparison
 
 In the block below is a similar analysis and plot with t-SNE (t-distributed Stochastic Neighbor Embedding).
 Note that this analysis also does PCA before moving on to the fancy machine learning.
 
-```{r tsne}
+```{r tsne, live = TRUE}
 # Run TSNE
-filtered_sce <- runTSNE(filtered_sce)
+normalized_sce <- runTSNE(normalized_sce)
 
-# plot with builtin function
-plotReducedDim(filtered_sce, "TSNE", colour_by = "subsets_mito_percent")
+# plot with scater function
+plotReducedDim(normalized_sce, "TSNE", colour_by = "detected")
 ```
 
 Different! (Slower!) Is it better or worse? Hard to say!
@@ -340,8 +436,8 @@ Different people like different things, and one plot might illustrate a particul
 
 We are going to use this data more in the next notebook, so let's save it as an `RDS` file.
 
-```{r}
-readr::write_rds(filtered_sce, file = output_sce_file)
+```{r save}
+readr::write_rds(normalized_sce, file = output_sce_file)
 ```
 
 
