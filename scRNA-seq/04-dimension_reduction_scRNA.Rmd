@@ -86,7 +86,7 @@ Cell Ranger output includes count data in two main formats.
 The first is a folder with a feature list, a barcode list, and a sparse matrix in ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html). 
 The `DropletUtils::read10xCounts()` function takes this directory and reads in the data from these three files, assembling the `SingleCellExperiment` object we have worked with before. 
 
-Alternatively, we could use the HDF5 format file that Cellranger outputs as a file with the `.h5` extension, which contains the same data. 
+Alternatively, we could use the `HDF5` format file that Cell Ranger outputs as a file with the `.h5` extension, which contains the same data. 
 For whatever reason, the way you read the data affects how it is stored in R, with the net result that reading from the directory results in smaller objects in R, so that is what we will do here. 
 
 Cell Ranger also outputs both filtered and raw matrices; today we will start with the raw matrix and perform our own filtering.
@@ -112,7 +112,7 @@ We should probably do something about that.
 
 We will start by calculating the basic QC stats as we have done previously, adding those to our `SingleCellExperiment` object.
 
-The first step again is reading in our table of mitochrondrial genes and finding the ones that were quantified our data set.
+The first step again is reading in our table of mitochondrial genes and finding the ones that were quantified our data set.
 
 ```{r mitogenes}
 mito_genes <- readr::read_tsv(mito_file) %>%
@@ -144,7 +144,7 @@ One is the `emptyDrops()` function, which uses the overall gene expression patte
 This method, described in [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y), uses the droplets with very low UMI counts to estimate the "ambient" expression pattern, then scores the remaining cells based how much they deviate from that pattern, assigning a P value based on the null hypothesis that the droplet's expression matches the ambient expression pattern.
 
 This method seems to perform well to exclude false "cells" while retaining cells with distinct expression profiles but low counts that might have failed a simple cutoff. 
-Note that this method also requires that the data has already been quantified, with reads mapped (or pseudomapped) to genes, as compared to a simple total UMI count filter which can be performed much earlier in the pipeline.
+Note that this method also requires that the data has already been quantified, with reads assigned to genes, as compared to a simple total UMI count filter which can be performed much earlier in the pipeline.
 
 
 The `emptyDrops()` function takes the `counts` matrix from our SingleCellExperiment, and returns a data frame with the statistics it calculated.
