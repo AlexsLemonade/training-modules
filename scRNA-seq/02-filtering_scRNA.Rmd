@@ -17,7 +17,7 @@ This notebook will demonstrate how to:
 
 ---
 
-We will continue with the tabula muris data set that we started with in the previous notebook. 
+We will continue with the Tabula Muris data set that we started with in the previous notebook. 
 
   
 ## Set Up 
@@ -103,29 +103,45 @@ We recommend you use the cache, and accept the default location.
 bladder_sce <- tximeta(coldata, type = "alevin")
 ```
 
-`tximeta` reads the data in as a `RangedSummarizedExperiment`, which we will look at briefly.
+In the intro-to-R-tidyverse module notebook, `01-intro-to-base_R.Rmd`, we discuss base R object types, but there are some 'special' object types that are package-specific. 
+`tximeta` creates a `SummarizedExperiment` object (or more specifically a `RangedSummearizedExperiment` object.), which is used by many Bioconductor packages to store and process results from gene expression studies.
 
-```{r view_scdata}
+```{r view_scdata, live = TRUE}
+# Explore the SummarizedExperiment data
 bladder_sce
 ```
 
-The main component is the `counts` matrix, which is stored as an "assay", with a row for each gene and a column for each cell. 
+The main component we are concerned with for now is the `counts` matrix, which is stored as an "assay", with a row for each gene and a column for each cell. 
 In this case, we can see there is information for 35,429 genes, and Alevin reports data for 344 cells.
 
 `tximeta` also automatically added some annotation information about each gene, which can be seen by extracting the `rowData` table.
 
-```{r}
+```{r view_annoation, live = TRUE}
+# Examine row (gene) metadata
 rowData(bladder_sce)
 ```
 
-We could leave the object as it is, but we can unlock some extra functionality by converting this from a `SummarizedExperiment`object to a `SingleCellExperiment`, so we will go ahead and do that now.
+We could leave the object as it is, but we can unlock some extra functionality by converting this from a `SummarizedExperiment`object to a `SingleCellExperiment`, so we will go ahead and do that next.
+`SingleCellExperiment` objects are a subtype of this that a lot of single-cell analysis R packages use, so we will try to get acquainted with them. 
 
-```{r}
+Below is a figure from [Amezquita *et al.* (_bioRxiv._ 2019)](https://www.biorxiv.org/content/10.1101/590562v1) (the preprint version of the above-linked paper) that shows the general structure of `SingleCellExperiment` objects. 
+
+![](figures/sce_structure.png)
+
+Note that each function which transforms the `SingleCellExperiment` object can store its results back into the object (or a new copy of the object, but that tends to be a waste of space).
+Each of these transformation functions also have a corresponding extraction function that allow you to extract (or set) those results from the `SingleCellExperiment` object. 
+
+For more information on `SingleCellExperiment` objects, check out this [excellent vignette](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html) and/or [Amezquita *et al.* (2020)](https://www.nature.com/articles/s41592-019-0654-x)
+
+To perform the conversion to a `SingleCellExperiment`, we will use the R function `as()`, which "coerces" objects from one type to another.
+
+```{r convert_sce, live = TRUE}
+# Convert the SummarizedExperiment to a SingleCellExperiment
 bladder_sce <- as(bladder_sce, "SingleCellExperiment")
 bladder_sce
 ```
-Doing this added a couple of (currently empty) slots for things like dimensionality reduction results and alternative feature experiments. Foreshadowing!
 
+Doing this added a couple of (currently empty) slots for things like dimensionality reduction results and alternative feature experiments. Foreshadowing!
 
 ## Summarizing expression  
 
@@ -220,7 +236,7 @@ summary(total_counts)
 Yikes, at least one of the cells has only 1 read!, compared to the median of ~4000!
 It's highly likely that this 'cell' is either an empty well or did not get sequenced properly. 
 
-Let's visualize the distribution of total counts to see if this is the only cell we might want to exclude
+Let's visualize the distribution of total counts to see if this is the only cell we might want to exclude.
 
 In following graphs, we will use vertical red lines to indicate possible cutoffs. 
 
@@ -321,7 +337,7 @@ If we use strict cutoffs to select which cells are "valid", there is the possibi
 
 If a cell is dead or dying, its mRNA will tend to leak out of the cell, leaving an overabundance of mitochondrial RNA, which is more likely to stay within the mitochondria longer. 
 To look for this, we would like to calculate the fraction of mitochondrial expression for each cell as well.
-First, we will need a list of the mitochondrial genes, which we have prepared in a tsv file `hs_mitochondrial_genes.tsv` that we will now read in, and filter to just the genes that are found in the data set.  
+First, we will need a list of the mitochondrial genes, which we have prepared in a tsv file `mm_mitochondrial_genes.tsv` that we will now read in, and filter to just the genes that are found in the data set.  
 
 ```{r read_mito}
 # read `mm_mitochondrial_genes.tsv` from data_dir
@@ -350,7 +366,8 @@ Lets make a plot of this distribution as well!
 ggplot(mapping = aes(x = mito_fraction)) +
   geom_density(fill = "lightblue") + 
   xlab("Mitchondrial fraction") +
-  theme_classic()
+  geom_vline(xintercept = 0.2, color = "red") +
+  theme_classic() 
 ```
 
 
@@ -389,7 +406,7 @@ If we want to filter our data based on these measures and cutoffs we like, we ca
 filtered_samples <- qc_df %>%
   dplyr::filter(total_counts > 1000,
                 num_genes_exp > 500,
-                mito_fraction < 0.1)
+                mito_fraction < 0.2)
 # select only passing samples for bladder_sce_filtered
 sc_counts_filtered <- sc_counts[, filtered_samples$barcode]
 ```
@@ -424,8 +441,8 @@ Since the subset we used was named `mito`, this column is called `subsets_mito_p
 Using these, we can recreate the plot from before:
 
 ```{r replot}
-# extract the column data and conver to a data frame
-bladder_qc <- as.data.frame(colData(bladder_sce))
+# extract the column data and convert to a data frame
+bladder_qc <- data.frame(colData(bladder_sce))
 
 # plot with the qc data frame
 ggplot(bladder_qc, aes (x = sum,
@@ -442,13 +459,13 @@ ggplot(bladder_qc, aes (x = sum,
 
 Filtering the `SingleCellExperiment` object is done as if it were just the counts matrix, with brackets and indexes. 
 While this will look much like what we did before, it is better, because it will also keep the filtered QC stats alongside, in case we wanted to revisit them later.
-Otherwise, we would have to filter ourQC results separately, which is an easy place for errors to creep in.
+Otherwise, we would have to filter our QC results separately, which is an easy place for errors to creep in.
 
 ```{r filter_sce}
 # create a boolean vector of QC filters
 cells_to_keep <- bladder_sce$sum > 1000 & 
   bladder_sce$detected > 500 &
-  bladder_sce$subsets_mito_percent < 10
+  bladder_sce$subsets_mito_percent < 20
 
 # filter the sce object (cells are columns)
 bladder_sce_filtered <- bladder_sce[, cells_to_keep]
@@ -480,7 +497,7 @@ Let's make another density plot with the percentage of samples that express each
 
 ```{r sample_exp_plot}
 # extract the gene information with 
-gene_info <- as.data.frame(rowData(bladder_sce_filtered))
+gene_info <- data.frame(rowData(bladder_sce_filtered))
 
 # Plot the detected percentage
 ggplot(gene_info, aes(x = detected) )+
@@ -494,17 +511,18 @@ How many genes will be excluded if we draw our cutoff at 5% of cells?
 ```{r filter_effect, live = TRUE}
 sum(gene_info$detected < 5)
 ```
+
 That's a lot! How do we feel about that?
 
-```{r filter_genes}
+```{r filter_genes, live = TRUE}
 cutoff <- 2
-# filter bladder_sce_filtered to only genes above cutoff value
+# filter bladder_sce_filtered to only genes above a cutoff value
 bladder_sce_filtered <- bladder_sce_filtered[gene_info$detected >= cutoff, ]
 ```
 
-How big is it now?
-gene_info$detected
-```{r}
+How big is the `SingleCellExperiment` object now?
+
+```{r filtered_size, live = TRUE}
 dim(bladder_sce_filtered)
 ```
 
