@@ -27,15 +27,15 @@ files=(
   RNA-seq/06-openpbta_heatmap.Rmd
   scRNA-seq/01-scRNA_quant_qc.Rmd
   scRNA-seq/02-filtering_scRNA.Rmd
-  # scRNA-seq/03-normalizing_scRNA.Rmd
-  # scRNA-seq/04-dimension_reduction_scRNA.Rmd
-  machine-learning/01-openpbta_heatmap.Rmd
-  machine-learning/02-openpbta_consensus_clustering.Rmd
-  machine-learning/03-openpbta_PLIER.Rmd
-  machine-learning/04-openpbta_plot_LV.Rmd
-  pathway-analysis/01-overrepresentation_analysis.Rmd
-  pathway-analysis/02-gene_set_enrichment_analysis.Rmd
-  pathway-analysis/03-gene_set_variation_analysis.Rmd
+  scRNA-seq/03-normalizing_scRNA.Rmd
+  scRNA-seq/04-dimension_reduction_scRNA.Rmd
+  # machine-learning/01-openpbta_heatmap.Rmd
+  # machine-learning/02-openpbta_consensus_clustering.Rmd
+  # machine-learning/03-openpbta_PLIER.Rmd
+  # machine-learning/04-openpbta_plot_LV.Rmd
+  # pathway-analysis/01-overrepresentation_analysis.Rmd
+  # pathway-analysis/02-gene_set_enrichment_analysis.Rmd
+  # pathway-analysis/03-gene_set_variation_analysis.Rmd
 )
 for file in ${files[@]}
 do
