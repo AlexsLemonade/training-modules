@@ -88,7 +88,7 @@ filtered_sce_file <- file.path(filtered_dir, "filtered_sce.rds")
 
 In this case, we are only importing a single experiment, so we will create a data frame with only one row.
 
-```{r names_sf_files}
+```{r names_sf_files, live = TRUE}
 coldata <- data.frame(files = alevin_file, 
                       names = "10X_P4_3")
 ```
@@ -98,13 +98,13 @@ Using the `coldata` data frame that we set up, we can now run the `tximeta()` to
 The first time you run `tximeta()` you may get a message about storing downloaded transcriptome data in a cache directory so that it can retrieve the data more quickly the next time.
 We recommend you use the cache, and accept the default location.
 
-```{r read_data}
+```{r read_data, live = TRUE}
 # Read in alevin results with tximeta
 bladder_sce <- tximeta(coldata, type = "alevin")
 ```
 
 In the intro-to-R-tidyverse module notebook, `01-intro-to-base_R.Rmd`, we discuss base R object types, but there are some 'special' object types that are package-specific. 
-`tximeta` creates a `SummarizedExperiment` object (or more specifically a `RangedSummearizedExperiment` object.), which is used by many Bioconductor packages to store and process results from gene expression studies.
+`tximeta` creates a `SummarizedExperiment` object (or more specifically a `RangedSummarizedExperiment` object.), which is used by many Bioconductor packages to store and process results from gene expression studies.
 
 ```{r view_scdata, live = TRUE}
 # Explore the SummarizedExperiment data
@@ -122,7 +122,7 @@ rowData(bladder_sce)
 ```
 
 We could leave the object as it is, but we can unlock some extra functionality by converting this from a `SummarizedExperiment`object to a `SingleCellExperiment`, so we will go ahead and do that next.
-`SingleCellExperiment` objects are a subtype of this that a lot of single-cell analysis R packages use, so we will try to get acquainted with them. 
+`SingleCellExperiment` objects are a subtype of `SummarizedExperiment` objects that a lot of single-cell analysis R packages use, so we will try to get acquainted with them. 
 
 Below is a figure from [Amezquita *et al.* (_bioRxiv._ 2019)](https://www.biorxiv.org/content/10.1101/590562v1) (the preprint version of the above-linked paper) that shows the general structure of `SingleCellExperiment` objects. 
 
@@ -214,8 +214,10 @@ sum(sc_counts == 0)/(nrow(sc_counts) * ncol(sc_counts))
 ## Quality control measures for the counts matrix
   
 The small amount of RNA in a single cell results in higher chances of errors and biases in RNA isolation, amplification, and sequencing. 
-We should check that the overall data we observe for each sample/cell are reasonable before proceeding too far. 
-The next section explores some of the ways we can filter the data set to clean things up.
+We should check that the overall data we observe for each sample/cell are reasonable before proceeding too far.
+
+The next section explores some of the ways we can filter the data set to clean things up before we continue to downstream analysis.
+![](diagrams/full-length_1.png)
 
 #### Total counts as a quality measure
 
@@ -261,6 +263,7 @@ sum(total_counts <= count_cutoff)
 
 What if a single gene accounted for all counts in a particular cell?
 This cell would not have helpful data for us, so we should look to remove any cells we suspect might not have a useful amount of its transcriptome measured.
+
 But before we can determine how many genes we consider a particular cell to be expressing we need to determine a numeric cutoff for what we consider to be a detected gene.
 How many counts must there be for you to consider a gene expressed? 
 Here let's go for a simple detection cutoff of > 0. 
@@ -279,59 +282,34 @@ num_genes_exp <- colSums(detection_mat)
 
 Let's plot this using the same style and type of graph as above. 
 
-```{r genes_expressed_plot, live = TRUE}
+```{r genes_expressed_plot}
 ggplot(mapping = aes(x = num_genes_exp)) +
   geom_density(fill = "lightblue") +  
   xlab("Number of genes expressed") +
   theme_classic() 
 ```
 
+This plot helps us visualize the distribution of genes per cell and can help inform how we choose the cutoff.
+It's important to remember that different cell types can have quite different patterns with regards to number of genes expressed.
+If we were to use strict cutoffs to select which cells are "valid", there is the possibility that we could bias our results, so this is something we want to be careful about. 
 
-Because this is a well-studied data set, we actually have some cell type information for this data set.
-This is not how we will normally come across data, but we can take advantage of it to learn something about the distribution of the number of genes expressed. 
+Let's see what happens if we only keep cells with > 500 expressed genes. 
+Just like when we looked at total counts, we can add in a vertical line to the previous plot where the possible cutoff would be.  
 
-First we will read in the metadata:
-
-```{r read_metadata}
-# read in metadata (use guess_max greater than the default to avoid parsing errors)
-sc_metadata <- readr::read_csv(metadata_file, guess_max = 10000)
+```{r genes_expressed_cutoff, live = TRUE}
+ggplot(mapping = aes(x = num_genes_exp)) +
+  geom_density(fill = "lightblue") +  
+  xlab("Number of genes expressed") +
+  theme_classic() + 
+  geom_vline(xintercept = 500, color = "red")
 ```
+How many cells would be removed with this cutoff?
 
-The `cell` column here is a combination of the sample id (e.g. `10X_P4_3`) and the cell barcode.
-We can use `dplyr::left_join()` to match this up with the information we have from our table, but we will have to make a matching `cell_id` in a new data frame with the gene expression info first. 
-
-```{r}
-num_genes_exp_df <- data.frame(barcode = names(num_genes_exp),
-                               genes_exp = num_genes_exp
-                               ) %>%
-  dplyr::mutate(cell = paste0("10X_P4_3_", barcode))
+```{r count_gene_cutoffs, live = TRUE}
+# Calculate the number of cells that would be removed with a given cutoff
+gene_cutoff <- 500
+sum(total_counts <= gene_cutoff)
 ```
-
-
-
-In order to do this, we need to prepare a data frame that has our `num_genes_exp` numbers along side our cell-type labels.
-We will do this with `dplyr::left_join()` to merge count data to our metadata table.
-
-```{r join_metadata, live = TRUE}
-# Let's make a dataframe with this information
-num_genes_exp_df <- num_genes_exp_df %>%
-  dplyr::left_join(sc_metadata)
-```
-
-The next graph we are using the same steps as before, but to make individual graphs for each cell type, we are using the ggplot2 `facet_wrap()` function.
-
-```{r facet_genes, live = TRUE}
-# Plot with faceting by cell type
-ggplot(num_genes_exp_df, aes(x = num_genes_exp)) + 
-  xlab("Number of Genes Expressed") +
-  geom_density(fill = "lightblue") + 
-  geom_vline(xintercept = 2000, color = "red") + 
-  facet_wrap(~ cell_ontology_class) + # Facet wrap uses labels you give it to make individual graphs. 
-  theme_classic()
-```
-
-You can see that most of the cells that do not have assigned cell types tend to have fewer genes expressed, but just as importantly, different cell types can have quite different patterns.
-If we use strict cutoffs to select which cells are "valid", there is the possibility that we could bias our results, so this is something to be careful about.
 
 ### Mitochondrial gene expression
 
@@ -369,6 +347,7 @@ ggplot(mapping = aes(x = mito_fraction)) +
   geom_vline(xintercept = 0.2, color = "red") +
   theme_classic() 
 ```
+Here, we want to keep cells with a low fraction of reads corresponding to mitochondrial genes and remove any cells with a high mitochondrial fraction. 
 
 
 ### Combining sample QC measures
@@ -376,8 +355,9 @@ ggplot(mapping = aes(x = mito_fraction)) +
 Lets put all of the QC measures we have calculated into a single data frame, so we can look at how they might relate to one another.
 
 ```{r qc_dataframe, live = TRUE}
-# add total_counts and mito_fraction to our num_genes_exp_df 
-qc_df <- num_genes_exp_df %>%
+# make a data frame with number of genes expressed, total counts, and mito fraction 
+qc_df <- data.frame(barcode = names(num_genes_exp),
+                    genes_exp = num_genes_exp) %>%
   dplyr::mutate(total_counts = total_counts,
                 mito_fraction = mito_fraction) 
   
@@ -473,11 +453,9 @@ bladder_sce_filtered <- bladder_sce[, cells_to_keep]
 
 Just to check, we should have the same number of cells in `bladder_sce_filtered` as our previous `sc_counts_filtered`.
 
-```{r check_cell_count}
+```{r check_cell_count, live = TRUE}
 ncol(sc_counts_filtered) == ncol(bladder_sce_filtered)
 ```
-
-
 
 ## Number of cells that express a gene as a quality measure
 
@@ -490,7 +468,6 @@ The columns it adds are the average expression level of each gene (`mean`) and t
 
 ```{r sample_exp, live = TRUE}
 bladder_sce_filtered <- scater::addPerFeatureQC(bladder_sce_filtered)
-
 ```
 
 Let's make another density plot with the percentage of samples that express each gene:
