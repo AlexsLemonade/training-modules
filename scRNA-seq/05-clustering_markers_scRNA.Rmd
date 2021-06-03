@@ -55,6 +55,115 @@ hodgkins_sce <- readr::read_rds(normalized_rds)
 
 ## Identifying cell clusters
 
+Source of lots of info: https://bioconductor.org/books/release/OSCA/clustering.html
+
+When we performed dimensionality reduction on our single cell data, we could see visually that the cells tended cluster together into groups. 
+To the extent that such clustering is a real biological phenomenon, representing cells with similar patterns of gene expression, we might like to identify distinct groups that we can name and assign a label to.
+Ultimately, we would hope that these labels correspond to previously identified (or newly identified!) cell types, and that we can use that information to provide more insight into the results of our experiment.
+
+There are a number of methods to identify clusters and assign cells to those in multidimensional data like the single cell data we have.
+We will explore a couple of those here.
+
+### k-means clustering
+
+The first method we will try is k-means clustering.
+
+The k-means algorithm in it basic form requires us to pick the number of clusters we want to use
+
+We are going to use the function `clusterRows()` from the  Bioconductor `bluster` package for our clustering. 
+This function takes a matrix where each samples (cells in our case) is a row and each column is a feature.
+The matrix of counts (or normalized counts) by cells in our `SingleCellExperiment` object is the wrong orientation, so at a minimum we would have to transpose that matrix before proceeding. 
+
+However, clustering algorithms like k-means can be a bit slow with as many features as the number of genes that we have in our data set, so we would rather not use the raw data.
+There is also a potential concern that noise in the raw data might disrupt the clustering algorithm, so it would be best to use some kind of dimensionality reduction algorithm first. 
+But we still want to maintain a good number of dimensions, so our old friend PCA is a good (and very standard) choice.
+
+Thankfully, we already computed *and stored* a matrix with reduced dimensions with the `runPCA()` function. 
+We will extract that from the `SingleCellExperiment` object with the `reducedDim()` function, which conveniently returns a matrix with the cells as rows, so we can use that directly!
+
+We will start with a small number for the clusters.
+
+```{r kmeans_6}
+# set the number of clusters:
+k <- 6
+
+# extract the principal components matrix
+hodgkins_pca <- reducedDim(hodgkins_sce, "PCA")
+
+# perform the clustering
+kclusters <- clusterRows(hodgkins_pca, KmeansParam(centers = k))
+```
+
+The `clusterRows()` function returned a vector of cluster assignments as integers, but the numerical values have no inherent meaning. 
+For plotting we will want to convert those to a factor, so R is not tempted to treat them as a continuous variable.
+
+We can also store them back into the column (cell) information table of the original object for convenient storage and later use.
+
+```{r store_kclusters}
+hodgkins_sce$kcluster <- factor(kclusters)
+```
+
+Now we can plot the results and see how the clustering looks, using the `scater` function `plotReducedDim()`, but now coloring the points by our clustering results.
+We will start by using the UMAP coordinates for the plot.
+Note that this does require that the cluster identities were stored in the `SingleCellExperiment` object.
+
+
+```{r plot_k}
+plotReducedDim(hodgkins_sce, "UMAP", colour_by = "kcluster")
+```
+
+Do those clusters line up with what you might have expected if you were doing this by eye?
+What do the results look like if you plot with the PCA coordinates? 
+What happens if we change the number of clusters?
+
+### Graph-based clustering
+
+Another common type of clustering method for single cell data is graph-based clustering. 
+This works by identifying a set of nearest neighbors for each cell that have similar expression profiles to that cell, then connecting each cell to those neighbors in a network graph. 
+The connections are weighted by how similar each cell is to its neighbors.
+
+We then break the network up by identifying clusters of cells that are more connected to each other than they are to cells outside the clusters. 
+
+To apply this, we will use the same `bluster::clusterRows()` function as before, but we will change the second argument from `KmeansParam()` to `NNGraphParam()` to tell it that we want to use a nearest-neighbor graph-based method. 
+We can then supply parameters to `NNGraphParam()` to adjust the details of the algorithm.
+
+Here we will use `k` to specify the number of neighbors to use when building the graph and `cluster.fun` to specify the algorithm for identifying the clusters within the graph.
+Despite sharing a letter, `k` here and the one from k means clustering are not the same thing!
+In this case, we are telling the algorithm how many neighbor connections to make for each cell, not final number of clusters, which will be determined by the algorithm.
+
+
+```{r nnclust, live = true}
+# run the clustering algorithm
+nnclusters <- clusterRows(
+  hodgkins_pca, 
+  NNGraphParam(k = 10, 
+               cluster.fun = "walktrap")
+  )
+# store cluster results in the SCE object
+hodgkins_sce$nncluster <- factor(nnclusters)
+```
+
+
+```{r plot_nnclust}
+plotReducedDim(hodgkins_sce, "UMAP", colour_by = "nncluster")
+```
+How does that compare to the k-means clustering result?
+
+
+### Parameters matter!
+
+```{r}
+clusterPlot <- function(sce, cluster_param, plot_dim = "UMAP"){
+  pc_matrix <- reducedDim(sce, "PCA")
+  clusters <- clusterRows(pc_matrix, cluster_param) %>% factor()
+  sce$cluster <- factor(clusters)
+  plotReducedDim(sce, plot_dim, colour_by = "cluster")
+}
+```
+
+```{r}
+clusterPlot(hodgkins_sce, NNGraphParam(k = 5, cluster.fun = "louvain"))
+```
 
 
 ## Identify marker genes
@@ -158,4 +267,12 @@ ggplot(marker_pca, aes(x = PC1, y = PC2, color = cell_type)) +
   geom_point() + 
   ggtitle("Marker gene PCA scores") + 
   scale_color_manual(values = unname(palette.colors(palette = "Okabe-Ito")))
+```
+
+
+
+## Session Info
+
+```{r session}
+sessionInfo()
 ```
