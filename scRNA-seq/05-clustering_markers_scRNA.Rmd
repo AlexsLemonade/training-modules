@@ -1,0 +1,161 @@
+---
+title: "Clustering cells and finding marker genes scRNA-seq data"
+author: CCDL for ALSF
+date: 2021
+output:
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+## Objectives
+
+This notebook will demonstrate how to:
+
+- Annotate clusters of cells in single-cell data
+- Compare different clustering methods
+- Identify marker genes that can be used to differentiate clusters
+
+---
+
+## Set Up
+
+### Load libraries
+```{r setup}
+# Load libraries
+library(ggplot2)
+library(scater)
+library(scran)
+# clustering tools
+library(bluster)
+
+# Magrittr pipe
+library(magrittr)
+
+# Setting the seed for reproducibility
+set.seed(12345)
+```
+
+```{r filepaths}
+# main data directory
+data_dir <- file.path("data", "hodgkins")
+
+# normalized data file
+normalized_rds <- file.path(data_dir, "normalized", "normalized_hodgkins_sce.rds")
+
+# Output directory for markers
+marker_dir <- file.path("analysis", "hodgkins", "markers")
+if (!dir.exists(marker_dir)) {
+  dir.create(marker_dir, recursive = TRUE)
+}
+```
+
+```{r read data}
+hodgkins_sce <- readr::read_rds(normalized_rds)
+```
+
+## Identifying cell clusters
+
+
+
+## Identify marker genes
+
+The highest variance genes may not always be the most informative on their own, especially if we are trying to differentiate among cell types.
+To find genes that are distinct to one cell type or another, we can use the `scran::findMarkers()` function to test for genes that are significantly different among cells of each type.
+This will return a list (technically a list-like object) of tables, one for each cell type, with statistics for each gene showing how well it differentiates that cell type against all other types.
+
+```{r find_markers}
+markers <- scran::findMarkers(gbm_sce, gbm_sce$cell_type)
+```
+
+Next we can look at one of those tables, in this case the one for neurons. 
+Since each of the tables in the list-like object has a name, we can select an individual table using the familiar `$` syntax..We have done some transformation here to pull the gene name into a column of its own and filtered to the genes that seem to differentiate best using the `Top` column.
+
+```{r marker_table}
+markers$Neuron %>%
+  as.data.frame() %>% # convert to a data frame
+  tibble::rownames_to_column("gene") %>% # make the gene names column
+  dplyr::filter(Top <= 100) # most significant 100 for each pairwise comparison
+
+```
+
+Because we tend to like [tidy data](https://r4ds.had.co.nz/tidy-data.html), here we use a `tidyverse` function from the [`purrr` package](https://purrr.tidyverse.org) to apply the same operations as above to every element of the `markers` list. 
+We will introduce `purrr` briefly here, but if you want more information and background, we recommend the [`purrr` cheatsheet (PDF)](https://github.com/rstudio/cheatsheets/raw/master/purrr.pdf) and Jenny Bryan's great [`purrr` tutorial](https://jennybc.github.io/purrr-tutorial/index.html) you might want to look at.
+
+
+The main functions in `purrr` are the `map()` functions, which take as their main arguments a **list** and a **function** to apply to each element of the list. 
+The first one, `purrr::map()` is essentially equivalent to the `lapply()` function that is part of base R, but with some different defaults. 
+We will use it to get the top rows from each table by applying the `head()` function to each element of the list.
+The results are returned as a new list.
+
+```{r head_markers, eval = FALSE}
+purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
+           head) # the function to apply (note no parenthesis)
+```
+
+This returns a list of data frames, which isn't quite what we want.
+
+There is no built-in function that will give us just the first few row names, so we will have to define one, and `purrr` gives us a nice shorthand for doing that with `~` syntax.
+In this syntax we type a `~` followed by an expression (R code) that uses `.x` as a placeholder for a single element of the list.
+`purrr::map()` will then apply the expression to each element of the list, and return the results as a new list.
+
+```{r head_markernames, live = TRUE}
+# Get the first few row names of each table with a purrr function.
+purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
+           ~ rownames(head(.x))) # our custom function.
+```
+
+Another variant is `purrr::imap()`, which allows us to use the names of the list elements in our function. 
+(Try `names(markers)` to see the names for the list we are working with now.)
+We will use that here to name output files where we will print each of the marker tables, one for each cell type.
+We are again defining a custom function within the call to `purrr:imap()` using the `~` syntax, but this time we can use `.x` for the list elements and `.y` for their names.
+
+In addition to writing the tables out, we are saving the data frames we created as a new list object that we can use in the next step.
+
+```{r write_tables}
+marker_df_list <- purrr::imap(
+  as.list(markers), # convert markers to a 'regular' list for purrr
+  ~ as.data.frame(.x) %>% # convert the table to a data frame
+    tibble::rownames_to_column("gene") %>% # make genes a new column
+    readr::write_tsv( # write each data frame to a file
+      file.path(marker_dir, paste0(.y, "_markers.tsv")) # construct the output path
+    )
+  )
+```
+
+`purrr::map_df()` is another nice function in `purrr`. 
+It applies the operations in the second argument and combines the output into a single data frame.
+Optionally, it adds a column with the name specified by the `.id` argument to differentiate the rows that came from each element of the input list.
+
+```{r top_markers}
+# Make a data frame of the top markers for each cell type
+top_markers <- purrr::map_df(marker_df_list,
+                             ~ dplyr::filter(.x, Top <= 100),
+                             .id = "cell_type")
+```
+
+This list has a lot of redundancy, and we really only care about the gene names for the next step, so we will reduce that column down to just the unique set of gene names with `unique()`.
+
+```{r unique_markers}
+unique_markers <- unique(top_markers$gene)
+length(unique_markers)
+```
+
+Now we will use those unique markers to calculate the PCA using just those genes.
+
+```{r marker_pca}
+marker_pca <- calculatePCA(gbm_sce, 
+                           subset_row = unique_markers, 
+                           ntop = length(unique_markers)) %>% # use all of the markers 
+  as.data.frame() %>% # converting to a data frame & adding columns in a pipe, for variety
+  tibble::rownames_to_column("geo_accession") %>%
+  dplyr::mutate(cell_type = gbm_sce$cell_type)
+```
+
+Now we can make a plot of the marker gene PCA!
+
+```{r plot_marker, live = TRUE}
+ggplot(marker_pca, aes(x = PC1, y = PC2, color = cell_type)) +
+  geom_point() + 
+  ggtitle("Marker gene PCA scores") + 
+  scale_color_manual(values = unname(palette.colors(palette = "Okabe-Ito")))
+```
