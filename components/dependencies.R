@@ -27,3 +27,6 @@ library(hexbin)
 
 # AlevinQC was not getting noticed for some reason
 library(alevinQC)
+
+# Doublet Detection for exercise notebook
+library(scDblFinder)
