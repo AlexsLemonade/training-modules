@@ -27,8 +27,6 @@ When we also have hundreds or thousands of individual samples, as in the case of
 
 A common practice is to common to use dimension reduction techniques so all of the data is in a more manageable form for plotting, clustering, and other downstream analyses. 
 
-
-
 ## Set Up 
 
 ```{r setup}
@@ -44,9 +42,7 @@ library(magrittr)
 set.seed(12345)
 ```
 
-
-
-## Directories and files
+### Directories and files
 
 The data we will be using for this module comes from a a 10X Genomics data set of expression data from a  Hodgkin's Lymphoma tumor. 
 The data was generated with the 10Xv3.1 chemistry, and processed with Cell Ranger and 10X Genomics standard pipeline.
@@ -56,8 +52,6 @@ There are a variety of files that you will often see as part of the standard out
 We have included some of these in the `data/hodkins/cellranger` directory, including the `web_summary.html` file that includes some similar QC statistics to those we generated with `alevinQC`.
 The main file we will be working with are the feature by barcode matrices.
 Cell Ranger does some filtering on its own, but we will start with the raw data.
-
-
 
 ```{r filepaths}
 # main data directory
@@ -142,23 +136,21 @@ dim(hodgkins_sce)
 The `DropletUtils` package that we used to read in the 10X data has a number of other useful features. 
 One is the `emptyDrops()` function, which uses the overall gene expression patterns in the sample to identify droplets that are likely to not contain an intact cell, but may simply have contained loose ambient RNA released during cell separation. 
 
-This method, described in [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y), uses the droplets with very low UMI counts to estimate the "ambient" expression pattern, then scores the remaining cells based how much they deviate from that pattern, assigning a P value based on the null hypothesis that the droplet's expression matches the ambient expression pattern.
+This method, described in [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y), uses the droplets with very low UMI counts to estimate the "ambient" expression pattern of RNA content outside of cells.
+It then scores the remaining cells based how much they deviate from that pattern, assigning a small P value when the droplet's expression deviates from the ambient expression pattern.
+Because it uses the low UMI count droplets, this method should not be used when other filtering has already been performed (which is unfortunately the case with the version of `salmon alevin` we used).
 
 This method seems to perform well to exclude false "cells" while retaining cells with distinct expression profiles but low counts that might have failed a simple cutoff. 
 Note that this method also requires that the data has already been quantified, with reads assigned to genes, as compared to a simple total UMI count filter which can be performed much earlier in the pipeline.
 
-
 The `emptyDrops()` function takes the `counts` matrix from our SingleCellExperiment, and returns a data frame with the statistics it calculated.
 This will take a few minutes to run, but we can speed it up by allowing parallel processing.
-
 
 ```{r emptydrops}
 droplet_stats <- DropletUtils::emptyDrops(
   counts(hodgkins_sce),
-  # use multiprocessing
-  BPPARAM = BiocParallel::MulticoreParam(4))
+  BPPARAM = BiocParallel::MulticoreParam(4)) # use multiprocessing
 ```
-
 
 We will use a false discovery rate (FDR) of 0.01 as our cutoff for "real" cells. 
 Since `emptyDrops()` uses low count cells to estimate the "ambient" expression pattern, those cells are not assigned an FDR value, and have a value of NA.
@@ -212,7 +204,7 @@ dim(filtered_sce)
 
 ### Normalize
 
-Now we will perform the same normalization steps we did with a previous dataset, using `scran::computeSumFactors()` and `scater::logNormCounts()`
+Now we will perform the same normalization steps we did with a previous dataset, using `scran::computeSumFactors()` and `scater::logNormCounts()`.
 
 ```{r normalize}
 # Cluster similar cells
@@ -235,8 +227,6 @@ assayNames(normalized_sce)
 rm(hodgkins_sce, filtered_sce)
 ```
 
-
-
 ![**Status of the current dataset**](diagrams/tag-based_3.png)
 
 
@@ -245,37 +235,20 @@ rm(hodgkins_sce, filtered_sce)
 
 ### Principal Components Analysis
 
-The first dimensionality reduction algorithm we will use is PCA, which we have already used!
-The idea of PCA is that it finds the axes which explain the greatest amount of variance in the data.
+Principal component analysis (PCA) is a dimensionality reduction technique that allows us to identify the largest components of variation in a complex dataset.
+Our expression data can be thought of as mapping each sample in a multidimensional space defined by the expression level of each gene.
+The expression of many of those genes are correlated, so we can often get a better, simpler picture of the data by combining the information from those correlated genes.
 
+PCA rotates and transforms this space so that each axis is now a combination of multiple correlated genes, ordered so the first axes capture the most variation from the data. 
+These new axes are the "principal components."
+If we look at the first few components, we can often get a nice overview of relationships among the samples in the data.
 
-```{r PCA}
-# Run PCA
-hodgkins_pca <- calculatePCA(normalized_sce)
-```
-
-```{r plot_pca}
-# Plot PCA results with ggplot2 
-ggplot(data.frame(hodgkins_pca), 
-       aes(x = PC1, y = PC2)) + 
-  geom_point(alpha = 0.2) +
-  theme_bw()
-```
-It looks like there may be a few clusters there, though they are not very distinct.
-Sometimes looking at higher dimensions can show more (or different) structure, so lets have a look there too.
-
-```{r plot_pca2}
-# Plot a higher set of dimensions
-ggplot(data.frame(hodgkins_pca), 
-       aes(x = PC3, y = PC4)) + 
-  geom_point(alpha = 0.2) +
-  theme_bw()
-```
 
 #### Storing PCA results with the data
 
-Let's store the PCA results in our `SingleCellExperiment` object, as we might want to use them later.
-To do this, we will use the `runPCA()` function from scater, which performs the same calculation as above, but returns a new object with the results stored in the `reducedDim` slot.
+We will store the PCA results in our `SingleCellExperiment` object, as we will want to use them later.
+To do this, we will use the `runPCA()` function from `scater`, which performs the PCA calculations and returns a new object with the results stored in the `reducedDim` slot.
+If we wanted to, we could get the raw results as a matrix instead with `calculatePCA()` function, as we did in a previous notebook.
 
 ```{r}
 normalized_sce <- runPCA(normalized_sce)
@@ -293,7 +266,70 @@ To extract them by name, we use the `reducedDim()` function, much like the `assa
 reducedDim(normalized_sce, "PCA")[1:10, 1:5]
 ```
 
+#### Plotting PCA results
 
+If we have the PCA results stored in the `SingleCellExperiment` object, we can use the `scater::plotReducedDim()` function to plot it with some nice defaults easily.
+One nice thing about this function is that it uses `ggplot2` under the hood, so if we wanted to customize it later, we could.
+
+```{r plotPCA, live = TRUE}
+plotReducedDim(normalized_sce, "PCA")
+```
+PCA gives us a matrix with more than just two dimensions, and we might want to look at some higher dimensions too.
+We can do that with the `ncomponents` argument.
+
+```{r plotPCA34, live = TRUE}
+# plot PC3 and PC4
+plotReducedDim(normalized_sce, "PCA", ncomponents = c(3,4))
+```
+
+### Modeling variance
+
+The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. 
+In order to roughly account for this we could just take the largest variance genes, on the assumption that low variance genes are mostly just noise. 
+This is the default approach that `runPCA()` and `calculatePCA()` take, using 500 genes with the 
+greatest variance across cells to calculate the PCA matrix. 
+This approach also makes the PCA calculations somewhat faster.
+
+
+If we want to be a bit more careful about it, we can model the variance in expression of each gene as a function of the mean expression for that gene.
+This is useful because we generally expect the variance to increase as mean expression increases, even if there is no biological signal in the expression variation.
+
+We will do this modeling of variance by expression with the `scran::modelGeneVar()` function, saving the results to a new variable. 
+
+```{r model_variance}
+gene_variance <- scran::modelGeneVar(normalized_sce)
+```
+
+Now let's plot the relationship between gene expression and variance we were discussing.
+Here we will also add the fitting curve that `scran::modelGeneVar()` created, which is stored as function in the  `$trend` slot of the `gene_variance` object.
+We can add a function like that curve to a `ggplot` with a `stat_function` layer.
+
+```{r plot_variance}
+ggplot(as.data.frame(gene_variance), aes(x = mean, y = total)) +
+  geom_point(alpha = 0.1) +
+  stat_function(fun = metadata(gene_variance)$trend, color = "blue") + 
+  xlab("Mean log-expression") + 
+  ylab("Variance") +
+  theme_bw()
+```
+
+Now we can use `scran::getTopHVGs()` to select the genes that have the most biological variation (according to the model) and recalculate PCA scores using only those genes. 
+Here we are picking the 500 top genes, to match the number of genes we used before.
+
+```{r get_highvar, live = TRUE}
+# select the most variable genes
+highvar_genes <- scran::getTopHVGs(gene_variance, n = 500)
+# calculate a PCA matrix using those genes
+normalized_sce <- runPCA(normalized_sce, subset_row = highvar_genes)
+```
+
+Now we can plot our new PCA values for comparison.
+You might realize that our old PCA values were replaced when we ran `runPCA()` again.
+
+```{r plotPCA_highvar, live = TRUE}
+plotReducedDim(normalized_sce, "PCA")
+plotReducedDim(normalized_sce, "PCA", ncomponents = c(3,4))
+```
 
 ### UMAP
 
@@ -313,24 +349,26 @@ For ease of use with this data, we will be using the `scater::calculateUMAP()` a
 
 UMAP can be slow for a large data set with lots of parameters.
 It is worth noting that the `scater::calculateUMAP()` implementation actually does PCA first, and then runs UMAP on the top 50 PCs. 
+If we have already calculated PCA (as we have) we can tell it to use those results with the `dimred` argument.
 
+As with PCA, there are two functions we could use:
 `scater::calculateUMAP()` will return a matrix of results, with one row for each sample, and a column for each of the UMAP dimensions returned. 
-As with PCA, `runUMAP()` performs the same function, but stores the results in a SingleCellExperiment object.
+`scater::runUMAP()` performs the same function, but returns the results in a SingleCellExperiment object.
 
-Let's see how it looks with the default parameters:
+Let's see how it looks with the (mostly) default parameters:
 
 ```{r calculate_umap, live = TRUE}
-# Run umap
-normalized_sce <- runUMAP(normalized_sce)
+# Run UMAP
+normalized_sce <- runUMAP(normalized_sce, 
+                          dimred = "PCA") # use already stored PCA results
 ```
 
-If we have the UMAP results stored in the `SingleCellExperiment` object, we can use the `scater::plotReducedDim()` function to plot it a bit more easily!
-This function still uses `ggplot2`, so if we wanted to customize it later, we could.
+Now we can plot with the same `plotReducedDim()` function, specifying we want to plot the UMAP results this time. 
+We will also add some color (colour) this time with the `colour_by` argument, using the number of genes detected in each cell to assign a hue.
 
 ```{r plot_umap, live = TRUE}
 # make a UMAP plot with `plotReducedDim()`
 plotReducedDim(normalized_sce, "UMAP", colour_by = "detected")
-
 ```
 
 There is clearly a lot of structure in there, but is it meaningful?
@@ -358,7 +396,7 @@ UMAP_plot_wrapper <- function(sce = normalized_sce, nn_param = 15) {
   #         cell-types labeled with data point colors. 
 
   # Run UMAP with a specified n_neighbors parameter
-  sce_umap <- scater::runUMAP(sce, n_neighbors = nn_param)
+  sce_umap <- scater::runUMAP(sce, dimred = "PCA", n_neighbors = nn_param)
   scater::plotReducedDim(sce_umap, "UMAP", colour_by = "detected") +
     # make the legend label more informative (this is ggplot2 code!)
     guides(color = guide_colourbar(title="genes\nexpressed"))
@@ -415,16 +453,14 @@ While we do not have labeled cell types in this case, there does seem to be some
    
 In summary, if the results of an analysis can be completely changed by changing its parameters, you should be more cautious when it comes to the conclusions you draw from it as well as having good rationale for the parameters you choose. 
 
-
-
 ### t-SNE comparison
 
 In the block below is a similar analysis and plot with t-SNE (t-distributed Stochastic Neighbor Embedding).
-Note that this analysis also does PCA before moving on to the fancy machine learning.
+Note that this analysis also uses PCA before moving on to the fancy machine learning.
 
 ```{r tsne, live = TRUE}
 # Run TSNE
-normalized_sce <- runTSNE(normalized_sce)
+normalized_sce <- runTSNE(normalized_sce, dimred = "PCA")
 
 # plot with scater function
 plotReducedDim(normalized_sce, "TSNE", colour_by = "detected")
