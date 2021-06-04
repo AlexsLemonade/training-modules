@@ -152,12 +152,15 @@ How does that compare to the k-means clustering result?
 
 ### Parameters matter!
 
+As we did with UMAP, lets take a bit of time to explore the effects of the various parameter choices that we have on the output results.
+
+
 ```{r}
 clusterPlot <- function(sce, cluster_param, plot_dim = "UMAP"){
   pc_matrix <- reducedDim(sce, "PCA")
-  clusters <- clusterRows(pc_matrix, cluster_param) %>% factor()
+  clusters <- bluster::clusterRows(pc_matrix, cluster_param) %>% factor()
   sce$cluster <- factor(clusters)
-  plotReducedDim(sce, plot_dim, colour_by = "cluster")
+  scater::plotReducedDim(sce, plot_dim, colour_by = "cluster")
 }
 ```
 
@@ -168,23 +171,36 @@ clusterPlot(hodgkins_sce, NNGraphParam(k = 5, cluster.fun = "louvain"))
 
 ## Identify marker genes
 
-The highest variance genes may not always be the most informative on their own, especially if we are trying to differentiate among cell types.
-To find genes that are distinct to one cell type or another, we can use the `scran::findMarkers()` function to test for genes that are significantly different among cells of each type.
-This will return a list (technically a list-like object) of tables, one for each cell type, with statistics for each gene showing how well it differentiates that cell type against all other types.
+Assigning clusters is nice for visualization, but we would like to be able to move toward a biological interpretation of the clusters and identifying the cell types in each cluster.
+To that end, we can identify marker genes that are differentially expressed among clusters. 
+
+It is worth noting here that the statistical calculations here are more than a bit circular: we identified clusters first based on gene expression, then we are using those same clusters to find differences in gene expression. 
+The result is that even if there were no *true* clusters, we would always find marker genes! 
+For a much more technical exploration of this circularity (and a method to correct for it), see a preprint by [Gao et al. (2020)](https://arxiv.org/abs/2012.02936).
+In light of this, it is better to think about marker gene identification as an aid in interpreting the clustering results (and possibly extending insights to new data sets), rather than results that should be interpreted on their own, and we should be extremely wary of justifying cluster assignments solely based on these results!
+With that caveat, let's proceed.
+
+To identify marker genes, we will use the `scran::findMarkers()` function, which will rank genes by their differential expression by calculating pairwise statistics among clusters.
+We have a few options for how to determine the gene rankings and marker gene list for each cluster. 
+At one end could include genes that are differentially expressed in *any* pairwise comparison against our focal cluster, or at the other we could only include genes that are differentially expressed in *all* comparisons with that cluster. 
+We could also do something in between, including genes that differentiate the focal cluster from *some* fraction of the other clusters.
+For now, we will use the `findMarkers()` function to rank the genes in each cluster by their combined scores against *all* other clusters. 
+
+`findMarkers()` will return a list (technically a list-like object) of tables, one for each cell type, with statistics for each gene showing how well it differentiates that cell type against other types.
+
 
 ```{r find_markers}
-markers <- scran::findMarkers(gbm_sce, gbm_sce$cell_type)
+markers <- scran::findMarkers(hodgkins_sce, hodgkins_sce$nncluster, pval.type = "all")
 ```
 
-Next we can look at one of those tables, in this case the one for neurons. 
-Since each of the tables in the list-like object has a name, we can select an individual table using the familiar `$` syntax..We have done some transformation here to pull the gene name into a column of its own and filtered to the genes that seem to differentiate best using the `Top` column.
+Next we can look at one of those tables.
+We will start with the first cluster, which we will simply select as the first in the list.
+We also doing a bit of transformation here to pull the gene name into a column of its own.
 
 ```{r marker_table}
-markers$Neuron %>%
+markers[[1]] %>%
   as.data.frame() %>% # convert to a data frame
-  tibble::rownames_to_column("gene") %>% # make the gene names column
-  dplyr::filter(Top <= 100) # most significant 100 for each pairwise comparison
-
+  tibble::rownames_to_column("gene")
 ```
 
 Because we tend to like [tidy data](https://r4ds.had.co.nz/tidy-data.html), here we use a `tidyverse` function from the [`purrr` package](https://purrr.tidyverse.org) to apply the same operations as above to every element of the `markers` list. 
@@ -197,8 +213,10 @@ We will use it to get the top rows from each table by applying the `head()` func
 The results are returned as a new list.
 
 ```{r head_markers, eval = FALSE}
-purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
-           head) # the function to apply (note no parenthesis)
+purrr::map(
+  as.list(markers[1:3]), # select the first 3 clusters and convert to a 'regular' list for purrr
+  head # the function to apply (note no parenthesis)
+  )
 ```
 
 This returns a list of data frames, which isn't quite what we want.
@@ -217,6 +235,7 @@ Another variant is `purrr::imap()`, which allows us to use the names of the list
 (Try `names(markers)` to see the names for the list we are working with now.)
 We will use that here to name output files where we will print each of the marker tables, one for each cell type.
 We are again defining a custom function within the call to `purrr:imap()` using the `~` syntax, but this time we can use `.x` for the list elements and `.y` for their names.
+Because we don't know the names of the clusters, these are just the cluster numbers for now.
 
 In addition to writing the tables out, we are saving the data frames we created as a new list object that we can use in the next step.
 
@@ -226,8 +245,10 @@ marker_df_list <- purrr::imap(
   ~ as.data.frame(.x) %>% # convert the table to a data frame
     tibble::rownames_to_column("gene") %>% # make genes a new column
     readr::write_tsv( # write each data frame to a file
-      file.path(marker_dir, paste0(.y, "_markers.tsv")) # construct the output path
-    )
+      file.path(marker_dir, # construct the output path
+                sprintf("cluster%02d_markers.tsv", .y) # format cluster numbers in file names with leading zeros
+                )
+      )
   )
 ```
 
@@ -238,35 +259,48 @@ Optionally, it adds a column with the name specified by the `.id` argument to di
 ```{r top_markers}
 # Make a data frame of the top markers for each cell type
 top_markers <- purrr::map_df(marker_df_list,
-                             ~ dplyr::filter(.x, Top <= 100),
-                             .id = "cell_type")
+                             ~ dplyr::filter(.x, Top <= 10),
+                             .id = "cluster")
 ```
 
-This list has a lot of redundancy, and we really only care about the gene names for the next step, so we will reduce that column down to just the unique set of gene names with `unique()`.
+This list has a lot of redundancy, because some genes come up as markers for multiple clusters.
+
+Let's see if we can find a marker that is unique to cluster 1.
 
 ```{r unique_markers}
-unique_markers <- unique(top_markers$gene)
-length(unique_markers)
+other_markers <- top_markers %>%
+  dplyr::filter(cluster != "1") %>%
+  dplyr::pull(gene) %>%
+  unique()
+
+c1_markers <- top_markers %>%
+  dplyr::filter(cluster == "1",
+                !(gene %in% other_markers) ) %>%
+  dplyr::pull(gene)
+
 ```
 
 Now we will use those unique markers to calculate the PCA using just those genes.
 
 ```{r marker_pca}
-marker_pca <- calculatePCA(gbm_sce, 
+marker_pca <- calculatePCA(hodgkins_sce, 
                            subset_row = unique_markers, 
                            ntop = length(unique_markers)) %>% # use all of the markers 
   as.data.frame() %>% # converting to a data frame & adding columns in a pipe, for variety
   tibble::rownames_to_column("geo_accession") %>%
-  dplyr::mutate(cell_type = gbm_sce$cell_type)
+  dplyr::mutate(cluster = hodgkins_sce$nncluster)
 ```
 
 Now we can make a plot of the marker gene PCA!
 
 ```{r plot_marker, live = TRUE}
-ggplot(marker_pca, aes(x = PC1, y = PC2, color = cell_type)) +
-  geom_point() + 
-  ggtitle("Marker gene PCA scores") + 
-  scale_color_manual(values = unname(palette.colors(palette = "Okabe-Ito")))
+ggplot(marker_pca, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(alpha = 0.4) + 
+  ggtitle("Marker gene PCA scores") +
+  theme_bw()
+```
+```{r}
+plotReducedDim(hodgkins_sce, "UMAP", colour_by = "ENSG00000159958")
 ```
 
 
