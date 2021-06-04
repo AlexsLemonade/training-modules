@@ -15,7 +15,7 @@ This notebook will demonstrate how to:
 - Read Cell Ranger data into R 
 - Filter post-quantification cells using `emptyDrops()`
 - Apply dimensionality reduction methods to single cell data
-- Visualize reduced dimensionality data
+- Visualize samples in reduced dimensional space
 
 ---
 
@@ -87,7 +87,8 @@ The first is a folder with a feature list, a barcode list, and a sparse matrix i
 The `DropletUtils::read10xCounts()` function takes this directory and reads in the data from these three files, assembling the `SingleCellExperiment` object we have worked with before. 
 
 Alternatively, we could use the `HDF5` format file that Cell Ranger outputs as a file with the `.h5` extension, which contains the same data. 
-For whatever reason, the way you read the data affects how it is stored in R, with the net result that reading from the directory results in smaller objects in R, so that is what we will do here. 
+For whatever reason, the way you read the data affects how it is stored in R. 
+Reading from the directory results in smaller objects in R, so that is what we will do here. 
 
 Cell Ranger also outputs both filtered and raw matrices; today we will start with the raw matrix and perform our own filtering.
 
@@ -181,7 +182,7 @@ The statistics we calculated earlier with `addPerCellQC()` are retained in our n
 
 ```{r mito_percent_plot, live = TRUE}
 # Plot the mitochondrial percents stored in `filtered_sce`
-ggplot( mapping = aes(x = filtered_sce$subsets_mito_percent)) +
+ggplot(mapping = aes(x = filtered_sce$subsets_mito_percent)) +
   geom_histogram(bins = 100) 
 ```
 There are certainly some cells with high mitochondrial percentages!
@@ -192,7 +193,7 @@ filtered_sce <- filtered_sce[, filtered_sce$subsets_mito_percent < 20]
 ```
 
 
-We can also filter by features (genes in our case) using `scater::addPerFeatureQC()` which will computer the number of samples where each gene is detected and the mean count across all genes. 
+We can also filter by features (genes in our case) using `scater::addPerFeatureQC()` which will compute the number of samples where each gene is detected and the mean count across all genes. 
 We can then use those data (stored in `rowData`) to filter by row to only the genes that are detected in at least 5% of cells, and with a mean count > 0.1.
 
 ```{r gene_qc}
@@ -344,7 +345,7 @@ First, we should see what this parameter is, and what the default value is.
 In the console, run `?scater::calculateUMAP` to see what this (and other parameters) are.
 For even more parameters, you can look at the underlying implementation code that `calculateUMAP()` uses, which is the function `uwot::umap()`
 
-In order to make our experimentation easier, we will create a *function* that allows us to rerun the same code easily, but create an argument that allows us to change one variable: the n_neighbors variable.
+In order to make our experimentation easier, we will create a *function* that allows us to rerun the same code easily, but create an argument that allows us to change one variable: the `n_neighbors` variable.
 Here we are saving only a line of code, but we could apply this to a much more complex series of operations if we wanted to!
 
 
