@@ -86,13 +86,13 @@ Reading from the directory results in smaller objects in R, so that is what we w
 
 Cell Ranger also outputs both filtered and raw matrices; today we will start with the raw matrix and perform our own filtering.
 
-```{r}
+```{r read10x, live = TRUE}
 hodgkins_sce <- DropletUtils::read10xCounts(raw_matrix_dir)
 ```
 
 How many potential cells are there here?
 
-```{r}
+```{r cellcount, live = TRUE}
 dim(hodgkins_sce)
 ```
 
@@ -126,7 +126,7 @@ hodgkins_sce <- scater::addPerCellQC(
 
 We can now do the most basic level of filtering: getting rid of "cells" with no reads.
 
-```{r remove_zero}
+```{r remove_zero, live = TRUE}
 hodgkins_sce <- hodgkins_sce[, hodgkins_sce$total > 0]
 dim(hodgkins_sce)
 ```
@@ -146,7 +146,7 @@ Note that this method also requires that the data has already been quantified, w
 The `emptyDrops()` function takes the `counts` matrix from our SingleCellExperiment, and returns a data frame with the statistics it calculated.
 This will take a few minutes to run, but we can speed it up by allowing parallel processing.
 
-```{r emptydrops}
+```{r emptydrops, live = TRUE}
 droplet_stats <- DropletUtils::emptyDrops(
   counts(hodgkins_sce),
   BPPARAM = BiocParallel::MulticoreParam(4)) # use multiprocessing
@@ -172,7 +172,7 @@ While `emptyDrops()` should have filtered out droplets containing no cells, it w
 For that we will still want to look at mitochondrial content, as we did previously.  
 The statistics we calculated earlier with `addPerCellQC()` are retained in our new object, so we can plot those directly.
 
-```{r mito_percent_plot, live = TRUE}
+```{r mito_percent_plot}
 # Plot the mitochondrial percents stored in `filtered_sce`
 ggplot(mapping = aes(x = filtered_sce$subsets_mito_percent)) +
   geom_histogram(bins = 100) 
@@ -180,7 +180,7 @@ ggplot(mapping = aes(x = filtered_sce$subsets_mito_percent)) +
 There are certainly some cells with high mitochondrial percentages!
 For now, we will use a cutoff of 20% to filter out the worst of the cells.
 
-```{r}
+```{r live = TRUE}
 filtered_sce <- filtered_sce[, filtered_sce$subsets_mito_percent < 20]
 ```
 
@@ -197,14 +197,17 @@ expressed <- rowData(filtered_sce)$mean > 0.1
 filtered_sce <- filtered_sce[detected & expressed, ]
 ```
 
-```{r}
+How many cells do we have now? 
+
+```{r filtered_dim}
 dim(filtered_sce)
 ```
 
 
 ### Normalize
 
-Now we will perform the same normalization steps we did with a previous dataset, using `scran::computeSumFactors()` and `scater::logNormCounts()`.
+Now we will perform the same normalization steps we did in a previous dataset, using `scran::computeSumFactors()` and `scater::logNormCounts()`.
+You might recall that there is a bit of randomness in some of these calculations, so we should be sure to have used `set.seed()` earlier in the notebook for reproducibility.
 
 ```{r normalize}
 # Cluster similar cells
@@ -229,8 +232,6 @@ rm(hodgkins_sce, filtered_sce)
 
 ![**Status of the current dataset**](diagrams/tag-based_3.png)
 
-
-
 ## Dimensionality reduction and display
 
 ### Principal Components Analysis
@@ -243,26 +244,25 @@ PCA rotates and transforms this space so that each axis is now a combination of 
 These new axes are the "principal components."
 If we look at the first few components, we can often get a nice overview of relationships among the samples in the data.
 
-
-#### Storing PCA results with the data
+#### Storing PCA results with the raw data
 
 We will store the PCA results in our `SingleCellExperiment` object, as we will want to use them later.
 To do this, we will use the `runPCA()` function from `scater`, which performs the PCA calculations and returns a new object with the results stored in the `reducedDim` slot.
 If we wanted to, we could get the raw results as a matrix instead with `calculatePCA()` function, as we did in a previous notebook.
 
-```{r}
+```{r runPCA, live = TRUE}
 normalized_sce <- runPCA(normalized_sce)
 ```
 
-We can see what reduced dimensionality matrixes are stored in the object with `reducedDimNames()`.
+We can see what reduced dimensionality matrices are stored in the object with the `reducedDimNames()` function.
 
-```{r}
+```{r reduced_dim_names, live = TRUE}
 reducedDimNames(normalized_sce)
 ```
 
 To extract them by name, we use the `reducedDim()` function, much like the `assay()` function to extract original data.
 
-```{r}
+```{r extract_reduced, live = TRUE}
 reducedDim(normalized_sce, "PCA")[1:10, 1:5]
 ```
 
@@ -289,7 +289,6 @@ In order to roughly account for this we could just take the largest variance gen
 This is the default approach that `runPCA()` and `calculatePCA()` take, using 500 genes with the 
 greatest variance across cells to calculate the PCA matrix. 
 This approach also makes the PCA calculations somewhat faster.
-
 
 If we want to be a bit more careful about it, we can model the variance in expression of each gene as a function of the mean expression for that gene.
 This is useful because we generally expect the variance to increase as mean expression increases, even if there is no biological signal in the expression variation.
@@ -342,7 +341,6 @@ Another dimensionality reduction technique that you may have heard of is **t-SNE
 There is some ongoing debate about which of these two techniques is superior, and whether the differences are due to the underlying algorithm or to implementation and parameter initialization defaults. 
 Regardless of why, in our experience, UMAP seems to produce slightly better results and run a bit faster, but the differences can be subtle.
 
-
 #### Default parameters
 
 For ease of use with this data, we will be using the `scater::calculateUMAP()` and `scater::runUMAP()` function to apply UMAP to our single cell data, but similar functions the `uwot` package (notably `uwot::umap()`) can be used to apply UMAP to any numerical matrix.
@@ -385,7 +383,6 @@ For even more parameters, you can look at the underlying implementation code tha
 
 In order to make our experimentation easier, we will create a *function* that allows us to rerun the same code easily, but create an argument that allows us to change one variable: the `n_neighbors` variable.
 Here we are saving only a line of code, but we could apply this to a much more complex series of operations if we wanted to!
-
 
 ```{r UMAP-function}
 UMAP_plot_wrapper <- function(sce = normalized_sce, nn_param = 15) {
