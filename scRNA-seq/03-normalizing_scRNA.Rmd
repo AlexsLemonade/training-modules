@@ -157,20 +157,17 @@ To do this we will use the `log1p()` function, which is specifically designed fo
 
 ```{r pca}
 # Use PCA for dimension reduction of cells' scran normalized data
-norm_pca <- scater::calculatePCA(bladder_sce, ntop = nrow(bladder_sce)) 
+norm_pca <- scater::calculatePCA(bladder_sce) 
 
 # PCA on the raw counts, log transformed
 log_pca <- counts(bladder_sce) %>% # get the raw counts
   log1p() %>% # log transform to make these more comparable to the normalized values
-  scater::calculatePCA(ntop = nrow(bladder_sce)) # calculate PCA scores
+  scater::calculatePCA() # calculate PCA scores
 
 ```
 
 Note that we are using `scater::calculatePCA()` two different ways here: once on the full `gbm_sce` object, and once on just the `counts` matrix. 
 When we use `calculatePCA()` on the object, it automatically uses the log normalized matrix from inside the object.
-
-We are also using the `ntop` argument so that the PCA is calculated using data from all genes in the data set. 
-This is not the default for `calculatePCA()` as we will explore below.
 
 Next we will arrange the PCA scores for plotting, adding a column with the cell-type data so we can color each point of the plot. 
 
@@ -210,71 +207,6 @@ ggplot(norm_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
 ```
 
 Do you see an effect from the normalization in the comparison between these plots?
-
-## Modeling variance
-
-The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. 
-In order to account for this we could just take the largest variance genes, but if we want to be a bit more careful about it, we can model the variance in expression of each gene as a function of mean expression for that gene.
-This is useful because we generally expect the variance to increase as mean expression increases, even if there is no biological signal in the expression variation.
-
-We will do this modeling of variance by expression with the `scran::modelGeneVar()` function, saving the results to a new variable. 
-
-```{r model_variance}
-gene_variance <- scran::modelGeneVar(bladder_sce)
-```
-
-Now let's plot the relationship between gene expression and variance we were discussing.
-Here we will also add the fitting curve that `scran::modelGeneVar()` created, which is stored as function in the  `$trend` slot of the `gene_variance` object.
-We can add a function like that curve to a `ggplot` with a `stat_function` layer.
-
-```{r plot_variance}
-ggplot(as.data.frame(gene_variance), aes(x = mean, y = total)) +
-  geom_point(alpha = 0.1) +
-  stat_function(fun = metadata(gene_variance)$trend, color = "blue") + 
-  xlab("Mean log-expression") + 
-  ylab("Variance") +
-  theme_bw()
-```
-
-Now we can use `scran::getTopHVGs()` to select the genes that have the most biological variation (according to the model) and calculate PCA scores using only those genes. 
-Here we are picking the 500 top genes.
-
-```{r get_highvar, live = TRUE}
-# select the most variable genes
-highvar_genes <- scran::getTopHVGs(gene_variance, n = 500)
-# calculate a PCA matrix using those genes
-highvar_pca <- scater::calculatePCA(bladder_sce, subset_row = highvar_genes)
-```
-
-Once we have the matrix, we will convert it to a data frame and add annotation information.
-
-```{r highvar_df}
-# convert to a data frame and add 
-highvar_pca_df <- data.frame(highvar_pca,
-                             geo_accession = rownames(highvar_pca),
-                             cell_type = bladder_sce$cell_ontology_class)
-```
-
-Now we can make a plot of the PCA from high variance genes only.
-
-```{r plot_highvar, live = TRUE}
-# plot the high variance pca results, colored by cell type
-ggplot(highvar_pca_df, aes(x = PC1, y = PC2, color = cell_type)) +
-  geom_point() + 
-  ggtitle("High variance gene PCA scores") + 
-  scale_color_brewer(palette = "Dark2", na.value = "grey70") + 
-  theme_bw()
-```
-
-Now what we didn't tell you before, but will tell you now, is that the default for `calculatePCA()` is to use the top 500 highest variance genes. 
-This is what we were overriding when we used `ntop = nrow(bladder_sce)`.
-*However*, that filter is based on total variance, not biological variance, as we have done here. 
-
-In most cases, the list of genes will be pretty similar; if you were to plot the biological variance (`gene_variance$bio`) against the total variance (`gene_variance$total`), you would see a very strong relationship at the top end. 
-So if we want to shortcut what we did to get the above plot (or one very close to it), we could have done it with `scater::calculatePCA(bladder_sce)` using no additional arguments.
-
-*Why didn't we do that first?*
-Well, it wouldn't have shown you the effects of normalization or making the choice to include only high variance genes. 😉
 
 
 ## Save the normalized data to tsv file
