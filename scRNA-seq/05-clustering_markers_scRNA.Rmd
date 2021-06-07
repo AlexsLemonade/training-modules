@@ -86,7 +86,7 @@ We will start with a small number for the clusters.
 
 ```{r kmeans_6}
 # set the number of clusters:
-k <- 6
+k <- 7
 
 # extract the principal components matrix
 hodgkins_pca <- reducedDim(hodgkins_sce, "PCA")
@@ -165,8 +165,12 @@ clusterPlot <- function(sce, cluster_param, plot_dim = "UMAP"){
 }
 ```
 
+There are two main parts for the NN clustering algorithm: the network building and then the community finding.
+The network building 
+
+
 ```{r}
-clusterPlot(hodgkins_sce, NNGraphParam(k = 5, cluster.fun = "louvain"))
+clusterPlot(hodgkins_sce, NNGraphParam(k = 20, cluster.fun = "louvain", type = "jaccard"))
 ```
 
 
@@ -191,11 +195,13 @@ For now, we will use the `findMarkers()` function to rank the genes in each clus
 
 
 ```{r find_markers}
-markers <- scran::findMarkers(hodgkins_sce, hodgkins_sce$nncluster, pval.type = "all")
+markers <- scran::findMarkers(hodgkins_sce, 
+                              groups = hodgkins_sce$nncluster, 
+                              pval.type = "all")
 ```
 
 Next we can look at one of those tables.
-We will start with the first cluster, which we will simply select as the first in the list.
+We will start with the first cluster, which we will select from the list using the R standard double bracket `[[1]]` notation.
 We also doing a bit of transformation here to pull the gene name into a column of its own.
 
 ```{r marker_table}
@@ -215,14 +221,14 @@ The results are returned as a new list.
 
 ```{r head_markers, eval = FALSE}
 purrr::map(
-  as.list(markers[1:3]), # select the first 3 clusters and convert to a 'regular' list for purrr
+  as.list(markers), # select the first 3 clusters and convert to a 'regular' list for purrr
   head # the function to apply (note no parenthesis)
   )
 ```
 
 This returns a list of data frames, which isn't quite what we want.
 
-There is no built-in function that will give us just the first few row names, so we will have to define one, and `purrr` gives us a nice shorthand for doing that with `~` syntax.
+There is no built-in function that will give us just the first few _row names_, so we will have to define one, and `purrr` gives us a nice shorthand for doing that with `~` syntax.
 In this syntax we type a `~` followed by an expression (R code) that uses `.x` as a placeholder for a single element of the list.
 `purrr::map()` will then apply the expression to each element of the list, and return the results as a new list.
 
@@ -236,7 +242,14 @@ Another variant is `purrr::imap()`, which allows us to use the names of the list
 (Try `names(markers)` to see the names for the list we are working with now.)
 We will use that here to name output files where we will print each of the marker tables, one for each cell type.
 We are again defining a custom function within the call to `purrr:imap()` using the `~` syntax, but this time we can use `.x` for the list elements and `.y` for their names.
-Because we don't know the names of the clusters, these are just the cluster numbers for now.
+Because we don't know the identies of the clusters we identified, these are just the cluster numbers for now.
+
+Making file names from numbers can be a a bit fraught, as we really want them to sort in numerical order, but many systems will sort by alphabetical order.
+Unfortunately, that would tend to sort 10-19 before 2, 20-29 before 3, etc. 
+To solve this, we are using the `sprintf()` function, which allows us to specify the format of a printed string.
+In this case, we are using the signifier syntax of `%02d` to tell it that we will want to insert (`%`) a number (`d`), with two digits and leading zeros.
+To see what this does a bit more simply, you might want try it out with the following command in the console: 
+`sprintf("%02d", 1:10)`
 
 In addition to writing the tables out, we are saving the data frames we created as a new list object that we can use in the next step.
 
@@ -245,6 +258,7 @@ marker_df_list <- purrr::imap(
   as.list(markers), # convert markers to a 'regular' list for purrr
   ~ as.data.frame(.x) %>% # convert the table to a data frame
     tibble::rownames_to_column("gene") %>% # make genes a new column
+    dplyr::arrange(FDR) %>% # sort to be sure small FDR are first
     readr::write_tsv( # write each data frame to a file
       file.path(marker_dir, # construct the output path
                 sprintf("cluster%02d_markers.tsv", as.integer(.y)) # format cluster numbers in file names with leading zeros
@@ -257,53 +271,42 @@ marker_df_list <- purrr::imap(
 It applies the operations in the second argument and combines the output into a single data frame.
 Optionally, it adds a column with the name specified by the `.id` argument to differentiate the rows that came from each element of the input list.
 
-```{r top_markers}
-# Make a data frame of the top markers for each cell type
+```{r top_markers, live = TRUE}
+# Make a data frame of the top 20 markers for each cell type
 top_markers <- purrr::map_df(marker_df_list,
-                             ~ dplyr::filter(.x, Top <= 10),
+                             head, 
+                             n = 20,
                              .id = "cluster")
 ```
 
-This list has a lot of redundancy, because some genes come up as markers for multiple clusters.
+### Plotting marker gene expression
 
-Let's see if we can find a marker that is unique to cluster 1.
+One thing we can do with this list of marker genes is to see how they look across the cells and clusters.
+The `scater::plotReducedDim()` function makes this easy!
+We have earlier colored points by some cell statistic, like the number of expressed genes, but it is just as easy to color by the expression of a single gene by using the gene identifier as the `colour_by` argument.
 
-```{r unique_markers}
-other_markers <- top_markers %>%
-  dplyr::filter(cluster != "1") %>%
-  dplyr::pull(gene) %>%
-  unique()
-
-c1_markers <- top_markers %>%
-  dplyr::filter(cluster == "1",
-                !(gene %in% other_markers) ) %>%
+```{r marker_info, live = TRUE}
+# get the top markers for cluster 1
+gene_ids = top_markers %>%
+  dplyr::filter(cluster == "1") %>%
   dplyr::pull(gene)
 
+# look at the gene info for these
+gene_info <- rowData(hodgkins_sce)[gene_ids, ]
+data.frame(gene_info)
 ```
 
-Now we will use those unique markers to calculate the PCA using just those genes.
 
-```{r marker_pca}
-marker_pca <- calculatePCA(hodgkins_sce, 
-                           subset_row = unique_markers, 
-                           ntop = length(unique_markers)) %>% # use all of the markers 
-  as.data.frame() %>% # converting to a data frame & adding columns in a pipe, for variety
-  tibble::rownames_to_column("geo_accession") %>%
-  dplyr::mutate(cluster = hodgkins_sce$nncluster)
+
+```{r plot_marker}
+rank <- 1
+gene_id <- gene_info$ID[1]
+symbol <- gene_info$Symbol[1]
+
+plotReducedDim(hodgkins_sce, "UMAP", 
+               colour_by = gene_id) + 
+  guides(color = guide_colourbar(title = symbol))
 ```
-
-Now we can make a plot of the marker gene PCA!
-
-```{r plot_marker, live = TRUE}
-ggplot(marker_pca, aes(x = PC1, y = PC2, color = cluster)) +
-  geom_point(alpha = 0.4) + 
-  ggtitle("Marker gene PCA scores") +
-  theme_bw()
-```
-```{r}
-plotReducedDim(hodgkins_sce, "UMAP", colour_by = "ENSG00000159958")
-```
-
 
 
 ## Session Info
