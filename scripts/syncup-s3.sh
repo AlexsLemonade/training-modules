@@ -32,6 +32,7 @@ sync_dirs=(
   RNA-seq/data/open-pbta
   scRNA-seq/data/hodgkins/cellranger
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
+  scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/index/Mus_musculus
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
