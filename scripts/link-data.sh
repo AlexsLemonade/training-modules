@@ -61,6 +61,7 @@ link_locs=(
   scRNA-seq/data/glioblastoma/preprocessed
   scRNA-seq/data/hodgkins/cellranger
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
+  scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/data/tabula-muris/fastq
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   machine-learning/data/open-pbta
