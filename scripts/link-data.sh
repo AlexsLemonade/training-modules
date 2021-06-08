@@ -66,6 +66,7 @@ link_locs=(
   scRNA-seq/data/tabula-muris/fastq
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
+  scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma

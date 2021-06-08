@@ -50,6 +50,7 @@ sync_files=(
   scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
+  scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
 )
 
 for loc in ${sync_dirs[@]}
