@@ -60,10 +60,12 @@ link_locs=(
   RNA-seq/data/open-pbta/pbta-rsem-expected_count-subset.rds
   scRNA-seq/data/glioblastoma/preprocessed
   scRNA-seq/data/hodgkins/cellranger
+  scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/data/tabula-muris/fastq
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
+  scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma

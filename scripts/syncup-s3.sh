@@ -47,7 +47,9 @@ sync_files=(
   RNA-seq/data/medulloblastoma/SRP150101_metadata.tsv
   scRNA-seq/data/glioblastoma/preprocessed/txi/count_matrix.tsv
   scRNA-seq/data/glioblastoma/preprocessed/darmanis_metadata.tsv
+  scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
+  scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
 )
 
 for loc in ${sync_dirs[@]}
