@@ -286,8 +286,7 @@ plotReducedDim(normalized_sce, "PCA", ncomponents = c(3,4))
 
 The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. 
 In order to roughly account for this we could just take the largest variance genes, on the assumption that low variance genes are mostly just noise. 
-This is the default approach that `runPCA()` and `calculatePCA()` take, using 500 genes with the 
-greatest variance across cells to calculate the PCA matrix. 
+This is the default approach that `runPCA()` and `calculatePCA()` take, using 500 genes with the greatest variance across cells to calculate the PCA matrix. 
 This approach also makes the PCA calculations somewhat faster.
 
 If we want to be a bit more careful about it, we can model the variance in expression of each gene as a function of the mean expression for that gene.
@@ -313,6 +312,7 @@ ggplot(as.data.frame(gene_variance), aes(x = mean, y = total)) +
 ```
 
 Now we can use `scran::getTopHVGs()` to select the genes that have the most biological variation (according to the model) and recalculate PCA scores using only those genes. 
+(In practice, we are selecting the genes with the largest residual variation after removing technical variation modeled by the mean/variance relationship.)
 Here we are picking the 500 top genes, to match the number of genes we used before.
 
 ```{r get_highvar, live = TRUE}
