@@ -54,7 +54,7 @@ if (!dir.exists(marker_dir)) {
 hodgkins_sce <- readr::read_rds(normalized_rds)
 ```
 
-## Identifying cell clusters
+## Assigning cell clusters
 
 Source of lots of info: https://bioconductor.org/books/release/OSCA/clustering.html
 
@@ -63,16 +63,23 @@ To the extent that such clustering is a real biological phenomenon, representing
 Ultimately, we would hope that these labels correspond to previously identified (or newly identified!) cell types, and that we can use that information to provide more insight into the results of our experiment.
 
 There are a number of methods to identify clusters and assign cells to those in multidimensional data like the single cell data we have.
-We will explore a couple of those here.
+We will explore a few of those methods here.
 
 ### k-means clustering
 
 The first method we will try is k-means clustering.
+This clustering method seeks to find a way to divide the cells into groups such that the variation within each group is as small as possible and the variation between groups is maximized.
+It turns out that is a pretty hard problem to solve exactly, but we can do pretty well with an algorithm that starts by randomly assigning our cells to clusters.
+We find the centers of each of those random clusters, then reassign cells to clusters by finding which of the centers each point is nearest to.
+We then find the centers of these new clusters, reassign cells to with these new centers, and repeat until the cluster assignments stop changing. 
 
-The k-means algorithm in it basic form requires us to pick the number of clusters we want to use
+It is important to emphasize k-means algorithm requires us to pick the number of clusters we want to use.
+There are some heuristics we can use for deciding the "correct" number of clusters, but we will not be exploring those now. 
+For an intuitive visualization of the general k-means method, you might find [this StatsQuest video](https://www.youtube.com/watch?v=4b5d3muPQmA) useful, and for more discussion of the method in a single-cell context, the [Orchestrating Single-Cell Analysis book chapter on k-means](https://bioconductor.org/books/release/OSCA/clustering.html#k-means-clustering) is a good reference.
+
 
 We are going to use the function `clusterRows()` from the  Bioconductor `bluster` package for our clustering. 
-This function takes a matrix where each samples (cells in our case) is a row and each column is a feature.
+This function takes a matrix where each sample (cell in our case) is a row and each column is a feature.
 The matrix of counts (or normalized counts) by cells in our `SingleCellExperiment` object is the wrong orientation, so at a minimum we would have to transpose that matrix before proceeding. 
 
 However, clustering algorithms like k-means can be a bit slow with as many features as the number of genes that we have in our data set, so we would rather not use the raw data.
@@ -82,9 +89,8 @@ But we still want to maintain a good number of dimensions, so our old friend PCA
 Thankfully, we already computed *and stored* a matrix with reduced dimensions with the `runPCA()` function. 
 We will extract that from the `SingleCellExperiment` object with the `reducedDim()` function, which conveniently returns a matrix with the cells as rows, so we can use that directly!
 
-We will start with a small number for the clusters.
 
-```{r kmeans_6}
+```{r kmeans_7}
 # set the number of clusters:
 k <- 7
 
@@ -108,14 +114,18 @@ Now we can plot the results and see how the clustering looks, using the `scater`
 We will start by using the UMAP coordinates for the plot.
 Note that this does require that the cluster identities were stored in the `SingleCellExperiment` object.
 
-
 ```{r plot_k}
 plotReducedDim(hodgkins_sce, "UMAP", colour_by = "kcluster")
 ```
 
-Do those clusters line up with what you might have expected if you were doing this by eye?
-What do the results look like if you plot with the PCA coordinates? 
-What happens if we change the number of clusters?
+- Do those clusters line up with what you might have expected if you were doing this by eye?
+- If we repeat this, do we get the same number of clusters?
+- What happens if we change the number of clusters?
+- What do the results look like if you plot with the PCA or TSNE coordinates? 
+
+We will have time to explore some of these questions in a bit. 
+One thing worth noting right away though is that cluster numbers here and in the future are random.  
+Even if we got exactly the same logical clusters across runs (unlikely!), we wouldn't expect the numbers to be the same or stable.
 
 ### Graph-based clustering
 
@@ -129,11 +139,15 @@ To apply this, we will use the same `bluster::clusterRows()` function as before,
 We can then supply parameters to `NNGraphParam()` to adjust the details of the algorithm.
 
 Here we will use `k` to specify the number of neighbors to use when building the graph and `cluster.fun` to specify the algorithm for identifying the clusters within the graph.
-Despite sharing a letter, `k` here and the one from k means clustering are not the same thing!
-In this case, we are telling the algorithm how many neighbor connections to make for each cell, not final number of clusters, which will be determined by the algorithm.
 
+- Despite sharing a letter, `k` here and the one from k-means clustering are not the same thing!
+In this case, we are telling the algorithm how many neighbor connections to make for each cell, not the final number of clusters, which will be determined by the algorithm we used for that step.
 
-```{r nnclust, live = true}
+- The options for `cluster.fun` include `walktrap` (the default), and `louvain`, which is used by default in some other common tools like [`Seurat`](https://satijalab.org/seurat/).
+
+In the example below, we will use the default values for these two arguments.
+
+```{r nnclust, live = TRUE}
 # run the clustering algorithm
 nnclusters <- clusterRows(
   hodgkins_pca, 
@@ -144,37 +158,93 @@ nnclusters <- clusterRows(
 hodgkins_sce$nncluster <- factor(nnclusters)
 ```
 
+Now we can plot the results of our graph-based clustering. 
+This time we will also use the `text_by` argument to include the cluster ids directly on the plot. 
 
-```{r plot_nnclust}
-plotReducedDim(hodgkins_sce, "UMAP", colour_by = "nncluster")
+```{r plot_nnclust, live = TRUE}
+plotReducedDim(hodgkins_sce, 
+               "UMAP", 
+               colour_by = "nncluster", 
+               text_by = "nncluster")
 ```
-How does that compare to the k-means clustering result?
+
+- How does that compare to the k-means clustering result?
 
 
 ### Parameters matter!
 
 As we did with UMAP, lets take a bit of time to explore the effects of the various parameter choices that we have on the output results.
 
+To streamline the testing, we will again create a function to perform the clustering and plotting in a single step.
+One extra advantage of this approach is that the modified `SingleCellExperiment` objects we create inside the function won't affect the `hodgkins_sce` object that we have.
+If we did want to save one of these results, we would have to do the clustering step outside this function (or modify the function to return the modified object).
 
-```{r}
+```{r clusterplot_function}
 clusterPlot <- function(sce, cluster_param, plot_dim = "UMAP"){
+  # cluster and plot cells from a SingleCellExperiment object
+  # cluster_param is a BlusterParam object: 
+  #     typically one of HclustParam(), KmeansParam() or NNGraphParam() 
+  # plot_dim is the reduced dimensionality coordinates used for plotting:
+  #     "PCA", "UMAP", or "TSNE"
   pc_matrix <- reducedDim(sce, "PCA")
   clusters <- bluster::clusterRows(pc_matrix, cluster_param) %>% factor()
   sce$cluster <- factor(clusters)
-  scater::plotReducedDim(sce, plot_dim, colour_by = "cluster")
+  scater::plotReducedDim(sce, plot_dim, colour_by = "cluster", text_by ="cluster")
 }
 ```
 
-There are two main parts for the NN clustering algorithm: the network building and then the community finding.
-The network building 
 
+This function still requires a bit of care to use, mostly because there is so much room for variation in the clustering algorithms.
 
-```{r}
-clusterPlot(hodgkins_sce, NNGraphParam(k = 20, cluster.fun = "louvain", type = "jaccard"))
+We will briefly outline some of the parameters you might explore for each of the clustering algorithms.
+For more you will want to look at the help pages for each of the `*Params()` functions.
+
+- `KmeansParam()` (see also `?kmeans`)
+  - `centers`: the number of clusters to be assigned 
+  - `nstart`: the number of random starting sets to use: the best result will be returned.
+
+- `NNGraphParam()` 
+  - `k`: the number of neighbors for each cell to use when constructing the graph
+  - `type`: how the neighbor graph is weighted. 
+  The options are `rank` (default), `number` and `jaccard`, with the last of those being the default in `Seurat`.
+  For more details see `?makeSNNGraph`
+  - `cluster.fun`: Which cluster detection algorithm to use. 
+  The options are many, but common choices are `walktrap` (default) and `louvain` (used by `Seurat`).
+  
+- `HclustParam()` performs hierarchical clustering, which we have not discussed here. 
+This algorithm progressively joins the most similar cells, until all cells have been incorporated into a tree of similarity. 
+Then one of a number of algorithms can be applied to split that tree into subtrees to assign clusters.
+You will probably be most interested in the `cut.number` parameter which allows you to specify the number of clusters: the default parameters tend to result in *a lot* of clusters.
+
+Take some time below to explore different clustering algorithms and parameters!
+You might also note how the results can change from one run to the next with no changes in parameters.
+Do different clustering algorithms tend to agree with what you "see" in the dimensionality reduction plots? 
+Is that dependent on which set of dimensions you use?
+
+```{r clusterplot1, live = TRUE}
+clusterPlot(hodgkins_sce, 
+            KmeansParam(centers = 12, nstart = 10), 
+            plot_dim = "TSNE")
 ```
 
 
-## Identify marker genes
+```{r clusterplot2, live = TRUE}
+clusterPlot(hodgkins_sce, 
+            NNGraphParam(k = 20, 
+                         type = "jaccard", 
+                         cluster.fun = "louvain"), 
+            plot_dim = "UMAP")
+```
+
+
+```{r clusterplot3, live = TRUE}
+clusterPlot(hodgkins_sce, 
+            HclustParam(cut.number = 10),
+            plot_dim = "UMAP")
+```
+
+
+## Identifying marker genes
 
 Assigning clusters is nice for visualization, but we would like to be able to move toward a biological interpretation of the clusters and identifying the cell types in each cluster.
 To that end, we can identify marker genes that are differentially expressed among clusters. 
@@ -297,8 +367,7 @@ data.frame(gene_info)
 ```
 
 
-
-```{r plot_marker}
+```{r plot_marker_expression}
 rank <- 1
 gene_id <- gene_info$ID[1]
 symbol <- gene_info$Symbol[1]
@@ -307,6 +376,21 @@ plotReducedDim(hodgkins_sce, "UMAP",
                colour_by = gene_id) + 
   guides(color = guide_colourbar(title = symbol))
 ```
+
+
+## Next steps
+
+So far we have identified clusters of cells (if you believe them), and found some genes that are associated with each cluster. 
+What you might want to know at this point is what *cell types* comprise each cluster.
+Setting aside the thorny question of "what is a cell type?", this is still a challenging problem!
+
+One approach would be to look at the marker genes that we have defined, and explore whether they correspond to known pathways or biological processes from KEGG or Gene Ontology.
+We will explore part of this approach in a later notebook.
+
+In some situations, you might have a well-annotated data set with cells of each type that you are interested in. 
+You could then compute some measure of similarity between the gene expression in your cells and the annotated cells, and then assign identity based on those measures.
+
+One online tool is [Azimuth](https://azimuth.hubmapconsortium.org/) which uses [`Seurat`](https://satijalab.org/seurat/) under the hood, and will even allow you to download the R code to recreate the analysis it performs.
 
 
 ## Session Info
