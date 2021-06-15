@@ -12,9 +12,9 @@ output:
 
 This notebook will demonstrate how to:
 
-- Annotate clusters of cells in single-cell data
-- Compare different clustering methods
-- Identify marker genes that can be used to differentiate clusters
+- Identify clusters of cells in single-cell data
+- Compare results from different clustering methods
+- Select putative marker genes that can be used to differentiate clusters
 
 ---
 
@@ -50,7 +50,7 @@ if (!dir.exists(marker_dir)) {
 }
 ```
 
-```{r read data}
+```{r read_data, live = TRUE}
 hodgkins_sce <- readr::read_rds(normalized_rds)
 ```
 
@@ -99,7 +99,7 @@ The other argument we need for `clusterRows()` will tell it which clustering alg
 This has to be made with a special kind of function from the `bluster` package.
 In this case, we will use `KmeansParam()` to specify that we want k-means clustering, with the `centers` parameter to set how many clusters we will assign (`k`).
 
-```{r kmeans_7}
+```{r kmeans_7, live = TRUE}
 # set the number of clusters:
 k <- 7
 
@@ -115,7 +115,8 @@ For plotting we will want to convert those to a factor, so R is not tempted to t
 
 We can also store them back into the column (cell) information table of the original object for convenient storage and later use.
 
-```{r store_kclusters}
+```{r store_kclusters, live = TRUE}
+# save clusters in the SCE object as a factor
 hodgkins_sce$kcluster <- factor(kclusters)
 ```
 
@@ -123,7 +124,8 @@ Now we can plot the results and see how the clustering looks, using the `scater`
 We will start by using the UMAP coordinates for the plot.
 Note that this does require that the cluster identities were stored in the `SingleCellExperiment` object, as we just did.
 
-```{r plot_k}
+```{r plot_k, live = TRUE}
+# plot clustering results
 plotReducedDim(hodgkins_sce, "UMAP", colour_by = "kcluster")
 ```
 
@@ -226,7 +228,6 @@ We also doing a bit of transformation here to pull the gene name into a column o
 markers[[1]] %>%
   as.data.frame() %>% # convert to a data frame
   tibble::rownames_to_column("gene") %>% # make gene a column
-  dplyr::filter(FDR < 0.01) # keep only more significant markers
 ```
 
 You can see that this table includes values for all genes, so we would like to make a shorter list.
@@ -300,27 +301,36 @@ One thing we can do with this list of marker genes is to see how they look acros
 The `scater::plotReducedDim()` function makes this easy!
 We have earlier colored points by some cell statistic, like the number of expressed genes, but it is just as easy to color by the expression of a single gene by using the gene identifier as the `colour_by` argument.
 
+The first step is to get the gene information for the genes we might be interested in. 
+
 ```{r marker_info, live = TRUE}
+# get gene ids for top 10 cluster 1 markers
 gene_ids <- marker_df_list[[1]] %>%
-  dplyr::filter(FDR < 0.01) %>%
-  dplyr::pull(gene) # get gene ids for cluster 1 markers
+  head(n = 10) %>%
+  dplyr::pull(gene) 
 
 # look at the gene info for these
 gene_info <- rowData(hodgkins_sce)[gene_ids, ]
 data.frame(gene_info)
 ```
 
+Now we can pick one of the genes for plotting and go!
 
-```{r plot_marker_expression}
+```{r plot_marker_expression, live = TRUE}
+# get gene id and gene symbol for nicer plotting
 rank <- 1
 gene_id <- gene_info$ID[1]
 symbol <- gene_info$Symbol[1]
 
+# Plot UMAP results colored by expression
 plotReducedDim(hodgkins_sce, "UMAP", 
                colour_by = gene_id) + 
+  # label the guide with the gene symbol
   guides(color = guide_colourbar(title = symbol))
 ```
 
+
+Hopefully that expression pattern aligns at least in part with your expectations!
 
 ## Next steps
 
