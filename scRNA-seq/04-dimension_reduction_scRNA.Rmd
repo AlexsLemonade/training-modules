@@ -251,19 +251,25 @@ We will store the PCA results in our `SingleCellExperiment` object, as we will w
 To do this, we will use the `runPCA()` function from `scater`, which performs the PCA calculations and returns a new object with the results stored in the `reducedDim` slot.
 If we wanted to, we could get the raw results as a matrix instead with `calculatePCA()` function, as we did in a previous notebook.
 
+We will also use the `ntop` argument to calculate the PCA using 2000 genes with the highest variance.
+The default is `ntop = 500`.
+
 ```{r runPCA, live = TRUE}
-normalized_sce <- runPCA(normalized_sce)
+# calculate PCA using the top 2000 genes
+normalized_sce <- runPCA(normalized_sce, ntop = 2000)
 ```
 
 We can see what reduced dimensionality matrices are stored in the object with the `reducedDimNames()` function.
 
 ```{r reduced_dim_names, live = TRUE}
+# print the reduced dimensionality tables available
 reducedDimNames(normalized_sce)
 ```
 
 To extract them by name, we use the `reducedDim()` function, much like the `assay()` function to extract original data.
 
 ```{r extract_reduced, live = TRUE}
+# print the top corner of the PCA matrix
 reducedDim(normalized_sce, "PCA")[1:10, 1:5]
 ```
 
@@ -273,6 +279,7 @@ If we have the PCA results stored in the `SingleCellExperiment` object, we can u
 One nice thing about this function is that it uses `ggplot2` under the hood, so if we wanted to customize it later, we could.
 
 ```{r plotPCA, live = TRUE}
+# plot PCA results
 plotReducedDim(normalized_sce, "PCA")
 ```
 PCA gives us a matrix with more than just two dimensions, and we might want to look at some higher dimensions too.
@@ -287,8 +294,7 @@ plotReducedDim(normalized_sce, "PCA", ncomponents = c(3,4))
 
 The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. 
 In order to roughly account for this we could just take the largest variance genes, on the assumption that low variance genes are mostly just noise. 
-This is the default approach that `runPCA()` and `calculatePCA()` take, using 500 genes with the greatest variance across cells to calculate the PCA matrix. 
-This approach also makes the PCA calculations somewhat faster.
+This is the default approach that `runPCA()` and `calculatePCA()` take, using the genes with the greatest variance across cells to calculate the PCA matrix.
 
 If we want to be a bit more careful about it, we can model the variance in expression of each gene as a function of the mean expression for that gene.
 This is useful because we generally expect the variance to increase as mean expression increases, even if there is no biological signal in the expression variation.
@@ -314,19 +320,22 @@ ggplot(as.data.frame(gene_variance), aes(x = mean, y = total)) +
 
 Now we can use `scran::getTopHVGs()` to select the genes that have the most biological variation (according to the model) and recalculate PCA scores using only those genes. 
 (In practice, we are selecting the genes with the largest residual variation after removing technical variation modeled by the mean/variance relationship.)
-Here we are picking the 500 top genes, to match the number of genes we used before.
+
+Here we are picking the 2000 top genes to match the number of genes from our earlier calculations.
 
 ```{r get_highvar, live = TRUE}
 # select the most variable genes
-highvar_genes <- scran::getTopHVGs(gene_variance, n = 500)
+highvar_genes <- scran::getTopHVGs(gene_variance, n = 2000)
 # calculate a PCA matrix using those genes
 normalized_sce <- runPCA(normalized_sce, subset_row = highvar_genes)
 ```
 
 Now we can plot our new PCA values for comparison.
-You might realize that our old PCA values were replaced when we ran `runPCA()` again.
+You might realize that our old PCA values were replaced when we ran `runPCA()` again, so we can't recreate the earlier plots at this stage of the notebook. 
+You will have to scroll up to your earlier plots to compare.
 
 ```{r plotPCA_highvar, live = TRUE}
+# plot the new PCA results
 plotReducedDim(normalized_sce, "PCA")
 plotReducedDim(normalized_sce, "PCA", ncomponents = c(3,4))
 ```
@@ -486,8 +495,8 @@ readr::write_rds(normalized_sce, file = output_sce_file)
 - [Freitag (2019)](https://rpubs.com/Saskia/520216) is a nice explanation and comparison of many different dimensionality reduction techniques that you may encounter.
 
 
-## Session Info:
+## Session Info
 
-```{r}
+```{r session}
 sessionInfo()
 ```
