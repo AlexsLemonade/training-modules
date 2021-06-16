@@ -22,10 +22,9 @@ For more extensive background on single-cell experimental methods, Kiselev _et a
 ### Tag-based scRNA-seq  
 *Example:* 10X Genomics [(Zheng _et al._ 2017)](https://www.ncbi.nlm.nih.gov/pubmed/28091601)
 Individual cells are separated by emulsion/droplets prior to cell lysis. 
-Transcripts from each cell are then tagged with two barcodes: a unique cell barcode and a Unique Molecular Identifier (UMI) 
+Transcripts from each cell are then tagged with two barcodes: a cell-specific barcode and a Unique Molecular Identifier (UMI) [(Islam _et al._ 2014)](http://www.nature.com/doifinder/10.1038/nmeth.2772). 
 All transcripts from all cells are then pooled together and undergo PCR amplification and sequencing as if they are one sample.
 
-These types of methods, because they are newer, are more likely to have (UMIs) [(Islam _et al._ 2014)](http://www.nature.com/doifinder/10.1038/nmeth.2772). 
 Tagging of each transcript with a different UMI before amplification allows the identification of PCR duplicates, allowing control for PCR amplification errors and biases.
 Individual samples have two fastq files: one for the cell and UMI barcodes (R1) and another with the transcript sequence reads (R2).
 
