@@ -226,6 +226,9 @@ cluster01_markers <- markers_df %>%
 ```
 
 You may think that selecting the top 100 genes is pretty arbitrary and you are not wrong!
+This also may seem strict, but let's think about our goal for this particular analysis: we hope that using ORA with resources that encode some knowledge about cell types will help us annotate cluster 1. 
+We're using the very top ranked genes in service of this goal.
+
 An alternative approach would be to have filtered to genes that are below a specific FDR threshold, but that would also be an arbitrary threshold that we chose.
 This is a weakness of over-representation analysis; we generally need to pick a threshold for the genes that we include in our tests.
 
@@ -365,15 +368,19 @@ cellmarker_ora_results <- enricher(
 
 #### Visualizing results
 
-Let's look at an UpSet plot of the significant results.
+Let's look at a bar plot of the significant results.
 
-```{r cm_upsetplot, live = TRUE}
-enrichplot::upsetplot(cellmarker_ora_results)
+```{r cm_barplot, live = TRUE}
+# You can use base graphics barplot() with the ORA results object
+barplot(cellmarker_ora_results)
 ```
 
 One thing that the [web version of CellMarker](http://bio-bigdata.hrbmu.edu.cn/CellMarker/) allows us to do is to get a better idea of _marker prevalence_.
 Some of the genes that show up in our top 100 may not be very specific. 
-It's also likely that Kidney is not very relevant to our analysis of Hodgkin's lymphoma, but Lymph node is highly relevant.
+It's also likely that kidney is not very relevant to our analysis of Hodgkin's lymphoma, but lymph node is highly relevant.
+However, blood cells in kidney are not _unexpected_ and, if we view the [CellMarker tissue type browser](http://bio-bigdata.hrbmu.edu.cn/CellMarker/browse.jsp), we can see that there are _a lot_ of genes annotated to kidney.
+Every resource will have some limitations "baked in."
+
 We could do additional filtering of the gene sets to remove irrelevant tissues and to remove marker genes that are not particularly specific.
 (Fewer gene sets would mean a lower multiple hypothesis testing burden.)
 If some of the CellMarker marker genes come from immunostaining of terminally differentiated cells, we might not expect their transcripts to show up in scRNA-seq data, for example. 
@@ -391,7 +398,14 @@ data.frame(cellmarker_ora_results@result) %>%
 
 ## Parting thoughts
 
-TODO: Section about not getting overly attached to the idea of significance and instead using this to help you interpret your clusters?
+The goal of analyzing marker genes with ORA, like we did in this notebook, is to help us interpret our clustering results or annotate clusters.
+We shouldn't use marker genes or any downstream analysis we perform with them to _justify_ cluster assignments; we generally want our cluster assignments to be data-driven.
+
+Just like it's important to be skeptical about p-values returned from the marker gene analysis itself, we should not get too attached to the idea of statistical significance here.
+If we were to tweak the cutoffs (e.g., take the top 2500 genes), we might expect to get completely different significant results.
+This is a limitation of ORA: we have to make some choices that are somewhat arbitrary.
+It's a good idea to think about the goal of your analysis _upfront_ and pick cutoffs based on your goals.
+That can help you avoid the temptation of trying a bunch of cutoffs until you get results that "look good."
 
 ## Session Info 
 
