@@ -548,6 +548,7 @@ logcounts</code></pre>
 <div id="storing-pca-results-with-the-raw-data" class="section level4">
 <h4>Storing PCA results with the raw data</h4>
 <p>We will store the PCA results in our <code>SingleCellExperiment</code> object, as we will want to use them later. To do this, we will use the <code>runPCA()</code> function from <code>scater</code>, which performs the PCA calculations and returns a new object with the results stored in the <code>reducedDim</code> slot. If we wanted to, we could get the raw results as a matrix instead with <code>calculatePCA()</code> function, as we did in a previous notebook.</p>
+<p>We will also use the <code>ntop</code> argument to calculate the PCA using more genes than the default 500 with highest variance.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubm9ybWFsaXplZF9zY2UgPC0gcnVuUENBKG5vcm1hbGl6ZWRfc2NlKVxuYGBgIn0= -->
@@ -573,18 +574,18 @@ PCA</code></pre>
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucmVkdWNlZERpbShub3JtYWxpemVkX3NjZSwgXFxQQ0FcXClbMToxMCwgMTo1XVxuYGBgIn0= -->
 <pre class="r"><code>reducedDim(normalized_sce, \PCA\)[1:10, 1:5]</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgIFBDMSAgICAgICAgUEMyICAgICAgICAgUEMzICAgICAgICAgUEM0ICAgICAgICAgUEM1XG4gWzEsXSAxNS45MjQ3MTEwICA2LjU0MzIxMzEgIDEwLjA3OTgyMzIgICA0LjQxNjE4ODQgIDUuMTEwNjQ2MTFcbiBbMixdICAyLjQ4NjQwMDQgLTQuODM1NTMxMyAgIDQuMTYyODEyMCAgLTUuMzUyODI1NCAtNy45NDI3NDYxOFxuIFszLF0gIDAuODQ0ODYxOSAtMy42MDE5NTUyICAtNi41MzY2NjAwICAtNC44Mzk3MTYzICA2LjA1NTQ5MTIwXG4gWzQsXSAgMy4xNzc0NTY4IDEyLjI3ODY3NjkgIC0zLjAxNTQ0NzYgLTEzLjY0MzAxMjggIDEuNjg0NTI0MTRcbiBbNSxdIC03LjU3NTk0MjcgMjIuMTE3MDY3NSAtMTEuODg4NzUzNSAgLTAuNjIyNDE1NyAtMi43ODYxODQ4NlxuIFs2LF0gLTEuOTQzOTMyOCAxOS4xNjA0NDMzICAgMC40NTM0NjU2IC0xNS4xNDc4NTk3IC0wLjA5NTQzMjMyXG4gWzcsXSAtMi4wMzYzMDk3IC02LjgzNTI1ODEgIC0xLjQxNzc2MzMgIC02LjIyNjI2ODEgIDcuMTg4MjI1OTlcbiBbOCxdIDExLjQxMjQ1ODIgLTQuNDM2MDcyNCAgLTAuODc0NzM3NyAgIDYuNjIwMTAxMSAtNy42NzAyNjM4MlxuIFs5LF0gIDguNDgxMDA0NSAtMC4yOTYzNDY1IC0xMi44Njc3NjY5ICAgMC42NTE1ODk1ICAwLjUxODU2ODIxXG5bMTAsXSAtNy4xMzA4NDg5IC0zLjU5OTg2MzEgIC00LjM1NzA4MTggIC00LjI1MDAzODggIDYuNjk2MDA2MzBcbiJ9 -->
-<pre><code>             PC1        PC2         PC3         PC4         PC5
- [1,] 15.9247110  6.5432131  10.0798232   4.4161884  5.11064611
- [2,]  2.4864004 -4.8355313   4.1628120  -5.3528254 -7.94274618
- [3,]  0.8448619 -3.6019552  -6.5366600  -4.8397163  6.05549120
- [4,]  3.1774568 12.2786769  -3.0154476 -13.6430128  1.68452414
- [5,] -7.5759427 22.1170675 -11.8887535  -0.6224157 -2.78618486
- [6,] -1.9439328 19.1604433   0.4534656 -15.1478597 -0.09543232
- [7,] -2.0363097 -6.8352581  -1.4177633  -6.2262681  7.18822599
- [8,] 11.4124582 -4.4360724  -0.8747377   6.6201011 -7.67026382
- [9,]  8.4810045 -0.2963465 -12.8677669   0.6515895  0.51856821
-[10,] -7.1308489 -3.5998631  -4.3570818  -4.2500388  6.69600630</code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgICAgUEMxICAgICAgICAgUEMyICAgICAgICAgIFBDMyAgICAgICAgUEM0ICAgICAgICAgUEM1XG4gWzEsXSAtMTcuMDE3NzYwMzYgIC0yLjkzOTEyMzkgLTE0LjI5MDI3OTUzICAgMi4xMTY5NTEgICA4Ljk0MzQ5ODlcbiBbMixdICAtMy4wNDE2NDE0MSAgLTYuNDk4MjU4NSAgLTIuMjIzNzA4MjEgIC04LjE4OTg5OCAgLTkuNDgzMjUwN1xuIFszLF0gIC0zLjE2Njc0NTI1ICAgNS4wNjIyOTM4ICAxMi43NTgzNDAxMiAgLTQuMjI1NjM4ICAgNy4xMDA2MzA5XG4gWzQsXSAgLTcuMDc0NDY1NDkgIDIxLjc5NjUxMTYgIC0wLjg0NzE0Mjc1IC0xMi45MzM4ODEgICAwLjg1NDY5NjZcbiBbNSxdICAgNy4zMjg3MDUzNyAgMjguMTQzMDM1MCAgLTYuNDc5NDgzODUgICA5Ljk2MzczNCAgLTUuMzAzOTgyMVxuIFs2LF0gIC0yLjIyNDg3MjA5ICAyOC4xNjk0MDkyICAtOC41NjE0MjE2MiAtMTMuMjc3NTI0ICAtMC41NDg0NjM5XG4gWzcsXSAgIDAuMDM4NDIyNDIgIC0wLjk4MTE0MzEgICA5LjU4NjE3Njg5ICAtOC42Mjk2MTIgICA1LjMyNjc4NTRcbiBbOCxdIC0xMC4wNzI5NDQwMSAtMTAuNDc1MzQwMCAgIDAuMDMzODE0OTggICA2Ljk1NzE3NiAtMTAuMTE0OTc1M1xuIFs5LF0gIC05LjkxODU4MzQ5ICAgNy4zMjAyMjU0ICAxMi4xNzQ5MzM0OCAgIDYuODkwOTEwICAgMC41MjE2Mjc1XG5bMTAsXSAgIDUuNjcwMzkxMzQgICA0LjI0MTIyMTkgIDEwLjk3NDA5MjUzICAtNC45NTM0MjQgICA4Ljc5NTkyMDNcbiJ9 -->
+<pre><code>               PC1         PC2          PC3        PC4         PC5
+ [1,] -17.01776036  -2.9391239 -14.29027953   2.116951   8.9434989
+ [2,]  -3.04164141  -6.4982585  -2.22370821  -8.189898  -9.4832507
+ [3,]  -3.16674525   5.0622938  12.75834012  -4.225638   7.1006309
+ [4,]  -7.07446549  21.7965116  -0.84714275 -12.933881   0.8546966
+ [5,]   7.32870537  28.1430350  -6.47948385   9.963734  -5.3039821
+ [6,]  -2.22487209  28.1694092  -8.56142162 -13.277524  -0.5484639
+ [7,]   0.03842242  -0.9811431   9.58617689  -8.629612   5.3267854
+ [8,] -10.07294401 -10.4753400   0.03381498   6.957176 -10.1149753
+ [9,]  -9.91858349   7.3202254  12.17493348   6.890910   0.5216275
+[10,]   5.67039134   4.2412219  10.97409253  -4.953424   8.7959203</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
@@ -618,7 +619,7 @@ plotReducedDim(normalized_sce, \PCA\, ncomponents = c(3,4))</code></pre>
 </div>
 <div id="modeling-variance" class="section level3">
 <h3>Modeling variance</h3>
-<p>The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. In order to roughly account for this we could just take the largest variance genes, on the assumption that low variance genes are mostly just noise. This is the default approach that <code>runPCA()</code> and <code>calculatePCA()</code> take, using 500 genes with the greatest variance across cells to calculate the PCA matrix. This approach also makes the PCA calculations somewhat faster.</p>
+<p>The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. In order to roughly account for this we could just take the largest variance genes, on the assumption that low variance genes are mostly just noise. This is the default approach that <code>runPCA()</code> and <code>calculatePCA()</code> take, using the genes with the greatest variance across cells to calculate the PCA matrix.</p>
 <p>If we want to be a bit more careful about it, we can model the variance in expression of each gene as a function of the mean expression for that gene. This is useful because we generally expect the variance to increase as mean expression increases, even if there is no biological signal in the expression variation.</p>
 <p>We will do this modeling of variance by expression with the <code>scran::modelGeneVar()</code> function, saving the results to a new variable.</p>
 <!-- rnb-text-end -->
@@ -644,18 +645,19 @@ plotReducedDim(normalized_sce, \PCA\, ncomponents = c(3,4))</code></pre>
 <!-- rnb-plot-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Now we can use <code>scran::getTopHVGs()</code> to select the genes that have the most biological variation (according to the model) and recalculate PCA scores using only those genes. (In practice, we are selecting the genes with the largest residual variation after removing technical variation modeled by the mean/variance relationship.) Here we are picking the 500 top genes, to match the number of genes we used before.</p>
+<p>Now we can use <code>scran::getTopHVGs()</code> to select the genes that have the most biological variation (according to the model) and recalculate PCA scores using only those genes. (In practice, we are selecting the genes with the largest residual variation after removing technical variation modeled by the mean/variance relationship.)</p>
+<p>Here we are picking the 2000 top genes to match the number of genes from our earlier calculations.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBzZWxlY3QgdGhlIG1vc3QgdmFyaWFibGUgZ2VuZXNcbmhpZ2h2YXJfZ2VuZXMgPC0gc2NyYW46OmdldFRvcEhWR3MoZ2VuZV92YXJpYW5jZSwgbiA9IDUwMClcbiMgY2FsY3VsYXRlIGEgUENBIG1hdHJpeCB1c2luZyB0aG9zZSBnZW5lc1xubm9ybWFsaXplZF9zY2UgPC0gcnVuUENBKG5vcm1hbGl6ZWRfc2NlLCBzdWJzZXRfcm93ID0gaGlnaHZhcl9nZW5lcylcbmBgYCJ9 -->
 <pre class="r"><code># select the most variable genes
-highvar_genes &lt;- scran::getTopHVGs(gene_variance, n = 500)
+highvar_genes &lt;- scran::getTopHVGs(gene_variance, n = 2000)
 # calculate a PCA matrix using those genes
 normalized_sce &lt;- runPCA(normalized_sce, subset_row = highvar_genes)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Now we can plot our new PCA values for comparison. You might realize that our old PCA values were replaced when we ran <code>runPCA()</code> again.</p>
+<p>Now we can plot our new PCA values for comparison. You might realize that our old PCA values were replaced when we ran <code>runPCA()</code> again, so we can’t recreate the earlier plots at this stage of the notebook. You will have to scroll up to your earlier plots to compare.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucGxvdFJlZHVjZWREaW0obm9ybWFsaXplZF9zY2UsIFxcUENBXFwpXG5gYGAifQ== -->
@@ -836,87 +838,59 @@ plotReducedDim(normalized_sce, \TSNE\, colour_by = \detected\)</code></pre>
 </div>
 </div>
 <div id="session-info" class="section level2">
-<h2>Session Info:</h2>
+<h2>Session Info</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2Vzc2lvbkluZm8oKVxuYGBgIn0= -->
 <pre class="r"><code>sessionInfo()</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiUiB2ZXJzaW9uIDQuMC4zICgyMDIwLTEwLTEwKVxuUGxhdGZvcm06IHg4Nl82NC1wYy1saW51eC1nbnUgKDY0LWJpdClcblJ1bm5pbmcgdW5kZXI6IFVidW50dSAyMC4wNC4yIExUU1xuXG5NYXRyaXggcHJvZHVjdHM6IGRlZmF1bHRcbkJMQVMvTEFQQUNLOiAvdXNyL2xpYi94ODZfNjQtbGludXgtZ251L29wZW5ibGFzLXB0aHJlYWQvbGlib3BlbmJsYXNwLXIwLjMuOC5zb1xuXG5sb2NhbGU6XG4gWzFdIExDX0NUWVBFPWVuX1VTLlVURi04ICAgICAgIExDX05VTUVSSUM9QyAgICAgICAgICAgICAgXG4gWzNdIExDX1RJTUU9ZW5fVVMuVVRGLTggICAgICAgIExDX0NPTExBVEU9ZW5fVVMuVVRGLTggICAgXG4gWzVdIExDX01PTkVUQVJZPWVuX1VTLlVURi04ICAgIExDX01FU1NBR0VTPUMgICAgICAgICAgICAgXG4gWzddIExDX1BBUEVSPWVuX1VTLlVURi04ICAgICAgIExDX05BTUU9QyAgICAgICAgICAgICAgICAgXG4gWzldIExDX0FERFJFU1M9QyAgICAgICAgICAgICAgIExDX1RFTEVQSE9ORT1DICAgICAgICAgICAgXG5bMTFdIExDX01FQVNVUkVNRU5UPWVuX1VTLlVURi04IExDX0lERU5USUZJQ0FUSU9OPUMgICAgICAgXG5cbmF0dGFjaGVkIGJhc2UgcGFja2FnZXM6XG5bMV0gcGFyYWxsZWwgIHN0YXRzNCAgICBzdGF0cyAgICAgZ3JhcGhpY3MgIGdyRGV2aWNlcyB1dGlscyAgICAgZGF0YXNldHMgXG5bOF0gbWV0aG9kcyAgIGJhc2UgICAgIFxuXG5vdGhlciBhdHRhY2hlZCBwYWNrYWdlczpcbiBbMV0gbWFncml0dHJfMi4wLjEgICAgICAgICAgICAgIHNjcmFuXzEuMTguNyAgICAgICAgICAgICAgIFxuIFszXSBzY2F0ZXJfMS4xOC42ICAgICAgICAgICAgICAgU2luZ2xlQ2VsbEV4cGVyaW1lbnRfMS4xMi4wXG4gWzVdIFN1bW1hcml6ZWRFeHBlcmltZW50XzEuMjAuMCBCaW9iYXNlXzIuNTAuMCAgICAgICAgICAgICBcbiBbN10gR2Vub21pY1Jhbmdlc18xLjQyLjAgICAgICAgIEdlbm9tZUluZm9EYl8xLjI2LjcgICAgICAgIFxuIFs5XSBJUmFuZ2VzXzIuMjQuMSAgICAgICAgICAgICAgUzRWZWN0b3JzXzAuMjguMSAgICAgICAgICAgXG5bMTFdIEJpb2NHZW5lcmljc18wLjM2LjEgICAgICAgICBNYXRyaXhHZW5lcmljc18xLjIuMCAgICAgICBcblsxM10gbWF0cml4U3RhdHNfMC41Ny4wICAgICAgICAgIGdncGxvdDJfMy4zLjMgICAgICAgICAgICAgIFxuWzE1XSBvcHRwYXJzZV8xLjYuNiAgICAgICAgICAgICBcblxubG9hZGVkIHZpYSBhIG5hbWVzcGFjZSAoYW5kIG5vdCBhdHRhY2hlZCk6XG4gWzFdIGJpdG9wc18xLjAtNiAgICAgICAgICAgICAgdG9vbHNfNC4wLjMgICAgICAgICAgICAgIFxuIFszXSBSNl8yLjUuMCAgICAgICAgICAgICAgICAgIGlybGJhXzIuMy4zICAgICAgICAgICAgICBcbiBbNV0gSERGNUFycmF5XzEuMTguMSAgICAgICAgICB2aXBvcl8wLjQuNSAgICAgICAgICAgICAgXG4gWzddIHV3b3RfMC4xLjEwICAgICAgICAgICAgICAgREJJXzEuMS4xICAgICAgICAgICAgICAgIFxuIFs5XSBjb2xvcnNwYWNlXzIuMC0wICAgICAgICAgIHJoZGY1ZmlsdGVyc18xLjIuMSAgICAgICBcblsxMV0gd2l0aHJfMi40LjAgICAgICAgICAgICAgICB0aWR5c2VsZWN0XzEuMS4wICAgICAgICAgXG5bMTNdIGdyaWRFeHRyYV8yLjMgICAgICAgICAgICAgY29tcGlsZXJfNC4wLjMgICAgICAgICAgIFxuWzE1XSBjbGlfMi4yLjAgICAgICAgICAgICAgICAgIEJpb2NOZWlnaGJvcnNfMS44LjIgICAgICBcblsxN10gRGVsYXllZEFycmF5XzAuMTYuMyAgICAgICBsYWJlbGluZ18wLjQuMiAgICAgICAgICAgXG5bMTldIHNjYWxlc18xLjEuMSAgICAgICAgICAgICAgcmVhZHJfMS40LjAgICAgICAgICAgICAgIFxuWzIxXSBzdHJpbmdyXzEuNC4wICAgICAgICAgICAgIGRpZ2VzdF8wLjYuMjcgICAgICAgICAgICBcblsyM10gcm1hcmtkb3duXzIuNiAgICAgICAgICAgICBSLnV0aWxzXzIuMTAuMSAgICAgICAgICAgXG5bMjVdIFhWZWN0b3JfMC4zMC4wICAgICAgICAgICAgcGtnY29uZmlnXzIuMC4zICAgICAgICAgIFxuWzI3XSBodG1sdG9vbHNfMC41LjEuMSAgICAgICAgIHNwYXJzZU1hdHJpeFN0YXRzXzEuMi4xICBcblsyOV0gbGltbWFfMy40Ni4wICAgICAgICAgICAgICBybGFuZ18wLjQuMTAgICAgICAgICAgICAgXG5bMzFdIHJzdHVkaW9hcGlfMC4xMyAgICAgICAgICAgRk5OXzEuMS4zICAgICAgICAgICAgICAgIFxuWzMzXSBEZWxheWVkTWF0cml4U3RhdHNfMS4xMi4zIGZhcnZlcl8yLjAuMyAgICAgICAgICAgICBcblszNV0gZ2VuZXJpY3NfMC4xLjAgICAgICAgICAgICBqc29ubGl0ZV8xLjcuMiAgICAgICAgICAgXG5bMzddIEJpb2NQYXJhbGxlbF8xLjI0LjEgICAgICAgZHBseXJfMS4wLjMgICAgICAgICAgICAgIFxuWzM5XSBSLm9vXzEuMjQuMCAgICAgICAgICAgICAgIFJDdXJsXzEuOTgtMS4yICAgICAgICAgICBcbls0MV0gQmlvY1Npbmd1bGFyXzEuNi4wICAgICAgICBHZW5vbWVJbmZvRGJEYXRhXzEuMi40ICAgXG5bNDNdIHNjdXR0bGVfMS4wLjQgICAgICAgICAgICAgTWF0cml4XzEuMy0yICAgICAgICAgICAgIFxuWzQ1XSBSY3BwXzEuMC42ICAgICAgICAgICAgICAgIGdnYmVlc3dhcm1fMC42LjAgICAgICAgICBcbls0N10gbXVuc2VsbF8wLjUuMCAgICAgICAgICAgICBSaGRmNWxpYl8xLjEyLjEgICAgICAgICAgXG5bNDldIGZhbnNpXzAuNC4yICAgICAgICAgICAgICAgdmlyaWRpc18wLjUuMSAgICAgICAgICAgIFxuWzUxXSBsaWZlY3ljbGVfMC4yLjAgICAgICAgICAgIFIubWV0aG9kc1MzXzEuOC4xICAgICAgICBcbls1M10gc3RyaW5naV8xLjUuMyAgICAgICAgICAgICB5YW1sXzIuMi4xICAgICAgICAgICAgICAgXG5bNTVdIGVkZ2VSXzMuMzIuMSAgICAgICAgICAgICAgemxpYmJpb2NfMS4zNi4wICAgICAgICAgIFxuWzU3XSBSdHNuZV8wLjE1ICAgICAgICAgICAgICAgIHJoZGY1XzIuMzQuMCAgICAgICAgICAgICBcbls1OV0gZ3JpZF80LjAuMyAgICAgICAgICAgICAgICBkcXJuZ18wLjIuMSAgICAgICAgICAgICAgXG5bNjFdIGNyYXlvbl8xLjMuNCAgICAgICAgICAgICAgbGF0dGljZV8wLjIwLTQxICAgICAgICAgIFxuWzYzXSBjb3dwbG90XzEuMS4xICAgICAgICAgICAgIGJlYWNobWF0XzIuNi40ICAgICAgICAgICBcbls2NV0gaG1zXzEuMC4wICAgICAgICAgICAgICAgICBsb2NmaXRfMS41LTkuNCAgICAgICAgICAgXG5bNjddIHBzXzEuNS4wICAgICAgICAgICAgICAgICAga25pdHJfMS4zMCAgICAgICAgICAgICAgIFxuWzY5XSBwaWxsYXJfMS40LjcgICAgICAgICAgICAgIGlncmFwaF8xLjIuNiAgICAgICAgICAgICBcbls3MV0gZ2x1ZV8xLjQuMiAgICAgICAgICAgICAgICBldmFsdWF0ZV8wLjE0ICAgICAgICAgICAgXG5bNzNdIHZjdHJzXzAuMy42ICAgICAgICAgICAgICAgZ3RhYmxlXzAuMy4wICAgICAgICAgICAgIFxuWzc1XSBnZXRvcHRfMS4yMC4zICAgICAgICAgICAgIHB1cnJyXzAuMy40ICAgICAgICAgICAgICBcbls3N10gYXNzZXJ0dGhhdF8wLjIuMSAgICAgICAgICB4ZnVuXzAuMjAgICAgICAgICAgICAgICAgXG5bNzldIHJzdmRfMS4wLjMgICAgICAgICAgICAgICAgRHJvcGxldFV0aWxzXzEuMTAuMyAgICAgIFxuWzgxXSBSU3BlY3RyYV8wLjE2LTAgICAgICAgICAgIHZpcmlkaXNMaXRlXzAuMy4wICAgICAgICBcbls4M10gdGliYmxlXzMuMC41ICAgICAgICAgICAgICBiZWVzd2FybV8wLjIuMyAgICAgICAgICAgXG5bODVdIGJsdXN0ZXJfMS4wLjAgICAgICAgICAgICAgc3RhdG1vZF8xLjQuMzUgICAgICAgICAgIFxuWzg3XSBlbGxpcHNpc18wLjMuMSAgICAgICAgICAgXG4ifQ== -->
+<!-- rnb-output-begin eyJkYXRhIjoiUiB2ZXJzaW9uIDQuMC4zICgyMDIwLTEwLTEwKVxuUGxhdGZvcm06IHg4Nl82NC1wYy1saW51eC1nbnUgKDY0LWJpdClcblJ1bm5pbmcgdW5kZXI6IFVidW50dSAxOC4wNC4zIExUU1xuXG5NYXRyaXggcHJvZHVjdHM6IGRlZmF1bHRcbkJMQVM6ICAgL3Vzci9saWIveDg2XzY0LWxpbnV4LWdudS9vcGVuYmxhcy9saWJibGFzLnNvLjNcbkxBUEFDSzogL3Vzci9saWIveDg2XzY0LWxpbnV4LWdudS9saWJvcGVuYmxhc3AtcjAuMi4yMC5zb1xuXG5sb2NhbGU6XG4gWzFdIExDX0NUWVBFPUMuVVRGLTggICAgICAgTENfTlVNRVJJQz1DICAgICAgICAgICBMQ19USU1FPUMuVVRGLTggICAgICAgIExDX0NPTExBVEU9Qy5VVEYtOCAgICBcbiBbNV0gTENfTU9ORVRBUlk9Qy5VVEYtOCAgICBMQ19NRVNTQUdFUz1DLlVURi04ICAgIExDX1BBUEVSPUMuVVRGLTggICAgICAgTENfTkFNRT1DICAgICAgICAgICAgIFxuIFs5XSBMQ19BRERSRVNTPUMgICAgICAgICAgIExDX1RFTEVQSE9ORT1DICAgICAgICAgTENfTUVBU1VSRU1FTlQ9Qy5VVEYtOCBMQ19JREVOVElGSUNBVElPTj1DICAgXG5cbmF0dGFjaGVkIGJhc2UgcGFja2FnZXM6XG5bMV0gcGFyYWxsZWwgIHN0YXRzNCAgICBzdGF0cyAgICAgZ3JhcGhpY3MgIGdyRGV2aWNlcyBkYXRhc2V0cyAgdXRpbHMgICAgIG1ldGhvZHMgICBiYXNlICAgICBcblxub3RoZXIgYXR0YWNoZWQgcGFja2FnZXM6XG4gWzFdIG1hZ3JpdHRyXzIuMC4xICAgICAgICAgICAgICBzY3Jhbl8xLjE4LjcgICAgICAgICAgICAgICAgc2NhdGVyXzEuMTguNiAgICAgICAgICAgICAgXG4gWzRdIFNpbmdsZUNlbGxFeHBlcmltZW50XzEuMTIuMCBTdW1tYXJpemVkRXhwZXJpbWVudF8xLjIwLjAgQmlvYmFzZV8yLjUwLjAgICAgICAgICAgICAgXG4gWzddIEdlbm9taWNSYW5nZXNfMS40Mi4wICAgICAgICBHZW5vbWVJbmZvRGJfMS4yNi43ICAgICAgICAgSVJhbmdlc18yLjI0LjEgICAgICAgICAgICAgXG5bMTBdIFM0VmVjdG9yc18wLjI4LjEgICAgICAgICAgICBCaW9jR2VuZXJpY3NfMC4zNi4xICAgICAgICAgTWF0cml4R2VuZXJpY3NfMS4yLjAgICAgICAgXG5bMTNdIG1hdHJpeFN0YXRzXzAuNTcuMCAgICAgICAgICBnZ3Bsb3QyXzMuMy4zICAgICAgICAgICAgICBcblxubG9hZGVkIHZpYSBhIG5hbWVzcGFjZSAoYW5kIG5vdCBhdHRhY2hlZCk6XG4gWzFdIGJpdG9wc18xLjAtNiAgICAgICAgICAgICAgdG9vbHNfNC4wLjMgICAgICAgICAgICAgICBSNl8yLjUuMCAgICAgICAgICAgICAgICAgIGlybGJhXzIuMy4zICAgICAgICAgICAgICBcbiBbNV0gSERGNUFycmF5XzEuMTguMSAgICAgICAgICB2aXBvcl8wLjQuNSAgICAgICAgICAgICAgIHV3b3RfMC4xLjEwICAgICAgICAgICAgICAgREJJXzEuMS4xICAgICAgICAgICAgICAgIFxuIFs5XSBjb2xvcnNwYWNlXzIuMC0wICAgICAgICAgIHJoZGY1ZmlsdGVyc18xLjIuMSAgICAgICAgd2l0aHJfMi40LjAgICAgICAgICAgICAgICB0aWR5c2VsZWN0XzEuMS4wICAgICAgICAgXG5bMTNdIGdyaWRFeHRyYV8yLjMgICAgICAgICAgICAgY29tcGlsZXJfNC4wLjMgICAgICAgICAgICBjbGlfMi4yLjAgICAgICAgICAgICAgICAgIEJpb2NOZWlnaGJvcnNfMS44LjIgICAgICBcblsxN10gRGVsYXllZEFycmF5XzAuMTYuMyAgICAgICBsYWJlbGluZ18wLjQuMiAgICAgICAgICAgIHNjYWxlc18xLjEuMSAgICAgICAgICAgICAgcmVhZHJfMS40LjAgICAgICAgICAgICAgIFxuWzIxXSBzdHJpbmdyXzEuNC4wICAgICAgICAgICAgIGRpZ2VzdF8wLjYuMjcgICAgICAgICAgICAgcm1hcmtkb3duXzIuNiAgICAgICAgICAgICBSLnV0aWxzXzIuMTAuMSAgICAgICAgICAgXG5bMjVdIFhWZWN0b3JfMC4zMC4wICAgICAgICAgICAgcGtnY29uZmlnXzIuMC4zICAgICAgICAgICBodG1sdG9vbHNfMC41LjEuMSAgICAgICAgIHNwYXJzZU1hdHJpeFN0YXRzXzEuMi4xICBcblsyOV0gbGltbWFfMy40Ni4wICAgICAgICAgICAgICBybGFuZ18wLjQuMTAgICAgICAgICAgICAgIHJzdHVkaW9hcGlfMC4xMyAgICAgICAgICAgRk5OXzEuMS4zICAgICAgICAgICAgICAgIFxuWzMzXSBEZWxheWVkTWF0cml4U3RhdHNfMS4xMi4zIGdlbmVyaWNzXzAuMS4wICAgICAgICAgICAgZmFydmVyXzIuMC4zICAgICAgICAgICAgICBqc29ubGl0ZV8xLjcuMiAgICAgICAgICAgXG5bMzddIEJpb2NQYXJhbGxlbF8xLjI0LjEgICAgICAgZHBseXJfMS4wLjMgICAgICAgICAgICAgICBSLm9vXzEuMjQuMCAgICAgICAgICAgICAgIFJDdXJsXzEuOTgtMS4yICAgICAgICAgICBcbls0MV0gQmlvY1Npbmd1bGFyXzEuNi4wICAgICAgICBHZW5vbWVJbmZvRGJEYXRhXzEuMi40ICAgIHNjdXR0bGVfMS4wLjQgICAgICAgICAgICAgTWF0cml4XzEuMy0yICAgICAgICAgICAgIFxuWzQ1XSBSY3BwXzEuMC42ICAgICAgICAgICAgICAgIGdnYmVlc3dhcm1fMC42LjAgICAgICAgICAgbXVuc2VsbF8wLjUuMCAgICAgICAgICAgICBSaGRmNWxpYl8xLjEyLjEgICAgICAgICAgXG5bNDldIGZhbnNpXzAuNC4yICAgICAgICAgICAgICAgdmlyaWRpc18wLjUuMSAgICAgICAgICAgICBsaWZlY3ljbGVfMC4yLjAgICAgICAgICAgIFIubWV0aG9kc1MzXzEuOC4xICAgICAgICBcbls1M10gc3RyaW5naV8xLjUuMyAgICAgICAgICAgICB5YW1sXzIuMi4xICAgICAgICAgICAgICAgIGVkZ2VSXzMuMzIuMSAgICAgICAgICAgICAgemxpYmJpb2NfMS4zNi4wICAgICAgICAgIFxuWzU3XSBSdHNuZV8wLjE1ICAgICAgICAgICAgICAgIHJoZGY1XzIuMzQuMCAgICAgICAgICAgICAgZ3JpZF80LjAuMyAgICAgICAgICAgICAgICBkcXJuZ18wLjIuMSAgICAgICAgICAgICAgXG5bNjFdIGNyYXlvbl8xLjMuNCAgICAgICAgICAgICAgbGF0dGljZV8wLjIwLTQxICAgICAgICAgICBjb3dwbG90XzEuMS4xICAgICAgICAgICAgIGJlYWNobWF0XzIuNi40ICAgICAgICAgICBcbls2NV0gaG1zXzEuMC4wICAgICAgICAgICAgICAgICBsb2NmaXRfMS41LTkuNCAgICAgICAgICAgIGtuaXRyXzEuMzAgICAgICAgICAgICAgICAgcGlsbGFyXzEuNC43ICAgICAgICAgICAgIFxuWzY5XSBpZ3JhcGhfMS4yLjYgICAgICAgICAgICAgIGdsdWVfMS40LjIgICAgICAgICAgICAgICAgZXZhbHVhdGVfMC4xNCAgICAgICAgICAgICByZW52XzAuMTIuNS0yICAgICAgICAgICAgXG5bNzNdIEJpb2NNYW5hZ2VyXzEuMzAuMTAgICAgICAgdmN0cnNfMC4zLjYgICAgICAgICAgICAgICBndGFibGVfMC4zLjAgICAgICAgICAgICAgIHB1cnJyXzAuMy40ICAgICAgICAgICAgICBcbls3N10gYXNzZXJ0dGhhdF8wLjIuMSAgICAgICAgICB4ZnVuXzAuMjAgICAgICAgICAgICAgICAgIHJzdmRfMS4wLjMgICAgICAgICAgICAgICAgRHJvcGxldFV0aWxzXzEuMTAuMyAgICAgIFxuWzgxXSBSU3BlY3RyYV8wLjE2LTAgICAgICAgICAgIHZpcmlkaXNMaXRlXzAuMy4wICAgICAgICAgdGliYmxlXzMuMC41ICAgICAgICAgICAgICBiZWVzd2FybV8wLjIuMyAgICAgICAgICAgXG5bODVdIGJsdXN0ZXJfMS4wLjAgICAgICAgICAgICAgc3RhdG1vZF8xLjQuMzUgICAgICAgICAgICBlbGxpcHNpc18wLjMuMSAgICAgICAgICAgXG4ifQ== -->
 <pre><code>R version 4.0.3 (2020-10-10)
 Platform: x86_64-pc-linux-gnu (64-bit)
-Running under: Ubuntu 20.04.2 LTS
+Running under: Ubuntu 18.04.3 LTS
 
 Matrix products: default
-BLAS/LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.8.so
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas/libblas.so.3
+LAPACK: /usr/lib/x86_64-linux-gnu/libopenblasp-r0.2.20.so
 
 locale:
- [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
- [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
- [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=C             
- [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
- [9] LC_ADDRESS=C               LC_TELEPHONE=C            
-[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8        LC_COLLATE=C.UTF-8    
+ [5] LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8    LC_PAPER=C.UTF-8       LC_NAME=C             
+ [9] LC_ADDRESS=C           LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
 
 attached base packages:
-[1] parallel  stats4    stats     graphics  grDevices utils     datasets 
-[8] methods   base     
+[1] parallel  stats4    stats     graphics  grDevices datasets  utils     methods   base     
 
 other attached packages:
- [1] magrittr_2.0.1              scran_1.18.7               
- [3] scater_1.18.6               SingleCellExperiment_1.12.0
- [5] SummarizedExperiment_1.20.0 Biobase_2.50.0             
- [7] GenomicRanges_1.42.0        GenomeInfoDb_1.26.7        
- [9] IRanges_2.24.1              S4Vectors_0.28.1           
-[11] BiocGenerics_0.36.1         MatrixGenerics_1.2.0       
+ [1] magrittr_2.0.1              scran_1.18.7                scater_1.18.6              
+ [4] SingleCellExperiment_1.12.0 SummarizedExperiment_1.20.0 Biobase_2.50.0             
+ [7] GenomicRanges_1.42.0        GenomeInfoDb_1.26.7         IRanges_2.24.1             
+[10] S4Vectors_0.28.1            BiocGenerics_0.36.1         MatrixGenerics_1.2.0       
 [13] matrixStats_0.57.0          ggplot2_3.3.3              
-[15] optparse_1.6.6             
 
 loaded via a namespace (and not attached):
- [1] bitops_1.0-6              tools_4.0.3              
- [3] R6_2.5.0                  irlba_2.3.3              
- [5] HDF5Array_1.18.1          vipor_0.4.5              
- [7] uwot_0.1.10               DBI_1.1.1                
- [9] colorspace_2.0-0          rhdf5filters_1.2.1       
-[11] withr_2.4.0               tidyselect_1.1.0         
-[13] gridExtra_2.3             compiler_4.0.3           
-[15] cli_2.2.0                 BiocNeighbors_1.8.2      
-[17] DelayedArray_0.16.3       labeling_0.4.2           
-[19] scales_1.1.1              readr_1.4.0              
-[21] stringr_1.4.0             digest_0.6.27            
-[23] rmarkdown_2.6             R.utils_2.10.1           
-[25] XVector_0.30.0            pkgconfig_2.0.3          
-[27] htmltools_0.5.1.1         sparseMatrixStats_1.2.1  
-[29] limma_3.46.0              rlang_0.4.10             
-[31] rstudioapi_0.13           FNN_1.1.3                
-[33] DelayedMatrixStats_1.12.3 farver_2.0.3             
-[35] generics_0.1.0            jsonlite_1.7.2           
-[37] BiocParallel_1.24.1       dplyr_1.0.3              
-[39] R.oo_1.24.0               RCurl_1.98-1.2           
-[41] BiocSingular_1.6.0        GenomeInfoDbData_1.2.4   
-[43] scuttle_1.0.4             Matrix_1.3-2             
-[45] Rcpp_1.0.6                ggbeeswarm_0.6.0         
-[47] munsell_0.5.0             Rhdf5lib_1.12.1          
-[49] fansi_0.4.2               viridis_0.5.1            
-[51] lifecycle_0.2.0           R.methodsS3_1.8.1        
-[53] stringi_1.5.3             yaml_2.2.1               
-[55] edgeR_3.32.1              zlibbioc_1.36.0          
-[57] Rtsne_0.15                rhdf5_2.34.0             
-[59] grid_4.0.3                dqrng_0.2.1              
-[61] crayon_1.3.4              lattice_0.20-41          
-[63] cowplot_1.1.1             beachmat_2.6.4           
-[65] hms_1.0.0                 locfit_1.5-9.4           
-[67] ps_1.5.0                  knitr_1.30               
-[69] pillar_1.4.7              igraph_1.2.6             
-[71] glue_1.4.2                evaluate_0.14            
-[73] vctrs_0.3.6               gtable_0.3.0             
-[75] getopt_1.20.3             purrr_0.3.4              
-[77] assertthat_0.2.1          xfun_0.20                
-[79] rsvd_1.0.3                DropletUtils_1.10.3      
-[81] RSpectra_0.16-0           viridisLite_0.3.0        
-[83] tibble_3.0.5              beeswarm_0.2.3           
-[85] bluster_1.0.0             statmod_1.4.35           
-[87] ellipsis_0.3.1           </code></pre>
+ [1] bitops_1.0-6              tools_4.0.3               R6_2.5.0                  irlba_2.3.3              
+ [5] HDF5Array_1.18.1          vipor_0.4.5               uwot_0.1.10               DBI_1.1.1                
+ [9] colorspace_2.0-0          rhdf5filters_1.2.1        withr_2.4.0               tidyselect_1.1.0         
+[13] gridExtra_2.3             compiler_4.0.3            cli_2.2.0                 BiocNeighbors_1.8.2      
+[17] DelayedArray_0.16.3       labeling_0.4.2            scales_1.1.1              readr_1.4.0              
+[21] stringr_1.4.0             digest_0.6.27             rmarkdown_2.6             R.utils_2.10.1           
+[25] XVector_0.30.0            pkgconfig_2.0.3           htmltools_0.5.1.1         sparseMatrixStats_1.2.1  
+[29] limma_3.46.0              rlang_0.4.10              rstudioapi_0.13           FNN_1.1.3                
+[33] DelayedMatrixStats_1.12.3 generics_0.1.0            farver_2.0.3              jsonlite_1.7.2           
+[37] BiocParallel_1.24.1       dplyr_1.0.3               R.oo_1.24.0               RCurl_1.98-1.2           
+[41] BiocSingular_1.6.0        GenomeInfoDbData_1.2.4    scuttle_1.0.4             Matrix_1.3-2             
+[45] Rcpp_1.0.6                ggbeeswarm_0.6.0          munsell_0.5.0             Rhdf5lib_1.12.1          
+[49] fansi_0.4.2               viridis_0.5.1             lifecycle_0.2.0           R.methodsS3_1.8.1        
+[53] stringi_1.5.3             yaml_2.2.1                edgeR_3.32.1              zlibbioc_1.36.0          
+[57] Rtsne_0.15                rhdf5_2.34.0              grid_4.0.3                dqrng_0.2.1              
+[61] crayon_1.3.4              lattice_0.20-41           cowplot_1.1.1             beachmat_2.6.4           
+[65] hms_1.0.0                 locfit_1.5-9.4            knitr_1.30                pillar_1.4.7             
+[69] igraph_1.2.6              glue_1.4.2                evaluate_0.14             renv_0.12.5-2            
+[73] BiocManager_1.30.10       vctrs_0.3.6               gtable_0.3.0              purrr_0.3.4              
+[77] assertthat_0.2.1          xfun_0.20                 rsvd_1.0.3                DropletUtils_1.10.3      
+[81] RSpectra_0.16-0           viridisLite_0.3.0         tibble_3.0.5              beeswarm_0.2.3           
+[85] bluster_1.0.0             statmod_1.4.35            ellipsis_0.3.1           </code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 </div>
