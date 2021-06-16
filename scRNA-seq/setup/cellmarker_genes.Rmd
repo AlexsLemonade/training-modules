@@ -1,0 +1,72 @@
+---
+title: "CellMarker Genes for Over-Representation Analysis"
+author: Jaclyn Taroni for the CCDL
+date: 2021-06
+output: 
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+Adapted from [the `clusterProfiler` book section on Cell Markers](http://yulab-smu.top/clusterProfiler-book/chapter3.html#cell-marker), this notebook preps [CellMarker](http://bio-bigdata.hrbmu.edu.cn/CellMarker/) data for use in the ORA notebook.
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+cell_markers <- read_tsv('http://bio-bigdata.hrbmu.edu.cn/CellMarker/download/Human_cell_markers.txt') %>% 
+  # Remove undefined tissue types
+  filter(tissueType != "Undefined") %>%
+  # For the gene set "name" we're going to create a single column that has
+  # all of this information
+  unite("CellMarker", tissueType, cancerType, cellName, sep = ", ") %>% 
+  # Composite gene set name + gene symbols, which are comma separated
+  select(CellMarker, geneSymbol)
+```
+
+This dataset isn't quite ready for use with `clusterProfiler`:
+
+```{r}
+head(cell_markers, 10)
+```
+
+Some of the gene symbols have `[` or `]` to indicate when the mapping from a cell marker (e.g., `CDXX`) to a gene identifier is ambiguous.
+We'll include any of the genes, so we'll simply remove the square brackets and then drop any instances where there are no gene symbols at all.
+
+```{r}
+cell_markers <- cell_markers %>%
+  mutate(gene_symbol = str_remove_all(geneSymbol, "]")) %>%
+  mutate(gene_symbol = str_remove_all(gene_symbol, "\\[")) %>%
+  filter(!is.na(gene_symbol)) %>%
+  select(-geneSymbol)
+```
+
+The clusterProfiler functions generally want gene sets in a data frame where each row is a gene set, gene identifier pair. 
+We'll need to split the comma-separated gene symbols and then create a new data frame.
+
+```{r}
+cell_markers_list <- str_split(cell_markers$gene_symbol, 
+                               pattern = ", ")
+names(cell_markers_list) <- cell_markers$CellMarker
+
+cell_markers_df <- reshape2::melt(cell_markers_list) %>%
+  rename(gene_symbol = value, cell_marker = L1) %>%
+  select(cell_marker, gene_symbol)
+```
+
+And now write to file.
+
+```{r}
+output_dir <- file.path("..", "gene-sets")
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+write_tsv(cell_markers_df,
+          file.path(output_dir, "CellMarker_cleaned_human_markers.tsv"))
+```
+
+Session info.
+
+```{r}
+sessionInfo()
+```
+
