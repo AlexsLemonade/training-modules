@@ -29,6 +29,7 @@ files=(
   scRNA-seq/02-filtering_scRNA.Rmd
   scRNA-seq/03-normalizing_scRNA.Rmd
   scRNA-seq/04-dimension_reduction_scRNA.Rmd
+  scRNA-seq/06-overrepresentation_analysis.Rmd
   # machine-learning/01-openpbta_heatmap.Rmd
   # machine-learning/02-openpbta_consensus_clustering.Rmd
   # machine-learning/03-openpbta_PLIER.Rmd
