@@ -30,3 +30,6 @@ library(alevinQC)
 
 # Doublet Detection for exercise notebook
 library(scDblFinder)
+
+# Loom file format functions for Single Cell data
+library(LoomExperiment)
