@@ -29,6 +29,7 @@ mkdir -p scRNA-seq/data/glioblastoma
 mkdir -p scRNA-seq/data/tabula-muris/alevin-quant
 mkdir -p scRNA-seq/data/tabula-muris/normalized
 mkdir -p scRNA-seq/data/hodgkins
+mkdir -p scRNA-seq/gene-sets
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -67,6 +68,7 @@ link_locs=(
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
+  scRNA-seq/gene-sets
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
