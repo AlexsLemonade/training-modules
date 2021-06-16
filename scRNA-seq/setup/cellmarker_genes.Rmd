@@ -36,9 +36,8 @@ We'll include any of the genes, so we'll simply remove the square brackets and t
 
 ```{r}
 cell_markers <- cell_markers %>%
-  mutate(gene_symbol = str_remove_all(geneSymbol, "]")) %>%
-  mutate(gene_symbol = str_remove_all(gene_symbol, "\\[")) %>%
-  filter(!is.na(gene_symbol)) %>%
+  mutate(gene_symbol = str_remove_all(geneSymbol, "[\\[\\]]")) %>%
+  drop_na(gene_symbol) %>%
   select(-geneSymbol)
 ```
 
@@ -46,13 +45,9 @@ The clusterProfiler functions generally want gene sets in a data frame where eac
 We'll need to split the comma-separated gene symbols and then create a new data frame.
 
 ```{r}
-cell_markers_list <- str_split(cell_markers$gene_symbol, 
-                               pattern = ", ")
-names(cell_markers_list) <- cell_markers$CellMarker
-
-cell_markers_df <- reshape2::melt(cell_markers_list) %>%
-  rename(gene_symbol = value, cell_marker = L1) %>%
-  select(cell_marker, gene_symbol)
+cell_markers_df <- cell_markers %>% 
+  separate_rows(gene_symbol, sep = ", ") %>%
+  rename(cell_marker = CellMarker)
 ```
 
 And now write to file.
@@ -69,4 +64,3 @@ Session info.
 ```{r}
 sessionInfo()
 ```
-
