@@ -36,13 +36,13 @@ There are 3 general steps in FCS methods ([Khatri _et al._ 2012]( https://doi.or
 We'll note here that GSEA was designed to detect small coordinated changes between _conditions_ in (necessarily bulk!) microarray data.
 It may be more difficult to suss out small coordinated changes when we assay individual cells, due to technical or biological dropout. 
 
-Individual cells may also differently sized (Blasi *et al.* 2017), be at different stages of the cell cycle ([Satija lab](https://satijalab.org/seurat/archive/v3.1/cell_cycle_vignette.html)), or experiencing different levels of cellular stress ([Luecken and Theis 2019](https://doi.org/10.15252/msb.20188746)), some of which may be interesting in the context of cancer and therefore should not be corrected for.
+Individual cells may also differently sized ([Blasi *et al.* 2017](https://doi.org/10.1088/1478-3975/aa609a)), be at different stages of the cell cycle ([Satija lab](https://satijalab.org/seurat/archive/v3.1/cell_cycle_vignette.html)), or experiencing different levels of cellular stress ([Luecken and Theis. 2019](https://doi.org/10.15252/msb.20188746)), some of which may be interesting in the context of cancer and therefore should not be corrected for.
 (In practice, it is common to correct for cell cycle stage but we have not done that upstream.)
 These aspects also have the potential to cloud our ability to detect small coordinated changes in other pathways.
 
 There is some literature that suggests that dropout (excessive zeros) observed in single cell data is a function of cell type heterogeneity ([Kim *et al.* 2020](https://doi.org/10.1186/s13059-020-02096-y)). 
 We're using GSEA to compare clusters of cells, which we (ideally) expect to be different biological states and/or cell types. 
-If many genes "drop out" between cell types, we may not expect to capture subtle signals between clusters.
+If many genes "drop out" between cell types, we may expect our statistics used as input to GSEA to be noisy.
 
 With all this in mind, it may be unsurprising that ORA, which generally captures genes with large individual changes and lower within-group variation (the most "statistically significant" genes), is well-suited to analyzing scRNA-seq data and the advantages of GSEA in a bulk analysis setting may not be fully available here. 
 Nonetheless, GSEA is used for pathway analysis of scRNA-seq data.
@@ -305,6 +305,9 @@ Let's take a look at 3 different pathways -- one with a highly positive NES, one
 #### Highly Positive NES
 
 Let's take look at a pathway with a highly positive NES (`GSE29618_BCELL_VS_PDC_UP`) using a GSEA plot.
+This gene set is comprised of ([ref](https://www.gsea-msigdb.org/gsea/msigdb/cards/GSE29618_BCELL_VS_PDC_UP)):
+
+> Genes up-regulated in comparison of B cells versus plasmacytoid dendritic cells (pDC) .
 
 ```{r highly_pos}
 enrichplot::gseaplot(gsea_results,
@@ -317,7 +320,10 @@ Notice how the genes that are in the gene set, indicated by the black bars, tend
 
 #### Highly Negative NES
 
-The gene set `GSE29618_BCELL_VS_PDC_DAY7_FLU_VACCINE_DN` had a highly negative NES.
+The gene set `GSE29618_BCELL_VS_PDC_DAY7_FLU_VACCINE_DN` had a highly negative NES, and is comprised of ([ref](https://www.gsea-msigdb.org/gsea/msigdb/geneset_page.jsp?geneSetName=GSE29618_BCELL_VS_PDC_DAY7_FLU_VACCINE_DN))
+
+>  	Genes down-regulated in comparison of B cells from influenza vaccinee at day 7 post-vaccination versus plasmacytoid dendritic cells (pDC) at day 7 post-vaccination.
+
 This is the "down" signature that corresponds to one of the "up" pathways with a highly positive NES, so in a way this is not adding new information!
 
 ```{r highly_neg}
@@ -332,7 +338,7 @@ This gene set shows the opposite pattern -- genes in the pathway tend to be on t
 #### A non-significant result
 
 The `@results` slot will only show gene sets that pass the `pvalueCutoff` threshold we supplied to `GSEA()`, but we can plot any gene set so long as we know its name.
-Let's look at `GOLDRATH_EFF_VS_MEMORY_CD8_TCELL_DN`, which was not in the results we viewed earlier.
+Let's look at [`GOLDRATH_EFF_VS_MEMORY_CD8_TCELL_DN`](http://www.gsea-msigdb.org/gsea/msigdb/geneset_page.jsp?geneSetName=GOLDRATH_EFF_VS_MEMORY_CD8_TCELL_UP&keywords=GOLDRATH), which examines the difference between effector CD8 T cells and memory CD8 T cells and was not in the results we viewed earlier.
 
 ```{r nonsig, live = TRUE}
 enrichplot::gseaplot(gsea_results,
