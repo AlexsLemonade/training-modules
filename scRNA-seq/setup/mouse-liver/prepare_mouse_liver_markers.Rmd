@@ -25,9 +25,10 @@ We're using the Loom version of the [Optimus workflow](https://data.humancellatl
 In this shell chunk, we'll set up the data directory that will hold the loom file we get from the [Human Cell Atlas data portal](https://data.humancellatlas.org).
 
 ```{sh}
-data_dir=../../data/mouse-liver/loom
-mkdir -p ${data_dir}
-wget --quiet -O ${data_dir}/healthy_cirrhotic_mouse_liver.loom "https://storage.googleapis.com/broad-datarepo-terra-prod-hca2-bucket/d30e68f8-c826-4639-88f3-ae35f00d4185/222d6d0f-f8d2-40ff-8dd2-cdbe4e6871f2/healthy-cirrhotic-mouse-liver-10XV2.loom?Expires=1624062635&GoogleAccessId=azul-ucsc-0-prod%40platform-hca-prod.iam.gserviceaccount.com&Signature=JzwpAlcJ1eq0Tf7FiqDTJb5sz2YXQ8oUnJIWyTQeWL2MZaqnlMUMtsUOaAFwO3FuotUmeg3wCtF%2B3io%2FNSGj4C%2Fu54Sz6Ei5M04wwn1NNRm9UTuckgnVVTfE6Q0gy%2FxFy7YJ53bnw%2FWGj0%2F9AbnXKCpLyCcR4cNmAeSyhxi1lBqJbyQmVK%2Fte6Fvj5bSJ1OPQ%2BShYONcm9yHSfMAVJ1GJ%2FYMt%2BuRR185jENUgpE72H60sIk09AoJn502bICGipWFpjcb1QhPk9g7KpIUejWRccEEM5HdqXNC2bdAzjuJII98ItDVbuasw7axFnbBfk2m%2BOvgIl1H0smNH%2FZv2b7mwg%3D%3D&response-content-disposition=attachment%3B+filename%3Dhealthy-cirrhotic-mouse-liver-10XV2.loom"
+# data_dir=../../data/mouse-liver/loom
+# mkdir -p ${data_dir}
+# These links are set to expire, so this will not be totally reproducible
+# wget --quiet -O ${data_dir}/healthy_cirrhotic_mouse_liver.loom "https://storage.googleapis.com/broad-datarepo-terra-prod-hca2-bucket/d30e68f8-c826-4639-88f3-ae35f00d4185/222d6d0f-f8d2-40ff-8dd2-cdbe4e6871f2/healthy-cirrhotic-mouse-liver-10XV2.loom?Expires=1624112964&GoogleAccessId=azul-ucsc-0-prod%40platform-hca-prod.iam.gserviceaccount.com&Signature=GVir14qK2YXORd1wvcfADI7BoDswufDzPGkX17JEQbg%2FIhxgSGQWJ1%2BJnv%2F3n%2FGYsBwJC%2BU0AfOBusCTAYR4YhqFsXop1tY%2Bl7ok4kHK3JCaZhvyXzhdCnuSOnN835r28yGK8vHtqJABjLGZvDAXVfHQlQAxFwgxH3a1LvyAA%2FfLBhLkrKbscdIb8uR07qDsuRSX6fdBYLNrcGltVsOO4ZDb7teEOYL0%2FydRLi%2F4epsXTnlWbf6Mv%2BrUBP36SiH5KWjWeD5ueW98L%2FcNwOL3%2FrlQs0GIHF%2FfTr6hII0NAT3NvQM3bEBqAAPlwOkIcxZv7sR2%2By1ML18N3Xo9kPewgw%3D%3D&response-content-disposition=attachment%3B+filename%3Dhealthy-cirrhotic-mouse-liver-10XV2.loom"
 ```
 
 Based on this file name, we can anticipate that this includes cells from healthy and cirrhotic mouse livers.
@@ -84,9 +85,15 @@ Per the HCA docs:
 The assay in the loom object is called `matrix`, which will cause trouble so we rename it `counts`.
 
 ```{r}
+# Read in and get SingleCellLoomExperiment
 sce <- LoomExperiment::import(loom_file, type = "SingleCellLoomExperiment")
+
 # The first assay matrix should be named "counts"
 assayNames(sce)[1] <- "counts"
+
+# Set the row and column names using included metadata
+rownames(sce) <- rowData(sce)$Gene
+colnames(sce) <- colData(sce)$CellID
 ```
 
 ### Filtering cells
@@ -170,6 +177,7 @@ Remove all the but the normalized `SingleCellExperiment`.
 ```{r}
 rm(sce, filtered_sce)
 ```
+
 
 ## Clustering
 
@@ -264,7 +272,33 @@ markers <- scran::findMarkers(normalized_sce,
                               pval.type = "all")
 ```
 
-Write each table of marker genes, sorted by FDR, to file.
+Let's take a look at the top gene rankings for cluster 7.
+
+```{r}
+head(markers[[7]], n = 10)
+```
+
+Jchain has a small FDR value and negative summary log fold change; let's take a look at the expression values in the UMAP plot.
+
+```{r}
+# Plot UMAP results colored by expression
+scater::plotReducedDim(normalized_sce, "UMAP", 
+                       colour_by = "Jchain")
+```
+Visually, it seems like Jchain has an above average expression value in cluster 7.
+Summary log fold change is a collapsing the effect sizes into a single (summarized!) value.
+From the table and the plot, we can see that the negative summary log fold change is probably driven by the very high expression values for Jchain in cluster 4.
+
+Saa3 has a positive summary log fold change, let's take a look.
+
+```{r}
+# Plot UMAP results colored by expression
+scater::plotReducedDim(normalized_sce, "UMAP", 
+                       colour_by = "Saa3")
+```
+Though we see some individual samples with high expression values for Saa3 in cluster 2, it looks like it is most consistently highly expressed in cluster 7.
+
+Now we're ready to write each table of marker genes, sorted by FDR, to file.
 
 ```{r}
 # Assign, because otherwise this is _chatty_
