@@ -25,10 +25,12 @@ mkdir -p RNA-seq/QC/gastric-cancer/fastqc
 mkdir -p RNA-seq/data/open-pbta
 
 # scRNA-seq module directories
+mkdri -p scRNA-seq/analysis/mouse-liver/markers
 mkdir -p scRNA-seq/data/glioblastoma
 mkdir -p scRNA-seq/data/tabula-muris/alevin-quant
 mkdir -p scRNA-seq/data/tabula-muris/normalized
 mkdir -p scRNA-seq/data/hodgkins
+mkdir -p scRNA-seq/data/mouse-liver/normalized
 mkdir -p scRNA-seq/gene-sets
 
 # Machine learning module directory
@@ -59,8 +61,10 @@ link_locs=(
   RNA-seq/data/zebrafish-cortisol/salmon_quant
   RNA-seq/data/open-pbta/pbta-histologies-subset.tsv 
   RNA-seq/data/open-pbta/pbta-rsem-expected_count-subset.rds
+  scRNA-seq/analysis/mouse-liver/markers
   scRNA-seq/data/glioblastoma/preprocessed
   scRNA-seq/data/hodgkins/cellranger
+  scRNA-seq/data/mouse-liver/normalized
   scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12

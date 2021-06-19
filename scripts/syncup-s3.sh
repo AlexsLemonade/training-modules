@@ -31,6 +31,7 @@ sync_dirs=(
   RNA-seq/data/medulloblastoma/txi
   RNA-seq/data/open-pbta
   scRNA-seq/data/hodgkins/cellranger
+  # scRNA-seq/data/mouse-liver/normalized
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/gene-sets
@@ -52,6 +53,7 @@ sync_files=(
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
+  scRNA-seq/analysis/mouse-liver/markers/cluster07_markers.tsv
 )
 
 for loc in ${sync_dirs[@]}
