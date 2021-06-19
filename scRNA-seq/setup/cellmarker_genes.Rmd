@@ -10,56 +10,81 @@ output:
 
 Adapted from [the `clusterProfiler` book section on Cell Markers](http://yulab-smu.top/clusterProfiler-book/chapter3.html#cell-marker), this notebook preps [CellMarker](http://bio-bigdata.hrbmu.edu.cn/CellMarker/) data for use in the ORA notebook.
 
+## Set up
+
 ```{r}
 library(tidyverse)
 ```
+### Input
 
 ```{r}
-cell_markers <- read_tsv('http://bio-bigdata.hrbmu.edu.cn/CellMarker/download/Human_cell_markers.txt') %>% 
-  # Remove undefined tissue types
-  filter(tissueType != "Undefined") %>%
-  # For the gene set "name" we're going to create a single column that has
-  # all of this information
-  unite("CellMarker", tissueType, cancerType, cellName, sep = ", ") %>% 
-  # Composite gene set name + gene symbols, which are comma separated
-  select(CellMarker, geneSymbol)
+hs_url <- "http://bio-bigdata.hrbmu.edu.cn/CellMarker/download/Human_cell_markers.txt"
+mm_url <- "http://bio-bigdata.hrbmu.edu.cn/CellMarker/download/Mouse_cell_markers.txt"
 ```
 
-This dataset isn't quite ready for use with `clusterProfiler`:
-
-```{r}
-head(cell_markers, 10)
-```
-
-Some of the gene symbols have `[` or `]` to indicate when the mapping from a cell marker (e.g., `CDXX`) to a gene identifier is ambiguous.
-We'll include any of the genes, so we'll simply remove the square brackets and then drop any instances where there are no gene symbols at all.
-
-```{r}
-cell_markers <- cell_markers %>%
-  mutate(gene_symbol = str_remove_all(geneSymbol, "[\\[\\]]")) %>%
-  drop_na(gene_symbol) %>%
-  select(-geneSymbol)
-```
-
-The clusterProfiler functions generally want gene sets in a data frame where each row is a gene set, gene identifier pair. 
-We'll need to split the comma-separated gene symbols and then create a new data frame.
-
-```{r}
-cell_markers_df <- cell_markers %>% 
-  separate_rows(gene_symbol, sep = ", ") %>%
-  rename(cell_marker = CellMarker)
-```
-
-And now write to file.
+### Output
 
 ```{r}
 output_dir <- file.path("..", "gene-sets")
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-write_tsv(cell_markers_df,
-          file.path(output_dir, "CellMarker_cleaned_human_markers.tsv"))
 ```
 
-Session info.
+Two tables: one for human, one for mouse
+
+```{r}
+hs_output <- file.path(output_dir, "CellMarker_cleaned_human_markers.tsv")
+mm_output <- file.path(output_dir, "CellMarker_cleaned_mouse_markers.tsv")
+```
+
+### Custom function
+
+```{r}
+# Only to be used in this context! Avoid repeating code for both organisms
+clean_marker_genes <- function(cell_marker_url) {
+  
+  cell_markers <- read_tsv(cell_marker_url) %>% 
+    # Remove undefined tissue types
+    filter(tissueType != "Undefined") %>%
+    # For the gene set "name" we're going to create a single column that has
+    # all of this information
+    unite("CellMarker", tissueType, cancerType, cellName, sep = ", ") %>% 
+    # Composite gene set name + gene symbols, which are comma separated
+    select(CellMarker, geneSymbol)
+  
+  # Remove brackets from ambiguously mapped genes
+  cell_markers <- cell_markers %>%
+    mutate(gene_symbol = str_remove_all(geneSymbol, "[\\[\\]]")) %>%
+    drop_na(gene_symbol) %>%
+    select(-geneSymbol)
+  
+  # Tidy format required for clusterProfiler functions
+  cell_markers_df <- cell_markers %>% 
+    separate_rows(gene_symbol, sep = ", ") %>%
+    rename(cell_marker = CellMarker) %>%
+    filter(gene_symbol != "NA")
+  
+}
+```
+
+
+## _Homo sapiens_
+
+```{r}
+hs_cell_markers_df <- clean_marker_genes(hs_url)
+head(hs_cell_markers_df)
+```
+```{r}
+write_tsv(hs_cell_markers_df, hs_output)
+```
+
+## _Mus musculus_
+
+```{r}
+mm_cell_markers_df <- clean_marker_genes(mm_url)
+write_tsv(mm_cell_markers_df, mm_output)
+```
+
+## Session Info
 
 ```{r}
 sessionInfo()
