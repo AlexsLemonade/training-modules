@@ -287,24 +287,27 @@ Jchain has a small FDR value and negative summary log fold change; let's take a 
 scater::plotReducedDim(normalized_sce, "UMAP", 
                        colour_by = "Jchain")
 ```
+
 Visually, it seems like Jchain has an above average expression value in cluster 7.
 Summary log fold change is a collapsing the effect sizes into a single (summarized!) value.
-From the table and the plot, we can see that the negative summary log fold change is probably driven by the very high expression values for Jchain in cluster 4.
+This value will reflect the fold change value of the pairwise comparison with the largest p-value (e.g., weakest differential expression) ([ref](https://rdrr.io/bioc/scran/man/combineMarkers.html)).
+From the table and the plot, we can see that the negative summary log fold change and is equal to `logFC.4` is driven by the very high expression values for Jchain in cluster 4.
 
-Saa3 has a positive summary log fold change, let's take a look.
+Saa3 has a positive summary log fold change, let's take a look at the plot.
 
 ```{r}
 # Plot UMAP results colored by expression
-scater::plotReducedDim(normalized_sce, "UMAP", 
+scater::plotReducedDim(normalized_sce, 
+                       "UMAP", 
                        colour_by = "Saa3")
 ```
-Though we see some individual samples with high expression values for Saa3 in cluster 2, it looks like it is most consistently highly expressed in cluster 7.
+Though we see some individual samples with high expression values for Saa3 in cluster 2, it looks like it is most consistently highly expressed in cluster 7 and the cluster 2 comparison does not result in the largest p-value.
+(That distinction here, and for most of the top 10 genes, goes to cluster 4.)
 
 Now we're ready to write each table of marker genes, sorted by FDR, to file.
 
 ```{r}
-# Assign, because otherwise this is _chatty_
-marker_df_list <- purrr::imap(
+purrr::iwalk(
   as.list(markers), # convert markers to a 'regular' list for purrr
   # purrr function: .x is the list element, .y is the element name (number here)
   ~ as.data.frame(.x) %>% # first convert to a data frame
