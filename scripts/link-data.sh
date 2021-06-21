@@ -25,7 +25,7 @@ mkdir -p RNA-seq/QC/gastric-cancer/fastqc
 mkdir -p RNA-seq/data/open-pbta
 
 # scRNA-seq module directories
-mkdri -p scRNA-seq/analysis/mouse-liver/markers
+mkdir -p scRNA-seq/analysis/mouse-liver/markers
 mkdir -p scRNA-seq/data/glioblastoma
 mkdir -p scRNA-seq/data/tabula-muris/alevin-quant
 mkdir -p scRNA-seq/data/tabula-muris/normalized
