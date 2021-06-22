@@ -25,13 +25,12 @@ mkdir -p RNA-seq/QC/gastric-cancer/fastqc
 mkdir -p RNA-seq/data/open-pbta
 
 # scRNA-seq module directories
-mkdir -p scRNA-seq/analysis/mouse-liver/markers
+mkdir -p scRNA-seq/analysis/mouse-liver
 mkdir -p scRNA-seq/data/glioblastoma
 mkdir -p scRNA-seq/data/tabula-muris/alevin-quant
 mkdir -p scRNA-seq/data/tabula-muris/normalized
 mkdir -p scRNA-seq/data/hodgkins
-mkdir -p scRNA-seq/data/mouse-liver/normalized
-mkdir -p scRNA-seq/gene-sets
+mkdir -p scRNA-seq/data/mouse-liver
 
 # Machine learning module directory
 mkdir -p machine-learning/data
