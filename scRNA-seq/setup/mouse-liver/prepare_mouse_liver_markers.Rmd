@@ -1,0 +1,329 @@
+---
+title: "Prepare mouse liver marker genes"
+author: Jaclyn Taroni for the CCDL
+date: 2021-06
+output: 
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+We are going to identify clusters and marker genes in mouse liver data.
+We'll obtain these data from the Human Cell Atlas. 
+The data originally comes from [Ramachandran *et al.* 2019](https://doi.org/10.1038/s41586-019-1631-3).
+
+([Here's the HCA project itself!](https://data.humancellatlas.org/explore/projects/c41dffbf-ad83-447c-a0e1-13e689d9b258))
+This study is [`PRJNA561303`](https://www.ebi.ac.uk/ena/browser/view/PRJNA561303) on ENA, but we will use the data from the HCA pipeline.
+We're going to use the mouse data so folks have an opportunity to perform gene identifier conversion in another organism.
+
+To quote the study description:
+
+> We also present single-cell transcriptomic data on hepatic macrophages from healthy mice or mice following chronic carbon tetrachloride administration.
+
+We're using the Loom version of the [Optimus workflow](https://data.humancellatlas.org/pipelines/optimus-workflow) output.
+
+## Download data from Human Cell Atlas
+
+In this shell chunk, we'll set up the data directory that will hold the loom file we get from the [Human Cell Atlas data portal](https://data.humancellatlas.org).
+
+```{sh}
+# data_dir=../../data/mouse-liver/loom
+# mkdir -p ${data_dir}
+# These links are set to expire, so this will not be totally reproducible
+# wget --quiet -O ${data_dir}/healthy_cirrhotic_mouse_liver.loom "https://storage.googleapis.com/broad-datarepo-terra-prod-hca2-bucket/d30e68f8-c826-4639-88f3-ae35f00d4185/222d6d0f-f8d2-40ff-8dd2-cdbe4e6871f2/healthy-cirrhotic-mouse-liver-10XV2.loom?Expires=1624112964&GoogleAccessId=azul-ucsc-0-prod%40platform-hca-prod.iam.gserviceaccount.com&Signature=GVir14qK2YXORd1wvcfADI7BoDswufDzPGkX17JEQbg%2FIhxgSGQWJ1%2BJnv%2F3n%2FGYsBwJC%2BU0AfOBusCTAYR4YhqFsXop1tY%2Bl7ok4kHK3JCaZhvyXzhdCnuSOnN835r28yGK8vHtqJABjLGZvDAXVfHQlQAxFwgxH3a1LvyAA%2FfLBhLkrKbscdIb8uR07qDsuRSX6fdBYLNrcGltVsOO4ZDb7teEOYL0%2FydRLi%2F4epsXTnlWbf6Mv%2BrUBP36SiH5KWjWeD5ueW98L%2FcNwOL3%2FrlQs0GIHF%2FfTr6hII0NAT3NvQM3bEBqAAPlwOkIcxZv7sR2%2By1ML18N3Xo9kPewgw%3D%3D&response-content-disposition=attachment%3B+filename%3Dhealthy-cirrhotic-mouse-liver-10XV2.loom"
+```
+
+Based on this file name, we can anticipate that this includes cells from healthy and cirrhotic mouse livers.
+
+## Set up
+
+#### Libraries
+
+```{r}
+library(SingleCellExperiment)
+library(magrittr)
+```
+
+#### Directories
+
+```{r}
+data_dir <- file.path("..", "..", "data", "mouse-liver")
+loom_dir <- file.path(data_dir, "loom")
+
+# Directory to hold filtered and normalized data
+norm_dir <- file.path(data_dir, "normalized")
+dir.create(norm_dir, recursive = TRUE, showWarnings = FALSE)
+
+# We need tables of marker genes for the exercise
+analysis_dir <- file.path("..", "..", "analysis", "mouse-liver")
+markers_dir <- file.path(analysis_dir, "markers")
+dir.create(markers_dir, recursive = TRUE, showWarnings = FALSE)
+
+# Plots to be included in exercise - we'll put it in figures
+plots_dir <- file.path("..", "..", "figures")
+```
+
+#### Files
+
+```{r}
+# Input
+loom_file <- file.path(loom_dir, "healthy_cirrhotic_mouse_liver.loom")
+
+# Output
+# SCE with dim red results, cluster assignment, etc.
+normalized_file <- file.path(norm_dir, 
+                             "healthy_cirrhotic_mouse_liver_normalized.rds")
+
+# UMAP plot we'll include in the exercise
+umap_file <- file.path(plots_dir, "mouse_liver_umap.png")
+```
+
+## Read in and process data
+
+Per the HCA docs:
+
+> The 10x matrices include raw counts
+
+The assay in the loom object is called `matrix`, which will cause trouble so we rename it `counts`.
+
+```{r}
+# Read in and get SingleCellLoomExperiment
+sce <- LoomExperiment::import(loom_file, type = "SingleCellLoomExperiment")
+
+# The first assay matrix should be named "counts"
+assayNames(sce)[1] <- "counts"
+
+# Set the row and column names using included metadata
+rownames(sce) <- rowData(sce)$Gene
+colnames(sce) <- colData(sce)$CellID
+```
+
+### Filtering cells
+
+There are already QC metrics associated with this object ([docs](https://data.humancellatlas.org/pipelines/qc-metrics))
+
+```{r}
+names(colData(sce))
+```
+
+First, we'll filter on the basis of the emptyDrops FDR.
+
+```{r}
+filtered_sce <- sce[, sce$emptydrops_FDR <= 0.01]
+```
+
+Then on the basis of % mitochondrial molecules.
+
+```{r}
+filtered_sce <- filtered_sce[, filtered_sce$pct_mitochondrial_molecules < 10] 
+```
+
+We will get a few negative size factors if we don't remove cells with few expressed features.
+We'll filter on `n_genes` to account for this.
+
+```{r}
+filtered_sce <- filtered_sce[, filtered_sce$n_genes > 200]
+```
+
+### Filtering genes
+
+```{r}
+filtered_sce <- scater::addPerFeatureQC(filtered_sce)
+# Genes detected more than 3% of cells
+detected <- rowData(filtered_sce)$detected > 3
+# Genes with mean count greater than 0.1
+expressed <- rowData(filtered_sce)$mean > 0.1
+
+filtered_sce <- filtered_sce[detected & expressed, ]
+```
+
+What did we retain with these cutoffs?
+
+```{r}
+dim(filtered_sce)
+```
+
+### Normalization
+
+```{r normalize}
+# Set seed
+set.seed(2021)
+
+# Cluster similar cells
+qclust <- scran::quickCluster(filtered_sce)
+
+# Compute sum factors for each cell cluster grouping.  
+filtered_sce <- scran::computeSumFactors(filtered_sce, 
+                                         clusters = qclust,
+                                         # Setting this to FALSE allows us to
+                                         # do our own diagnostics if we get
+                                         # negative size factors
+                                         positive = FALSE)
+```
+
+Any negative size factors?
+
+```{r}
+any(filtered_sce$sizeFactor < 0)
+```
+
+Great, let's normalize and transform our data.
+
+```{r}
+# Normalize and log transform. 
+normalized_sce <- scater::logNormCounts(filtered_sce)
+```
+
+Remove all the but the normalized `SingleCellExperiment`.
+
+```{r}
+rm(sce, filtered_sce)
+```
+
+
+## Clustering
+
+### HVGs
+
+Feature selection, e.g., identify high variance genes
+
+```{r}
+# Model gene variance
+gene_variance <- scran::modelGeneVar(normalized_sce)
+# Select the most variable genes
+highvar_genes <- scran::getTopHVGs(gene_variance, n = 2500)
+```
+
+### PCA
+
+Perform PCA on the high variance genes
+
+```{r}
+# Calculate and store PC matrix
+normalized_sce <- scater::runPCA(normalized_sce, subset_row = highvar_genes)
+```
+
+Plot PC1 and PC2
+
+```{r}
+scater::plotReducedDim(normalized_sce, "PCA")
+```
+
+### Clusters
+
+We'll perform clustering on the PCA matrix.
+
+```{r}
+# Extract the principal components matrix
+pca_mat <- reducedDim(normalized_sce, "PCA")
+```
+
+Cluster the cells in PCA space, using graph-based clustering.
+
+```{r}
+# Run the clustering algorithm
+nnclusters <- bluster::clusterRows(
+  pca_mat, 
+  bluster::NNGraphParam(k = 10, 
+                        cluster.fun = "louvain")
+)
+# Store cluster results in the SCE object
+normalized_sce$nncluster <- factor(nnclusters)
+```
+
+#### Visualize clusters
+
+We'll use UMAP for visualization here.
+
+```{r}
+# Run UMAP
+normalized_sce <- scater::runUMAP(normalized_sce, 
+                                  dimred = "PCA")
+```
+
+And now for viz...
+
+```{r}
+scater::plotReducedDim(normalized_sce, 
+                       "UMAP", 
+                       colour_by = "nncluster", 
+                       text_by = "nncluster")
+```
+
+Save this plot to use in the exercise notebook itself.
+
+```{r}
+ggplot2::ggsave(umap_file, plot = ggplot2::last_plot())
+```
+
+Write the normalized and transformed object to file, complete with PCA, UMAP, and cluster labels.
+We will provide this RDS file during the training workshop.
+
+```{r}
+readr::write_rds(normalized_sce, file = normalized_file)
+```
+
+## Marker genes
+
+Our main goal for this notebook is to obtain tables of marker genes for the exercise.
+We'll use `pval.type = "all"` to mirror what we cover during instruction.
+
+```{r}
+markers <- scran::findMarkers(normalized_sce, 
+                              groups = normalized_sce$nncluster, 
+                              pval.type = "all")
+```
+
+Let's take a look at the top gene rankings for cluster 7.
+
+```{r}
+head(markers[[7]], n = 10)
+```
+
+Jchain has a small FDR value and negative summary log fold change; let's take a look at the expression values in the UMAP plot.
+
+```{r}
+# Plot UMAP results colored by expression
+scater::plotReducedDim(normalized_sce, "UMAP", 
+                       colour_by = "Jchain")
+```
+
+Visually, it seems like Jchain has an above average expression value in cluster 7.
+Summary log fold change is a collapsing the effect sizes into a single (summarized!) value.
+This value will reflect the fold change value of the pairwise comparison with the largest p-value (e.g., weakest differential expression) ([ref](https://rdrr.io/bioc/scran/man/combineMarkers.html)).
+From the table and the plot, we can see that the negative summary log fold change and is equal to `logFC.4` is driven by the very high expression values for Jchain in cluster 4.
+
+Saa3 has a positive summary log fold change, let's take a look at the plot.
+
+```{r}
+# Plot UMAP results colored by expression
+scater::plotReducedDim(normalized_sce, 
+                       "UMAP", 
+                       colour_by = "Saa3")
+```
+Though we see some individual samples with high expression values for Saa3 in cluster 2, it looks like it is most consistently highly expressed in cluster 7 and the cluster 2 comparison does not result in the largest p-value.
+(That distinction here, and for most of the top 10 genes, goes to cluster 4.)
+
+Now we're ready to write each table of marker genes, sorted by FDR, to file.
+
+```{r}
+purrr::iwalk(
+  as.list(markers), # convert markers to a 'regular' list for purrr
+  # purrr function: .x is the list element, .y is the element name (number here)
+  ~ as.data.frame(.x) %>% # first convert to a data frame
+    tibble::rownames_to_column("gene") %>% # make genes a column
+    dplyr::arrange(FDR) %>% # sort to be sure small FDR genes are first
+    readr::write_tsv( # write each data frame to a file
+      file.path(markers_dir, # construct the output path
+                sprintf("cluster%02d_markers.tsv", as.integer(.y)) # format cluster numbers in file names with leading zeros
+      )
+    )
+)
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
+
