@@ -1,0 +1,521 @@
+---
+title: "Single Cell Exercise: Day 2"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: inline
+---
+
+**CCDL 2021**
+
+In this exercise notebook we will be using [*Tabula Muris* project](https://www.nature.com/articles/s41586-018-0590-4) data for dimension reduction for the cells of a mouse mammary gland sample, `10X_P7_12`. 
+
+- Part A of this exercise is performing the quantification and processing of `10X_P7_12` with Alevin. 
+- Part B of this exercise is using the quantified data to conduct cell filtering and normalization of `10X_P7_12`.
+- Part C of this exercise will introduce you to performing doublet detection using `10X_P7_12`. 
+
+You are welcome to [skip to Part B](#part_b:_performing_dimension_reduction_on_10x_p7_12’s_cells) if you are not interested in performing the quantification steps with Alevin. 
+Do not skip to Part C! You will need to complete Part B before completing Part C. 
+
+# Part A: Quantifying single-cell expression of a mammary gland sample.
+
+In this part of the exercise we will be following the same steps for a tag-based scRNA-seq sample as we did in the `01-scRNA_quant_qc.Rmd` notebook. 
+
+**Relative workflow for tag-based data**
+![](diagrams/tag-based_1.png)
+
+## Checking your directories
+
+While we are working from this `.Rmd` file, our current directory will automatically be `training-modules/scRNA-seq`, but you should check that your `Terminal` also is set to that directory.
+Use the empty code chunk below to check your `p`resent `w`orking `d`irectory with `pwd`, and (on a different line) write out a command that would allow you to `l`i`s`t the files that are in the `tabula-muris` folder that is in `data`. 
+
+When you think you've written the command correctly, copy and paste it into your Terminal window. 
+
+```{sh determine-pwd, solution=TRUE}
+# Copy and paste these commands in your Terminal and use `cd` to navigate to training-modules/scRNA-seq
+
+```
+
+You should see `fastq` directory among other files we will use for this exercise. 
+
+### Construct our Salmon Alevin quant command
+
+To construct our `alevin` command, we'll walk through each option by itself to figure out what we should specify for it. 
+After we've determined this for each option, we'll piece together the whole command. 
+
+For determining what you will want to specify for each of these options, you may want to keep these items handy as reference: 
+- [Alevin's documentation](https://salmon.readthedocs.io/en/latest/alevin.html) for more information on fragment library types.
+- `01-scRNA_quant_qc.Rmd` notebook where we performed pre-processing previously.
+
+#### Library type: -l
+
+For tag-based single cell, this `-l` for the library type will always be `ISR`.
+Write down what this option line will look like here (but don't try to run it; it won't work):
+
+```{sh library-type, eval=FALSE, solution=TRUE}
+# Write down what we will be using for our library specification, -l
+
+```
+
+#### Transcriptome index: -i
+
+We will use the same transcriptome index we used in `01-scRNA_quant_qc.Rmd`. 
+This transcriptome index will need to be: 
+- for mouse (`mm`) 
+- made from a `cdna` genome
+- be made with a `short` *-k*
+
+This file path is admittedly odd so we will provide it to you here: 
+
+```{sh transcriptome-index, eval=FALSE}
+# Here's the file path to the mouse cdna short transcriptome index already prepared for you
+index/Mus_musculus/short_index
+# This will be your -i option specification
+```
+
+To test if your file path is correct, use the `ls` command on the file path you wrote above, and the correct folder will have a `versionInfo.json` in it (among a lot of other files). 
+
+```{sh ls-index, solution=TRUE}
+# Use `ls` to see if your transcriptome index file path goes to a folder that seems legitimate
+
+```
+
+#### Input files: -1 and -2
+
+For this exercise, we will be analyzing the data from sample `10X_P7_12`. 
+
+In the case of tag-based data with alevin: 
+`-1` option is for our `R1` file (contains CBs and UMIs)
+`-2` option is for our `R2` file (contains the reads). 
+
+Find the file path for the `10X_P7_12` `R1` fastq.gz file and write out what your `-1` specification will be.
+We will only process one set of the files, the `_001` chunks so use the file path for that file only. (This chunk won't work if you try to run it due to permissions errors; no worries). 
+
+```{sh r1-file, eval=FALSE, solution=TRUE}
+# Write out the file path for 10X_P7_12's R1 FILE 001 file. 
+
+# This will be your -1 option specification.
+```
+
+Now write out the file path for the `R2` file (it will be *almost* identical!). 
+
+```{sh r2-file, eval=FALSE, solution=TRUE}
+# Write out the file path for 10X_P7_12's R2 FILE 002 file. 
+
+# This will be your -2 option specification.
+```
+
+In this `.Rmd` file we are using, we can make an `R` code chunk so we can use `file.exists()` to look for the files we just specified. 
+Write out two `file.exists()` tests to check if both your `-1` and `-2` file paths lead to existing files. 
+Copy and paste the file paths exactly so you don't accidentally introduce any typos to your tests. 
+(*DO* run this code chunk). 
+
+```{r files-exist, solution=TRUE}
+# In this R code chunk, we can test if the file paths we specified above are legitimate by using `file.exist()` function.
+
+# Use file.exists() to check for your R1 file 
+
+# Use file.exists() to check for your R2 file 
+
+```
+
+You should get two `TRUE`s print out if you've correctly specified existing files. 
+
+#### Output files: -o
+
+We use `-o` to designate a folder for the output quant files. 
+We will want to store the output in the `alevin-quant` folder, with its own folder named as `10X_P7_12`.
+
+```{sh output-folder, eval=FALSE, solution=TRUE}
+# Write out the file path to where we will want our alevin quantification results.
+
+# This will be your -o option specification.
+```
+
+#### Transcript to gene file: --tgMap
+
+We use `--tgMap` to supply a transcript to gene key that Alevin will use to quantify the genes.
+This specification will go hand-in-hand with the transcriptome index you are using. 
+In this case, we are using the same transcriptome index we used in `01-scRNA_quant_qc.Rmd`; so we will also use the same transcript to gene key file as well. 
+You'll find this file in the `data/tabula-muris` folder. 
+
+```{sh tgMap, eval=FALSE, solution=TRUE}
+# Write out the file path to the transcript-gene map file.
+
+# This will be your --tgMap option specification.
+```
+
+#### Flags we'll need!
+
+*--chromium*: Because we are using 10X Chromium data again, we need to use the `--chromium` flag in our command! (If we were using DropSeq data, we'd use a `--dropseq` flag instead of this).
+
+*--dumpFeatures*: `alevinQC` depends on files that we get by using this option; so need this flag in our command as well!
+
+### Put our Alevin command altogether and run it!
+
+Remember that when we need a command to continue on to the next line, we end it with `\`. 
+
+Here we've got a template of what your alevin quant command will look like. 
+In the previous steps, we determined what each of these should be. 
+Note that when we need a command to continue on to the next line, we end it with `\` (make sure there is no space after). 
+
+**Template alevin command**
+```sh
+salmon alevin \
+  -l <library_type> \
+  -i <transcriptome_index_file_path> \
+  -1 <R1_file_path> \
+  -2 <R2_file_path> \
+  -o <output_file_path> \
+  --tgMap <tx2gene_file_path> \
+  --<some_flag> \
+  --<some_other_flag> \
+  -p 5
+```
+
+First, copy and paste this whole template (but not the backticks) into the code chunk we have below. 
+Then, it is your task to replace every `<fill_in_the_blank>` with what you determined previously! 
+
+*Important tips as you fill in the blanks*:   
+1) _Do_ remove the `<` and `>`'s. 
+2) _Don't_ remove the `\`'s (and don't put a space at the end of the line with one). 
+3) _Don't_ touch the `-p` command at the end. We have preset this for you - it determines how many [threads](https://en.wikipedia.org/wiki/Thread_(computing)) this command will be allowed. 
+
+```{sh alevin, eval = FALSE, solution=TRUE}
+# Copy and paste this template alevin command here!
+# Replace every `<fill_in_the_blank>` with what you determined previously. 
+
+```
+
+When you believe you have written in every option correctly, copy and paste the code chunk into your Terminal and press `Enter` to run it!
+
+If you have specified everything correctly, the quantification will begin. 
+This will take some time; when it is done the last message you will see is 
+
+```
+[alevinLog] [info] Finished optimizer
+```
+
+## Part B: Performing dimension reduction on 10X_P7_12's cells
+
+In the second half of this exercise notebook, we will use the Alevin quantified data from sample `10X_P7_12` to perform cell filtering and normalization. 
+
+If you did _not_ complete Part A of this exercise notebook, you will need to use this command to copy over the results for `10X_P7_12` that we previously prepared for you. 
+
+To copy over the full results (Part A only processed one of six pairs of fastq files), or if you did not complete part A, copy and paste this command into your terminal (make sure your current directory is `training-modules/scRNA-seq`):
+
+```{sh copy-data, eval = FALSE}
+cp -r ~/shared-data/training-data/tabula-muris/alevin/10X_P7_12 data/tabula-muris/alevin-quant/.
+```
+
+### Set up
+
+We will be using `tximport` for reading in our Alevin quant data and the following packages: `ggplot2`, `scater`, `scran`, `magrittr` for normalization and visualization
+Use this chunk to import these libraries (or you can choose to go the `::` route).
+
+```{r libraries, solution=TRUE}
+# Import the libraries specified, or from here on out, use the :: 
+
+```
+
+We'll also want to set the seed because there is some randomization involved in some of these steps!
+
+```{r seed}
+# Setting the seed for reproducibility
+set.seed(12345)
+```
+
+### Read in the quantification file
+
+First we will set up the paths to our Alevin output. 
+The relevant file that `tximport` needs for our quantification output is called `quants_mat.gz`. 
+The `quants_mat.gz` is in the `alevin` sub-directory of the output directory (``10X_P7_12`), which is automatically created by Alevin.
+Call this file path object `quant_file`.
+
+```{r solution=TRUE}
+# Specify the file path to the `quants_mat.gz` file for 10X_P7_12 and call this object `quant_file`.
+
+```
+
+With our file path to `quants_mat.gz` specified, we can read it in using the `tximeta()` function. 
+Before we can do that, remember we will need to create an input data frame with two columns: 
+- a `files` column  with the file path to the quant.mat.gz files
+- a `names` column with the sample name
+
+Name this dataframe `coldata`.
+
+```{r coldata, solution=TRUE}
+
+```
+
+Then use `tximeta()` to import expression data specified in the `coldata` data frame. 
+Remember to specify the type of data that we're importing, in this case data quantified using Alevin. 
+
+```{r txi, solution=TRUE}
+# Read in `coldata` using the `tximeta()` function. 
+
+```
+
+### Create a SingleCellExperiment object
+
+Let's turn our `tximeta` object into a `SingleCellExperiment` object for downstream processing and call this object `sce`. 
+To do this, we will use the `as()` function to coerce the `tximeta` object to a `SingleCellExperiment`. 
+
+```{r sce-object, solution=TRUE}
+# Create a SingleCellExperiment object by using `as()`
+
+```
+
+
+### Read in and set up mitochondrial genes
+
+```{r mito-file-path, solution=TRUE}
+# Specify file path to the `mm_mitochondrial_genes.tsv` file
+
+```
+
+Read in the mitochondrial TSV file with the `readr` package and name it `mito_genes`. 
+Filter it only to the row names present in the `sce` object. 
+Lastly, use `dplyr::pull()` to extract the `gene_id` column as a vector. 
+
+```{r mito-genes, solution=TRUE}
+# Read in the mitochondrial genes TSV file using the readr package
+
+  # Filter to the genes in that are included in `rownames(sce)` object
+
+  # Use `dplyr::pull()` to extract the `gene_id` column
+
+```
+
+### Quality control filtering with scater
+
+Use `scater::addPerCellQC()` to calculate our QC statistics including statistics for the subset of genes that are in our `mito_genes` vector. 
+Store this back into `sce`. 
+
+```{r calculateQC, solution=TRUE}
+# Use scater::addPerCellQC where subsets are specified as a named list.
+
+```
+
+Let's make some plots of the QC data and use it to inform our next steps.
+Create a data.frame from metadata for each cell (the `colData` for the `SingleCellExperiment` object.)
+
+```{r cell_qc_df, solution=TRUE}
+# Turn the `colData` for the `SingleCellExperiment` object into its own data.frame called `cell_qc_df`.
+
+```
+
+Use the `cell_qc_df` data frame we just created, to make some plots that can help you decide on cutoffs!
+Your plots should help you decide what mitochondrial percentage cutoff and number of genes expressed is acceptable per cell. 
+
+Plot the distribution of `subsets_mito_percent` as we did with the bladder data in the previous notebook. 
+Why might the mammary gland be different? Should we use the same cutoffs for our QC filter?
+
+```{r mito_plot, solution = TRUE}
+# create a density plot of the mitochondrial gene percentage
+
+  # add a vertical line at the cutoff
+
+```
+
+How about the total number of genes expressed per cell? 
+Plot the distribution of genes expressed per cell using the `detected` column from `cell_qc_df` and identify a potential cutoff. 
+
+```{r gene_expressed_plot, solution = TRUE}
+# create a density plot of the number of genes expressed per cell 
+
+```
+Combine all of the metrics we discussed in `02-filtering_scRNA.Rmd`, including total UMI count per cell (`sum`), number of genes detected (`detected`), and mitochondrial percentage (`subsets_mito_percent`), into one plot. 
+All of this information can be found in the `cell_qc_df` data frame. 
+
+```{r plot-cell_qc_df, solution=TRUE}
+# Make a scatter plot of total UMI and number of genes per cell, colored by mitochondrial percent
+
+```
+How many cells would you lose if you were to use your chosen cutoffs?
+Try a few different cutoffs to see how many cells you will lose with a given cutoff for both mitochondrial percentage and genes expressed. 
+
+Recall that in a `SingleCellExperiment` you can access any of the `colData` columns, such as `detected`, by using the `$` syntax. 
+
+```{r count_cells, solution = TRUE}
+# use `sce$detected` and `sce$subsets_mito_percent` to find how many cells you will lose with your chosen cutoffs
+
+```
+
+Using your QC and plots, create a subset of the `SingleCellExperiment` object, keeping only the columns (cells) that pass the thresholds you have chosen. 
+
+```{r qc-pass, solution=TRUE}
+# Create sce_filtered object with just the cells that pass your decided upon filters
+# Construct a logical statement to determine which cells pass your QC filter for 
+
+# Apply the filter to SCE filter
+
+```
+
+Calculate QC stats for the genes in the data set using `scater::addPerFeatureQC()` on your `sce_filtered`. 
+
+```{r gene_qc, solution=TRUE}
+# Calculate QC stats for your genes by using scater::addPerFeatureQC()
+
+```
+
+Use the QC data (stored in `rowData` of your `sce_filtered`) to filter by row to only the genes. 
+Decide upon a threshold for: 
+- a minimum number of `detected` cells per gene
+- a minimum mean `expression` count per gene
+You an use `>5` cells and `> 0.1` mean expression if you wish. 
+
+Filter `sce_filtered` by only including those genes that are `TRUE` for both the minimum thresholds. 
+
+
+```{r gene-filter, solution=TRUE}
+# Create a logical expression for the minimum number of detected cells per gene
+
+# Filter the rows (genes) by those that are TRUE for both the minimum thresholds (hint use &)
+
+```
+
+
+### Normalize the data
+
+Perform the same normalization steps using `scran::computeSumFactors()` and `scater::logNormCounts()` as we did in the `03-normalizing_scRNA.Rmd` notebook. 
+
+First cluster similar cells using `scran::quickCluster()`. 
+
+```{r qclust, solution = TRUE}
+# Cluster similar cells using `scran::quickCluster()`
+
+```
+
+Use `scran::computeSumFactors()` to calculate the the sum factors so we can use them to normalize the data in the next step. 
+You will need to specify the `clusters` argument as the object you obtained from `scran::quickCluster()` that you performed in the last step. 
+
+```{r computeSumFactors, solution = TRUE}
+# Compute sum factors for each cell cluster grouping for sce_filtered using the `scran::quickCluster()` you performed. 
+
+```
+
+Normalize and log transform using `scater::logNormCounts()` now that you have calculated the the sum factors (those will be store in the `sce_filtered` object).
+
+```{r normalize, solution=TRUE}
+# Normalize and log transform. 
+
+```
+
+Save the normalized counts data to a tsv file and the SingleCellExperiment as a RDS file. 
+Save it in the `data/tabula-muris/normalized` subdirectory.
+
+```{r save_norm_data, solution = TRUE}
+# define the output directory
+
+# name your tsv file mammary_gland_norm.tsv and place it in the output directory
+
+# name your RDS file mammary_gland_norm_sce.rds
+
+```
+
+
+## Part C: Performing Doublet Detection
+
+In addition to filtering out poor quality cells, it can also be important to filter out any potential doublets found in a single cell library. 
+Doublets are formed when two cells are sequenced within the same droplet, either because of incomplete cell separation or simply by the random assortment of cells into droplets.
+These two cells will then receive the same cell barcode, and will appear in our analysis as if they were a single cell unless we are careful.
+The presence of doublets can be problematic for downstream analysis and can be mistaken for intermediate populations. 
+
+Here we will walk through use of the `computeDoubletDensity` function within the `scDblFinder` package as one method to identify potential doublets, but there are multiple ways to identify doublets in a library. 
+
+`computeDoubletDensity` simulates the creation of doublets, randomly adding the gene expression profiles of two single-cells together.
+The simulated doublets are then projected onto the same PCA space as the single cells.
+For each original single cell, a doublet score is then calculated by identifying the density of simulated doublets compared to the density of original single cells. 
+
+You can read more about doublet detection in the [Orchestrating Single Cell Analysis book](https://bioconductor.org/books/release/OSCA/doublet-detection.html) and find more detailed information on using the `computeDoubletDensity` function in the [bioconductor vignette](https://bioconductor.riken.jp/packages/3.12/bioc/vignettes/scDblFinder/inst/doc/4_computeDoubletDensity.html). 
+
+_Step 1)_ Perform PCA analysis. 
+
+Before we can run `computeDoubletDensity`, we will want to perform PCA analysis, as we will need that information to interpret our results.
+Just as we used PCA to reduce the dimensions of our data and compare normalization results, PCA is used here to reduce dimensions of the data into a 2-dimensional space expression space. 
+The simulated doublets will then be projected onto this same 2-dimensional PCA space.
+
+```{r calculate_pca, solution=TRUE}
+# CalculatePCA on your normalized `sce_filtered`
+
+```
+
+_Step 2)_ Calculate Doublet Scores 
+
+We then use `scDblFinder::computeDoubletDensity` to calculate the doublet score for each cell barcode. 
+ `computeDoubletDensity` will compare the proportion of simulated doublets to original cells in the proximity of each original cell using the PCA space to obtain a doublet score.  
+The higher the doublet score, the more likely that barcode is to be a doublet derived from more than one cell.
+
+```{r doublet_score}
+# calculate doublet score
+dbl.out <- scDblFinder::computeDoubletDensity(sce_filtered)
+
+# add doublet score to SingleCellExperiment
+sce_filtered$DoubletScore <- dbl.out
+```
+
+_Step 3)_ Plot Doublet Score in relation to PCA to identify potential doublets 
+
+In order to see which cells in our dataset may be potential doublets, we will want to visualize the doublet scores in relation to the clusters identified through PCA. 
+Doublets are likely to have a gene expression profile that is similar to more than one cell, so we can expect that doublets will lie in between two clusters rather than be within a single cluster. 
+
+We now have stored the doublet scores for each cell in the `colData(sce_filtered)`. 
+Start by extracting the `colData` as a data frame and naming it `dbl_detect_df`. 
+You will then want to join `dbl_detect_df` with `tm_pca`, the matrix containing the PCA output and name it `tm_dbl_pca`.
+
+```{r add-metadata}
+dbl_detect_df <- as.data.frame(colData(sce_filtered)) %>%
+  # you will need convert rownames to a column named "cell_id"
+  tibble::rownames_to_column("cell_id") %>%
+  # select only the cell_id and DoubletScore column
+  dplyr::select(cell_id, DoubletScore)
+
+# Combine your dimension reduction results with the dbl_detect_df
+tm_dbl_pca <- tm_pca %>%
+  # You will need to use as.data.frame() to turn tm_pca into a data.frame instead of a DataFrame. 
+  as.data.frame() %>%
+  # You will also need to use tibble::rownames_to_column()
+  tibble::rownames_to_column("cell_id") %>% 
+  # Perform a dplyr::left_join()
+  dplyr::left_join(dbl_detect_df, by = "cell_id")
+```
+
+We want to plot the `PC1` on the x-axis with `PC2` on the y-axis and color our data points by the `DoubletScore`.
+
+```{r plot_dbl, solution=TRUE}
+
+```
+
+From this PCA plot we see that many of the cells with lower doublet scores tend to cluster together in a single cluster while cells that have higher doublet scores lie in between clusters. 
+
+You can also see that most cells with a doublet score of what appears to be >4, lie outside of a discrete cluster, indicating that they are likely to be doublets and can be removed prior to downstream analysis. 
+
+Let's go ahead and remove these cells from our `SingleCellExperiment`.
+Because `DoubletScore` is a part of the `colData` you can filter using the same approach we have used to filter other metrics like number of genes detected and mitochondrial content, data that is also stored in the `colData`. 
+Name your new object `sce_filtered_singlets`.
+
+```{r remove_doublets, solution = TRUE}
+# create a boolean vector of if a cell is a singlet or doublet 
+
+# only keep singlets
+
+```
+
+How many of the cells were considered doublets using this cutoff? 
+
+```{r dbl_cutoff, solution = TRUE}
+# set a value for the doublet cutoff
+
+# find the sum of DoubletScores greater than the doublet cutoff you chose
+
+```
+
+
+## Session Info
+
+```{r sessioninfo}
+sessionInfo()
+```
