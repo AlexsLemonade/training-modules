@@ -7,9 +7,13 @@ It covers normalization and dimension reduction methods that can be used for bot
 
 The notebooks that comprise this module are (estimated time to complete notebook):
 
-* [QC and filtering of single cell data](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/01-filtering_scRNA-seq.nb.html) (1 hr 20 minutes)
-* [Normalization using scater/scran](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/02-normalizing_scRNA-seq.nb.html) (1 hr)
-* [Quantification of tag-based data](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/04-tag-based_scRNA-seq_processing.nb.html) (35 minutes)
-* [Dimension reduction](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/05-dimension_reduction_scRNA-seq.nb.html) (1 hr 20 minutes)
+* [Quantification of tag-based scRNA-seq data](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/01-scRNA_quant_qc.nb.html)
+* [Quality control and filtering ](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/02-filtering_scRNA.nb.html)
+* [Normalization](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/03-normalizing_scRNA.nb.html)
+* [Dimension reduction](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/04-dimension_reduction_scRNA.nb.html) 
+* [Clustering](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/05-clustering_markers_scRNA.nb.html)
 
-_Total estimated time to complete instruction notebooks: 4 hours 15 minutes_
+This directory also contains pathway analysis modules customized to these data
+* [Overrepresentation analysis](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/06-overrepresentation_analysis.nb.html)
+* [Gene set enrichment analysis](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/07-gene_set_enrichment_analysis.nb.html)
+
