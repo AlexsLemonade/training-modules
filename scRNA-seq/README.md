@@ -13,7 +13,13 @@ The notebooks that comprise this module are:
 * [Dimension reduction](https://alexslemonade.github.io/training-modules/scRNA-seq/04-dimension_reduction_scRNA.nb.html) 
 * [Clustering](https://alexslemonade.github.io/training-modules/scRNA-seq/05-clustering_markers_scRNA.nb.html)
 
-This directory also contains pathway analysis modules customized to these data
+This directory also contains pathway analysis modules customized to these data:
+
 * [Overrepresentation analysis](https://alexslemonade.github.io/training-modules/scRNA-seq/06-overrepresentation_analysis.nb.html)
 * [Gene set enrichment analysis](https://alexslemonade.github.io/training-modules/scRNA-seq/07-gene_set_enrichment_analysis.nb.html)
 
+Additional exercise notebooks:
+
+* [Quantification](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/exercise_01-scrna_quant.Rmd)
+* [Clustering](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/exercise_02-scrna_clustering.Rmd)
+* [Pathway analysis](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/exercise_03-scrna-seq_pathway.Rmd)
