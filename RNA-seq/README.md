@@ -10,9 +10,10 @@ The notebooks that comprise this module are (estimated time to complete notebook
 * [Quality control, trim, and quantification with salmon](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/01-qc_trim_quant.md) (1 hr 10 minutes)
 * [Gene-level summaries with tximeta](https://alexslemonade.github.io/training-modules/RNA-seq/02-gastric_cancer_tximeta.nb.html) (25 minutes)
 * [Exploratory analyses](https://alexslemonade.github.io/training-modules/RNA-seq/03-gastric_cancer_exploratory.nb.html) (35 minutes)
-* Differential expression analysis: [tximeta](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/04-nb_cell_line_tximeta.md) and [differential expression](https://alexslemonade.github.io/training-modules/RNA-seq/05-nb_cell_line_DESeq2.nb.html) (25 minutes and 40 minutes, respectively)
-* [Additional exercises](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/06-bulk_rnaseq_exercise.Rmd)
-
+* Differential expression analysis: [tximeta (guided exercise)](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/04-nb_cell_line_tximeta.md) and [differential expression](https://alexslemonade.github.io/training-modules/RNA-seq/05-nb_cell_line_DESeq2.nb.html) (25 minutes and 40 minutes, respectively)
+* Additional exercises
+  * [Exploratory data analysis](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/exercise_01-exploratory_data_analysis.Rmd)
+  * [DESeq2](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/exercise_02-bulk_rnaseq.Rmd)
 
 _Total estimated time to complete instruction notebooks: 3 hours 15 minutes_
 

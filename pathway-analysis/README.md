@@ -6,9 +6,12 @@ This module depends on the knowledge gained in the [Intro to R and the Tidyverse
 
 The notebooks that comprise this module are (estimated time to complete notebook):
 
-* [Over-representation analysis](https://alexslemonade.github.io/training-modules/pathway-analysis/01-overrepresentation_analysis.nb.html) (45 minutes)
+* [Over-representation Analysis](https://alexslemonade.github.io/training-modules/pathway-analysis/01-overrepresentation_analysis.nb.html) (45 minutes)
 * [Gene Set Enrichment Analysis](https://alexslemonade.github.io/training-modules/pathway-analysis/02-gene_set_enrichment_analysis.nb.html) (30 minutes)
 * [Gene Set Variation Analysis](https://alexslemonade.github.io/training-modules/pathway-analysis/03-gene_set_variation_analysis.nb.html) (30 minutes)
-* [Additional exercises](https://github.com/AlexsLemonade/training-modules/blob/master/pathway-analysis/04-pathway_analysis_exercise.Rmd)
+* Additional exercises
+  * [Over-representation Analysis](https://github.com/AlexsLemonade/training-modules/blob/master/pathway-analysis/exercise_01-ora.Rmd)
+  * [Gene Set Enrichment Analysis](https://github.com/AlexsLemonade/training-modules/blob/master/pathway-analysis/exercise_02-gsea.Rmd)
+  * [Gene Set Variation Analysis](https://github.com/AlexsLemonade/training-modules/blob/master/pathway-analysis/exercise_03-gsva.Rmd)
 
 _Total estimated time to complete instruction notebooks: 1 hour 45 minutes_
