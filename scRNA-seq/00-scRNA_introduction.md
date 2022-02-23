@@ -40,7 +40,7 @@ Individual samples have two fastq files: one for the cell and UMI barcodes (R1) 
 
 ## Resources:
 
-- Hemberg Lab [scRNA-seq training course](https://scrnaseq-course.cog.sanger.ac.uk/website/index.html)
+- Hemberg Lab [scRNA-seq training course](https://www.singlecellcourse.org/)
 
 - [ASAP: Automated Single-cell Analysis Pipeline](https://asap.epfl.ch/) is a web server that allows you to process scRNA-seq data. ([Gardeux _et al._ 2017.](https://doi.org/10.1093/bioinformatics/btx337 ))
 
