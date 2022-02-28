@@ -19,7 +19,7 @@ Read the Base `R` documentation [**here**](https://rdrr.io/r/).
 | Base `R`          | [`library()`](https://rdrr.io/r/base/library.html)                    | Library   | Loads and attaches additional packages to the R environment.                                                                                                                                                  |
 | Base `R`          | [`<-`](https://rdrr.io/r/base/assignOps.html)                    | Assignment operator   | Assigns a name to something in the R environment.                                                                                                                                                  |
 | Base `R`          | [`c()`](https://rdrr.io/r/base/c.html)                     | Combine           | Combines values into a vector or list.                                                                                                                                                             |
-| Base `R`          | [`%in%`](http://www.datasciencemadesimple.com/in-operator-in-r/)                                  | "in" logical operator           | Checks if the given value(s) on the left side of the operator are in the vector or other R object defined on the right side of the operator. It returns a logical `TRUE` or `FALSE` statement.                                                                                                                                                              |
+| Base `R`          | [`%in%`](https://rdrr.io/r/base/match.html)                                  | "in" logical operator           | Checks if the given value(s) on the left side of the operator are in the vector or other R object defined on the right side of the operator. It returns a logical `TRUE` or `FALSE` statement. [This resource](http://www.datasciencemadesimple.com/in-operator-in-r/) also provides a helpful explanation about its usage.                                                                                                                                                         |
 | Base `R`          | [`rm(x)`](https://rdrr.io/r/base/rm.html)              | Remove                | Removes object(s) `x` from your environment.                                                                                                                                                         |
 | Base `R`          | [`==, <=, >=, !=`](https://rdrr.io/r/base/Comparison.html)       | Relational Operators  | These are binary operators which allow for the comparison of values in an object.                                                                                                                 |
 | Base `R`          | [`str(x)`](https://rdrr.io/r/utils/str.html)               | Object Structure      | Gets a summary of the object `x` structure.                                                                                                                                                         |
@@ -54,10 +54,11 @@ Read the Base `R` documentation [**here**](https://rdrr.io/r/).
 <div style="page-break-after: always;"></div>
                                                                                                 
 ### `tidyverse`
-Read the `tidyverse` package documentation [**here**](https://tidyverse.tidyverse.org/). Read the philosophy behind the `tidyverse` [**here**](https://tidyverse.tidyverse.org/articles/manifesto.html).
+Read the `tidyverse` package documentation [**here**](https://tidyverse.tidyverse.org/). <br>
+Read the philosophy behind the `tidyverse` [**here**](https://tidyverse.tidyverse.org/articles/manifesto.html).
 
 #### `dplyr`
-Read the `dplyr` package documentation [**here**](https://dplyr.tidyverse.org/). <br>
+Read the `dplyr` package documentation [**here**](https://dplyr.tidyverse.org/).  <br>
 A vignette on the usage of the `dplyr` package can be found [**here**](https://dplyr.tidyverse.org/articles/dplyr.html).
 
 | Library/Package                                 | Piece of code                        | What it's called                       | What it does                                                                                                                                                                                      |
@@ -75,7 +76,7 @@ A vignette on the usage of the `dplyr` package can be found [**here**](https://d
 <div style="page-break-after: always;"></div>
                                                                                                                                                                                                                  
 #### `ggplot2`
-Read the `ggplot2` package documentation [**here**](https://ggplot2.tidyverse.org/). <br>
+Read the `ggplot2` package documentation [**here**](https://ggplot2.tidyverse.org/), as well as an overall reference for `ggplot2` functions [**here**](https://ggplot2.tidyverse.org/reference/index.html). <br>
 A vignette on the usage of the `ggplot2` aesthetics can be found [**here**](https://ggplot2.tidyverse.org/articles/ggplot2-specs.html). 
 Additional vignettes are available from the "Articles" dropdown menu on this webpage.
 
@@ -90,7 +91,7 @@ Additional vignettes are available from the "Articles" dropdown menu on this web
 | `ggplot2`         | [`geom_hline()`](https://ggplot2.tidyverse.org/reference/geom_abline.html)       | Horizontal line              | Annotates a plot with horizontal lines when added as a layer to a `ggplot()` object with one of the `geom` functions used to draw the plot, for example, `geom_point()`.           |
 | `ggplot2`         | [`theme_classic()`](https://ggplot2.tidyverse.org/reference/ggtheme.html)               | Classic Theme   | Displays `ggplot` without gridlines. The [`ggtheme` documentation](https://ggplot2.tidyverse.org/reference/ggtheme.html) has descriptions on additional themes that can be used.                                                                         |
 | `ggplot2`               | [`labs()`](https://ggplot2.tidyverse.org/reference/labs.html)           | Labels   | Modify labels (axis, title, legends) on a `ggplot()` object.   |  
-| `ggplot2`               | [`xlab()`; `ylab()`; `ggtitle()`](https://ggplot2.tidyverse.org/reference/labs.html)           |X Axis Labels; Y Axis Labels; GG Title                    | Alternative individual functions to individual plot labels: x-axis, y-axis, and title, respectively.|
+| `ggplot2`               | [`xlab()`; `ylab()`; `ggtitle()`](https://ggplot2.tidyverse.org/reference/labs.html)           |X Axis Labels; Y Axis Labels; GG Title                    | Alternative individual functions to add individual plot labels: x-axis, y-axis, and title, respectively.|
 | `ggplot2`            | [`facet_wrap()`](https://ggplot2.tidyverse.org/reference/facet_wrap.html)                     | Facet Wrap      | Plots individual graphs using specified variables to subset the data.                                                                   |
 | `ggplot2`               | [`ggsave()`](https://ggplot2.tidyverse.org/reference/ggsave.html)                 | GG Save                                         | Saves the last plot in working directory.                                 |                                                                                         
 | `ggplot2`               | [`last_plot()`](https://ggplot2.tidyverse.org/reference/last_plot.html)           | Last plot                                       | Returns the last plot produced.                                           |  
