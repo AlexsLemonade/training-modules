@@ -1,8 +1,3 @@
----
-output:
-  html_document: default
-  pdf_document: default
----
 # Intro to R and Tidyverse Cheatsheet
 
 #### The tables below consist of valuable functions and commands that will help you through this module. 

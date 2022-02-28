@@ -1,8 +1,3 @@
----
-output:
-  pdf_document: default
-  html_document: default
----
 # scRNA-seq Cheatsheet
 
 #### The tables below consist of valuable functions or commands that will help you through this module.
