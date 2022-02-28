@@ -76,7 +76,8 @@ A vignette on the usage of the `dplyr` package can be found [**here**](https://d
                                                                                                                                                                                                                  
 #### `ggplot2`
 Read the `ggplot2` package documentation [**here**](https://ggplot2.tidyverse.org/). <br>
-A vignette on the usage of the `ggplot2` aesthetics can be found [**here**](https://ggplot2.tidyverse.org/articles/ggplot2-specs.html). Additional vignettes are available from the "Articles" dropdown menu on this webpage.
+A vignette on the usage of the `ggplot2` aesthetics can be found [**here**](https://ggplot2.tidyverse.org/articles/ggplot2-specs.html). 
+Additional vignettes are available from the "Articles" dropdown menu on this webpage.
 
 | Library/Package                      | Piece of code                                   | What it's called       | What it does                                                                                                                                                                                      |
 |--------------------------------------|-----------------------------------------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
