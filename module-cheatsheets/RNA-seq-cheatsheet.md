@@ -9,21 +9,26 @@
 <div style="page-break-after: always;"></div>
 
 ### Base `R`
-Read the Base `R` package documentation [**here**](https://www.rdocumentation.org/packages/base/versions/3.5.1).
+Read the Base `R` documentation [**here**](https://rdrr.io/r/).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
-| Base `R`                | [`list.files()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/list.files)             | List files                | Produces a character vector of files or directories in the specified directory |
-| Base `R`                | [`names()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/names)                       | Names                     | Gets or sets the names of an object                                      |                        
-| Base `R`                | [`colnames()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/row%2Bcolnames)           | Column names              | Gets or sets the column names of a matrix or data frame                  |                                                    
-| Base `R`                | [`all.equal()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/all.equal)               | All equal                 | Checks if two R objects are nearly equal                                 |                 
-| Base `R`                | [`attr()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/attr)                         | Object Attributes         | Gets or sets the attributes of an object                                 |       
-| Base `R`                | [`rowSums()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/colSums)                   | Row Sums                  | Returns the sum of the rows in a numeric matrix-like object (i.e.. a matrix, data.frame, etc.) |
-| Base `R`                | [`relevel()`](https://www.rdocumentation.org/packages/stats/versions/3.5.1/topics/relevel)                  | Relevel                   | Reorders the levels of a factor as specified                             |                                                                                         
-| Base `R`                | [`summary()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/summary)                   | Object Summary            | Returns a result summary of an object                                    |         
-| Base `R`                | [`as.data.frame()`](https://www.rdocumentation.org/packages/base/versions/3.5.1/topics/as.data.frame)       | Data Frame                | Checks if an object is a data.frame, and transforms the object into one, if possible |
+| Base `R`   | [`list.files()`](https://rdrr.io/r/base/list.files.html)             | List files          | Produces a character vector of files or directories in the specified directory |
+| Base `R`   | [`names()`](https://rdrr.io/r/base/names.html)                       | Names               | Gets or sets the names of an object                                      |                        
+| Base `R`   | [`colnames()`](https://rdrr.io/r/base/colnames.html)           | Column names        | Gets or sets the column names of a matrix or data frame                  |                                                    
+| Base `R`   | [`all.equal()`](https://rdrr.io/r/base/all.equal.html)               | All equal           | Checks if two R objects are nearly equal                                 |                 
+| Base `R`   | [`attr()`](https://rdrr.io/r/base/attr.html)                         | Object Attributes   | Gets or sets the attributes of an object                                 |       
+| Base `R`   | [`rowSums()`](https://rdrr.io/r/base/colSums.html)                   | Row Sums            | Returns the sum of the rows in a numeric matrix-like object (i.e.. a matrix, data.frame, etc.) |
+| Base `R`   | [`relevel()`](https://rdrr.io/r/stats/relevel.html)                  | Relevel             | Reorders the levels of a factor as specified                             |                                                                                         
+| Base `R`   | [`summary()`](https://rdrr.io/r/base/summary.html)                   | Object Summary      | Returns a result summary of an object                                    |         
+| Base `R`   | [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)       | Data Frame          | Checks if an object is a data.frame, and transforms the object into one, if possible |
 
 <div style="page-break-after: always;"></div>
+
+
+SJS RESUME HERE
+
+
 
 ### `DESeq2`
 Read the `DESeq2` package documentation [**here**](https://bioc.ism.ac.jp/packages/3.8/bioc/manuals/DESeq2/man/DESeq2.pdf), and the package vignette by Love, Anders, and Huber [**here**](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
