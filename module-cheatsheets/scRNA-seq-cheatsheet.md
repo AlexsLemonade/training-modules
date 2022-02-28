@@ -85,7 +85,6 @@ Documentation for each of these packages can be accessed by clicking the package
 |----------------|-------------|-----------------|---------------|
 | [`alevinQC`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html) | [`alevinQCReport()`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html#generate-qc-report) | Alevin QC Report | Produces a QC (quality check) report from the alevin output |
 | [`dat`](https://rdrr.io/cran/dat/)| [`DataFrame()`](https://rdrr.io/cran/dat/man/DataFrame.html)| Data frame | Not to be confused with `data.frame()` from Base R. This is a slightly different data frame-like object needed for storing information in `SingleCellExperiment` object's `colData()`.|
-| [`colorblindr`](https://github.com/clauswilke/colorblindr#readme)|[`scale_color_OkabeIto()`](https://rdrr.io/github/clauswilke/colorblindr/man/scale_OkabeIto.html) | OkabeIto Color Scale | When added as a layer to a plot, makes the plot colorblind friendly |
 | [`Rtsne`](https://rdrr.io/cran/Rtsne/)| [`Rtsne()`](https://rdrr.io/cran/Rtsne/man/Rtsne.html)| T-Distributed Stochastic Neighbor Embedding using a Barnes-Hut Implementation | Reduces the dimensions of the specified matrix or data frame|
 | [`tibble`](https://tibble.tidyverse.org/index.html)|[`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html) | As tibble | Coerce data.frame or matrix to a tibble |
 
