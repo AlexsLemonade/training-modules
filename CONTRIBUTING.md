@@ -237,3 +237,16 @@ This action first downloads input files for the notebooks from S3, so if there a
 After a pull request with changes to notebook files has been merged to master, we use the `make-live.yml` workflow to render current versions of the notebooks to html and to make the `-live.Rmd` versions of the files for training sessions.
 This workflow then files a PR to `master` with the rendered and live files.
 `make-live.yml` is currently manually triggered, but will likely change to running automatically on each PR with changes to notebook files in the near future.
+
+
+## Cheatsheets
+
+Training modules have corresponding cheatsheets in `module-cheatsheets`. 
+Cheatsheets are written in plain markdown and can be converted to a shareable PDF format interactively as follows:
+
++ Be on a MacOS computer
++ Install and/or open the [MacDown program](https://macdown.uranusjr.com/)
++ Open a md cheatsheet in MacDown, and go to `File` -> `Export` -> `PDF`
++ Save appropriately and voila!
+
+When choosing documentation links to incorporate in cheatsheets, we prefer to use [https://rdrr.io/](https://rdrr.io/) when possible for Base R and Bioconductor, and we prefer to use [https://www.tidyverse.org/](https://www.tidyverse.org/) for `tidyverse` functions. 
