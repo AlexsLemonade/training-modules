@@ -24,14 +24,6 @@ Read the Base `R` documentation [**here**](https://rdrr.io/r/).
 | Base `R`| [`<-function(x) { <code> }`](https://adv-r.hadley.nz/functions.html) | Function | Creates a function that would take the defined parameters as input and execute the commands within the curly braces  |
 
 
-### `ggplot2`
-
-Read the `ggplot2` documentation [**here**](https://ggplot2.tidyverse.org/).
-
-| Library/Package| Piece of Code| What it's called| What it does |
-|----------------|--------------|-----------------|--------------|
-| `ggplot2`| [`geom_vline()`](https://ggplot2.tidyverse.org/reference/geom_abline.html)| geom vertical line| Adds ggplot2 layer with a vertical line plotted |
-
 ### `scran`, `scater`, `SingleCellExperiment`
 Read the `scran` package documentation [**here**](https://rdrr.io/bioc/scran/), and a vignette on its usage [**here**](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
 
