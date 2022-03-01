@@ -5,6 +5,9 @@
 > Please note that these tables are not intended to tell you all the information you need to know about each command.
 >
 > The hyperlinks found in each piece of code will take you to the documentation for further information on the usage of each command.
+> Please be aware that the documentation will generally provide information about the given function's most current version (or a recent version, depending on how often the documentation site is updated).
+This will usually (but not always!) match what you have installed on your machine.
+If you have a different version of R or other R packages, the documentation may differ from what you have installed.
 
 <div style="page-break-after: always;"></div>
 
