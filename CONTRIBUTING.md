@@ -249,7 +249,7 @@ Cheatsheets are written in plain markdown and can be converted to a shareable PD
 
 + Be on a MacOS computer
 + Install and/or open the [MacDown program](https://macdown.uranusjr.com/)
-+ Open a md cheatsheet in MacDown, and go to `File` -> `Export` -> `PDF`
++ Open the markdown cheatsheet in MacDown, and go to `File` -> `Export` -> `PDF`
 + Save appropriately and voila!
 
 When choosing documentation links to incorporate in cheatsheets, we prefer to use [`https://rdrr.io/`](https://rdrr.io/) when possible for Base R and Bioconductor, and we prefer to use [`https://www.tidyverse.org/`](https://www.tidyverse.org/) for `tidyverse` functions. 
