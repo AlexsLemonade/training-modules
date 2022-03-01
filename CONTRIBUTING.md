@@ -17,6 +17,8 @@
   - [Files stored on S3](#files-stored-on-s3)
 - [Development with `renv`](#development-with-renv)
   - [Typical development workflow](#typical-development-workflow)
+  - [Steps for creating renv.lock only changes pull requests](#steps-for-creating-renvlock-only-changes-pull-requests)
+    - [Multiple renv.lock changes from multiple branches](#multiple-renvlock-changes-from-multiple-branches)
   - [How we use `renv` with Docker](#how-we-use-renv-with-docker)
 - [Docker Image](#docker-image)
   - [Developing within the Docker container](#developing-within-the-docker-container)
@@ -26,6 +28,7 @@
   - [Spell check](#spell-check)
   - [Rendering Test](#rendering-test)
   - [Generation of live notebooks and rendering](#generation-of-live-notebooks-and-rendering)
+- [Cheatsheets](#cheatsheets)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
