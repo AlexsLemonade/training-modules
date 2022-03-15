@@ -127,7 +127,16 @@ Note that in our notebooks (and sometimes elsewhere), wherever you see a `<FILL_
 file.exists(<PUT_FILE_NAME_HERE>)
 ```
 
-Now that we've determined that `gene_results_GSE44971.tsv` exists, we are ready to read it into our R environment.
+It doesn't seem that file exists in our _current directory_, but that doesn't mean it doesn't exist it all.
+In fact, this file is inside the _relative path_ `data/`, so let's check again if the whole relative path to that file exists.
+
+
+```{r file-check-path, eval=FALSE}
+# This time, use file.path() to form your argument to file.exists() 
+file.exists(<PUT_PATH_TO_FILE_HERE>)
+```
+
+With the right relative path, we can confirm this file exists.
 
 #### Read a TSV file
 
@@ -172,7 +181,8 @@ What information is contained in `gene_df`?
 ## `magrittr` pipes
 
 One nifty feature of the tidyverse is pipes: `%>%`
-These handy things, which come from the `magrittr` package, allow you to funnel the result of one expression to the next, making your code a little more streamlined.
+These handy things, which come from the `magrittr` package, allow you to funnel the result of one expression to the next, making your code a little more streamlined. 
+
 
 For example, the output from this:  
 
@@ -212,9 +222,12 @@ stats_pipe  <- stats_df %>%
 ```
 
 What the `%>%` (pipe) is doing here is feeding the result of the expression on its left into the first argument of the next function (to its right, or on the next line here). 
-We can then skip that first argument (the data in these cases), and move right on to the part we care about at that step: what we are arranging, filtering, or selecting  in this case.
+We can then skip that first argument (the data in these cases), and move right on to the part we care about at that step: what we are arranging, filtering, or selecting in this case.
+The key insight that makes the pipe work here is to recognize that each of these functions (`arrange`, `filter`, and `select`) are fundamental `dplyr` (a tidyverse package) functions which work as "data in, data out."
+In other words, these functions operate on data frames, and return data frames; you give them a data frame, and they give you back a data frame.
+Because these functions all follow a "data in, data out" framework, we can chain them together with pipe and send data all the way through the...pipeline!
 
-Let's double check that these are the same by using the function, `all.equal()`. 
+Let's double check that these versions with and without pipe yield the same solution by using the base R function `all.equal()`. 
 
 ```{r check-pipe}
 all.equal(stats_nopipe, stats_pipe)
@@ -235,7 +248,7 @@ Let's say we wanted to filter this gene expression dataset to particular sample 
 In order to do this, we would use the function `filter()` as well as a logic statement (usually one that refers to a column or columns in the data frame).
 
 ```{r filter-gene}
-# Here let's filter stats_df to the gene_symbol "SNCA"
+# Here let's filter stats_df to only keep the gene_symbol "SNCA"
 stats_df %>% 
   filter(gene_symbol == "SNCA")
 ```
@@ -262,13 +275,14 @@ Let's take a look at what using `%in%` does.
 
 ```{r in-example, eval = FALSE}
 genes_of_interest <- c("SNCA", "CDKN1A")
-stats_df$gene_symbol %in% genes_of_interest
+# Are these genes present in the `gene_symbol` column in stats_df?
+genes_of_interest %in% stats_df$gene_symbol
 ```
 
 `%in%` returns a logical vector that now we can use in `dplyr::filter`.
 
 ```{r filter-in, live = TRUE}
-# filter to genes of interest
+# filter to keep only genes of interest
 stats_df %>% 
   filter(gene_symbol %in% c("SNCA", "CDKN1A"))
 ```
@@ -444,6 +458,8 @@ In this case we want to match the gene information between the two, so we will s
 
 ```{r inner-join}
 stats_df %>% 
+  # Join based on their shared column
+  # Called ensembl_id in stats_df and called Gene in gene_df
   inner_join(gene_df, by = c('ensembl_id' = 'Gene')) 
 ```
 
@@ -486,7 +502,7 @@ You will need to replace the `.tsv` with `.RDS`, but you can use what we determi
 
 ```{r eval=FALSE}
 # Write your object to an RDS file
-readr::write_rds(stats_summary, <PUT_CORRECT_FILE_PATH_HERE>)
+readr::write_rds(stats_summary_df, <PUT_CORRECT_FILE_PATH_HERE>)
 ```
 
 #### Read an RDS file
@@ -496,7 +512,7 @@ Use that function here to re-import your data in the chunk we set up for you bel
 
 ```{r eval=FALSE}
 # Read in your RDS file
-reimport_df <- <PUT_FUNCTION_NAME>(file.path("results", "stats_clean.RDS"))
+reimport_df <- <PUT_FUNCTION_NAME>(file.path("results", "stats_summary.RDS"))
 ```
 
 As is good practice, we will end this session by printing out our session info. 
