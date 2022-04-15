@@ -108,7 +108,7 @@ In this case, we can see there is information for 35,429 genes, and Alevin repor
 
 `tximeta` also automatically added some annotation information about each gene, which can be seen by extracting the `rowData` table.
 
-```{r view_annoation, live = TRUE}
+```{r view_annotation, live = TRUE}
 # Examine row (gene) metadata
 rowData(bladder_sce)
 ```
@@ -310,10 +310,12 @@ To look for this, we would like to calculate the fraction of mitochondrial expre
 First, we will need a list of the mitochondrial genes, which we have prepared in a tsv file `mm_mitochondrial_genes.tsv` that we will now read in, and filter to just the genes that are found in the data set.  
 
 ```{r read_mito}
-# read `mm_mitochondrial_genes.tsv` from data_dir
+# read `mm_mitochondrial_genes.tsv` from data_dir and 
+# create from it a single vector containing only the gene ids
 mito_genes <- readr::read_tsv(mito_file) %>%
   # filter to only gene in the sce object
   dplyr::filter(gene_id %in% rownames(bladder_sce)) %>%
+  # pull takes this column out of the data frame as a stand-alone vector 
   dplyr::pull(gene_id)
 ```
 
@@ -499,7 +501,9 @@ dim(bladder_sce_filtered)
 
 We will save the filtered `SingleCellExperiment` object as a `.rds` file for later use.
 
-```{r}
+```{r save_rds}
+# Save object to the file filtered_sce_file, which 
+# we defined at the top of this notebook
 readr::write_rds(bladder_sce_filtered, file = filtered_sce_file)
 ```
 
