@@ -1,5 +1,8 @@
 # Catch dependencies that renv might miss
 
+# Don't know why markdown is missed, but it is
+library(markdown)
+
 # Recommended by ComplexHeatmap
 library(magick)
 
