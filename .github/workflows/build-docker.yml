@@ -4,8 +4,14 @@ name: Build Docker
 # master when the Dockerfile or renv.lock file changes.
 on:
   pull_request:
-    branches: [ master ]
-    paths: [ Dockerfile, renv.lock ]
+    branches:
+      - master
+    paths:
+      - Dockerfile
+      - renv.lock
+  push:
+    branches:
+      - jashapiro/541-gha-git
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -17,28 +23,19 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # set up Docker build
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      # setup layer cache
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+        uses: docker/setup-buildx-action@v2
 
       # Build docker image
       - name: Build Docker image
-        uses: docker/build-push-action@v2.2.2
+        uses: docker/build-push-action@v3
         with:
           push: false
           context: .
           file: Dockerfile
           tags: ccdl/training_dev:latest
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
