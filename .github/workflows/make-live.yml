@@ -20,7 +20,13 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+
+      - name: Configure git
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
 
       - name: Set up AWS credentials
         if: github.event.inputs.rendering == 'TRUE'
@@ -64,7 +70,7 @@ jobs:
           reviewers: $GITHUB_ACTOR
 
 
-      # Spit out PR info
+      # Write PR info
       - name: Check outputs
         run: |
           echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
