@@ -7,7 +7,7 @@ It covers quality control steps, gene expression abundance estimation, and certa
 
 The notebooks that comprise this module are (estimated time to complete notebook):
 
-* [Quality control, trim, and quantification with salmon](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/01-qc_trim_quant.md) (1 hr 10 minutes)
+* [Quality control, trim, and quantification with salmon](https://alexslemonade.github.io/training-modules/RNA-seq/01-qc_trim_quant.nb.html) (1 hr 10 minutes)
 * [Gene-level summaries with tximeta](https://alexslemonade.github.io/training-modules/RNA-seq/02-gastric_cancer_tximeta.nb.html) (25 minutes)
 * [Exploratory analyses](https://alexslemonade.github.io/training-modules/RNA-seq/03-gastric_cancer_exploratory.nb.html) (35 minutes)
 * Differential expression analysis: [tximeta (guided exercise)](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/04-nb_cell_line_tximeta.md) and [differential expression](https://alexslemonade.github.io/training-modules/RNA-seq/05-nb_cell_line_DESeq2.nb.html) (25 minutes and 40 minutes, respectively)
