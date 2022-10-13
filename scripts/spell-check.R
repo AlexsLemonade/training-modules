@@ -3,8 +3,8 @@
 # Run spell check and save results
 # Adapted from: https://github.com/AlexsLemonade/refinebio-examples/blob/33cdeff66d57f9fe8ee4fcb5156aea4ac2dce07f/scripts/spell-check.R
 
-# Find project root directory
-root_dir <- rprojroot::find_root()
+# Find .git root directory
+root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
 
 # Read in dictionary
 dictionary <- readLines(file.path(root_dir, 'components', 'dictionary.txt'))
