@@ -13,8 +13,6 @@ jobs:
   # This workflow contains a single job called "spell check"
   spell-check:
     runs-on: ubuntu-latest
-    container:
-      image: rocker/tidyverse:4.0.3
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -27,11 +25,11 @@ jobs:
         id: spell_check_run
         run: |
           results=$(Rscript --vanilla "scripts/spell-check.R")
-          echo "::set-output name=sp_chk_results::$results"
+          echo "sp_chk_results=$results" >> $GITHUB_OUTPUT
           cat spell_check_errors.tsv
 
       - name: Archive spelling errors
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: spell-check-results
           path: spell_check_errors.tsv
