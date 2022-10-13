@@ -13,18 +13,20 @@ jobs:
   # This workflow contains a single job called "spell check"
   spell-check:
     runs-on: ubuntu-latest
+    container:
+      image: rocker/r-ver:4.1.2
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: actions/checkout@v3
 
       - name: Install packages
-        run: Rscript -e "install.packages(c('rprojroot', 'spelling'), repos = c(CRAN = 'https://cloud.r-project.org'))"
+        run: Rscript --vanilla -e "install.packages(c('rprojroot', 'spelling'), repos = c(CRAN = 'https://cloud.r-project.org'))"
 
       - name: Run spell check
         id: spell_check_run
         run: |
-          results=$(Rscript "scripts/spell-check.R")
+          results=$(Rscript --vanilla "scripts/spell-check.R")
           echo "sp_chk_results=$results" >> $GITHUB_OUTPUT
           cat spell_check_errors.tsv
 
