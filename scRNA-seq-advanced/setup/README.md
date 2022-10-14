@@ -1,4 +1,4 @@
-# Advanced Single Cell RNA-seq training data setup"
+# Advanced Single Cell RNA-seq training data setup
 
 This document describes how the training data is prepared for the advanced single cell RNA-seq training data on the RStudio Server.
 
