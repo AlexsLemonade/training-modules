@@ -1,6 +1,6 @@
 ---
 title: "Setup: Introduction Module"
-author: Stephanie Spielman for the Data Lab
+author: "Stephanie Spielman for the Data Lab"
 date: "`r Sys.Date()`"
 output: 
   html_notebook:
@@ -35,7 +35,6 @@ tar -xf $NAME
 ## Filtering and normalization
 
 ```{r}
-
 pbmc_10x_dir <- "raw_feature_bc_matrix"
 # for now..
 mito_file <- "https://raw.githubusercontent.com/AlexsLemonade/scpca-downstream-analyses/main/reference-files/Homo_sapiens.GRCh38.104.mitogenes.txt"
@@ -51,18 +50,12 @@ mito_genes <- readr::read_tsv(mito_file,
 ```
 
 
-### Initial Mitochondria QC:
-
-Note that the `addPer<X>QC()` functions should be run before we split out the ADTs into their own altExp so that the appropriate QC columns actually get ported into the altExp.
+### Initial Mitochondria QC
 
 ```{r}
 pbmc_sce_percellqc <- scater::addPerCellQC(
   pbmc_sce_raw, 
   subsets = list(mito = mito_genes))
-
-# we'll need this later, so pop it in now
-pbmc_sce_percellqc <- scater::addPerFeatureQC(pbmc_sce_percellqc)
-
 
 # Filter out 0s, and see before/after dims:
 dim(pbmc_sce_percellqc) 
@@ -75,18 +68,12 @@ Before proceeding with further filtering, we'll want to re-arrange the SCE objec
 Currently, the ADTs and genes are both part of the primary experiment, so let's move the ADT counts into an altExp slot.
 
 ```{r}
-gene_names <- as.data.frame(rowData(pbmc_sce_percellqc)) %>% 
-  dplyr::filter(Type == "Gene Expression") %>% 
-  dplyr::pull(ID)
-adt_names <- as.data.frame(rowData(pbmc_sce_percellqc)) %>% 
-  dplyr::filter(Type == "Antibody Capture") %>% 
-  dplyr::pull(ID)
-
-adt_pbmc <- pbmc_sce_percellqc[rownames(pbmc_sce_percellqc) %in% adt_names]
-
-# split out the experiments:
-pbmc_sce_percellqc <- pbmc_sce_percellqc[rownames(pbmc_sce_percellqc) %in% gene_names]
-altExp(pbmc_sce_percellqc, "CITEseq") <- adt_pbmc
+pbmc_sce_percellqc <- splitAltExps(pbmc_sce_percellqc, 
+                                   #"Gene Expression" or "Antibody Capture"
+                                   rowData(pbmc_sce_percellqc)$Type, 
+                                   # The Type which should be the main experiment
+                                   "Gene Expression")
+pbmc_sce_percellqc
 ```
 
 
@@ -111,28 +98,17 @@ dim(filtered_sce)
 ```
 
 
-#### We can also filter RNA with `miQC`
+#### Now, with `miQC`
 
-Mito QC stats are already present in `pbmc_sce_percellqc`.
-This is sometimes working and sometimes not for me, so commenting out for now...
+Mito QC stats are already present in `filtered_sce` from previously running `scater::addPerCellQC()`.
 ```{r}
-#miqc_model <- miQC::mixtureModel(pbmc_sce_percellqc) 
-#filtered_sce_miqc <- miQC::filterCells(pbmc_sce_percellqc,
-#                                       model = miqc_model)
-#
-#dim(filtered_sce_miqc)
+miqc_model <- miQC::mixtureModel(filtered_sce) 
+filtered_sce<- miQC::filterCells(filtered_sce,
+                                 model = miqc_model)
+
+dim(filtered_sce)
 ```
-Moving forward, one can choose to proceed with either `filtered_sce_miqc` or `filtered_sce`; we'll use `filtered_sce` for now.
 
-
-#### Compare `DropletUtils` to `miQC` filtering
-
-We may want to compare certain aspects of cells that were filtered out with DropletUtils vs miQC.
-Chunk below, currently pending content..., can do that!
-
-```{r}
-
-```
 
 ### Filter ADT
 
@@ -141,7 +117,7 @@ This data does have a control antibody (IgG1), so we can leverage this ADT for Q
 # Filter ADT
 # http://bioconductor.org/books/3.16/OSCA.advanced/integrating-with-protein-abundance.html#applying-custom-qc-filters
 
-controls <- grep("^Ig", rownames(altExp(filtered_sce)))
+controls <- c("IgG1")
 adt_qc_df <- DropletUtils::cleanTagCounts(altExp(filtered_sce), controls=controls) # I feel like this control might be crap!
 
 summary(adt_qc_df$high.controls) # these are all NA????????
@@ -171,10 +147,11 @@ norm_sce <- scater::logNormCounts(filtered_sce)
 # Try out control-based normalization here 
 #  http://bioconductor.org/books/3.16/OSCA.advanced/integrating-with-protein-abundance.html#control-based-normalization
 control_sf <- scater::librarySizeFactors(altExp(norm_sce), subset_row=controls)  # `controls` was previously defined during filtering
-sum(control_sf == 0) # _HOLY WOW_
+sum(control_sf == 0)/length(control_sf) # _HOLY WOW_ - virtually everything is 0.......
+
 
 # Go for median instead, BUT TODO: would we want to exclude control here during baseline calculation? 
-baseline <- DropletUtils::ambientProfileBimodal(altExp(filtered_sce)) # !! currently this does not exclude controls
+baseline <- DropletUtils::ambientProfileBimodal(altExp(norm_sce)) # !! currently this does not exclude controls
 median_sf <- scater::medianSizeFactors(altExp(norm_sce), reference = baseline)
 sum(median_sf == 0) # none are 0 here, soooo let's do this?
 
@@ -196,7 +173,7 @@ altExp(norm_sce)
 
 HVGs:
 ```{r}
-num_genes <- 5000 # eh?
+num_genes <- 5000 # 2000? 
 
 gene_variance <- scran::modelGeneVar(norm_sce)
 hvg_list <- scran::getTopHVGs(gene_variance,
@@ -212,23 +189,21 @@ norm_sce <- scater::runPCA(norm_sce,
 
 UMAP:
 ```{r I map you map we all map for MapMap}
-# We can arbitrarily cluster first just to have some colors in there for funsies
-k <- 10
-
-# perform the clustering
-kclusters <- clusterRows(
-  reducedDim(norm_sce, "PCA"),
-  KmeansParam(centers = k)
+# Perform graph clustering first
+nn_k <- 15
+nn_clusters <- clusterRows(
+  reducedDim(norm_sce, "PCA"), 
+  NNGraphParam(k = nn_k, 
+               cluster.fun = "walktrap")
 )
 
 # pop back into sce
-norm_sce$kcluster <- factor(kclusters)
-
+norm_sce$nn_clusters <- factor(nn_clusters)
 
 # Add in UMAPs and plot with colors
 norm_sce <- scater::runUMAP(norm_sce,
                             dimred = "PCA")
-scater::plotReducedDim(norm_sce, "UMAP", colour_by = "kcluster")
+scater::plotReducedDim(norm_sce, "UMAP", colour_by = "nn_clusters")
 ```
 
 ## Cell type annotation
@@ -248,6 +223,12 @@ preds
 
 # We can place these into the sce
 norm_sce$celltype_predictions <- preds$pruned.labels
+
+# **heavily** biased towards monocytes and T-cells
+table(preds$pruned.labels) %>%
+  as.data.frame() %>%
+  dplyr::arrange(-Freq)
+
 ```
 
 
