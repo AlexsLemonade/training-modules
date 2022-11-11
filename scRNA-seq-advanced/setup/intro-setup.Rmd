@@ -225,11 +225,18 @@ preds
 norm_sce$celltype_predictions <- preds$pruned.labels
 
 # **heavily** biased towards monocytes and T-cells
-table(preds$pruned.labels) %>%
+celltype_counts <- table(preds$pruned.labels) %>%
   as.data.frame() %>%
-  dplyr::arrange(-Freq)
+  dplyr::rename(
+    celltype = Var1, 
+    n = Freq
+  ) %>%
+  dplyr::arrange(-n)
+
+celltype_counts
 
 ```
+
 
 
 Visualize the predictions in a couple ways:
@@ -238,12 +245,92 @@ SingleR::plotScoreHeatmap(preds)
 ```
 
 
-```{r UMAPs are for the people}
+```{r UMAP for the people}
 # Not too shabby!
-# maybe drop the size and alpha a bit to see more
 scater::plotReducedDim(norm_sce, "UMAP", colour_by = "celltype_predictions", 
                        point_alpha = 0.4, point_size = 0.25)
 ```
+
+
+It might be helpful to hone in on the most prevalent celltypes only for ease of visualization.
+
+```{r}
+# The top 5 cell types account for over 98% of the cells!
+celltype_counts %>%
+  dplyr::slice(1:5) %>%
+  dplyr::summarize(sum(n) / sum(celltype_counts$n))
+
+top_celltypes <- as.character(celltype_counts$celltype[1:5]) 
+
+# Recode a new celltype vector with top 5 separated from "other" using some forcats magic
+norm_sce$celltype_predictions_top <- forcats::fct_lump_n(norm_sce$celltype_predictions, 5)
+
+scater::plotReducedDim(norm_sce, "UMAP", colour_by = "celltype_predictions_top", 
+                       point_alpha = 0.6, point_size = 0.25)
+```
+
+## ADT "celltyping"
+
+We can leverage the ADTs as protein markers to identify likely celltypes, which can be compared back to the `SingleR` annotations as a form of validation.
+
+
+```{r}
+# What are the proteins?
+rownames(altExp(norm_sce))
+
+# Which ADT is the most prevalent for each cell? 
+max_adt_indices <- apply(
+  logcounts(altExp(norm_sce)),
+  2,
+  which.max
+)
+max_adt <- rownames(altExp(norm_sce))[max_adt_indices]
+
+unique(max_adt)
+
+# Add this into the main SCE experiment for UMAPing
+norm_sce$max_adt <- max_adt
+
+
+# Misc thinking...how can we quantify this?
+## ratio of biggest:\sum(rest)?
+## difference between highest and next highest?
+```
+
+Happily, none of these is the control!
+What are these proteins, and what celltypes might they indicate?
+In the source quotes below, I have added the bold to the celltypes.
+
+- `CD3`
+  - "CD3 (cluster of differentiation 3) is a protein complex and T cell co-receptor that is involved in activating both the **cytotoxic T cell (CD8+ naive T cells) and T helper cells (CD4+ naive T cells).** ... This high specificity, combined with the presence of CD3 at all stages of T-cell development, makes it a useful immunohistochemical marker for T-cells in tissue sections."  [source](https://en.wikipedia.org/wiki/CD3_(immunology))
+- `CD4`
+  - TCR co-receptor that we can probably assume is mostly on CD4+ T-cells
+- `CD8`
+  - TCR co-receptor that we can probably assume is mostly on CD8+ T-cells
+- `CD11c`
+  - "CD11c is a type I transmembrane protein that is expressed on **monocytes**, **granulocytes**, a subset of **B cells**, **dendritic cells**, and **macrophages** and may be demonstrated on B-cell chronic lymphocytic leukemia, marginal zone lymphomas, and hairy cell leukemia." [source](https://www.sciencedirect.com/topics/neuroscience/cd11c)
+- `CD14`
+  - "CD14 is a glycolipid-anchored membrane glycoprotein expressed on cells of the myelomonocyte lineage including **monocytes**, **macrophages**, and some **granulocytes**." [source](https://www.sciencedirect.com/topics/neuroscience/cd14)
+- `CD16`
+  - "CD16 is involved in antibody-dependent cell-mediated cytotoxicity and is expressed on large granular lymphocytes (LGLs) of both **NK- and T-cell types**." [source](https://www.sciencedirect.com/topics/neuroscience/cd16)
+- `CD19`
+  - "CD19 is an IgSF surface glycoprotein of 95 kDa that is expressed from the earliest stages of **B cell** development until plasma cell terminal differentiation, when its expression is lost." [source](https://www.sciencedirect.com/topics/neuroscience/cd19)
+- `CD56`
+  - "CD56 expression is also found in, among others, the hematopoietic system. Here, the expression of CD56 is mostly associated with, but not limited to, **natural killer cells**. CD56 has been detected on other lymphoid cells, including **gamma delta Τ cells and activated CD8+ T cells**, as well as on **dendritic cells**." [source](https://en.wikipedia.org/wiki/Neural_cell_adhesion_molecule)
+
+
+
+Let's color cells by their most prevalent ADT:
+
+```{r does anybody have a UMAP}
+scater::plotReducedDim(norm_sce, "UMAP", colour_by = "max_adt", 
+                       point_alpha = 0.6, point_size = 0.25)
+
+# let's also run this to see them side-by-side
+scater::plotReducedDim(norm_sce, "UMAP", colour_by = "celltype_predictions_top", 
+                       point_alpha = 0.6, point_size = 0.25)
+```
+
 
 
 ## sessionInfo
