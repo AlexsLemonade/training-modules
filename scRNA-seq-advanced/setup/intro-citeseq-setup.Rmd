@@ -16,7 +16,6 @@ output:
 set.seed(2022)
 
 library(magrittr)
-
 library(SingleCellExperiment)
 library(SingleR)
 library(bluster) 
@@ -24,6 +23,9 @@ library(bluster)
 
 
 ### Download Data
+
+
+This data comes from this 10x Genomics Dataset: https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p. 
 
 To get the raw data:
 ```{sh eval = FALSE}
@@ -34,6 +36,7 @@ tar -xf $NAME
 
 
 # For posterity, first attempt was with MALT, but it had wildly low ADT counts
+# Dataset link: https://www.10xgenomics.com/resources/datasets/10-k-cells-from-a-malt-tumor-gene-expression-and-cell-surface-protein-3-standard-3-0-0
 #NAME=malt_10k_protein_v3_raw_feature_bc_matrix.tar.gz
 #wget https://cf.10xgenomics.com/samples/cell-exp/3.0.0/malt_10k_protein_v3/$NAME
 ```
@@ -44,7 +47,6 @@ tar -xf $NAME
 pbmc_10x_dir <- "raw_feature_bc_matrix"
 # for now..
 mito_file <- "https://raw.githubusercontent.com/AlexsLemonade/scpca-downstream-analyses/main/reference-files/Homo_sapiens.GRCh38.104.mitogenes.txt"
-
 
 
 pbmc_sce_raw <- DropletUtils::read10xCounts(pbmc_10x_dir)
@@ -103,8 +105,9 @@ altExp(pbmc_sce_split)
 rownames(altExp(pbmc_sce_split))
 ```
 
-These are all human surface proteins except `IgG1`, which is a mouse isotype that was used as a control. 
-If there's no contamination, there should be 0 counts for this protein since the data is human:
+These are all human surface proteins except `IgG1`, which is a mouse isotype that was used as a control, which we can determine via the Excel sheet "Download the excel file for a full list of clones and barcodes" from the kit page: https://www.biolegend.com/en-us/products/totalseq-b-human-universal-cocktail-v1dot0-20960?GroupID=GROUP28
+
+If there's no contamination, we expect ~0 counts for this protein since the data is human:
 
 ```{r}
 # Here's the counts assay:
@@ -149,36 +152,51 @@ filtered_sce <- scater::addPerCellQC(
   subsets = list(mito = mito_genes))
 
 
-# See that `sum` is RNA only and `total` is both RNA and ADT?
+# See that `sum` is RNA only and `total` is both RNA and ADT
 head(filtered_sce$sum)
 head(filtered_sce$total)
 
 all(filtered_sce$total >= filtered_sce$sum) # total is never going to be LOWER than sum
 ```
 
+First we'll build the `miQC` model and visualize it, including how it suggests to filter the cells.
 ```{r}
 miqc_model <- miQC::mixtureModel(filtered_sce) 
+
+# Show some miQC plots -
+miQC::plotModel(filtered_sce, miqc_model)
+
+miQC::plotFiltering(filtered_sce, 
+                    miqc_model)
+```
+
+Now, let's filter based on `miQC`:
+```{r}
+# Apply miQC filtering
 filtered_sce <- miQC::filterCells(filtered_sce,
                                   model = miqc_model)
 
+# What's left?
 dim(filtered_sce)
 ```
+
 
 
 ### Filter ADT
 
 We're not going to talk about this in depth, since it's still an active area of study! 
 But, be aware that RNA and ADTs are treated differently. 
-As always we recommend [Orchestrating](ttp://bioconductor.org/books/3.16/OSCA.advanced/integrating-with-protein-abundance.html).
+As always we recommend [Orchestrating](http://bioconductor.org/books/3.16/OSCA.advanced/integrating-with-protein-abundance.html).
 
-We will focus on only removing 0 count cells.
+We will focus on only removing cells with `cleanTagCounts` which will flag cells for removal if there is no detectable ambient concentration, based on an ambient scaling factor that the function calculates.
+Note that "cells with unusally high values" also get flagged for removal since the they "are assumed to be affected by protein aggregates." 
 
 ```{r}
-# Run some QC on the tags
+# Run QC on the tags
 adt_qc_df <- DropletUtils::cleanTagCounts(altExp(filtered_sce))
 adt_qc_df
 
-# Keep only cells where discard is TRUE, indicating that ambient concentrations are neither too high nor too low.
+# Keep only cells where discard is TRUE
 cells_to_retain <- which(adt_qc_df$discard == FALSE)
 filtered_sce <- filtered_sce[, cells_to_retain]
 dim(filtered_sce)
@@ -345,10 +363,20 @@ scater::plotReducedDim(norm_sce, "UMAP", colour_by = "max_adt",
 We can introduce annotation with `SingleR`, and it might be a good idea to show how the results are highly influenced by the reference. 
 For now, I'm just using the `HumanPrimaryCellAtlasData` reference as a starting place.
 Note that all references here involve some caching, and we can expect some interactive prompting to go by for setting up these caches that we'll have to walk everyone through.
+Specifically, the prompt is:
 
+
+```markdown
+/home/ccdl/stephanie/.cache/R/ExperimentHub 
+  does not exist, create directory? (yes/no):
+```
+Everyone needs to type **yes** since there is no default.
+If they hit enter, the prompt will keep prompting.  
 
 ```{r}
 ref_data <- celldex::HumanPrimaryCellAtlasData(ensembl = TRUE) # pick one for now to start
+
+# Note that this variable has an uppercase R - watch for case typos!
 singleR_predictions <- SingleR::SingleR(
   test = norm_sce, 
   ref = ref_data,
@@ -356,13 +384,13 @@ singleR_predictions <- SingleR::SingleR(
   # faster!
   BPPARAM = BiocParallel::MulticoreParam(4)
 )
-preds
+singleR_predictions
 
 # We can place these into the sce
-norm_sce$celltype_predictions <- preds$pruned.labels
+norm_sce$celltype_predictions <- singleR_predictions$pruned.labels
 
 # **heavily** biased towards monocytes and T-cells
-celltype_counts <- preds %>%
+celltype_counts <- singleR_predictions %>%
   as.data.frame() %>%
   dplyr::count(pruned.labels) %>%
   dplyr::arrange(desc(n))
@@ -375,7 +403,7 @@ celltype_counts
 
 Visualize the predictions in a couple ways:
 ```{r}
-SingleR::plotScoreHeatmap(preds)
+SingleR::plotScoreHeatmap(singleR_predictions)
 ```
 
 
@@ -386,7 +414,7 @@ scater::plotReducedDim(norm_sce, "UMAP", colour_by = "celltype_predictions",
 ```
 
 
-It might be helpful to hone in on the most prevalent cell types only for ease of visualization, but this is a bit more advanced to dive into.
+It might be helpful to hone in on the most prevalent ADT for each cell:
 
 ```{r}
 # The top 5 cell types account for over 98% of the cells!
