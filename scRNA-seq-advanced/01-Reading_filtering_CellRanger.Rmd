@@ -1,0 +1,134 @@
+---
+title: "Reading and filtering scRNA-seq data"
+author: Data Lab for ALSF
+date: 2022
+output:
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+## Objectives
+
+This notebook will demonstrate how to:
+
+- Read Cell Ranger data into R, including CITE-seq data
+- Filter to cells using `emptyDropsCellRanger()`
+- Calculate quality control measures
+- Remove likely compromised cells with `miQC()`
+
+---
+
+
+In this notebook, we will
+
+
+
+## Set Up
+
+```{r setup}
+# Load libraries
+library(magrittr)
+library(SingleCellExperiment)
+
+
+# Setting the seed for reproducibility
+set.seed(12345)
+```
+
+### Directories and files
+
+The data we will be using for this module comes from a a 10X Genomics data set of expression data from  human peripheral blood mononuclear cells collection from a healthy volunteer.
+The cells were labeled with a panel of a panel of nine [TotalSeq™-B antibodies (BioLegend)](https://www.biolegend.com/en-us/products/totalseq-b-human-tbnk-cocktail-19043).
+
+The gene expression data and and antibody tag counts were processed with Cell Ranger 6.0.
+We have provided the raw data folder 
+
+
+```{r filepaths}
+# main data directory
+data_dir <- file.path("data", "PBMC-TotalSeqB")
+
+# Path to the Cell Ranger matrix
+raw_matrix_dir <- file.path(data_dir, "raw_feature_bc_matrix")
+
+# reference data directory
+ref_dir <- file.path("data", "reference")
+# Path to mitochondrial genes table
+mito_file <- file.path(ref_dir, "hs_mitochondrial_genes.tsv")
+
+# Directory and file to save output
+normalized_dir <- file.path(data_dir, "normalized")
+if (!dir.exists(normalized_dir)) {
+  dir.create(normalized_dir, recursive = TRUE)
+}
+
+output_sce_file <- file.path(normalized_dir, "pbmc_totalseq_sce.rds")
+
+```
+
+
+## Reading Cell Ranger data
+
+```{r}
+raw_sce <- DropletUtils::read10xCounts(raw_matrix_dir) 
+```
+
+Look at the object:
+```{r}
+raw_sce
+```
+
+36611 features, 2421702 droplet barcodes.
+
+### Separating gene expression from antibody tags
+
+```{r}
+head(rowData(raw_sce))
+```
+```{r}
+table(rowData(raw_sce)$Type)
+```
+
+
+```{r}
+# Split out the ADT into an altExp
+raw_sce <- splitAltExps(raw_sce, 
+                        # "Gene Expression" or "Antibody Capture"
+                        rowData(raw_sce)$Type, 
+                        # The Type which should be the main experiment
+                        "Gene Expression")
+```
+
+```{r}
+raw_sce
+```
+```{r}
+altExpNames(raw_sce) <- "ADT"
+```
+
+```{r}
+dim(raw_sce)
+```
+```{r}
+dim(altExp(raw_sce, "ADT"))
+```
+
+
+### Filtering empty droplets
+
+Most droplets are empty
+
+```{r}
+droplet_df <- DropletUtils::emptyDropsCellRanger(
+  counts(raw_sce), 
+  BPPARAM = BiocParallel::MulticoreParam(4)
+)
+
+
+cells_to_retain <- which(droplet_df$FDR <= 0.01)
+filtered_sce <- raw_sce[, cells_to_retain]
+```
+
+
+
