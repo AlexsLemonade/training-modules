@@ -29,6 +29,7 @@ In this notebook, we will
 ```{r setup}
 # Load libraries
 library(magrittr)
+library(ggplot2)
 library(SingleCellExperiment)
 
 
@@ -95,9 +96,9 @@ table(rowData(raw_sce)$Type)
 # Split out the ADT into an altExp
 raw_sce <- splitAltExps(raw_sce, 
                         # "Gene Expression" or "Antibody Capture"
-                        rowData(raw_sce)$Type, 
+                        f = rowData(raw_sce)$Type, 
                         # The Type which should be the main experiment
-                        "Gene Expression")
+                        ref = "Gene Expression")
 ```
 
 ```{r}
@@ -125,10 +126,204 @@ droplet_df <- DropletUtils::emptyDropsCellRanger(
   BPPARAM = BiocParallel::MulticoreParam(4)
 )
 
-
 cells_to_retain <- which(droplet_df$FDR <= 0.01)
 filtered_sce <- raw_sce[, cells_to_retain]
 ```
 
+```{r}
+filtered_sce
+```
+### Calculating QC statistics
 
+Get the mitochondrial genes
+```{r}
+mito_genes <- readr::read_tsv(mito_file) %>%
+  dplyr::filter(gene_id %in% rownames(filtered_sce)) %>%
+  dplyr::pull(gene_id)
+```
+
+
+```{r}
+filtered_sce <- scuttle::addPerCellQC(filtered_sce,
+                                      subsets = list(mito = mito_genes))
+```
+
+```{r}
+cell_stats <- colData(filtered_sce) %>%
+  as.data.frame()
+cell_stats
+```
+
+### Filtering compromised cells
+
+
+```{r}
+ggplot(cell_stats, aes(x = detected, y = subsets_mito_percent)) +
+  geom_point(alpha = 0.2)
+```
+
+Fit a mixture model 
+```{r}
+miqc_model <- miQC::mixtureModel(filtered_sce) 
+```
+
+Plot the model results
+```{r}
+miQC::plotModel(filtered_sce, miqc_model)
+```
+
+
+```{r}
+miQC::plotFiltering(filtered_sce, miqc_model)
+```
+```{r}
+qcfiltered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
+```
+
+
+### Filtering by ADT results
+
+We're not going to talk about this in depth, since it's still an active area of study! 
+But, be aware that RNA and ADTs are treated differently. 
+As always we recommend [Orchestrating](http://bioconductor.org/books/3.16/OSCA.advanced/integrating-with-protein-abundance.html).
+
+### Removing negative controls
+
+
+
+
+One quick option is the `DropletUtils::cleanTagCounts()` function, which will flag cells for removal if there is no detectable ambient concentration of tags.
+Cells with "unusually" high values of an ambient scaling factor also get flagged for removal since the those droplets are more likely to be affected by protein aggregates. 
+
+In this case, we are going to take advantage of the fact that we still have the raw data that contains "empty" droplets with no cells to estimate the expected ambient profile, and then use the relative values to identify outliers.
+
+If empty droplets are not available, you can leave off the `ambient` argument and `DropletUtils::cleanTagCounts()` will estimate an ambient profile based on the assumption that cells either do or do not express each surface protein, which should result in a bimodal distribution of tag counts.
+
+```{r}
+adt_ambient <- DropletUtils::ambientProfileEmpty(altExp(raw_sce))
+```
+
+
+```{r}
+# Run QC on the tags
+adt_qc_df <- DropletUtils::cleanTagCounts(
+  altExp(qcfiltered_sce),
+  ambient = adt_ambient
+)
+adt_qc_df
+```
+
+We can look at how many cells will be removed by each of these two measures.
+```{r}
+sum(adt_qc_df$discard)
+sum(adt_qc_df$zero.ambient)
+sum(adt_qc_df$high.ambient)
+```
+
+We definitely want to remove any cells with zero counts, as those could cause trouble later.
+Whether you believe the upper outliers is probably worth more exploration, but we will remove them as well for simplicity.
+
+```{r}
+qcfiltered_sce <- qcfiltered_sce[, which(!adt_qc_df$discard)]
+```
+
+
+## Normalization and Dimension Reduction
+
+### RNA-seq normalization
+
+We will start with normalizing the RNA-seq data.
+The goal here is to convert the raw counts into a measure that accounts for differences in sequencing depth between cells, and to convert the distribution of expression values from the skewed distribution we expect to see in raw counts to one that is more normally distributed.  
+
+```{r}
+# Normalize RNA
+qclust <- scran::quickCluster(qcfiltered_sce)
+qcfiltered_sce <- scran::computeSumFactors(qcfiltered_sce, clusters = qclust)
+normalized_sce <- scuttle::logNormCounts(qcfiltered_sce)
+```
+
+This creates a new "assay" in the `normalized_sce` object, `logcounts`, which contains the normalized count values.
+
+```{r}
+normalized_sce
+
+```
+
+### ADT Normalization
+
+```{r}
+adt_sf <- scuttle::medianSizeFactors(
+  altExp(normalized_sce), 
+  reference = adt_ambient )
+sum(adt_sf == 0)
+
+```
+```{r}
+altExp(normalized_sce) <- scater::logNormCounts(
+  altExp(normalized_sce), 
+  size.factors = adt_sf
+)
+```
+
+
+### Dimension Reduction
+
+HVGs:
+```{r}
+num_genes <- 2000
+
+gene_variance <- scran::modelGeneVar(normalized_sce)
+hv_genes <- scran::getTopHVGs(gene_variance,
+                              n = num_genes)
+```
+
+PCA:
+```{r}
+# Do we want to set the number of PCs?
+normalized_sce <- scater::runPCA(normalized_sce,
+                                 subset_row = hv_genes)
+```
+
+UMAP:
+```{r}
+normalized_sce <- scater::runUMAP(normalized_sce,
+                                  dimred = "PCA")
+```
+
+
+
+## Unsupervised clustering
+```{r}
+nn_k <- 20
+nn_clusters <- bluster::clusterRows(
+  reducedDim(normalized_sce, "PCA"), 
+  bluster::NNGraphParam(
+    k = nn_k, 
+    type = "jaccard",
+    cluster.fun = "louvain",
+    BPPARAM = BiocParallel::MulticoreParam(4)
+  )
+)
+
+normalized_sce$nn_cluster <- nn_clusters
+```
+
+```{r}
+scater::plotUMAP(normalized_sce,
+                 colour_by = "nn_cluster")
+```
+
+## Save normalized results
+
+```{r}
+saveRDS(normalized_sce, file = output_sce_file)
+```
+
+
+
+## Session Info
+
+```{r session info}
+sessionInfo()
+```
 
