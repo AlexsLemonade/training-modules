@@ -34,7 +34,7 @@ We'll download three different samples from this project that have the same tech
 
 To get the raw data:
 ```{sh eval = FALSE}
-# Unclear to me what the link is to curl/wget these....?
+# Unclear to me what the link is (if there is a link?) to curl/wget these....?
 ```
 
 It would be nice for reading in paths (since library and sample names are different) if we could get all the `_filtered.rds` files into the same directory `SCPCP000005-samples` here.
@@ -103,6 +103,7 @@ sce_list <- purrr::map(
 
 We now need to combine these SCEs into 1 object, which requires some bookkeeping.
 Specifically, we need to ensure:
+
 - Genes/features (aka, the `rowData` slot names) must match
 - The `colData` column names must match
 - That we can identify the original library each cell came from
@@ -263,7 +264,7 @@ There are more integration tools, like `harmony` for example!
 
 # harmony can either start with PCs or with normalized (uncorrected) expression
 # we already have PCs so let's just ask harmony to use those:
-integrated_sce_harmony <- harmony::HarmonyMatrix(
+harmony_result <- harmony::HarmonyMatrix(
       # PCs
       data_mat  = reducedDim(combined_sce, "PCA"), 
       # batch information
@@ -279,10 +280,10 @@ integrated_sce_harmony <- harmony::HarmonyMatrix(
 #)
 
 # The result is just a bunch of PCs!
-head(integrated_sce_harmony)
+head(harmony_result)
 
 # Let's store this directly into our `combined_sce` object, making sure to name it well!
-reducedDim(combined_sce, "harmony_PCA") <- integrated_sce_harmony
+reducedDim(combined_sce, "harmony_PCA") <- harmony_result
 
 # Calculate UMAP with the right name for PCs:
 # We do NOT want to overwrite the uncorrected UMAP! Make sure to name this differently with `name`
@@ -311,6 +312,85 @@ scater::plotReducedDim(combined_sce,
                        point_size = 0.5,
                        point_alpha = 0.4) +
   ggplot2::ggtitle("After integration with harmony")
+
+```
+
+
+### Commparing back to celltypes
+
+In an ideal world, we'd have cell types to refer to in UMAPs as well; well-integrated datasets should show more clustering of cell types and less clustering of batches.
+Surprise, it's an ideal world!
+
+
+Before we look at cell types, it might be nice to have all our UMAPs in one place.
+Since we already have the unintegrated and harmony UMAPs in `combined_sce`, let's just go ahead and add `fastmnn` UMAPs into that SCE as well.
+We can use `combined_sce` going forward.
+```{r}
+reducedDim(combined_sce, "fastmnn_UMAP") <- reducedDim(integrated_sce, "UMAP")
+```
+
+
+Magic celltypes!
+Note that these subtypes only have the current libraries in them but this super quick to update with, for example, exercise libraries.
+Also note, we could go a bit rogue and start with SCEs that have the celltypes in `colData` already?
+```{r}
+celltypes <- readr::read_tsv(file.path(data_dir, "celltypes.tsv"))
+celltypes
+```
+
+We'd like to add these celltypes into the `colData` slot of `combined_sce` so that we can color UMAPs by it.
+Earlier we formatted the `colData` rownames as `batch-barcode`, and that information is also in the celltypes TSV.
+
+```{r}
+# Let's wrangle celltypes a bit to have exactly matching information:
+celltypes <- celltypes %>%
+  dplyr::mutate(cell_id = glue::glue("{library}-{barcode}")) %>%
+  dplyr::select(cell_id, celltype)
+celltypes
+
+# Let's add it into the colData with some wrangling to join
+# code suggestions welcome here!
+colData(combined_sce) <- as.data.frame(colData(combined_sce)) %>%
+  tibble::rownames_to_column("cell_id") %>%
+  dplyr::inner_join(celltypes) %>%
+  S4Vectors::DataFrame()
+```
+
+### Celltype UMAPs
+
+Let's compare before, fastmnn, and harmony UMAPs highlighting cell types instead of libraries.
+
+
+```{r}
+# Before
+scater::plotReducedDim(combined_sce,
+                       dimred = "UMAP",
+                       colour_by = "celltype",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Before integration")
+
+
+# fastmnn
+scater::plotReducedDim(combined_sce,
+                       dimred = "fastmnn_UMAP",
+                       colour_by = "celltype",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Integration with fastMNN")
+
+
+# harmony
+scater::plotReducedDim(combined_sce,
+                       dimred = "harmony_UMAP",
+                       colour_by = "celltype",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Integration with harmony")
+
 
 ```
 
