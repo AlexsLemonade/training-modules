@@ -1,0 +1,321 @@
+---
+title: "Setup: Integration Module"
+author: "Stephanie Spielman for the Data Lab"
+date: "`r Sys.Date()`"
+output: 
+  html_notebook:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: false
+---
+
+## Setup
+
+```{r setup, include=FALSE}
+set.seed(2022)
+
+library(magrittr) # do we want |> instead?
+library(batchelor) # fastMNN
+library(SingleCellExperiment)
+```
+
+
+## Download Data
+
+
+This data comes from ScPCA project SCPCP000005 (https://scpca.alexslemonade.org/projects/SCPCP000005) which also has celltype information.
+We'll download three different samples from this project that have the same technology (single-nucleus, 10Xv3)
+
+- SCPCS000252
+- SCPCS000253
+- SCPCS000254
+
+To get the raw data:
+```{sh eval = FALSE}
+# Unclear to me what the link is to curl/wget these....?
+```
+
+It would be nice for reading in paths (since library and sample names are different) if we could get all the `_filtered.rds` files into the same directory `SCPCP000005-samples` here.
+
+## Functional programming!
+
+We'll have to take the same steps several times across several SCEs, why not use some functions to help us!
+Even better, why not use some functional programming?!
+Come along!
+
+
+## Loading Data
+
+```{r}
+data_dir <- "SCPCP000005-samples"
+
+# Let's make this a list of paths:
+sce_names <- c(
+  "SCPCL000478", 
+  "SCPCL000479",
+  "SCPCL000480"
+)
+sce_paths <- as.list(
+  file.path(data_dir, glue::glue("{sce_names}_filtered.rds"))
+)
+names(sce_paths) <- sce_names
+
+# We can read all these files in at once! Magic!
+sce_list <- purrr::map(
+  sce_paths,
+  readr::read_rds
+)
+
+# We now have a named list of SCE objects
+sce_list
+```
+
+### Filter and normalize the SCEs
+
+We can proceed to do some pre-processing:
+```{r}
+filter_and_normalize_sce <- function(sce) {
+  
+  # Filter based on miQC:
+  filtered_sce <- sce[, which(sce$miQC_pass)]
+
+  # Normalize:
+  qclust <- scran::quickCluster(filtered_sce)
+  filtered_sce <- scran::computeSumFactors(filtered_sce, clusters = qclust)
+  norm_sce <- scater::logNormCounts(filtered_sce)
+  
+  # Return the normalized SCE
+  return(norm_sce) 
+}
+
+# Note: I do think we should use `sce_list` throughout rather than different variable names because of _memory_
+sce_list <- purrr::map(
+  sce_list,
+  filter_and_normalize_sce
+)
+```
+
+
+
+### Combine the SCEs
+
+We now need to combine these SCEs into 1 object, which requires some bookkeeping.
+Specifically, we need to ensure:
+- Genes/features (aka, the `rowData` slot names) must match
+- The `colData` column names must match
+- That we can identify the original library each cell came from
+- Other useful information can still be found
+
+
+```{r}
+# What are the genes in common? Hold onto this vector!
+# For these data they already had the same genes, but no guarantees of that
+#   with data in the wild
+shared_genes <- sce_list %>%
+  # get rownames for each entry in sce_list
+  purrr::map(rownames) %>%
+  # find their intersection
+  purrr::reduce(intersect)
+
+# What are the colData names?
+purrr::map(sce_list, 
+           ~names(colData(.))) 
+
+# Some purrr magic can quickly show us any differences 
+purrr::map(sce_list, 
+           ~names(colData(.))) %>%
+  purrr::reduce(setdiff)
+
+# Let's have a peek at the rowData:
+# `mean` and `detected` are SCE-specific, but `gene_symbol` is not! Bookkeeping!
+purrr::map(sce_list, 
+           ~names(rowData(.)))
+```
+
+We want to format each SCE to meet our criteria:
+```{r}
+format_sce_list <- function(sce, sce_name, shared_genes) {
+  
+  # Reduce to shared genes
+  sce <- sce[shared_genes,]
+
+  # Update the colData row names so we can know where cells came from back
+  # Alternatively we can just get rid of a lot of this?
+  # glue is great!
+  rownames(colData(sce)) <- glue::glue("{sce_name}-{rownames(colData(sce))}")
+  
+  # Update the rowData names, except `gene_symbol`
+  names(rowData(sce)) <- ifelse(names(rowData(sce)) == "gene_symbol",
+                                "gene_symbol",
+                                glue::glue("{sce_name}-{rownames(rowData(sce))}")
+    
+  ) 
+  # Add in batch information as stand-alone column 
+  colData(sce)$batch <- sce_name
+  
+  # Return 
+  return(sce)
+}
+
+
+# Prepare the sce_list for combining
+sce_list <- purrr::imap(sce_list, 
+                        format_sce_list,
+                        shared_genes)
+
+# Combine!
+combined_sce <- do.call(cbind, sce_list)
+combined_sce
+
+# We can remove this now if we want for memory:
+rm(sce_list)
+```
+
+
+### Dimension reduction
+
+Before proceeding with integration, let's calculate UMAP embeddings on the unintegrated combined SCE.
+Then, we can compare the UMAP pre- and post-integration.
+
+```{r}
+# calculate high-variance genes to use for dimension reduction
+gene_variance <- scran::modelGeneVar(combined_sce)
+hvg_list <- scran::getTopHVGs(gene_variance,
+                              n = 5000) # thoughts here?
+  
+# Add PCA and UMAP into the SCE
+combined_sce <- scater::runPCA(combined_sce, 
+                                subset_row = hvg_list) %>%
+  scater::runUMAP(dimred = "PCA")
+
+combined_sce
+```
+
+
+### Integration
+
+To start, we'll use `fastMNN` from the `batchelor` package:
+
+```{r}
+integrated_sce <- batchelor::fastMNN(combined_sce,
+                                     # Specify the batches:
+                                     batch = colData(combined_sce)$batch,
+                                     # Optionally specify genes to use as the previously-ID'd 
+                                     # high variance genes
+                                     subset.row = hvg_list
+                                     )
+
+integrated_sce
+```
+- The `reconstructed` assay are corrected expression values. 
+Make sure to not use them for DE though!
+
+- The `corrected` reduced dimensions are the PCs resulting from the corrected expression values. 
+We can calculate UMAP embeddings from the PCs.
+
+
+```{r}
+# Specify the object's `reducedDim` name
+integrated_sce <- scater::runUMAP(integrated_sce, dimred = "corrected")
+integrated_sce
+```
+
+#### The before/after reveal
+
+```{r}
+# Before
+scater::plotReducedDim(combined_sce,
+                       dimred = "UMAP",
+                       colour_by = "batch",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Before integration")
+
+
+# After
+scater::plotReducedDim(integrated_sce,
+                       dimred = "UMAP",
+                       colour_by = "batch",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("After integration with fastmnn")
+
+```
+
+
+
+
+### Integration, again!
+
+There are more integration tools, like `harmony` for example! 
+`harmony` differs from `fastMNN` (the entire algorithm-aside) in a few key ways:
+
+- `harmony` allows you to specify additional covariates (technology, patient, diagnosis, etc.)
+  - This requires slightly more setup - you'd need to pass in a data frame of covariates, not just a batch vector
+- `harmony` does not calculate corrected expression values and only returns a matrix of corrected PCs
+- a bonus key way is that `harmony` is on CRAN but `batchelor` is on Bioc
+
+```{r}
+
+# harmony can either start with PCs or with normalized (uncorrected) expression
+# we already have PCs so let's just ask harmony to use those:
+integrated_sce_harmony <- harmony::HarmonyMatrix(
+      # PCs
+      data_mat  = reducedDim(combined_sce, "PCA"), 
+      # batch information
+      meta_data = colData(combined_sce)$batch,
+      # don't run PCA since we gave PCs in `data_mat` argument
+      do_pca = FALSE
+    )
+
+# If we wanted to start with expression and have harmony calculate PCs for us:
+#harmony::HarmonyMatrix(
+#  data_mat  = logcounts(combined_sce), 
+#  meta_data = colData(combined_sce)$batch
+#)
+
+# The result is just a bunch of PCs!
+head(integrated_sce_harmony)
+
+# Let's store this directly into our `combined_sce` object, making sure to name it well!
+reducedDim(combined_sce, "harmony_PCA") <- integrated_sce_harmony
+
+# Calculate UMAP with the right name for PCs:
+# We do NOT want to overwrite the uncorrected UMAP! Make sure to name this differently with `name`
+combined_sce <- scater::runUMAP(combined_sce, dimred = "harmony_PCA", name = "harmony_UMAP")
+```
+
+#### The before/after reveal, again!
+
+
+```{r}
+# Before
+scater::plotReducedDim(combined_sce,
+                       dimred = "UMAP",
+                       colour_by = "batch",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Before integration")
+
+
+# After
+scater::plotReducedDim(combined_sce,
+                       dimred = "harmony_UMAP",
+                       colour_by = "batch",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("After integration with harmony")
+
+```
+
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
