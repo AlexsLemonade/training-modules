@@ -13,8 +13,8 @@ output:
 ## Setup
 
 ```{r setup, include=FALSE}
-library(magrittr) # do we want |> instead?
-library(batchelor) # fastMNN
+library(magrittr) 
+library(batchelor)
 library(harmony)
 library(SingleCellExperiment)
 ```
@@ -29,7 +29,7 @@ We use four different samples from this project that have the same technology (s
 - `SCPCS000252` (`SCPCL000478`)
 - `SCPCS000253` (`SCPCL000479`)
 - `SCPCS000254` (`SCPCL000480`)
-- `SCPCS000265` (`SCPCL000491`)
+- `SCPCS000255` (`SCPCL000481`)
 
 
 ## Functional programming!
@@ -78,7 +78,24 @@ celltypes_file <- file.path(data_dir, "celltypes.tsv")
 
 celltypes_df <- readr::read_tsv(celltypes_file)
 celltypes_df
+
+# What are the subtypes in this data?
+unique(celltypes_df$celltype)
 ```
+
+We'll also create a second cell type column, `celltype_broad`, which groups together all the `Tumor_Myoblast-` and `Tumor_Myocyte-` categories into one each, and rename the current column to `celltype_fine` to differentiate.
+
+```{r}
+celltypes_df <- celltypes_df %>%
+  dplyr::mutate(celltype_broad = dplyr::case_when(
+    stringr::str_starts(celltype, "Tumor_Myoblast") ~ "Tumor_Myoblast",
+    stringr::str_starts(celltype, "Tumor_Myocyte") ~ "Tumor_Myocyte",
+    TRUE ~ celltype
+  )) %>%
+  # We'll also rename `celltype` to `celltype_fine`
+  dplyr::rename(celltype_fine = celltype)
+```
+
 
 ## Filter and normalize the SCEs
 
@@ -314,7 +331,9 @@ To get a sense of our data _before_ integrating, let's look at UMAPs for each in
 ```{r}
 plot_library_umap <- function(sce, sce_name) {
   scater::plotReducedDim(sce,
-                         dimred = "UMAP") +
+                         dimred = "UMAP", 
+                         point_size = 0.5, 
+                         point_alpha = 0.5) +
     ggplot2::ggtitle(sce_name)
 }
 
@@ -483,48 +502,62 @@ In an ideal world, we'd have cell types to refer to in UMAPs as well; well-integ
 Surprise, it's an ideal world!
 
 Our SCE objects in fact contain this. 
-What are the cell types that have been identified?
+Again, what are the cell types that have been identified?
 
 ```{r}
-unique(combined_sce$celltype)
+unique(combined_sce$celltype_broad)
 ```
 
 Let's compare before, fastmnn, and harmony UMAPs highlighting cell types instead of libraries.
 
 
-```{r}
+```{r, fig.width = 6, fig.height = 3}
 # Before
-scater::plotReducedDim(combined_sce,
+before_umap <- scater::plotReducedDim(combined_sce,
                        dimred = "combined_UMAP",
-                       colour_by = "celltype",
+                       colour_by = "celltype_broad",
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.4) +
-  ggplot2::ggtitle("Before integration")
+  ggplot2::ggtitle("Before integration") +
+  ggplot2::theme(legend.position = "bottom") +
+  # larger legend key
+  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 0.8)))
 
 
 # fastmnn
-scater::plotReducedDim(combined_sce,
+fastmnn_umap <- scater::plotReducedDim(combined_sce,
                        dimred = "fastmnn_UMAP",
-                       colour_by = "celltype",
+                       colour_by = "celltype_broad",
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.4) +
-  ggplot2::ggtitle("Integration with fastMNN")
+  ggplot2::ggtitle("Integration with fastMNN") +
+  ggplot2::theme(legend.position = "none")
 
 
 # harmony
-scater::plotReducedDim(combined_sce,
+harmony_umap <- scater::plotReducedDim(combined_sce,
                        dimred = "harmony_UMAP",
-                       colour_by = "celltype",
+                       colour_by = "celltype_broad",
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.4) +
-  ggplot2::ggtitle("Integration with harmony")
+  ggplot2::ggtitle("Integration with harmony") +
+  ggplot2::theme(legend.position = "none")
 
 
+shared_legend <- cowplot::get_legend(before_umap)
+
+umap_row <- cowplot::plot_grid(
+  before_umap + ggplot2::theme(legend.position = "none"),
+  fastmnn_umap, 
+  harmony_umap,
+  nrow = 1
+)
+  
+cowplot::plot_grid(umap_row, shared_legend, nrow = 2, rel_heights = c(1, 0.2))
 ```
-
 
 ## Session Info
 
