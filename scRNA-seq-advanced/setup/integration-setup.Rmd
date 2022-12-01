@@ -180,17 +180,26 @@ add_celltype_info <- function(sce, sce_name, celltypes_df) {
   # Add a matching barcode variable into the colData
   colData(sce)$barcode <- colnames(sce)
   
-  # Join cell type information in
-  colData(sce) <- celltypes_df %>%
+  # filter to cells in this SCE
+  celltypes_df <- celltypes_df %>%
     dplyr::filter(library == sce_name) %>%
-    dplyr::select(-library) %>%
-    # Use a right_join since there are more cells in the SCE than there are in
-    #  the celltypes
-    dplyr::right_join( as.data.frame(colData(sce)), by = "barcode" ) %>%
-  S4Vectors::DataFrame()
+    dplyr::select(-library)
   
-  # Don't lose the rownames!
-  rownames(colData(sce)) <- colData(sce)$barcode
+  # join colDdata to celltype
+  celltype_coldata <-  colData(sce) %>%
+    as.data.frame() %>%
+    # Use a left_join since there may be more cells in the SCE than there are in
+    #  the celltypes
+    dplyr::left_join(celltypes_df, by = "barcode" ) %>%
+    #convert back to a DataFrame with row names
+    S4Vectors::DataFrame(row.names = .$barcode)
+
+  # check that the names of the cells are still consistent
+  if (all(rownames(celltype_coldata) == colnames(sce))){
+    colData(sce) <- celltype_coldata
+  } else {
+    stop("Error joining celltype_df to colData")
+  }
 
   # Return the updated SCE
   return(sce)
