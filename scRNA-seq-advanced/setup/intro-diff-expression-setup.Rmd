@@ -27,37 +27,11 @@ library(edgeR)
 ```
 
 
-```{r}
-data_dir <- file.path("rhabdomyosarcoma")
-
-scpca_library_ids <- c(
-  "SCPCL000495",
-  "SCPCL000498",
-  "SCPCL000478",
-  "SCPCL000479",
-  "SCPCL000480",
-  "SCPCL000483",
-  "SCPCL000484",
-  "SCPCL000488"
-)
-
-filtered_file_names <- paste0(scpca_library_ids, "_filtered.rds")
-```
-
-Individual files are available on s3 in s3://scpca-portal-inputs/SCPCP000005
-```{r}
-# read in rds files and create sce list 
-filtered_file_paths <- file.path(data_dir, "filtered_scpca", filtered_file_names)
-
-sce_list <- purrr::map(filtered_file_paths, readr::read_rds)
-names(sce_list) <- scpca_library_ids
-```
+let's start with the integrated dataset first and then go back and deal with how we made it since a lot of what goes into creating the dataset for integration we can apply here too so we might want to reuse code 
 
 ```{r}
-## let's start with the integrated dataset first and then go back and deal with how we made it since a lot of what goes into creating the dataset for integration we can apply here too so we might want to reuse code 
-```
+data_dir <- file.path("..", "setup", "SCPCP000005-samples")
 
-```{r}
 combined_sce_file <- file.path(data_dir, "merged_sce", "SCPCP000005_merged_sce.rds")
 combined_sce <- readr::read_rds(combined_sce_file)
 
@@ -83,14 +57,15 @@ sample_metadata <- readr::read_tsv(file.path(data_dir, "rms_sample_metadata.tsv"
 # collapse cell types 
 coldata_df <- colData(combined_sce) %>%
   as.data.frame() %>%
-  dplyr::mutate(sub_celltype = celltype,
-                # remove any of the subtypes to create new cell type column 
-                celltype = stringr::str_remove(sub_celltype, "-[ABCD]")) %>%
+  tibble::rownames_to_column("cell_id") %>%
+  # remove any of the subtypes to create new cell type column 
+  dplyr::mutate(celltype_broad = stringr::str_remove(celltype, "-[ABCD]$"),
+                celltype_fine = celltype) %>%
   # merge with sample metadata 
   dplyr::left_join(sample_metadata, by = c("batch" = "library_id"))
 
 # add back to sce 
-colData(combined_sce) <- DataFrame(coldata_df, row.names = rownames(coldata_df))
+colData(combined_sce) <- DataFrame(coldata_df, row.names = coldata_df$cell_id)
 ```
 
 
@@ -107,7 +82,7 @@ scater::plotReducedDim(combined_sce,
 ```{r}
 scater::plotReducedDim(combined_sce,
                        dimred = "fastmnn_UMAP",
-                       colour_by = "celltype",
+                       colour_by = "celltype_broad",
                        point_size= 0.5) + 
                        #point_alpha = 0.4) +
   facet_wrap(~ combined_sce$batch, nrow = 3)
@@ -151,7 +126,7 @@ scater::plotReducedDim(rms_sce,
 ```{r}
 scater::plotReducedDim(rms_sce,
                        dimred = "fastmnn_UMAP",
-                       colour_by = "celltype",
+                       colour_by = "celltype_broad",
                        point_size= 0.5) + 
                        #point_alpha = 0.4) +
   facet_wrap(~ rms_sce$batch)
@@ -163,7 +138,7 @@ table(rms_sce$celltype)
 # can also print out a summary of the cell types across each library 
 colData(rms_sce) %>%
   as.data.frame() %>%
-  dplyr::count(batch, celltype) %>%
+  dplyr::count(batch, celltype_broad) %>%
   dplyr::group_split(batch)
 ```
 Tumor_Myoblast is definitely the top represented cell type 
@@ -196,7 +171,7 @@ Let's start with the simple comparison of looking at one cell type and comparing
 
 ```{r}
 # first let's subset our coldata to only have the columns we care about in pseudobulking 
-pseudobulked_coldata <- colData(rms_sce)[, c("celltype", "batch")]
+pseudobulked_coldata <- colData(rms_sce)[, c("celltype_broad", "batch")]
 
 # this creates a new SCE object that contains the pseudobulked counts across the provided groups 
 pseudobulked_sce <- scater::aggregateAcrossCells(rms_sce, 
@@ -218,8 +193,8 @@ colData(pseudobulked_sce)
 Now we filter to just the sub type of cells that we are interested in 
 
 ```{r}
-tumor_myoblast_sce <- pseudobulked_sce[, pseudobulked_sce$celltype == "Tumor_Myoblast"]
-table(tumor_myoblast_sce$celltype)
+tumor_myoblast_sce <- pseudobulked_sce[, pseudobulked_sce$celltype_broad == "Tumor_Myoblast"]
+table(tumor_myoblast_sce$celltype_broad)
 ```
 
 We should now see that there are only 6 samples left that all have the cell type `Tumor_Myoblast`. 
@@ -227,6 +202,9 @@ We should now see that there are only 6 samples left that all have the cell type
 ```{r}
 dge_list <- DGEList(counts(tumor_myoblast_sce),
                     samples = colData(tumor_myoblast_sce))
+
+# make column names equal to batch ids, helpful for plotting later 
+colnames(dge_list) <- dge_list$samples$batch
 dge_list
 ```
 Filter based on any low library counts. 
@@ -234,36 +212,250 @@ Filter based on any low library counts.
 ```{r}
 # filter by number of cells 
 low_cell_groups <- tumor_myoblast_sce$ncells < 10
-tumor_myoblast_sce <- tumor_myoblast_sce[, !low_cell_groups]
-
-# filter out genes that might be lowly expressed using filterbyExpr from DGE 
-
+dge_list <- dge_list[, !low_cell_groups]
 ```
+
+We also need to filter by any genes that are lowly expressed by removing any genes that are not expressed above a minimum threshold in a minimum number of samples.
+The minimum number of samples is based on the size of the smallest sample group in the design. 
+
+```{r}
+# filter out genes that might be lowly expressed using filterbyExpr in edgeR
+# provide sample groups from SCE to determine minimum sample size that genes should be expressed in 
+# we are grouping samples as ERMS vs. ARMS so use subdiagnosis
+genes_filter <- edgeR::filterByExpr(dge_list,
+                                     group = tumor_myoblast_sce$subdiagnosis)
+dge_list <- dge_list[genes_filter,]
+```
+
+Now we filtered the pseudobulked counts, we need to normalize these counts! 
+
+Use the trimmed mean of M-values method to compute normalization factors. 
+Counts are now large enough to apply bulk normalization methods rather than the deconvolution method that was used on individual libraries. 
 
 ```{r}
 # compute some normalization factors 
+dge_list <- edgeR::calcNormFactors(dge_list)
+dge_list$samples
 ```
+
+We make some Mean difference plots, but what do we get from these? 
 
 ```{r}
 # mean difference plots? 
+purrr::walk(1:ncol(dge_list), 
+            ~ plotMD(dge_list, column = .x))
 ```
 
 ```{r}
 # MDS scaling plot 
+# first compute counts per million 
+counts_per_million <- cpm(dge_list, log = TRUE)
+
+dge_list$samples <- dge_list$samples %>%
+  dplyr::mutate(diagnosis_groups = dplyr::case_when(
+    subdiagnosis == "Alveolar rhabdomyosarcoma" ~ "ARMS",
+    subdiagnosis == "Embryonal rhabdomyosarcoma" ~ "ERMS"
+  ))
+
+plotMDS(counts_per_million,
+        # add some colors based on our two groups
+        col = ifelse(dge_list$samples$diagnosis_groups == "ARMS", "black", "red"))
 ```
 
 Let's do some DE now! 
 
 ```{r}
 # set up design matrix 
+design_matrix <- model.matrix(~factor(subdiagnosis),
+                              dge_list$samples)
+design_matrix
 ```
 
 
 ```{r}
 # estimate dispersions 
+dge_list <- estimateDisp(dge_list, design = design_matrix)
+summary(dge_list$trended.dispersion)
 ```
 
 ```{r}
+plotBCV(dge_list)
+```
 
+```{r}
+# estimate the quasi-likelihood dispersions glm 
+glm_fit <- glmQLFit(dge_list, design_matrix, robust = TRUE)
+plotQLDisp(glm_fit)
+```
+
+```{r}
+results <- glmQLFTest(glm_fit, coef = ncol(design_matrix))
+summary(decideTests(results))
+```
+Let's make some plots! 
+
+```{r}
+# prep our dataframe for plotting 
+
+results_df <- results$table %>%
+  tibble::rownames_to_column("ensembl_id")
+
+sce_rowdata_df <- rowData(tumor_myoblast_sce) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("ensembl_id")
+
+results_df <- results_df %>%
+  dplyr::left_join(sce_rowdata_df, by = "ensembl_id") %>%
+  dplyr::mutate(significant = ifelse(PValue < 0.05, "yes", "no"))
+  
+```
+
+Let's use the `EnhancedVolcano` package. 
+
+```{r fig.height=5, fig.width=5}
+EnhancedVolcano::EnhancedVolcano(results_df,
+                                 lab = results_df$gene_symbol.SCPCL000478,
+                                 x = 'logFC',
+                                 y = 'PValue',
+                                 pCutoff = 0.05,
+                                 FCcutoff = 2,
+                                 pointSize = 2,
+                                 labSize = 5,
+                                 col = c("black", "black", "black", "red"),
+                                 legendPosition = 'none',
+                                 drawConnectors = TRUE)
+```
+
+Let's do the same thing, but with DESeq2. 
+And then compare the results. 
+
+```{r}
+coldata_df <- as.data.frame(colData(tumor_myoblast_sce)) %>%
+  dplyr::mutate(diagnosis_groups = dplyr::case_when(
+    subdiagnosis == "Alveolar rhabdomyosarcoma" ~ "ARMS",
+    subdiagnosis == "Embryonal rhabdomyosarcoma" ~ "ERMS"
+  ),
+  diagnosis_groups = as.factor(diagnosis_groups)) 
+
+coldata_df$diagnosis_groups <- relevel(coldata_df$diagnosis_groups, ref = "ERMS")
+  
+
+deseq_object <- DESeq2::DESeqDataSetFromMatrix(counts(tumor_myoblast_sce),
+                                               colData = coldata_df,
+                                               design = ~ diagnosis_groups)
+```
+
+Median of ratios method for count normalization followed by regularized log transformation
+
+```{r}
+normalized_object <- DESeq2::rlog(deseq_object, blind = TRUE, fitType = 'local')
+```
+
+
+Evaluate PCA 
+
+```{r}
+DESeq2::plotPCA(normalized_object, intgroup = "diagnosis_groups")
+```
+We can also label by other metadata to see if there are other factors that might be related to variation.
+
+```{r}
+DESeq2::plotPCA(normalized_object, intgroup = "disease_timing")
+```
+
+```{r}
+normalized_matrix <- assay(normalized_object)
+normalized_correlation <- cor(normalized_matrix)
+
+pheatmap::pheatmap(normalized_correlation, 
+         annotation = coldata_df[, "diagnosis_groups", drop = FALSE])
+```
+
+```{r}
+deseq_object <- DESeq2::DESeq(deseq_object)
+```
+Expect to see dispersions decrease as means are increasing and follow the line of best fit. 
+Here dispersions are increasing as mean is increasing but are following the line of best fit, so it looks okay I think? 
+
+```{r}
+plotDispEsts(deseq_object)
+```
+
+```{r}
+deseq_results <- DESeq2::results(deseq_object)
+shrink_results <- DESeq2::lfcShrink(deseq_object, res = deseq_results,
+                                       type = "ashr")
+```
+
+```{r}
+deseq_df <- shrink_results %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("ensembl_id")
+
+sce_rowdata_df <- rowData(tumor_myoblast_sce) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("ensembl_id")
+
+deseq_df <- deseq_df %>%
+  dplyr::left_join(sce_rowdata_df, by = "ensembl_id")
+
+```
+
+```{r}
+EnhancedVolcano::EnhancedVolcano(deseq_df,
+                x = 'log2FoldChange', # fold change statistic to plot
+                y = 'pvalue', # significance values
+                lab = deseq_df$gene_symbol.SCPCL000478, # labels for points
+                pCutoff = 1e-05, # The p value cutoff we will use (default)
+                FCcutoff = 1, # The fold change cutoff (default)
+                title = NULL, # no title
+                subtitle = NULL, # or subtitle
+                caption = NULL, # or caption
+                labSize = 3  # smaller labels
+                ) +
+  # change the overall theme
+  theme_classic() +
+  # move the legend to the bottom
+  theme(legend.position = "bottom")
+```
+
+```{r}
+# join the edgeR and DESeq results together and look at correlation? 
+# intersect between genes that are significant in both lists? 
+```
+
+Let's make some UMAPs where we plot a gene that's identified to be differentially expressed in a given cell type and see what the expression of that gene is across samples. 
+
+```{r}
+# add column to colData with expression of gene of interest 
+sig_expressed_genes <- deseq_df %>%
+  dplyr::filter(pvalue < 1e-5,
+                abs(log2FoldChange) > 2) %>%
+  dplyr::pull(ensembl_id)
+
+sig_genes_counts <- logcounts(combined_sce[sig_expressed_genes,]) %>%
+  as.matrix() %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::mutate(cell_id = colnames(combined_sce))
+  
+combined_coldata_df <- as.data.frame(colData(combined_sce)) %>%
+  dplyr::left_join(sig_genes_counts, by = "cell_id")
+  
+colData(combined_sce) <- DataFrame(combined_coldata_df, row.names = combined_coldata_df$cell_id)
+```
+
+
+```{r}
+myoblast_combined_sce <- combined_sce[, !is.na(combined_sce$celltype_broad) &
+                                        combined_sce$celltype_broad == "Tumor_Myoblast"]
+
+# should probably label by ARMS vs. ERMS in someway? 
+scater::plotReducedDim(myoblast_combined_sce,
+                       dimred = "fastmnn_UMAP",
+                       colour_by = "ENSG00000134532", #SOX2
+                       point_size= 0.5,
+                       point_alpha = 0.4) +
+  facet_wrap(~ myoblast_combined_sce$subdiagnosis, nrow = 3)
 ```
 
