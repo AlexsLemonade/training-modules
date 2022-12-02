@@ -34,7 +34,7 @@ mkdir -p scRNA-seq/data/mouse-liver
 
 # scRNA-seq-advanced module directories
 mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
-mkdir -p scRNA-seq-advanced/data/glioblastoma/raw
+mkdir -p scRNA-seq-advanced/data/glioblastoma
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -78,7 +78,7 @@ link_locs=(
   scRNA-seq/gene-sets
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
-  scRNA-seq-advanced/data/glioblastoma/raw/glioblastoma_raw_matrix.h5
+  scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
   scRNA-seq-advanced/data/reference
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
