@@ -1,25 +1,32 @@
 # Workflow for downloading and preprocessing SCPCP000005 data used for integration
+
 configfile: "config.yaml"
 workdir: config["base_dir"]
 
 rule target:
-    input:
-        expand(os.path.join({library}.rds"),
-               library = config["libraries"])
+  input:
+    expand(os.path.join(config['base_dir'], "{library}.rds"),
+           library = config["libraries"])
 
-rule download_libraries:
-  output:
-    expand(os.path.join({library}_filtered.rds"),
-               library = config["libraries"])
-  shell:
-    # curl from bucket? kill this rule?
+# TBD:
+#rule download_libraries:
+#  output:
+#    expand(os.path.join({library}_filtered.rds"),
+#               library = config["libraries"])
+#  shell:
+#    # curl from a bucket?
 
 
 rule prepare_libraries:
   output:
-    expand(os.path.join({library}.rds"),
-               library = config["libraries"])
+    expand(os.path.join(config['base_dir'], "{library}.rds"),
+           library = config["libraries"])
   shell:
     """
-      Rscript -e 'rmarkdown::render({config[setup_notebook]}'
+    Rscript -e "rmarkdown::render('{config[setup_notebook]}', \
+                        clean = TRUE,
+                        params = list(setup_only = TRUE, \
+                                      input_sce_path = '{config[raw_dir]}', \
+                                      output_sce_path = '{config[base_dir]}')
+                )
     """
