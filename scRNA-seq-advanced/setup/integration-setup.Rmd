@@ -8,6 +8,10 @@ output:
     toc_depth: 3
     toc_float: true
     number_sections: false
+params:
+  setup_only: FALSE
+  input_sce_path: "`r file.path('SCPCP000005-samples')`"
+  output_sce_path: "`r file.path('..', 'data', 'SCPCP000005-samples')`"
 ---
 
 ## Setup
@@ -24,13 +28,14 @@ library(SingleCellExperiment)
 
 
 This data comes from `ScPCA` project `SCPCP000005` (https://scpca.alexslemonade.org/projects/SCPCP000005) which also has cell type information.
-We use four different samples from this project that have the same technology (single-nucleus, 10Xv3), and these are expected to be saved in the directory `SCPCP000005-samples/`.
+We use four different samples from this project that have the same technology (single-nucleus, 10Xv3), and these unproccessed samples are expected to be saved in the directory specified in the `input_sce_path` parameter.
 
-- `SCPCS000252` (`SCPCL000478`)
-- `SCPCS000253` (`SCPCL000479`)
-- `SCPCS000254` (`SCPCL000480`)
-- `SCPCS000255` (`SCPCL000481`)
+- `SCPCS000252` (`SCPCL000478_filtered.rds`)
+- `SCPCS000253` (`SCPCL000479_filtered.rds`)
+- `SCPCS000254` (`SCPCL000480_filtered.rds`)
+- `SCPCS000255` (`SCPCL000481_filtered.rds`)
 
+Similarly, `celltypes.tsv` is expected to be in the directory specified in the `input_sce_path` parameter.
 
 ## Functional programming!
 
@@ -43,16 +48,17 @@ Come along!
 
 First we'll read in the SCE objects. 
 ```{r}
-data_dir <- "SCPCP000005-samples"
+if (!(dir.exists(params$input_sce_path))) {
+  stop("Bad `input_sce_path`; check parameter.")
+}
 
 # We'll export processes SCEs here:
-output_dir <- file.path("..", "data", "SCPCP00005")
-if (!(dir.exists(output_dir))) {
+if (!(dir.exists(params$output_sce_path))) {
   dir.create(output_dir, recursive = TRUE)
 }
 
 # Make this a list of paths:
-sce_paths <- list.files(data_dir, pattern = "_filtered.rds", full.names = TRUE)
+sce_paths <- list.files(params$input_sce_path, pattern = "_filtered.rds", full.names = TRUE)
 sce_names <- stringr::str_extract_all(sce_paths, "SCPCL\\d+") %>% unlist()
 sce_paths <- as.list(sce_paths)
 names(sce_paths) <- sce_names
@@ -74,7 +80,7 @@ These cell types were originally assigned in [this publication](https://doi.org/
 
 
 ```{r}
-celltypes_file <- file.path(data_dir, "celltypes.tsv")
+celltypes_file <- file.path(params$input_sce_path, "celltypes.tsv")
 
 celltypes_df <- readr::read_tsv(celltypes_file)
 celltypes_df
@@ -223,9 +229,17 @@ purrr::iwalk(
   sce_list,
   ~ readr::write_rds(
       .x, 
-      file.path(output_dir, paste0(.y, ".rds"))
+      file.path(params$output_sce_path, paste0(.y, ".rds"))
     )
 )
+```
+
+
+We can go ahead and exit this notebook if it's being run for data setup only.
+```{r}
+if (params$setup_only == TRUE) {
+  knitr::knit_exit()
+}
 ```
 
 
