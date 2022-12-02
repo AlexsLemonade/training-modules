@@ -48,10 +48,10 @@ We have provided the raw data folder
 
 ```{r filepaths}
 # main data directory
-data_dir <- file.path("data", "glioblastoma")
+data_dir <- file.path("data", "PBMC-TotalSeqB")
 
-# Path to the Cell Ranger matrix file
-raw_matrix_file <- file.path(data_dir, "raw", "glioblastoma_raw_matrix.h5")
+# Path to the Cell Ranger matrix
+raw_matrix_dir <- file.path(data_dir, "raw_feature_bc_matrix")
 
 # reference data directory
 ref_dir <- file.path("data", "reference")
@@ -64,7 +64,7 @@ if (!dir.exists(normalized_dir)) {
   dir.create(normalized_dir, recursive = TRUE)
 }
 
-output_sce_file <- file.path(normalized_dir, "gliobastoma_normalized_sce.rds")
+output_sce_file <- file.path(normalized_dir, "pbmc_totalseq_sce.rds")
 
 ```
 
@@ -72,7 +72,7 @@ output_sce_file <- file.path(normalized_dir, "gliobastoma_normalized_sce.rds")
 ## Reading Cell Ranger data
 
 ```{r}
-raw_sce <- DropletUtils::read10xCounts(raw_matrix_file) 
+raw_sce <- DropletUtils::read10xCounts(raw_matrix_dir) 
 ```
 
 Look at the object:
@@ -80,13 +80,41 @@ Look at the object:
 raw_sce
 ```
 
-36601 features, 734492 droplet barcodes.
+36611 features, 2421702 droplet barcodes.
 
 ### Separating gene expression from antibody tags
 
 ```{r}
 head(rowData(raw_sce))
 ```
+```{r}
+table(rowData(raw_sce)$Type)
+```
+
+
+```{r}
+# Split out the ADT into an altExp
+raw_sce <- splitAltExps(raw_sce, 
+                        # "Gene Expression" or "Antibody Capture"
+                        f = rowData(raw_sce)$Type, 
+                        # The Type which should be the main experiment
+                        ref = "Gene Expression")
+```
+
+```{r}
+raw_sce
+```
+```{r}
+altExpNames(raw_sce) <- "ADT"
+```
+
+```{r}
+dim(raw_sce)
+```
+```{r}
+dim(altExp(raw_sce, "ADT"))
+```
+
 
 ### Filtering empty droplets
 
@@ -153,6 +181,53 @@ qcfiltered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
 ```
 
 
+### Filtering by ADT results
+
+We're not going to talk about this in depth, since it's still an active area of study! 
+But, be aware that RNA and ADTs are treated differently. 
+As always we recommend [Orchestrating](http://bioconductor.org/books/3.16/OSCA.advanced/integrating-with-protein-abundance.html).
+
+### Removing negative controls
+
+
+
+
+One quick option is the `DropletUtils::cleanTagCounts()` function, which will flag cells for removal if there is no detectable ambient concentration of tags.
+Cells with "unusually" high values of an ambient scaling factor also get flagged for removal since the those droplets are more likely to be affected by protein aggregates. 
+
+In this case, we are going to take advantage of the fact that we still have the raw data that contains "empty" droplets with no cells to estimate the expected ambient profile, and then use the relative values to identify outliers.
+
+If empty droplets are not available, you can leave off the `ambient` argument and `DropletUtils::cleanTagCounts()` will estimate an ambient profile based on the assumption that cells either do or do not express each surface protein, which should result in a bimodal distribution of tag counts.
+
+```{r}
+adt_ambient <- DropletUtils::ambientProfileEmpty(altExp(raw_sce))
+```
+
+
+```{r}
+# Run QC on the tags
+adt_qc_df <- DropletUtils::cleanTagCounts(
+  altExp(qcfiltered_sce),
+  ambient = adt_ambient
+)
+adt_qc_df
+```
+
+We can look at how many cells will be removed by each of these two measures.
+```{r}
+sum(adt_qc_df$discard)
+sum(adt_qc_df$zero.ambient)
+sum(adt_qc_df$high.ambient)
+```
+
+We definitely want to remove any cells with zero counts, as those could cause trouble later.
+Whether you believe the upper outliers is probably worth more exploration, but we will remove them as well for simplicity.
+
+```{r}
+qcfiltered_sce <- qcfiltered_sce[, which(!adt_qc_df$discard)]
+```
+
+
 ## Normalization and Dimension Reduction
 
 ### RNA-seq normalization
@@ -173,6 +248,23 @@ This creates a new "assay" in the `normalized_sce` object, `logcounts`, which co
 normalized_sce
 
 ```
+
+### ADT Normalization
+
+```{r}
+adt_sf <- scuttle::medianSizeFactors(
+  altExp(normalized_sce), 
+  reference = adt_ambient )
+sum(adt_sf == 0)
+
+```
+```{r}
+altExp(normalized_sce) <- scater::logNormCounts(
+  altExp(normalized_sce), 
+  size.factors = adt_sf
+)
+```
+
 
 ### Dimension Reduction
 
