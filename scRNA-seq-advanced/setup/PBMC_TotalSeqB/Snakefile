@@ -1,13 +1,31 @@
-# Workflow for downloading and preprocessing Tabula Muris data
+# Workflow for downloading and preprocessing PBMC_TotalSeqB data from 10X
+
 configfile: "config.yaml"
-workdir: config["base_dir"]
+outdir = config["base_dir"]
 
 rule targets:
   input:
-   "raw_feature_bc_matrix"
+   os.path.join(outdir, "normalized", "PBMC_TotalSeqB_normalized_sce.rds")
   
 rule download_raw:
   output:
-    directory("raw_feature_bc_matrix")
+    directory(os.path.join(outdir, "raw_feature_bc_matrix"))
   shell:
-    "curl -L {config[url]} | tar xz" 
+    "curl -L {config[url]} | tar xz -C {outdir}" 
+
+rule filter_normalize:
+  input: 
+    raw_dir = os.path.join(outdir, "raw_feature_bc_matrix"),
+    mito_file = config["mito_file"]
+  output:
+    os.path.join(outdir, "normalized", "PBMC_TotalSeqB_normalized_sce.rds")
+  log:
+    "logs/filter_normalize.log"
+  shell:
+    "Rscript filter_cellranger_citeseq.R"
+    "  --raw_matrix_dir {input.raw_dir}"
+    "  --mito_file {input.mito_file}"
+    "  --outfile {output}"
+    " &> {log}"
+    
+    

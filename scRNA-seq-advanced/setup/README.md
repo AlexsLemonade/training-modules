@@ -22,6 +22,26 @@ If no data will be written to a data directory, linking to that directory will b
 An R notebook to create a table of human mitochondrial genes is found in the `mito_gene_lists.Rmd` notebook.
 This can be opened and run to create the table, which will saved at `/shared/data/training-modules/scRNA-seq-advanced/data/reference`.
 
+### Glioblastoma
+
+This data comes from this 10x Genomics Dataset: https://www.10xgenomics.com/resources/datasets/2-k-sorted-cells-from-human-glioblastoma-multiforme-3-v-3-1-3-1-standard-6-0-0.
+
+Quoting from the data page:
+
+> Human Glioblastoma Multiforme cells from a male donor aged 71 were obtained by 10x Genomics from Discovery Life Sciences.
+
+> Libraries were generated following the Chromium Next GEM Single Cell 3ʹ Reagent Kits v3.1 (Dual Index) User Guide (CG000315) and sequenced on Illumina NovaSeq 6000.
+
+
+To download the files, change directories to the `setup/glioblastoma` directory and run:
+
+```sh
+snakemake -j2 
+```
+
+This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/glioblastoma`
+
+
 ### PBMC TotalSeq-B
 
 This data comes from this 10x Genomics Dataset: https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p.
@@ -39,5 +59,3 @@ snakemake -j2
 ```
 
 This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/PBMC_TotalSeqB`
-
-
