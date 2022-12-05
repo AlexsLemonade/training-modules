@@ -1,6 +1,6 @@
 ---
 title: "Mitochondrial Gene Lists"
-author: Joshua Shapiro for the CCDL
+author: Joshua Shapiro for the Data Lab
 date: 2022-11
 output: 
   html_notebook: 
@@ -13,7 +13,7 @@ This notebook generates a list of mitochondrial genes for use in scRNA-seq quali
 Most of the functionality of this notebook is accomplished via Bioconductor annotations. For more information about using Bioconductor annotation packages, see the
 [AnnotationDbi package vignette](http://bioconductor.org/packages/release/bioc/vignettes/AnnotationDbi/inst/doc/IntroToAnnotationPackages.pdf).
 
-To get current annotations, we will use [AnnotationHub](https://bioconductor.org/packages/release/bioc/html/AnnotationHub.html).
+To get current annotations, we will use the [AnnotationHub](https://bioconductor.org/packages/release/bioc/html/AnnotationHub.html) package.
 
 ## Setup
 
@@ -23,10 +23,11 @@ library(magrittr)
 ```
 
 
-First some locations for the gene lists we will be making. These will be in the /shared directory
+First some locations for the gene lists we will be making. 
+These will be in the `/shared` directory.
 
 ```{r paths}
-data_dir = "/shared/data/training-modules/scRNA-seq-advanced/data"
+data_dir <- "/shared/data/training-modules/scRNA-seq-advanced/data"
 
 # the human gene list will be in the reference subfolder.
 hs_mito_file <- file.path(data_dir, "reference", "hs_mitochondrial_genes.tsv")
@@ -39,7 +40,7 @@ hs_mito_file <- file.path(data_dir, "reference", "hs_mitochondrial_genes.tsv")
 ### Retrieving the db
 
 To get the annotations, we will first create an `AnnotationHub` object, which is used as the interface to the annotation files that the Bioconductor project makes available.
-We then query it for to find out what Ensdb packages (containing Ensembl annotations) are available for *Homo sapiens*.
+We then query it to find out what Ensdb packages (containing Ensembl annotations) are available for *Homo sapiens*.
 
 ```{r}
 hub <- AnnotationHub::AnnotationHub()
@@ -48,7 +49,7 @@ hub <- AnnotationHub::AnnotationHub()
 ```{r}
 AnnotationHub::query(hub, c("Ensdb", "Homo sapiens"))
 ```
-We are interested in the annotation package for Ensembl 95, which was what we used for the the annotations we built this time around.
+We are interested in the annotation package for Ensembl 95, which was what we used for the annotations we built this time around.
 Lets add that to the query.
 
 ```{r}
@@ -56,7 +57,7 @@ AnnotationHub::query(hub, c("Ensdb", "Homo sapiens", "95"))
 ```
 
 
-The AnnotationHub ID for that is then `AH67950`.
+The Ensembl 95 AnnotationHub ID is `AH67950`.
 The first time we select that item, AnnotationHub will download and save it to a new object that uses a standard Bioconductor annotation interface.
 This will be cached locally in case we need it again, so this step may be slow the first time, but should be quick when repeated.
 
@@ -69,7 +70,6 @@ We will need it to access the the elements of the database
 
 ### Finding mitochondrial genes
 
-Now we can query the `ensdb_hs` with the AnnotationDbi functions that are part of Bioconductor.
 
 First we will get the genes and store them, using the `genes()` function that was loaded along with the annotations.
 This will create a `GenomicRanges` object, which is a way that Bioconductor packages store information about the coordinates of features like genes along a reference genome, (along with other information about the feature).
@@ -93,8 +93,11 @@ Now some quick reformatting and we'll save the output table.
 
 ```{r}
 mitogenes_hs %>%
+  # convert to a tibble
   tibble::as_tibble() %>%
+  # rearrange columns in order gene_id, gene_name, and then the rest
   dplyr::select(gene_id, gene_name, dplyr::everything()) %>%
+  # Save to output TSV file
   readr::write_tsv(hs_mito_file)
 ```
 

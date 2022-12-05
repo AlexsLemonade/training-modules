@@ -1,0 +1,565 @@
+---
+title: "Setup: Integration Module"
+author: "Stephanie Spielman for the Data Lab"
+date: "`r Sys.Date()`"
+output: 
+  html_notebook:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: false
+---
+
+## Setup
+
+```{r setup, include=FALSE}
+library(magrittr) 
+library(batchelor)
+library(harmony)
+library(SingleCellExperiment)
+```
+
+
+## Download Data
+
+
+This data comes from `ScPCA` project `SCPCP000005` (https://scpca.alexslemonade.org/projects/SCPCP000005) which also has cell type information.
+We use four different samples from this project that have the same technology (single-nucleus, 10Xv3), and these are expected to be saved in the directory `SCPCP000005-samples/`.
+
+- `SCPCS000252` (`SCPCL000478`)
+- `SCPCS000253` (`SCPCL000479`)
+- `SCPCS000254` (`SCPCL000480`)
+- `SCPCS000255` (`SCPCL000481`)
+
+
+## Functional programming!
+
+We'll have to take the same steps several times across several SCEs, why not use some functions to help us!
+Even better, why not use some functional programming?!
+Come along!
+
+
+## Load Data
+
+First we'll read in the SCE objects. 
+```{r}
+data_dir <- "SCPCP000005-samples"
+
+# We'll export processes SCEs here:
+output_dir <- file.path("..", "data", "SCPCP00005")
+if (!(dir.exists(output_dir))) {
+  dir.create(output_dir, recursive = TRUE)
+}
+
+# Make this a list of paths:
+sce_paths <- list.files(data_dir, pattern = "_filtered.rds", full.names = TRUE)
+sce_names <- stringr::str_extract_all(sce_paths, "SCPCL\\d+") %>% unlist()
+sce_paths <- as.list(sce_paths)
+names(sce_paths) <- sce_names
+
+# We can read all these files in at once using purrr::map over
+#  the sce_paths list
+sce_list <- purrr::map(
+  sce_paths,
+  readr::read_rds
+)
+
+# We now have a named list of SCE objects
+sce_list
+```
+
+
+Next, we'll read in a TSV file containing previously determined cell types for these cells. 
+These cell types were originally assigned in [this publication](https://doi.org/10.1016/j.devcel.2022.04.003).
+
+
+```{r}
+celltypes_file <- file.path(data_dir, "celltypes.tsv")
+
+celltypes_df <- readr::read_tsv(celltypes_file)
+celltypes_df
+
+# What are the subtypes in this data?
+unique(celltypes_df$celltype)
+```
+
+We'll also create a second cell type column, `celltype_broad`, which groups together all the `Tumor_Myoblast-` and `Tumor_Myocyte-` categories into one each, and rename the current column to `celltype_fine` to differentiate.
+
+```{r}
+celltypes_df <- celltypes_df %>%
+  dplyr::mutate(celltype_broad = stringr::str_remove(celltype, "-[ABCD]$")) %>%
+  # We'll also rename `celltype` to `celltype_fine`
+  dplyr::rename(celltype_fine = celltype)
+```
+
+
+## Filter and normalize the SCEs
+
+Before filtering, we'll explore the distributions of gene counts across SCEs to find a reasonable threshold.
+
+```{r}
+# This had already been filtered to >= 500, so nothing more to do here
+purrr::map(
+  sce_list, 
+  ~ summary(colData(.)$sum)
+)
+
+# A threshold of 500 seems ok here:
+purrr::map(
+  sce_list,
+  ~summary(colData(.)$detected)
+)
+```
+
+
+Now let's filter and normalize:
+
+```{r}
+filter_and_normalize_sce <- function(sce) {
+  
+  # Filter based on miQC:
+  filtered_sce <- sce[, which(sce$miQC_pass)]
+  
+  # Filter to detected >= 500
+  filtered_sce <- filtered_sce[, filtered_sce$detected >= 500]
+
+  # Normalize:
+  qclust <- scran::quickCluster(filtered_sce)
+  filtered_sce <- scran::computeSumFactors(filtered_sce, clusters = qclust)
+  norm_sce <- scater::logNormCounts(filtered_sce)
+  
+  # Return the normalized SCE
+  return(norm_sce) 
+}
+
+sce_list <- purrr::map(
+  sce_list,
+  filter_and_normalize_sce
+)
+```
+
+## Dimension reduction
+
+Now, let's add PCA and UMAP for each individual library:
+
+
+```{r}
+calc_dimred <- function(sce) {
+  
+  # calculate high-variance genes to use for dimension reduction
+  gene_variance <- scran::modelGeneVar(sce)
+  hvg_list <- scran::getTopHVGs(gene_variance,
+                                n = 2000) 
+  
+  # Add PCA and UMAP into the SCE
+  sce <- sce %>%
+    scater::runPCA(subset_row = hvg_list) %>%
+    scater::runUMAP(dimred = "PCA")
+  
+  # Return the SCE
+  return(sce)
+}
+
+sce_list <- purrr::map(
+  sce_list, 
+  calc_dimred
+)
+```
+
+
+## Add in cell type information
+
+
+When performing dataset integration, it can be helpful to refer back to cell types to assess how well integration performed.
+In many real-world circumstances, be aware that cell types are usually not _a priori_ known, and in either case this information is _not_ directly used during integration itself.
+Therefore, for the purposes of these exercises, we'll add the cell types into the SCEs for future use.
+
+```{r}
+add_celltype_info <- function(sce, sce_name, celltypes_df) {
+  
+  # Add a matching barcode variable into the colData
+  colData(sce)$barcode <- colnames(sce)
+  
+  # filter to cells in this SCE
+  celltypes_df <- celltypes_df %>%
+    dplyr::filter(library == sce_name) %>%
+    dplyr::select(-library)
+  
+  # join colDdata to celltype
+  celltype_coldata <-  colData(sce) %>%
+    as.data.frame() %>%
+    # Use a left_join since there may be more cells in the SCE than there are in
+    #  the celltypes
+    dplyr::left_join(celltypes_df, by = "barcode" ) %>%
+    #convert back to a DataFrame with row names
+    S4Vectors::DataFrame(row.names = .$barcode)
+
+  # check that the names of the cells are still consistent
+  if (all(rownames(celltype_coldata) == colnames(sce))){
+    colData(sce) <- celltype_coldata
+  } else {
+    stop("Error joining celltype_df to colData")
+  }
+
+  # Return the updated SCE
+  return(sce)
+}
+
+
+# Update the SCEs to include new `celltype` column
+# Incidentally a `barcode` column also gets added
+sce_list <- purrr::imap(
+  sce_list, 
+  add_celltype_info, 
+  celltypes_df = celltypes_df
+)
+```
+
+
+At this point, SCE objects are prepared for the workshop so we'll export them into RDS files.
+
+```{r}
+purrr::iwalk(
+  sce_list,
+  ~ readr::write_rds(
+      .x, 
+      file.path(output_dir, paste0(.y, ".rds"))
+    )
+)
+```
+
+
+## Combine the SCEs
+
+We now need to combine these SCEs into 1 object, which requires some bookkeeping.
+Specifically, we need to ensure:
+
+- Genes/features (aka, the `rowData` slot names) must match
+- The `colData` column names must match
+- That we can identify the original library each cell came from
+- Other useful information can still be found
+
+
+```{r}
+# What are the genes in common? Hold onto this vector!
+# For these data they already had the same genes, but no guarantees of that
+#   with data in the wild
+shared_genes <- sce_list %>%
+  # get rownames for each entry in sce_list
+  purrr::map(rownames) %>%
+  # find their intersection
+  purrr::reduce(intersect)
+
+# What are the colData names?
+purrr::map(sce_list, 
+           ~names(colData(.))) 
+
+# Some purrr magic can quickly show us any differences 
+purrr::map(sce_list, 
+           ~names(colData(.))) %>%
+  purrr::reduce(setdiff)
+
+# Let's have a peek at the rowData:
+# `mean` and `detected` are SCE-specific, but `gene_symbol` is not! Bookkeeping!
+purrr::map(sce_list, 
+           ~names(rowData(.)))
+```
+
+We want to format each SCE to meet our criteria:
+```{r}
+format_sce_list <- function(sce, sce_name, shared_genes) {
+  
+  # Reduce to shared genes
+  sce <- sce[shared_genes,]
+
+  # Update the colData row names so we can know where cells came from back
+  # Alternatively we can just get rid of a lot of this?
+  # glue is great!
+  rownames(colData(sce)) <- glue::glue("{sce_name}-{rownames(colData(sce))}")
+  
+  # Update the rowData names, except `gene_symbol`
+  names(rowData(sce)) <- ifelse(names(rowData(sce)) == "gene_symbol",
+                                "gene_symbol",
+                                glue::glue("{sce_name}-{rownames(rowData(sce))}")
+    
+  ) 
+  # Add in sample-level information as stand-alone column 
+  colData(sce)$sample <- sce_name
+  
+  # Return 
+  return(sce)
+}
+
+
+# Prepare the sce_list for combining
+sce_list <- purrr::imap(sce_list, 
+                        format_sce_list,
+                        shared_genes = shared_genes)
+
+# Combine!
+combined_sce <- do.call(cbind, sce_list)
+combined_sce
+```
+
+You'll see that there are `PCA` and `UMAP` dimension reductions in this combined SCE.
+These represent the original reductions that were performed on _each individual library_.
+We can also calculate PCA and UMAP for the combined whole, which we will save with different names `combined_PCA` and `combined_UMAP` to distinguish.
+We can compare these UMAP embeddings to those calculated after performing integration.
+
+```{r}
+# calculate high-variance genes to use for dimension reduction
+gene_variance <- scran::modelGeneVar(combined_sce, 
+                                     # For combined SCEs, specify the group column groups:
+                                     block = combined_sce$sample) 
+hvg_list <- scran::getTopHVGs(gene_variance,
+                              n = 2000) 
+  
+# Add PCA and UMAP into the SCE
+combined_sce <- scater::runPCA(combined_sce, 
+                               subset_row = hvg_list, 
+                               # Make sure not to overwrite the existing PCA!
+                               name = "combined_PCA") %>%
+  # again, make sure to use the right names
+  scater::runUMAP(dimred = "combined_PCA", 
+                  name = "combined_UMAP")
+
+combined_sce
+```
+
+
+
+## Pre-integration visualization
+
+To get a sense of our data _before_ integrating, let's look at UMAPs for each individual library and the combined SCE.
+
+
+```{r}
+plot_library_umap <- function(sce, sce_name) {
+  scater::plotReducedDim(sce,
+                         dimred = "UMAP", 
+                         point_size = 0.5, 
+                         point_alpha = 0.5) +
+    ggplot2::ggtitle(sce_name)
+}
+
+umap_list <- purrr::imap(
+  sce_list,
+  plot_library_umap
+)
+
+cowplot::plot_grid(plotlist = umap_list, nrow = 2)
+
+# In the same coordinate space (each was scaled separately):
+scater::plotReducedDim(combined_sce,
+                       dimred = "UMAP",
+                       colour_by = "sample",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.2) + 
+  ggplot2::ggtitle("UMAPs separately calculated")
+
+# Here they were scaled together:
+scater::plotReducedDim(combined_sce,
+                       dimred = "combined_UMAP",
+                       colour_by = "sample",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.2) +
+  ggplot2::ggtitle("UMAPs calculated on combined data")
+  
+
+```
+
+
+## Integration
+
+To start, we'll use `fastMNN` from the `batchelor` package:
+
+```{r}
+integrated_sce <- batchelor::fastMNN(combined_sce,
+                                     # Specify the groups:
+                                     batch = colData(combined_sce)$sample,
+                                     # Optionally specify genes to use as the previously-ID'd 
+                                     # high variance genes
+                                     subset.row = hvg_list
+                                     )
+
+integrated_sce
+```
+- The `reconstructed` assay are corrected expression values. 
+Make sure to not use them for DE though!
+
+- The `corrected` reduced dimensions are the PCs resulting from the corrected expression values. 
+We can calculate UMAP embeddings from the PCs.
+
+
+```{r}
+# Specify the object's `reducedDim` name
+integrated_sce <- scater::runUMAP(integrated_sce, dimred = "corrected")
+integrated_sce
+```
+
+We can also/alternatively add this information into our `combined_sce` object to keep everything in one place:
+
+
+```{r}
+reducedDim(combined_sce, "fastmnn_PCA") <- reducedDim(integrated_sce, "corrected")
+reducedDim(combined_sce, "fastmnn_UMAP") <- reducedDim(integrated_sce, "UMAP")
+```
+
+
+#### The before/after reveal
+
+```{r}
+# Before
+scater::plotReducedDim(combined_sce,
+                       dimred = "combined_UMAP",
+                       colour_by = "sample",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Before integration")
+
+
+# After
+scater::plotReducedDim(combined_sce,
+                       dimred = "fastmnn_UMAP",
+                       colour_by = "sample",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("After integration with fastmnn")
+
+```
+
+
+
+
+## Integration, again!
+
+There are more integration tools, like `harmony` for example! 
+`harmony` differs from `fastMNN` (the entire algorithm-aside) in a few key ways:
+
+- `harmony` allows you to specify additional covariates (technology, patient, diagnosis, etc.)
+  - This requires slightly more setup - you'd need to pass in a data frame of covariates, not just a batch vector
+- `harmony` does not calculate corrected expression values and only returns a matrix of corrected PCs
+- a bonus key way is that `harmony` is on CRAN but `batchelor` is on bioconductor.
+
+```{r}
+
+# harmony can either start with PCs or with normalized (uncorrected) expression
+# we already have PCs so let's just ask harmony to use those:
+harmony_result <- harmony::HarmonyMatrix(
+      # PCs
+      data_mat  = reducedDim(combined_sce, "combined_PCA"), 
+      # batch information
+      meta_data = colData(combined_sce)$sample,
+      # don't run PCA since we gave PCs in `data_mat` argument
+      do_pca = FALSE
+    )
+
+# If we wanted to start with expression and have harmony calculate PCs for us:
+#harmony::HarmonyMatrix(
+#  data_mat  = logcounts(combined_sce), 
+#  meta_data = colData(combined_sce)$batch
+#)
+
+# The result is just a bunch of PCs!
+harmony_result[1:5, 1:5]
+
+# Let's store this directly into our `combined_sce` object, making sure to name it well!
+reducedDim(combined_sce, "harmony_PCA") <- harmony_result
+
+# Calculate UMAP with the right name for PCs:
+# We do NOT want to overwrite the uncorrected UMAP! Make sure to name this differently with `name`
+combined_sce <- scater::runUMAP(combined_sce, dimred = "harmony_PCA", name = "harmony_UMAP")
+```
+
+#### The before/after reveal, again!
+
+
+```{r}
+# Before
+scater::plotReducedDim(combined_sce,
+                       dimred = "combined_UMAP",
+                       colour_by = "sample",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Before integration")
+
+
+# After
+scater::plotReducedDim(combined_sce,
+                       dimred = "harmony_UMAP",
+                       colour_by = "sample",
+                       # Some styling to help us see the points:
+                       point_size = 0.5,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("After integration with harmony")
+
+```
+
+
+## Comparing back to cell types
+
+In an ideal world, we'd have cell types to refer to in UMAPs as well; well-integrated datasets should show more clustering of cell types and less clustering of batches.
+Surprise, it's an ideal world!
+
+Our SCE objects in fact contain this. 
+Again, what are the cell types that have been identified?
+
+```{r}
+unique(combined_sce$celltype_broad)
+```
+
+Let's compare before, fastmnn, and harmony UMAPs highlighting cell types (color) as well as library (shape).
+
+
+```{r}
+# Before
+scater::plotReducedDim(combined_sce,
+                       dimred = "combined_UMAP",
+                       colour_by = "celltype_broad",
+                       shape_by = "sample",
+                       # Some styling to help us see the points:
+                       point_size = 0.8,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Before integration") +
+  # And to help us see the colors in the legend:
+  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, 
+                                                                     alpha = 0.8)))
+
+
+# fastmnn
+scater::plotReducedDim(combined_sce,
+                       dimred = "fastmnn_UMAP",
+                       colour_by = "celltype_broad",
+                       shape_by = "sample",
+                       # Some styling to help us see the points:
+                       point_size = 0.8,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Integration with fastMNN") +
+  # And to help us see the colors in the legend:
+  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, 
+                                                                     alpha = 0.8)))
+
+# harmony
+scater::plotReducedDim(combined_sce,
+                       dimred = "harmony_UMAP",
+                       colour_by = "celltype_broad",
+                       shape_by = "sample",
+                       # Some styling to help us see the points:
+                       point_size = 0.8,
+                       point_alpha = 0.4) +
+  ggplot2::ggtitle("Integration with harmony") +
+  # And to help us see the colors in the legend:
+  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, 
+                                                                     alpha = 0.8)))
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
