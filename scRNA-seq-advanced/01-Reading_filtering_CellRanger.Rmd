@@ -14,8 +14,10 @@ This notebook will demonstrate how to:
 
 - Read Cell Ranger data into R
 - Filter to cells using `emptyDropsCellRanger()`
-- Calculate quality control measures
+- Calculate quality control measures on RNA-seq data
 - Remove likely compromised cells with `miQC()`
+- Normalize expression data across cells
+- Calculate and plot reduced dimension representations of expression data (PCA, UMAP)
 
 ---
 
@@ -39,10 +41,20 @@ set.seed(12345)
 
 ### Directories and files
 
+The gene expression data were processed create an gene by cell expression matrix of counts using Cell Ranger 6.0.
+We have provided the raw data directory, `raw_feature_bc_matrix`, which is usually produced by Cell Ranger and placed in its `outs` directory.
+This directory usually contains three files:
+- `barcodes.tsv.gz`, a table of the cell barcodes that 10X uses, corresponding to the columns of the count matrix.
+- `features.tsv.gz`, a table of the features (genes in this case) for which expression was quantified.
+This will usually also include a bit of metadata about the features, including gene symbols and the type of data it represents.
+- `matrix.mtx.gz`, The counts themselves, stored in a sparse ["Matrix Exchange" format] (https://math.nist.gov/MatrixMarket/formats.html).
 
+Cell Ranger will also export these data in a single `HDF5` format file with a `.h5` extension, but we have found that using the separate matrix files seems to work more efficiently in R, so we prefer to start with those files.  
 
-The gene expression data and and antibody tag counts were processed with Cell Ranger 6.0.
-We have provided the raw data folder 
+We will also need a table of mitochondrial genes, which we have stored in the `data/reference` directory. 
+
+Finally, we will set up the our output directory, creating it if it does not yet exist, and define the name for the files we will save after all of our initial processing is complete.
+While you might not know the name of your output files when you start an analysis, we have found it helpful to keep all file and directory names in a single place near the top of the document, to allow somebody coming to the code later a way to quickly see what files are needed as inout and what will be produces.
 
 
 ```{r filepaths}
@@ -70,83 +82,195 @@ output_sce_file <- file.path(normalized_dir, "gliobastoma_normalized_sce.rds")
 
 ## Reading Cell Ranger data
 
-```{r}
+Whether the 10X Cell Ranger  data is in Matrix Exchange format or an HDF5 file, we can use the `read10xCounts()` function from the `DropletUtils` package to read the data into R and create a `SingleCellExperiment` object.
+
+```{r read SCE}
 raw_sce <- DropletUtils::read10xCounts(raw_matrix_dir) 
 ```
 
-Look at the object:
-```{r}
+
+Let's look at the contents of the object after reading it in:
+
+```{r view SCE}
 raw_sce
 ```
 
-36601 features, 734492 droplet barcodes.
+We can see that this `SingleCellExperiment` (SCE) object contains 36,601 rows, which correspond to the features (genes) that were analyzed, and 734,492 columns, which correspond to the possible barcode tags that were used in the experiment.
+Note that not all of these barcode tags will have been used, and many of the features may never have been seen either.
+One of our firs steps will be to filter out barcodes that were never seen, or that may have only been seen in a droplet that did not contain a cell (an "empty droplet").
 
-### Separating gene expression from antibody tags
+### Cell and feature metadata
 
-```{r}
+In addition to the main `counts` matrix, which you can see listed as an `assay` in the SCE object, there are two other tables of particular interest to start.
+
+The first is the `rowData` table, which imports the contents of the `features.tsv.gz` file from earlier.
+Let's look at this table, extracting it from the SCE object wiht the `rowData()` function and using `head()` to view only the first 6 rows.
+
+```{r rowdata}
 head(rowData(raw_sce))
 ```
 
+You can see that this table includes an `ID` for each gene, which is usually the Ensembl gene ID, as well as the corresponding gene symbol in the `Symbol` column. 
+Finally there is a column for `Type`, which in this case is always "Gene Expression".
+If there were another modality of data that had been assayed in this experiment, there might be other values in this column, such as "Antibody Capture" for CITE-seq experiments.
+
+The second table is the `colData` table, which now corresponds to the `barcodes.tsv.gz` file, containing one row per column of the `counts` assay.
+We can look at the this table using the `colData()` function (and `head()` again to prevent printing the whole table):
+
+```{r coldata}
+head(colData(raw_sce))
+```
+Here we see that there are two columns: 
+- one has the path of the file that we read in, listed as `Sample` (you may not see the whole path in this display); this should be identical in all rows from a single sample.
+- the other column is the `Barcode`, which is the sequence that was used to identify each potential droplet for sequencing (and a numeric tag, in this case).
+
+
 ### Filtering empty droplets
 
-Most droplets are empty
+Most of the barcodes in any given 10X experiment will not be seen at all, so our first step can be to filter this raw data to only the cells where there is at least one transcript that was counted with that barcode.
 
-```{r}
+To do this, we will use the `colSums()` function to quickly add up all the counts that correspond to each possible barcode, then filter our `raw_sce` down to just those columns.
+We will need to extract the `counts` matrix from our SCE object, which we can do using the `counts()` function, conveniently enough.
+
+```{r remove zeros}
+# sum columns from counts matrix
+barcode_counts <- colSums(counts(raw_sce))
+
+# filter SCE object to only rows with counts > 0
+raw_sce <- raw_sce[, which(barcode_counts > 0)]
+```
+
+Now we can look at how our SCE object has changed:
+
+```{r zero-removed SCE}
+raw_sce
+```
+
+Of course, barcodes with zero counts are not the only ones that will not correspond to droplets without cells in them. 
+Even if a cell does not have a cell in it, there will often be spurious reads from RNA sequences that were present in the extracellular solution, whether from the original sample or cells that were disrupted during preparation for single-cell analysis. 
+
+We can identify these in part by low transcript counts, but we can also be a bit more clever, and look at the transcript counts _from_ the lowest-count droplets to create an expected distribution of transcript counts in droplets that don't contain cells.
+Then we can test each cell to determine whether or not its transcript distribution deviates from that expectation.
+If it does, then we have pretty good evidence that there is a cell in there.
+
+This test was first proposed by [Lun _et al._ (2019)](https://doi.org/10.1186/s13059-019-1662-y) and implemented as `emptyDrops()` in the `DropletUtils` package. 
+This method was then adopted, with some modifications, as the default cell filtering method used by Cell Ranger.
+Here we will use the `emptyDropsCellRanger()` function to perform the filtering to most closely match the Cell Ranger implementation.
+
+
+```{r calculate droplet stats}
+# create a table of statistics using emptyDropsCellRanger
 droplet_df <- DropletUtils::emptyDropsCellRanger(
   counts(raw_sce), 
-  BPPARAM = BiocParallel::MulticoreParam(4)
+  BPPARAM = BiocParallel::MulticoreParam(4) # use multiprocessing
 )
+```
 
-cells_to_retain <- which(droplet_df$FDR <= 0.01)
+If we look at this table, we will see that most of the values in it are `NA`, because the low-count cells are used to generate the background distribution, and so do not have individual statistics calculated.
+
+We can look at just the rows without `NA` values by selected the ones where the FDR (which we will use again soon), is not `NA`
+
+```{r look at droplet stats}
+# view rows where FDR is not `NA`
+droplet_df[!is.na(droplet_df$FDR), ]
+```
+You will notice that some cells with high counts also have NA values for many statistics, but in those cases  it is because they are automatically assumed to contain cells, so were not tested. 
+
+
+Now we can filter our `raw_sce` object _by column_ to only keep the cells with a small FDR: those that are quite unlikely to be empty droplets. 
+
+```{r filter emptydrops}
+cells_to_retain <- which(droplet_df$FDR < 0.01)
 filtered_sce <- raw_sce[, cells_to_retain]
 ```
 
-```{r}
+How many cells do we have now? 
+
+```{r filtered summary}
 filtered_sce
 ```
-### Calculating QC statistics
+## Addtional Quality control
 
-Get the mitochondrial genes
-```{r}
+In addition to filtering out empty droplets, we also will want to filter out real cells that may have been damaged during preparation of the library.
+These will often be characterized by a high proportion of mitochondrial transcripts.
+The idea here is that if a cell ruptures, the cytoplasmic transcripts will leak out, but mitochondrial transcripts, protected by the mitochondrial membrane, will be more protected. 
+
+Our first step then, is create a list of the mitochondrial genes that are present in our dataset.
+
+```{r get mitochondrial genes}
+# read in a table of mitochondrial genes
 mito_genes <- readr::read_tsv(mito_file) %>%
+  # filter to only the genes that are found in our dataset
   dplyr::filter(gene_id %in% rownames(filtered_sce)) %>%
+  # create a vector from the gene_id column
   dplyr::pull(gene_id)
 ```
 
+### Calculating summary QC statistics 
 
-```{r}
+We can now use the `scuttle` function `addPerCellQC()` to calculate some statistics based on the counts matrix, which will be added to the `colData` data frame.
+
+In addition to calculating statistics like the total read count for each cell and the number of transcripts that are detected, we can also calculate those statistics for defined subsets of genes. 
+In this case, we will use our `mito_genes` vector to define a subset called `mito`.
+The `mito` name is important in that it is the name that will be expected by a later function.
+(We could define more subsets, but for now this one will do.)
+
+```{r per cell QC}
 filtered_sce <- scuttle::addPerCellQC(filtered_sce,
                                       subsets = list(mito = mito_genes))
 ```
 
-```{r}
-cell_stats <- colData(filtered_sce) %>%
-  as.data.frame()
-cell_stats
+Now we can look at the colData to see what was added:
+
+```{r view coldata stats}
+head(colData(filtered_sce))
 ```
+
+We can also plot some of these statistics, here using the `plotMetrics()` function from the `miQC` package to plots the percent of reads that are mitochondrial (the `subsets_mito_percent` column) against the number of unique genes detected (the `detected` column) for each cell.
+
+```{r}
+# use miQC::plotMetrics()
+miQC::plotMetrics(filtered_sce) + theme_bw()
+```
+
+We can see that there is a range of mitochondrial percentages, and it does also seem that genes with high percentages of mitochondrial cells don't seem to detect very many unique genes.
+
+One option is to define a cutoff for the mitochondrial percentage above which we call a cell compromised and exclude it from further analysis. 
+However, deciding on that cutoff can be a bit fraught, as the expected percentage of mitochondrial reads can vary depending on the cell type and library preparation methods. 
+So it might be nice to have a method to determine that cutoff from the data itself.
 
 ### Filtering compromised cells
 
+Determining mitochondrial cutoffs is exactly what the `miQC` package does ([Hippen _et al._ 2021] (https://doi.org/10.1371/journal.pcbi.1009290))!
+In truth, it does something possibly even a bit better: it fits a mixture model to the data that consists of distributions of healthy cells and compromised cells.
+Then we can calculate whether each cell is more likely to belong to the healthy or compromised distribution.
+We can then exclude the cells that are more likely to be compromised. 
 
-```{r}
-ggplot(cell_stats, aes(x = detected, y = subsets_mito_percent)) +
-  geom_point(alpha = 0.2)
-```
+So to use it we first fit the model from the data in our SCE object:
 
-Fit a mixture model 
 ```{r}
 miqc_model <- miQC::mixtureModel(filtered_sce) 
 ```
 
-Plot the model results
-```{r}
-miQC::plotModel(filtered_sce, miqc_model)
-```
-
+Now we can plot the model results to see how it corresponds to our data.
 
 ```{r}
-miQC::plotFiltering(filtered_sce, miqc_model)
+miQC::plotModel(filtered_sce, miqc_model) + theme_bw()
 ```
+
+We can now filter our data based on the probability compromised as calculated from the model.
+But before we do that, we might want to quickly plot to see what would be filtered out with a given cutoff.
+The default is to exclude cells that have a posterior probability of 0.75 or greater of being compromised.
+
+```{r}
+miQC::plotFiltering(filtered_sce, miqc_model, posterior_cutoff = 0.75)
+```
+In this case seems to correspond to a mitochondrial percentage of about 12.5%, but note that this will not always be constant: the cutoff point can vary for different numbers of unique genes.
+
+It is also critical to note that this model can _and does_ fail at times. 
+Plotting the results as we have done here is not a step to skip. 
+**Always look at your data!**
+
 ```{r}
 qcfiltered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
 ```
