@@ -90,7 +90,7 @@ message("Normalizing ADT counts")
 adt_sf <- scuttle::medianSizeFactors(
   altExp(normalized_sce), 
   reference = adt_ambient )
-print(adt_sf)
+
 altExp(normalized_sce) <- scater::logNormCounts(
   altExp(normalized_sce), 
   size.factors = adt_sf
