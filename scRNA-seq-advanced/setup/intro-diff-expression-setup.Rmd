@@ -18,7 +18,7 @@ output:
 ## Setup and some initial exploration
 
 In this notebook we are planning to start with an object that has already been integrated. 
-This integrated object has a column that indicates the original batch (currently labeled "batch" but will be renamed to "sample") and a column that indicates cell types ("celltype") in the `colData`.
+This integrated object has a column that indicates the original batch (currently labeled `batch` but will be renamed to "sample") and a column that indicates cell types (`celltype`) in the `colData`.
 
 We can also grab any other additional sample-level metadata from the metadata file for this dataset. 
 We can use that to help identify groups of interest for differential expression. 
@@ -34,7 +34,7 @@ library(SingleCellExperiment)
 library(ggplot2)
 ```
 
-The merged and integrated datasets are available on S3 right now ('s3://sc-data-integration/scpca'), but after deciding what exactly we will use as input here, we will create the proper setup scripts and move the data to the server starting with the individual SCE objects used to create the integrated dataset. 
+The merged and integrated datasets are available on S3 right now (`s3://sc-data-integration/scpca`), but after deciding what exactly we will use as input here, we will create the proper setup scripts and move the data to the server starting with the individual SCE objects used to create the integrated dataset. 
 
 ```{r}
 # set up file paths and read in combined SCE and integrated SCE 
@@ -167,8 +167,8 @@ colData(rms_sce) %>%
   dplyr::group_split(batch)
 ```
 
-Tumor_Myoblast is definitely the top represented cell type across the libraries. 
-So we want to look at Myoblasts across our libraries and see if there are any changes in the Myoblast population between samples of different types. 
+`Tumor_Myoblast` is definitely the top represented cell type across the libraries. 
+So we want to look at myoblasts across our libraries and see if there are any changes in the myoblast population between samples of different types. 
 To do this, we should probably look at our sample metadata to see what types of samples we are looking at. 
 
 ```{r}
@@ -183,14 +183,14 @@ colData(rms_sce) %>%
 ```
 
 It looks like we have three samples that are from ARMS patients and three samples that are from ERMS patients. 
-A good question we could ask is if there are differences in gene expression patterns in the Myoblast population between ARMS and ERMS patients. 
+A good question we could ask is if there are differences in gene expression patterns in the myoblast population between ARMS and ERMS patients. 
 If we want to ask that question, then we need to have replicates, e.g. more than one sample for each type of patient, which we do! 
 
 Let's go ahead and try it! 
 
 ## Differential Expression between conditions 
 
-### Pseudobulking 
+### Pseudo-bulking 
 
 Before we can do DE analysis to compare the gene expression profiles of myoblasts in ARMS vs. ERMS patients, we will need to "pseudo-bulk" the gene counts. 
 Pseudo-bulking the counts results in a new counts matrix that has been produced from summing the counts together for all cells with the same combination of label (e.g. cell type) and sample. 
@@ -198,7 +198,7 @@ This allows us to use single-cell resolution to define the labels and sum gene c
 
 Below are a few reasons why pseudo-bulking is helpful: 
 
-- Produces larger counts which are more amenable to standard normalizationa and differential expression methods used by bulk RNA-sequencing. 
+- Produces larger counts which are more amenable to standard normalization and differential expression methods used by bulk RNA-sequencing. 
 - Collapses gene expression counts by sample, reflecting that each sample is a replicate rather than each cell. 
 - Masks variance within a sample and only accounts for if a gene is uniformly high or low across samples. 
 
@@ -249,7 +249,7 @@ tumor_myoblast_sce <- tumor_myoblast_sce[, !low_cell_groups]
 We also want to filter out any genes that may be lowly expressed in our pseudo-bulked dataset.
 
 ```{r}
-# filter out genes that might be lowly expressed using filterbyExpr in edgeR
+# filter out genes that might be lowly expressed using filterbyExpr in `edgeR`
 # provide sample groups from SCE to determine minimum sample size that genes should be expressed in 
 # we are grouping samples as ERMS vs. ARMS so use subdiagnosis
 genes_filter <- edgeR::filterByExpr(tumor_myoblast_sce,
@@ -260,9 +260,9 @@ tumor_myoblast_sce <- tumor_myoblast_sce[genes_filter,]
 ```
 
 
-### Perform differential expression with edgeR
+### Perform differential expression with `edgeR`
 
-First let's try and do some DE analysis with edgeR. 
+First let's try and do some DE analysis with `edgeR` 
 
 ```{r}
 dge_list <- edgeR::DGEList(counts(tumor_myoblast_sce),
@@ -319,7 +319,7 @@ design_matrix <- model.matrix(~factor(subdiagnosis),
 design_matrix
 ```
 
-Estimate dispersions using both the QL dispersion and the negative binomial(NB) dispersions. 
+Estimate dispersions using both the quasi-likelihood(QL) dispersion and the negative binomial(NB) dispersions. 
 
 ```{r}
 # estimate NB dispersions 
@@ -337,7 +337,7 @@ glm_fit <- edgeR::glmQLFit(dge_list, design_matrix, robust = TRUE)
 edgeR::plotQLDisp(glm_fit)
 ```
 
-Test for differences using the `glmQLFTest` where DEGs are defined as those with non-zero LFC and a FDR of < 5%.
+Test for differences using the `glmQLFTest` where differentially expressed gens are defined as those with non-zero LFC and a FDR of < 5%.
 
 ```{r}
 results <- edgeR::glmQLFTest(glm_fit, coef = ncol(design_matrix))
@@ -395,7 +395,7 @@ We can also label by other metadata to see if there are other factors that might
 DESeq2::plotPCA(normalized_object, intgroup = "disease_timing")
 ```
 
-Look at the correlation of gene expression for all pairwise combinations of samples in the dataset and perform heirarchical clustering.
+Look at the correlation of gene expression for all pairwise combinations of samples in the dataset and perform hierarchical clustering.
 Helps reveal which samples are more similar to each other so we would expect to see separation between the two diagnosis groups. 
 
 ```{r}
@@ -460,7 +460,7 @@ deseq_results_sig
 ### Comparing methods
 
 Before we move on, let's compare the results between the two types of DEG analysis we did. 
-Here we can look at the correlation between the logFC calculated with edgeR and the logFC calculated with DESeq2, which we expect to be similar. 
+Here we can look at the correlation between the `logFC` calculated with `edgeR` and the logFC calculated with DESeq2, which we expect to be similar. 
 We can then see which genes are calculated as significant with each method and how they compare.
 
 ```{r}
@@ -490,8 +490,8 @@ ggplot(combined_results, aes(x = DESeq_LogFC, y = edgeR_LogFC, color = significa
   theme_bw()
 ```
 
-Here we see that it looks like edgeR takes a more conservative approach and that any genes significant in edgeR are also significant in DESeq. 
-We also see that theres an extra subset of genes (with lower abs(log fold changes)) that are identified as differentially expressed in DESeq only. 
+Here we see that it looks like `edgeR` takes a more conservative approach and that any genes significant in `edgeR` are also significant in `DESeq`. 
+We also see that there's an extra subset of genes (with lower abs(log fold changes)) that are identified as differentially expressed in `DESeq` only. 
 
 ### Exploring the identified differentially expressed genes 
 
@@ -555,7 +555,7 @@ combined_coldata_df <- as.data.frame(colData(combined_sce)) %>%
 colData(combined_sce) <- DataFrame(combined_coldata_df, row.names = combined_coldata_df$cell_id)
 ```
 
-The first plot we will make is with SOX5 which is found in both edgeR and DESeq. 
+The first plot we will make is with SOX5 which is found in both `edgeR` and `DESeq` 
 
 ```{r}
 # filter to just myoblast cells and remove any NA's before plotting
@@ -581,7 +581,7 @@ scater::plotReducedDim(myoblast_combined_sce,
   facet_wrap(~ myoblast_combined_sce$batch + myoblast_combined_sce$subdiagnosis, nrow = 3)
 ```
 
-What about some genes that are differentially expressed in only DESeq but not edgeR? 
+What about some genes that are differentially expressed in only `DESeq` but not `edgeR`? 
 
 ```{r}
 # pick out the top genes that are identified as DE in only DESeq and plot those 
@@ -613,8 +613,8 @@ scater::plotReducedDim(myoblast_combined_sce,
 
 - The RMS dataset seems like a good dataset we can use for integration
 - We probably don't want to blindly use all libraries that we have currently used for integration, but should use the 6 samples that have varying sub diagnosis and also share similar cell types
-- Here we did some preliminary comparisons using edgeR and DESeq, but we probably don't need to actually do that in class, we should pick one and show how you would do the analysis first to look at one cell type between experimental conditions and then across multiple cell types/ labels
-- edgeR is a bit more conservative in its approach to identify differentially expressed genes
+- Here we did some preliminary comparisons using `edgeR` and `DESeq`, but we probably don't need to actually do that in class, we should pick one and show how you would do the analysis first to look at one cell type between experimental conditions and then across multiple cell types/ labels
+- `edgeR` is a bit more conservative in its approach to identify differentially expressed genes
 
 ## Session Info 
 
