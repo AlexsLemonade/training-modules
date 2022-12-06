@@ -335,8 +335,7 @@ To identify the most variable genes, we will use functions from the `scran` pack
 The first, `modelGeneVar()` attempts to divide the variation we observe for each gene into a biological and technical component, with the intuition that genes with lower mean expression tend to have lower variance for purely technical reasons.
 We then use the output from that with the `getTopHVGs()` function to identify the genes with the highest _biological_ variation, which is  what we are most interested in.
 
-
-```{r}
+```{r select HVGs}
 # identify 2000 genes 
 num_genes <- 2000
 
@@ -390,7 +389,6 @@ In particular, while you will often see some apparent clustering of cells in the
 
 In many ways this is analagous to the problem of projecting a map of the earth onto a flat surface; any choice will result in some distortions. 
 However, with UMAP, we rarely know exactly what choices were made and what distortions might have resulted. 
-
 
 Since the UMAP procedure would be slow to calculate with the full data, so the `runUMAP()` function first calculates a PCA matrix and then uses _that_ to calculate the UMAP. 
 Since we already have a PCA matrix, we will tell the function use that instead of recalculating it.
@@ -446,13 +444,15 @@ nn_clusters <- bluster::clusterRows(
 )
 ```
 
-
+We can save the cluster assignments back into the `colData` of the SCE object with a little shortcut: the `$` followed by the name of the new column we want to add.
 
 ```{r add clusters to SCE}
+
 normalized_sce$nn_cluster <- nn_clusters
 ```
 
-
+Now we can plot the UMAP again, this time colored by the cluster assignemnts that we just created.
+Here rather than the general `plotReducedDim()` function, we will use `plotUMAP()`, which is exactly the same except it always plots from the `reducedDim` slot named `UMAP`, so we can skip that argument.
 
 ```{r plot clusters}
 # plot UMAP with assigned clusters
@@ -469,7 +469,7 @@ What would you want to do next?
 We will now save our filtered and normalized object, including the dimension reduction and clustering results to an `RDS` file, using the file path that we defined at the start of the notebook.
 If we were to want to return to this data, we could load this file directly into a new R session and not have to repeat the processing that we have done up to this point.
 
-```{r}
+```{r save SCE}
 saveRDS(normalized_sce, file = output_sce_file)
 ```
 
