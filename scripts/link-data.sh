@@ -33,8 +33,9 @@ mkdir -p scRNA-seq/data/hodgkins
 mkdir -p scRNA-seq/data/mouse-liver
 
 # scRNA-seq-advanced module directories
-mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB
-mkdir -p scRNA-seq-advanced/data/SCPCP000005-samples
+mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
+mkdir -p scRNA-seq-advanced/data/glioblastoma
+mkdir -p scRNA-seq-advanced/data/SCPCP000005-samples/processed
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -77,6 +78,9 @@ link_locs=(
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
   scRNA-seq/gene-sets
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
+  scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
+  scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
+  scRNA-seq-advanced/data/SCPCP000005-samples/raw
   scRNA-seq-advanced/data/SCPCP000005-samples/processed
   scRNA-seq-advanced/data/SCPCP000005-samples/annotations
   scRNA-seq-advanced/data/reference
