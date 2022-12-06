@@ -21,10 +21,8 @@ This notebook will demonstrate how to:
 
 ---
 
-
-In this notebook, we will
-
-
+In this notebook, we will review basic processing for single-cell RNA-seq data, starting with the output from Cell Ranger, and proceeding through filtering, quality control, normalization, and dimension reduction. We will perform these tasks using tools from the [Bioconductor project](https://bioconductor.org), in particular the [`SingleCellExperiment` object](https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html).
+Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/3.16/OSCA/). 
 
 ## Set Up
 
@@ -160,10 +158,7 @@ Here we will use the `emptyDropsCellRanger()` function to perform the filtering 
 
 ```{r calculate droplet stats}
 # create a table of statistics using emptyDropsCellRanger
-droplet_df <- DropletUtils::emptyDropsCellRanger(
-  counts(raw_sce), 
-  BPPARAM = BiocParallel::MulticoreParam(4) # use multiprocessing
-)
+droplet_df <- DropletUtils::emptyDropsCellRanger(counts(raw_sce))
 ```
 
 If we look at this table, we will see that most of the values in it are `NA`, because the low-count cells are used to generate the background distribution, and so do not have individual statistics calculated.
@@ -336,61 +331,152 @@ These will allow us to perform some downstream calculations more quickly, reduce
 While we could calculate the reduced dimensions using all of the genes that we have assayed, in practice most of the genes will have very little variation in expression, so doing so will not provide much additional signal.
 Reducing the number of genes we include will also speed up some of the calculations.
 
-WE could calculate the 
+To identify the most variable genes, we will use functions from the `scran` package. 
+The first, `modelGeneVar()` attempts to divide the variation we observe for each gene into a biological and technical component, with the intuition that genes with lower mean expression tend to have lower variance for purely technical reasons.
+We then use the output from that with the `getTopHVGs()` function to identify the genes with the highest _biological_ variation, which is  what we are most interested in.
+
 
 ```{r}
+# identify 2000 genes 
 num_genes <- 2000
 
+# model variance, partitioning into biological and technical variation
 gene_variance <- scran::modelGeneVar(normalized_sce)
+
+# get the most variable genes
 hv_genes <- scran::getTopHVGs(gene_variance,
                               n = num_genes)
 ```
 
-PCA:
-```{r}
-# Do we want to set the number of PCs?
+
+### Principal components analysis
+
+Now that we have selected the genes we would like to use for the reduced-dimension representations of the expression data, we can start to calculate them 
+First we will use the `scater::runPCA()` function to calculate the principal components from the expression matrix. 
+This representation is fast and fairly robust, but may not always provide the best graphical representation, in part because we will usually want to keep a fairly large number of components. 
+
+The default number of components is 50, which we will stick with, but enter it manually just for the record.
+
+```{r runPCA}
+# calculate and save PCA results
 normalized_sce <- scater::runPCA(normalized_sce,
+                                 ncomponents = 50,
+                                 # use only the variable genes we chose
                                  subset_row = hv_genes)
 ```
 
-UMAP:
-```{r}
+These reduced dimension results will be stored in a `reducedDim` slot in the SCE object.
+We can see that by looking at the object summary:
+
+```{r view reduced dimensions}
+normalized_sce
+```
+If we want to extract the PCA results, we can do that with the `reducedDim()` function:
+Note that for these reduced-dimensionality matrices, the rows are the cells and the columns are the PC dimensions.
+
+```{r getReducedDim}
+# extact the PCA matrix
+pca_matrix <- reducedDim(normalized_sce, "PCA")
+
+# look at the shape of the matrix
+dim(pca_matrix)
+```
+
+### UMAP
+
+Finally, we will calculate a UMAP (Uniform Manifold Approximation and Projection) representation of our data. 
+This is a machine-learning-based method that is useful for performing dimensionality reductions suitable for visualization, but it is very important not to overinterpret the results it produces.
+In particular, while you will often see some apparent clustering of cells in the resulting output, those clusters may not be particularly valid, and the spacing within or between clusters may not reflect true distances. 
+
+In many ways this is analagous to the problem of projecting a map of the earth onto a flat surface; any choice will result in some distortions. 
+However, with UMAP, we rarely know exactly what choices were made and what distortions might have resulted. 
+
+
+Since the UMAP procedure would be slow to calculate with the full data, so the `runUMAP()` function first calculates a PCA matrix and then uses _that_ to calculate the UMAP. 
+Since we already have a PCA matrix, we will tell the function use that instead of recalculating it.
+
+```{r runUMAP}
 normalized_sce <- scater::runUMAP(normalized_sce,
                                   dimred = "PCA")
 ```
 
+As before, we could extract the UMAP matrix from our SCE object with the `reducedDim()` function 
+We can also visualize the UMAP results using the `plotReducedDim()` function.
+
+```{r plotReducedDim}
+# plot the UMAP
+scater::plotReducedDim(normalized_sce, 
+                       "UMAP",
+                       # color by the most variable gene
+                       colour_by = hv_genes[1])
+```
 
 
 ## Unsupervised clustering
-```{r}
-nn_k <- 20
+
+As a final analysis step at this stage, we will return to the PCA results to perform unsupervised clustering.
+Here we will use a graph-based clustering method, which starts by identifying cells that are close together in the multidimensional space.
+It then identifies "communities" of highly connected cells, and breaks them apart by regions of lower connection. 
+
+There are a number of algorithms that can perform this clustering, each with parameters that can affect how many clusters are identified and which cells belong to each cluster. 
+It is also worth noting that these clusters may or may not correspond to "cell types" by whatever definition you might prefer to use.
+Interpretation of these clusters, or other measures of cell type, are something that will require more careful and likely more customized analysis.
+
+We will perform our clustering using the `bluster` package, which can perform many different types of clustering.
+As mentioned earlier, we are using "graph" clustering, which we define using the `NNGraphParam()` function.
+Within that are a number of further options, such as the weighting used for building the network graph and the algorithm used for dividing the graph into clusters.
+
+Modifying these parameters can result in quite different cluster assignments!
+For the clustering below we will use Jaccard weighting and Louvain clustering, which correspond more closely to the default methods used by `Seurat`.
+
+
+```{r clustering}
 nn_clusters <- bluster::clusterRows(
-  reducedDim(normalized_sce, "PCA"), 
+  pca_matrix, 
   bluster::NNGraphParam(
-    k = nn_k, 
+    # number of neighbors to use in network graph
+    k = 20, 
+    # weighting scheme for building the network graph
+    # default is "rank"
     type = "jaccard",
-    cluster.fun = "louvain",
-    BPPARAM = BiocParallel::MulticoreParam(4)
+    # cluster detection algorithm
+    # default is "walktrap"
+    cluster.fun = "louvain"
   )
 )
+```
 
+
+
+```{r add clusters to SCE}
 normalized_sce$nn_cluster <- nn_clusters
 ```
 
-```{r}
+
+
+```{r plot clusters}
+# plot UMAP with assigned clusters
 scater::plotUMAP(normalized_sce,
-                 colour_by = "nn_cluster")
+                 colour_by = "nn_cluster") 
 ```
 
-## Save normalized results
+What do you see in these results?
+
+What would you want to do next?
+
+## Save SCE object for later
+
+We will now save our filtered and normalized object, including the dimension reduction and clustering results to an `RDS` file, using the file path that we defined at the start of the notebook.
+If we were to want to return to this data, we could load this file directly into a new R session and not have to repeat the processing that we have done up to this point.
 
 ```{r}
 saveRDS(normalized_sce, file = output_sce_file)
 ```
 
 
-
 ## Session Info
+
+As is our habit at the Data Lab, we will save information about the computing environment, the packages we have used in this notebook, and their versions using the `sessionInfo()` command.
 
 ```{r session info}
 sessionInfo()
