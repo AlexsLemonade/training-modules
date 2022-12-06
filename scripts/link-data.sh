@@ -78,7 +78,7 @@ link_locs=(
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
   scRNA-seq/gene-sets
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
-  scRNA-seq-advanced/data/SCPCP000005-samples
+  scRNA-seq-advanced/data/SCPCP000005-samples/processed
   scRNA-seq-advanced/data/reference
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia

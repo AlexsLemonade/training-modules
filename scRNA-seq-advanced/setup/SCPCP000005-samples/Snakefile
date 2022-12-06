@@ -2,23 +2,30 @@
 # Raw files are expected to be present in the `config[raw_dir]` directory
 
 configfile: "config.yaml"
-workdir: config["base_dir"]
+outdir = "processed"
 
 rule target:
   input:
-    expand(os.path.join(config['base_dir'], "{library}.rds"),
+    expand(os.path.join(outdir, "{library}.rds"),
            library = config["libraries"])
 
-rule prepare_libraries:
+
+
+rule prepare_library:
+  input: 
+    filtered_rds = "raw/{library}_filtered.rds",
+    celltype_tsv = config["celltypes_file"]
   output:
-    expand(os.path.join(config['base_dir'], "{library}.rds"),
-           library = config["libraries"])
+    # I want to use `outdir` here instead of "processed" string but get error:
+    # Not all output, log and benchmark files of rule prepare_library contain the same wildcards. This is crucial though, in order to avoid that two or more jobs write to the same file.
+    "processed/{library}.rds"
+  log: 
+    "logs/{library}_prep.log"
   shell:
     """
-    Rscript -e "rmarkdown::render('{config[setup_notebook]}', \
-                        clean = TRUE,
-                        params = list(setup_only = TRUE, \
-                                      input_sce_path = '{config[raw_dir]}', \
-                                      output_sce_path = '{config[base_dir]}')
-                )"
+      Rscript prepare_integration_libraries.R \
+        --input_sce_file "{input.filtered_rds}" \
+        --output_sce_file "{output}" \
+        --celltypes_file "{input.celltype_tsv}"
     """
+
