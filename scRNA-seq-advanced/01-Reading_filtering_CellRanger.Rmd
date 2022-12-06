@@ -189,6 +189,7 @@ How many cells do we have now?
 ```{r filtered summary}
 filtered_sce
 ```
+
 ## Addtional Quality control
 
 In addition to filtering out empty droplets, we also will want to filter out real cells that may have been damaged during preparation of the library.
@@ -228,7 +229,7 @@ head(colData(filtered_sce))
 
 We can also plot some of these statistics, here using the `plotMetrics()` function from the `miQC` package to plots the percent of reads that are mitochondrial (the `subsets_mito_percent` column) against the number of unique genes detected (the `detected` column) for each cell.
 
-```{r}
+```{r miQC plotMetrics}
 # use miQC::plotMetrics()
 miQC::plotMetrics(filtered_sce) + theme_bw()
 ```
@@ -246,15 +247,24 @@ In truth, it does something possibly even a bit better: it fits a mixture model 
 Then we can calculate whether each cell is more likely to belong to the healthy or compromised distribution.
 We can then exclude the cells that are more likely to be compromised. 
 
-So to use it we first fit the model from the data in our SCE object:
+To use miQC, we first fit a model to the data in our SCE object:
 
-```{r}
+```{r miQC model}
 miqc_model <- miQC::mixtureModel(filtered_sce) 
 ```
 
 Now we can plot the model results to see how it corresponds to our data.
+We should expect to see two fit lines: 
+One will correspond the the "healthy" cells and should show little to no relationship between the number of unique genes detected and the mitochondrial percentage.
+By contrast, the line that corresponds to compromised cells will show a negative relationship between the number of unique genes detected and the mitochondrial percentage.
 
-```{r}
+This plot will also show, for each cell, the posterior probability that the cell is derived from the compromised distribution; a higher score indicates that a cell is more likely to be compromised.
+
+It is also critical to note that this model can _and does_ fail at times. 
+Plotting the results as we have done here is not a step to skip. 
+**Always look at your data!**
+
+```{r miQC plotModel}
 miQC::plotModel(filtered_sce, miqc_model) + theme_bw()
 ```
 
@@ -262,44 +272,72 @@ We can now filter our data based on the probability compromised as calculated fr
 But before we do that, we might want to quickly plot to see what would be filtered out with a given cutoff.
 The default is to exclude cells that have a posterior probability of 0.75 or greater of being compromised.
 
-```{r}
+
+```{r miQC plotFiltering}
 miQC::plotFiltering(filtered_sce, miqc_model, posterior_cutoff = 0.75)
 ```
+
 In this case seems to correspond to a mitochondrial percentage of about 12.5%, but note that this will not always be constant: the cutoff point can vary for different numbers of unique genes.
 
-It is also critical to note that this model can _and does_ fail at times. 
-Plotting the results as we have done here is not a step to skip. 
-**Always look at your data!**
+At this point, we can perform the actual filtering using the `filterCells()` function, giving us a further filtered SCE object.
 
-```{r}
+```{r miQC filtercells}
 qcfiltered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
 ```
+
+### One more filter: unique genes
+
+While the miQC filtering is pretty good, you may have noticed that it still left some cells that had very low numbers of unique genes. 
+While these cells may not be compromised, the information from them is also not likely to be useful, so we will filter those as well. 
+For now, we will use a cutoff of 200 unique genes as a minimum. 
+
+```{r unique cutoff}
+qcfiltered_sce <- qcfiltered_sce[, which(qcfiltered_sce$detected >= 200)]
+```
+
 
 
 ## Normalization and Dimension Reduction
 
-### RNA-seq normalization
+Now that we have done our filtering, we can set analyzing the expression counts for the remaining cells. 
 
-We will start with normalizing the RNA-seq data.
-The goal here is to convert the raw counts into a measure that accounts for differences in sequencing depth between cells, and to convert the distribution of expression values from the skewed distribution we expect to see in raw counts to one that is more normally distributed.  
+The next step at this point is to convert the raw counts into a measure that accounts for differences in sequencing depth between cells, and to convert the distribution of expression values from the skewed distribution we expect to see in raw counts to one that is more normally distributed.
 
-```{r}
-# Normalize RNA
+We will do this using functions from the `scran` and `scuttle` packages. 
+The procedure we will use here is derived from [Orchestrating Single-Cell Analysis with Bioconductor](http://bioconductor.org/books/3.16/OSCA.basic/normalization.html#normalization-by-deconvolution).
+The idea is to first account for the fact that different cell types may have different expression patterns that could affect the normalization factors we would calculated if we were to use the raw sequencing depth. To account for that, we first do a rough clustering of cells, then use that clustering to calculate the scaling factor (sum factor) for each cell within the cluster.
+Finally, we apply the scaling factor and calculate the log-scaled expression values.
+
+```{r normalization}
+# Perform rough clustering
 qclust <- scran::quickCluster(qcfiltered_sce)
+
+# use clusters to compute scaling factors and add to SCE object
 qcfiltered_sce <- scran::computeSumFactors(qcfiltered_sce, clusters = qclust)
+
+# perform normalization using scaling factors
+# and save as a new SCE object
 normalized_sce <- scuttle::logNormCounts(qcfiltered_sce)
 ```
 
-This creates a new "assay" in the `normalized_sce` object, `logcounts`, which contains the normalized count values.
+This creates a new "assay" in the `normalized_sce` object, `logcounts`, which contains the normalized count values for each cell and gene.
 
-```{r}
+```{r normalized sce}
 normalized_sce
-
 ```
 
-### Dimension Reduction
+## Dimension Reduction
 
-HVGs:
+Now that we have normalized expression values, we would like to produce some reduced-dimension representations of the data.
+These will allow us to perform some downstream calculations more quickly, reduce some of the noise in the data, and allow us to visualize overall relationships among cells more easily (though with many caveats!).
+
+### Selecting Highly Variable Genes
+
+While we could calculate the reduced dimensions using all of the genes that we have assayed, in practice most of the genes will have very little variation in expression, so doing so will not provide much additional signal.
+Reducing the number of genes we include will also speed up some of the calculations.
+
+WE could calculate the 
+
 ```{r}
 num_genes <- 2000
 
