@@ -2,21 +2,21 @@
 # Raw files are expected to be present in the `config[raw_dir]` directory
 
 configfile: "config.yaml"
-outdir = "processed"
+outdir = config["base_dir"]
 
 rule target:
   input:
-    expand(os.path.join(outdir, "{library}.rds"),
+    expand(os.path.join(outdir, "processed/{library}.rds"),
            library = config["libraries"])
 
 
 
 rule prepare_library:
   input: 
-    filtered_rds = "raw/{library}_filtered.rds",
+    filtered_rds = "{base_dir}/raw/{library}_filtered.rds",
     celltype_tsv = config["celltypes_file"]
   output:
-    os.path.join(outdir, "{library}.rds")
+    "{base_dir}/processed/{library}.rds"
   log: 
     "logs/{library}_prep.log"
   shell:

@@ -35,7 +35,7 @@ mkdir -p scRNA-seq/data/mouse-liver
 # scRNA-seq-advanced module directories
 mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
 mkdir -p scRNA-seq-advanced/data/glioblastoma
-mkdir -p scRNA-seq-advanced/data/SCPCP000005-samples/processed
+mkdir -p scRNA-seq-advanced/data/SCPCP000005-samples
 
 # Machine learning module directory
 mkdir -p machine-learning/data
