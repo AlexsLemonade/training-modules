@@ -2,6 +2,9 @@ name: Test render notebooks
 # Before merging notebooks, check that they render
 
 on:
+  push:
+    branches:
+      - jashapiro/test-s3-render
   pull_request:
     branches:
       - master
@@ -9,6 +12,7 @@ on:
       - '**.Rmd'
       - '!**-live.Rmd' # don't trigger for live-only changes
       - '!**/exercise*.Rmd' # or exercise notebooks
+      - '!**/setup/**.Rmd' # or setup notebooks
       - 'scripts/make-live.R'
       - 'scripts/render-live.sh'
 
@@ -19,12 +23,11 @@ jobs:
       image: ccdl/training_dev:latest
 
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -33,6 +36,10 @@ jobs:
       - name: Download data from S3
         run: |
           aws s3 sync s3://ccdl-training-data/training-modules/ .
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'
 
       - name: Render notebooks
         run: bash scripts/render-live.sh
