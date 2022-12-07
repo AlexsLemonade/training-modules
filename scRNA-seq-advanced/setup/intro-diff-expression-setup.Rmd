@@ -184,7 +184,7 @@ colData(rms_sce) %>%
 
 It looks like we have three samples that are from ARMS patients and three samples that are from ERMS patients. 
 A good question we could ask is if there are differences in gene expression patterns in the Myoblast population between ARMS and ERMS patients. 
-If we want to ask that question, then we need to have replicates, e.g. more than one sample for each type of patient, which we do! 
+If we want to ask that question, then we need to have replicates, preferably at least 3 samples for each type of patient, which we do! 
 
 Let's go ahead and try it! 
 
@@ -199,8 +199,8 @@ This allows us to use single-cell resolution to define the labels and sum gene c
 Below are a few reasons why pseudo-bulking is helpful: 
 
 - Produces larger counts which are more amenable to standard normalizationa and differential expression methods used by bulk RNA-sequencing. 
-- Collapses gene expression counts by sample, reflecting that each sample is a replicate rather than each cell. 
-- Masks variance within a sample and only accounts for if a gene is uniformly high or low across samples. 
+-  Collapses gene expression counts by sample, so that samples, rather than cells, represent replicates.
+- Masks variance within a sample to highlight variance across samples.
 
 Let's start with the simple comparison of looking at one cell type and comparing across ERMS and ARMS subtypes. 
 When we do this, we will first want to pseudo-bulk our dataset to group our cells by cell type and by sample.
@@ -216,6 +216,7 @@ pseudobulked_sce <- scater::aggregateAcrossCells(rms_sce,
 
 pseudobulked_sce
 ```
+
 ```{r}
 # only 37 columns in the counts assay 
 counts(pseudobulked_sce)[1:10, ]
@@ -242,8 +243,7 @@ Before we can perform DGE analysis, we want to do some quality control like filt
 
 ```{r}
 # filter by number of cells 
-low_cell_groups <- tumor_myoblast_sce$ncells < 10
-tumor_myoblast_sce <- tumor_myoblast_sce[, !low_cell_groups]
+tumor_myoblast_sce <- tumor_myoblast_sce[, tumor_myoblast_sce$ncells >= 10]
 ```
 
 We also want to filter out any genes that may be lowly expressed in our pseudo-bulked dataset.
@@ -259,6 +259,13 @@ tumor_myoblast_sce <- tumor_myoblast_sce[genes_filter,]
 # looks like this doesn't actually filter anything though, but we probably want to keep this step in? it seems important 
 ```
 
+Maybe we should explore changing defaults in instruction? 
+Adding the defaults here for future reference.
+
+- `min.count = 10`: Minimum count required for at least some samples.
+- `min.total.count = 15`: Minimum total count required.
+- `large.n = 10`: Number of samples per group that is considered to be “large”.
+- `min.prop = 0.7`: Minimum proportion of samples in the smallest group that express the gene.
 
 ### Perform differential expression with edgeR
 
@@ -366,7 +373,7 @@ coldata_df <- as.data.frame(colData(tumor_myoblast_sce)) %>%
   diagnosis_groups = as.factor(diagnosis_groups)) 
 
 # set the levels
-coldata_df$diagnosis_groups <- relevel(coldata_df$diagnosis_groups, ref = "ERMS")
+coldata_df$diagnosis_groups <- relevel(coldata_df$diagnosis_groups, ref = "ARMS")
   
 # set up the deseq object 
 deseq_object <- DESeq2::DESeqDataSetFromMatrix(counts(tumor_myoblast_sce),
