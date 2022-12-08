@@ -129,8 +129,8 @@ scpca_library_ids <- c(
 )
 
 # subset sce to only contain batches with library IDs of interest 
-cells_to_keep <- combined_sce$batch %in% scpca_library_ids
-rms_sce <- combined_sce[,cells_to_keep]
+batches_to_keep <- combined_sce$batch %in% scpca_library_ids
+rms_sce <- combined_sce[,batches_to_keep]
 ```
 
 Let's make some of the same plots above and show the distribution of cell types. 
@@ -367,15 +367,15 @@ Let's do the same thing, but try with DESeq2.
 
 ```{r}
 # deseq2 requires the coldata object as a separate input
+```suggestion
 coldata_df <- as.data.frame(colData(tumor_myoblast_sce)) %>%
-  dplyr::mutate(diagnosis_groups = dplyr::case_when(
-    subdiagnosis == "Alveolar rhabdomyosarcoma" ~ "ARMS",
-    subdiagnosis == "Embryonal rhabdomyosarcoma" ~ "ERMS"
-  ),
-  diagnosis_groups = as.factor(diagnosis_groups)) 
-
-# set the levels
-coldata_df$diagnosis_groups <- relevel(coldata_df$diagnosis_groups, ref = "ARMS")
+  dplyr::mutate(diagnosis_groups = factor(
+    dplyr::case_when(
+      subdiagnosis == "Alveolar rhabdomyosarcoma" ~ "ARMS",
+      subdiagnosis == "Embryonal rhabdomyosarcoma" ~ "ERMS"
+    ),
+    levels = c("ARMS", "ERMS")
+  )
   
 # set up the deseq object 
 deseq_object <- DESeq2::DESeqDataSetFromMatrix(counts(tumor_myoblast_sce),
@@ -568,8 +568,7 @@ The first plot we will make is with SOX5 which is found in both `edgeR` and `DES
 
 ```{r}
 # filter to just myoblast cells and remove any NA's before plotting
-myoblast_combined_sce <- combined_sce[, !is.na(combined_sce$celltype_broad) &
-                                        combined_sce$celltype_broad == "Tumor_Myoblast"]
+myoblast_combined_sce <- combined_sce[, which(combined_sce$celltype_broad == "Tumor_Myoblast")]
 
 # first look at just ARMS vs. ERMS 
 scater::plotReducedDim(myoblast_combined_sce,
@@ -587,7 +586,7 @@ scater::plotReducedDim(myoblast_combined_sce,
                        colour_by = "ENSG00000134532", #SOX5
                        point_size= 0.5,
                        point_alpha = 0.4) +
-  facet_wrap(~ myoblast_combined_sce$batch + myoblast_combined_sce$subdiagnosis, nrow = 3)
+  facet_wrap(~ myoblast_combined_sce$subdiagnosis + myoblast_combined_sce$batch, nrow = 3, dir = 'v')
 ```
 
 What about some genes that are differentially expressed in only `DESeq` but not `edgeR`? 
