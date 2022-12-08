@@ -38,7 +38,6 @@ library(magrittr)
 library(ggplot2)
 library(SingleCellExperiment)
 
-
 # Set the seed for reproducibility
 set.seed(12345)
 ```
@@ -46,7 +45,7 @@ set.seed(12345)
 
 ### Functional programming
 
-We have already pre-processed (e.g., filtered cells, normalized counts, and calculated PCA reduced dimensions) the four SCE objects we'll be integrating, and they are available in the `data/SCPCP000005-samples/processed/` directory. 
+We have already pre-processed (e.g., filtered cells, normalized counts, and calculated PCA reduced dimensions) the four SCE objects we'll be integrating, and they are available in the `data/rms/integration/` directory. 
 Files are named according to their library IDs:
 
 - `SCPCL000478.rds`
@@ -56,22 +55,23 @@ Files are named according to their library IDs:
 
 To read in these files, we could use `readr::read_rds()` (or the base R `readRDS()`) function four times, 
 once for each of the files. 
-A different and more modular coding approach to reading in these files is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for _functional programming_.
+A different and more modular coding approach to reading in these files (and more!) is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for _functional programming_.
 You can read more about functional programming in R in [Chapter 21 of _R for Data Science_](https://r4ds.had.co.nz/iteration.html#for-loops-vs.-functionals).
 
-Of particular interest is the [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) set of functions, which can be used to apply a given function to each element of a list or vector in one call.
+Of particular interest is the [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) family of functions, which can be used to run a given function to each element of a list or vector in one call.
 The general syntax for `purrr::map()` and friends is:
 
 ```
 # Syntax for using the map function:
 purrr::map(<input vector or list>, 
            <function to apply to each item in the input>, 
-           <any additional arguments to the function can go here>)
+           <any additional arguments to the function can go here>, 
+           <and also here if there are even more arguments, and so on>)
 
 ```
 
 
-Let's see it in action by quickly taking the square root of a list of values:
+Let's see a very simple example in action by quickly taking the square root of a vector of values:
 ```{r map_example}
 squares <- c(4, 9, 16, 25, 36)
 
@@ -79,7 +79,7 @@ squares <- c(4, 9, 16, 25, 36)
 purrr::map(squares, # vector to map over
            sqrt)    # function to apply to each item in `squares`
 
-# The relative `map_dbl()` function always returns a vector of doubles (dbl)
+# The `map()` relative `map_dbl()` function always returns a vector of doubles (dbl)
 purrr::map_dbl(squares, 
                sqrt)
 ```
@@ -90,7 +90,7 @@ Let's set up our directories:
 
 ```{r directories}
 # Define directory where integration data is stored
-# Just for now!!!!! This path will need to change BEFORE MERGING!
+# This full path is just for now until data is linked, which will happen BEFORE MERGING THIS!!!!
 data_dir <- file.path("/shared/data/training-modules/scRNA-seq-advanced", "data", "rms", "integration")
 
 # Output file name for the integrated object
@@ -104,7 +104,7 @@ We can use the handy `list.files()` function to help us find the names of all re
 ```{r read input} 
 # Find all files matching our pattern of `SCPCL<numbers>` in `.rds` in the input directory
 sce_paths <- list.files(data_dir, 
-                        # Regular expression matching the file name pattern `SCPCL<numbers>.rds`
+                        # This regular expression forms the pattern: "SCPCL<numbers>rds"
                         pattern = "SCPCL\\d+.rds", 
                         # return the relative paths to the files, not just the file names themselves
                         full.names = TRUE)
@@ -123,7 +123,7 @@ However, we'll need to keep track of which library each item is, so it's helpful
 
 ```{r add list names}
 # This code will extract the portion of each `sce_paths` string that matches
-#  our filename pattern
+#  the library name specifically
 stringr::str_extract_all(sce_paths, "SCPCL\\d+")
 
 # Assign the library names as the names for sce_list
@@ -478,6 +478,8 @@ scater::plotReducedDim(merged_sce,
                        dimred = "harmony_UMAP",
                        # color by broad celltypes
                        colour_by = "celltype_broad",
+                       # Let's also shape by the batches:
+                       shape_by = "sample",
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.2) +
