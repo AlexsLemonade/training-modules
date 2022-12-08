@@ -1,6 +1,6 @@
 # Script to prepare integration data for use in the `scRNA-seq-advanced` workshop
-# Libraries are from SCPCP000005, and all `_filtered.rds` files are expected to 
-#  be present in the `input_sce_path` argument. 
+# Libraries are from SCPCP000005, and all `_filtered.rds` files are expected to
+#  be present in the `input_sce_path` argument.
 
 ## Setup -----------------
 
@@ -33,12 +33,12 @@ opts <- parse_args(OptionParser(option_list = options))
 
 # Make output directory if it doesn't exist
 output_dir <- dirname(opts$output_sce_file)
-if (!(dir.exists(output_dir))) { 
+if (!(dir.exists(output_dir))) {
   dir.create(output_dir)
 }
 
 # Read SCE
-raw_sce <- readr::read_rds(opts$input_sce_file) 
+raw_sce <- readr::read_rds(opts$input_sce_file)
 
 # Define library_name for later use parsing cell types
 library_name <- stringr::str_extract(opts$input_sce_file, "SCPCL\\d+")
@@ -63,6 +63,19 @@ filtered_sce <- filtered_sce[, filtered_sce$detected >= 500]
 qclust <- scran::quickCluster(filtered_sce)
 filtered_sce <- scran::computeSumFactors(filtered_sce, clusters = qclust)
 norm_sce <- scater::logNormCounts(filtered_sce)
+
+
+### Dimension reductions ----------------------------------
+
+# calculate high-variance genes
+gene_variance <- scran::modelGeneVar(norm_sce)
+hvg_list <- scran::getTopHVGs(gene_variance,
+                              n = 2000)
+
+# Add PCA and UMAP into the SCE
+norm_sce <- norm_sce %>%
+  scater::runPCA(subset_row = hvg_list) %>%
+  scater::runUMAP(dimred = "PCA")
 
 
 ### Add cell type information to SCE ----------------------
@@ -95,7 +108,7 @@ if (all(rownames(celltype_coldata) == colnames(norm_sce))){
 
 ### Save -------------------
 
-# Write the SCE file 
+# Write the SCE file
 readr::write_rds(norm_sce, opts$output_sce_file)
 
 
