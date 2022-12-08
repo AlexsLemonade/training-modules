@@ -113,7 +113,6 @@ readr::write_rds(norm_sce, opts$output_sce_file)
 
 
 
-
 ### sessionInfo to log -------------
 sessionInfo()
 
