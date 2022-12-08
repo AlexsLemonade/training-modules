@@ -89,32 +89,23 @@ purrr::map_dbl(squares,
 Let's set up our directories:
 
 ```{r directories}
-data_dir <- file.path("data", "SCPCP000005-samples")
-
-
-# Define input directory containing processed SCE objects
-input_dir <- file.path(data_dir, "processed")
-
-# Define and create, as needed, the output directory where 
-#  we will save the integrated object
-output_dir <- file.path(data_dir, "integrated")
-if (!(dir.exists(output_dir))) {
-  dir.create(output_dir)
-}
+# Define directory where integration data is stored
+# Just for now!!!!! This path will need to change BEFORE MERGING!
+data_dir <- file.path("/shared/data/training-modules/scRNA-seq-advanced", "data", "rms", "integration")
 
 # Output file name for the integrated object
-output_sce <- file.path(output_dir, "integrated_sce.rds")
+output_sce <- file.path(data_dir, "integrated_sce.rds")
 ```
 
 Now, let's use `purrr::map()` to read in our SCE objects so that they are immediately stored together in a list. 
 We'll want to use the `readr::read_rds()` function to read in each file, so we'll first need a vector of the file names we'll be reading in.
-We can use the handy `list.files()` function to help us find the names of all `.rds` files in the input directory.
+We can use the handy `list.files()` function to help us find the names of all relevant `.rds` files in the input directory.
 
 ```{r read input} 
-# Find all files ending in `.rds` in the input directory
-sce_paths <- list.files(input_dir, 
-                        # find all files that ends in `.rds`
-                        pattern = ".rds$", 
+# Find all files matching our pattern of `SCPCL<numbers>` in `.rds` in the input directory
+sce_paths <- list.files(data_dir, 
+                        # Regular expression matching the file name pattern `SCPCL<numbers>.rds`
+                        pattern = "SCPCL\\d+.rds", 
                         # return the relative paths to the files, not just the file names themselves
                         full.names = TRUE)
 sce_paths
@@ -131,8 +122,8 @@ We now have a list of length four, where each item is a processed SCE object!
 However, we'll need to keep track of which library each item is, so it's helpful to add _names_ to this list representing the relevant library names.
 
 ```{r add list names}
-# This code will extract the portion of each `sce_paths` string that matches the pattern: 
-#  "SCPCL" followed by a bunch of numbers
+# This code will extract the portion of each `sce_paths` string that matches
+#  our filename pattern
 stringr::str_extract_all(sce_paths, "SCPCL\\d+")
 
 # Assign the library names as the names for sce_list
