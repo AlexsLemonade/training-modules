@@ -274,8 +274,11 @@ We now have a single SCE object that contains all cells from all libraries we'd 
 
 You might have noticed that that there are already `PCA` and `UMAP` dimension reductions in the merged SCE we created.
 These represent the original dimension reductions that were performed on _each individual library_.
-We can also calculate PCA and UMAP for the merged SCE  as a whole, which we will save with different names `merged_PCA` and `merged_UMAP` to distinguish them for the original.
+
+We can also calculate PCA and UMAP for the merged SCE as a whole, which we will save with different names `merged_PCA` and `merged_UMAP` to distinguish them for the original.
+When calculating PCs on this merged object, we need to use a slightly different approach that respects the batch differences within. 
 We can compare these UMAP embeddings to those calculated after performing integration.
+
 
 ```{r}
 # calculate high-variance genes to use for dimension reduction
@@ -285,14 +288,20 @@ gene_variance <- scran::modelGeneVar(merged_sce,
 hv_list <- scran::getTopHVGs(gene_variance,
                               n = 2000)
 
-# Add PCA and UMAP into the SCE
-merged_sce <- merged_sce %>%
-  scater::runPCA(subset_row = hv_list,
-                 # Make sure not to overwrite the existing PCA!
-                 name = "merged_PCA") %>%
-  # again, make sure to use the right names
-  scater::runUMAP(dimred = "merged_PCA",
-                  name = "merged_UMAP")
+
+# Use batchelor to calculate PCA from a merged group fo SCEs
+multi_pca <- batchelor::multiBatchPCA(merged_sce,
+                                      subset.row = hv_list,
+                                      batch = merged_sce$sample,
+                                      preserve.single = TRUE)
+
+# add PCA results to merged SCE object 
+reducedDim(merged_sce, "merged_PCA") <- multi_pca@listData[[1]]
+
+# add merged_UMAP from merged_PCA
+merged_sce <- scater::runUMAP(merged_sce,
+                              dimred = "merged_PCA",
+                              name = "merged_UMAP")
 
 merged_sce
 ```
