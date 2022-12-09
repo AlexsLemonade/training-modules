@@ -21,12 +21,15 @@ This notebook will demonstrate how to:
 ---
 
 In this notebook, we'll perform integration of several scRNA-seq datasets from the [Single-cell Pediatric Cancer Atlas (`ScPCA`)](https://scpca.alexslemonade.org/), a database of uniformly-processed pediatric scRNA-seq data built and maintained by the Data Lab.
-Funded by ALSF, this database currently hosts projects from ten different ALSF-funded labs who have generated single-cell pediatric cancer transcriptomic data with the ultimate goal of making this data easily accessible to investigators.
+This database currently hosts projects from ten different ALSF-funded labs who have generated single-cell pediatric cancer transcriptomic data with the ultimate goal of making this data easily accessible to investigators (like you!).
 
 Specifically, we'll have a look at four libraries from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), which contains rhabdomyosarcoma (RMS) data ([Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)).
 This data is part of an overall project led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Chidren's Research Hospital to characterize the heterogeneity of pediatric solid tumors.
 The four libraries we'll be looking were obtained from four different patients at recurrences and were sequenced as single-nuclei with 10Xv3 technology. 
-These shared metadata properties hopefully make these datasets suitable for integration - it's important to bear in mind that not everything can/will integrate, and the success of the integration will usually depend on the given method used as well.
+These shared metadata properties hopefully make these datasets suitable for integration - it's important to bear in mind that not all datasets can/will integrate.
+
+We'll be performing integration with two different tools, `fastmNN` and `harmony`. 
+One reason we're using two approaches is to compare their performance; as we might see (foreshadowing!), different methods may perform differently!
 
 ## Set Up
 
@@ -44,7 +47,7 @@ set.seed(12345)
 ### Functional programming
 
 We have already pre-processed count data for the four samples we'll be integrating (i.e., filtered cells, normalized counts, and calculated PCA & UMAP).
-RDS files with the results of this preprocessing, stored as SCE objects, are available in the `data/rms/integration/` directory. 
+These pre-processed SCE objects, stored as RDS files, are available in the `data/rms/processed/` directory. 
 Files are named according to their library IDs:
 
 - `SCPCL000478.rds`
@@ -77,11 +80,10 @@ squares <- c(4, 9, 16, 25, 36)
 # The `map()` function always returns a list
 purrr::map(squares, # vector to map over
            sqrt)    # function to apply to each item in `squares`
-
-# The `map()` relative `map_dbl()` function always returns a vector of doubles (dbl)
-purrr::map_dbl(squares, 
-               sqrt)
 ```
+
+The output from running `purr::map()` is always a list (but note that there are other `purrr::map()` relatives which return other object types, as you can read about in [the `purrr::map()` documentation](https://purrr.tidyverse.org/reference/index.html)).
+
 
 ### Directories and files
 
@@ -89,11 +91,10 @@ Let's set up our directories:
 
 ```{r directories}
 # Define directory where integration data is stored
-# This full path is just for now until data is linked, which will happen BEFORE MERGING THIS!!!!
-data_dir <- file.path("/shared/data/training-modules/scRNA-seq-advanced", "data", "rms", "integration")
+data_dir <- file.path("data", "rms", "processed")
 
 # Output file name for the integrated object
-output_sce <- file.path(data_dir, "integrated_sce.rds")
+integrated_sce_file <- file.path(data_dir, "integrated_sce.rds")
 ```
 
 Now, let's use `purrr::map()` to read in our SCE objects so that they are immediately stored together in a list. 
@@ -108,7 +109,11 @@ sce_paths <- list.files(data_dir,
                         # return the relative paths to the files, not just the file names themselves
                         full.names = TRUE)
 sce_paths
+```
 
+Now, let's read those files into a single list:
+
+```{r}
 # Use purrr::map() to read all files into a list at once:
 sce_list <- purrr::map(
   sce_paths, 
@@ -131,8 +136,8 @@ names(sce_list) <- stringr::str_extract_all(sce_paths, "SCPCL\\d+")
 sce_list
 ```
 
-Something you'll notice is that these SCE objects all contain colData columns `celltype_fine` and `celltype_broad`.
-These columns contain putative _cell type annotations_ as assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003). 
+If you look closely at the printed SCE objects, you may notice that they all contain colData columns `celltype_fine` and `celltype_broad`.
+These columns (which we added to SCE objects during pre-processing) contain putative _cell type annotations_ as assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003). 
 We can leverage these cell type annotations to explore how successful our integration is:
 After integration, we expect cell types from different samples to cluster together, rather than being separated by batches. 
 
@@ -150,11 +155,12 @@ A word of caution before we begin: **This merged SCE object is NOT an integrated
 To merge SCE objects, we do need to do some wrangling and bookkeeping to ensure compatibility and that we don't lose important information.
 Overall we'll need to take care of these items: 
 
-- SCE objects should contain the same genes. In other words, the `rowData` slots should all have the same names
-- SCE columns should match. In other words, the `colData` slots should all have the same names.
 - We should be able to trace library-specific information back to its originating library, including...
   - Library-specific statistics, e.g. gene-level statistics for a given library found in `rowData`
   - Cell-level information: Which library is each cell from?
+- SCE objects should contain the same genes. In other words, each `rowData` table should have the same rownames.
+- SCE columns should match. In other words, the each `colData` should have the same column names.
+
 
 First, let's determine what the shared genes among SCE objects are using some `purrr` magic.
 Ultimately, we'll filter SCEs down to contain only these genes, thereby ensuring that their genes match.
@@ -169,12 +175,25 @@ shared_genes <- sce_list %>%
 head(shared_genes)
 ```
 
+In this case, all SCE objects we're working with actually already contained the same genes, but it can't hurt to be sure!
+To confirm this, we can check that `shared_genes` is the same size as the genes in each SCE:
+
+```{r}
+# How many shared genes?
+length(shared_genes)
+
+# How many genes in each SCE?
+# Same number as the shared genes all around!
+genes_per_sce <- sce_list %>%
+  purrr::map(rownames) %>%
+  purrr::map(length)
+```
+
 Next, lets see how the `colData` columns compare across SCEs:
 
 ```{r}
 # What are the colData names?
-# Note the slightly different syntax here, used when the function is a 
-#  stand-alone operation on the input
+# Note the slightly different syntax here: We're providing a formula!
 purrr::map(sce_list,
            ~names(colData(.)))
 
@@ -199,14 +218,13 @@ The first column is general information not specific to any library or experimen
 So, `gene_symbol` does not need to be traced back to its originating library, but `mean` and `detected` do.
 We can ensure these columns remain distinguishable by _prepending the library name_ to library-specific columns.
 For example, rather than being called `mean`, we could update this column's name to `<library>-mean` (e.g. `SCPCL000478-mean` for the `SCPCL000478` library).
-**REVIEWERS: Or we can just get rid of these columns altogether? Integration really only _needs_ the rownames.**
-
 
 Finally, how will we be able to tell the original library that each cell in the merged SCE came from? 
 There are two modifications that we can do to ensure we'll be able to track this information:
+- We can add a column `sample` to the SCE object that directly stores the given library name, which will also be used as input to integration methods.
 - The cell barcodes themselves (which are stored as `colData` rownames) can be modified to include library information
   - For example (a hypothetical) barcode `ACGTACGTACGT` might be renamed to `SCPCL000478-ACGTACGTACGT`, thereby preserving both library and barcode information for the cell.
-- We can add a column `sample` to the SCE object that directly stores the given library name, which will also be used as input to integration methods.
+
 
 As you can see, there's a lot of moving parts to consider! 
 It's very important to take the time to explore the contents of your SCE objects so you know what needs to be tweaked, as this may be different for different SCEs.
@@ -219,27 +237,25 @@ It's important to note that this is not necessarily a function for general use -
 # Note for reviewers - I suggest this NOT be a live chunk!
 format_sce <- function(sce, library_name, shared_genes) {
   
+  
+  ###### Add in sample-level information as stand-alone column ######
+  colData(sce)$sample <- library_name
+
+  
+  ###### Ensure cells can be identified ######
+  # Update the colData row names by prepending {library_name}
+  rownames(colData(sce)) <- glue::glue("{library_name}-{rownames(colData(sce))}")
+        
+  
   ###### Subset the SCE object to only contain the shared genes ######
   sce <- sce[shared_genes,]
   
   ###### Ensure gene-level stats can be identified ######
-  # Q FOR REVIEWERS: WE COULD ALSO PURGE THE ROWDATA ENTIRELY EXCEPT FOR ROWNAMES?
-  # Update the rowData names by prepending {library_name}, except for `gene_symbol`
-  names(rowData(sce)) <- ifelse(
-     # Is the value is gene_symbol?
-    names(rowData(sce)) == "gene_symbol",      
-    # If yes, keep gene_symbol
-    "gene_symbol",       
-    # If no, update the name by prepending the library name
-    glue::glue("{library_name}-{names(rowData(sce))}")
-  )
-               
-  ###### Ensure cells can be identified ######
-  # Update the colData row names by prepending {library_name}
-  rownames(colData(sce)) <- glue::glue("{library_name}-{rownames(colData(sce))}")
-                 
-  ###### Add in sample-level information as stand-alone column ######
-  colData(sce)$sample <- library_name
+  # We want to rename the columns `mean` and `detected` to contain the {library_name}
+  # Recall the names are: "gene_symbol", "mean", "detected"   
+  names(rowData(sce)) <- c("gene_symbol", 
+                           glue::glue("{library_name}-mean"),
+                           glue::glue("{library_name}-detected"))
 
   # Return the formatted SCE object
   return(sce)
@@ -251,15 +267,18 @@ To run this function, we'll use the convenient `purrr::imap()` function, which a
 ```{r format sces for merge}
 sce_list_formatted <- purrr::imap(
   sce_list,
-  format_sce_list,
+  format_sce,
   shared_genes = shared_genes
 )
 sce_list_formatted
 ```
 
 We are now ready to merge the SCEs!
-We'll use the base R function `cbind`, but since the input is a list we'll have to use base R `do.call` to run `cbind` over the list:
+We'll use the R function `cbind()` to combine the SCE objects.
+The `cbind()` function is often used to combine data frames by column, i.e. "stack" them on top of each other.
+The same principle applies here, but when run on SCE objects, `cbind()` will create a new SCE object by combining `counts` and `logcounts` matrices by column, as well as combining reduced dimension slots appropriately.
 
+Since we need to apply `cbind()` to a _list_ of objects, we need to use some slightly-gnarly syntax: We'll use the function `do.call()`, which allows the `cbind()` input to be a list of objects to combine.
 
 ```{r merge sces}
 merged_sce <- do.call(cbind, sce_list_formatted)
@@ -279,6 +298,8 @@ When calculating PCs on this merged object, we will want to use a slightly diffe
 We can compare these UMAP embeddings to those calculated after performing integration.
 
 
+
+First, as usual we'll create our vector of high-variance genes to use for calculations.
 ```{r}
 # calculate high-variance genes to use for dimension reduction
 gene_variance <- scran::modelGeneVar(merged_sce,
@@ -286,8 +307,13 @@ gene_variance <- scran::modelGeneVar(merged_sce,
                                      block = merged_sce$sample)
 hv_list <- scran::getTopHVGs(gene_variance,
                               n = 2000)
+```
 
 
+Next, we need tp calculate PCs. 
+Since we're calculating PCs specifically on a merged object, we will want to use a slightly different approach that respects the batch differences within. 
+Once we have PCs, we can proceed to calculate UMAP.
+```{r}
 # Use batchelor to calculate PCA from a merged group fo SCEs
 multi_pca <- batchelor::multiBatchPCA(merged_sce,
                                       subset.row = hv_list,
@@ -308,7 +334,7 @@ merged_sce
 
 Let's first see how these uncorrected UMAPs compare:
 
-```{r uncorrected UMAPs}
+```{r uncorrected individual UMAPs}
 # UMAPs scaled separately when calculated from individual libraries:
 scater::plotReducedDim(merged_sce,
                        dimred = "UMAP",
@@ -317,7 +343,9 @@ scater::plotReducedDim(merged_sce,
                        point_size = 0.5,
                        point_alpha = 0.2) +
   ggplot2::ggtitle("UMAPs separately calculated")
+```
 
+```{r uncorrected merged UMAP}
 # UMAPs scaled together when calculated from the merged SCE
 scater::plotReducedDim(merged_sce,
                        dimred = "merged_UMAP",
@@ -329,6 +357,7 @@ scater::plotReducedDim(merged_sce,
 ```
 The main "clustering" (not technical clustering, just what we see visually!) in these plots are the batches. 
 A well-integrated dataset will instead show much more mixing among batches, as the batch effects will have hopefully been corrected.
+How might you expect an integrated UMAP to look?
 
 
 
@@ -501,7 +530,8 @@ How do you think these methods' (`fastMNN` and `harmony`) performances compare o
 Let's now save our final SCE object to a file:
 
 ```{r save integration}
-readr::write_rds(merged_sce, output_sce)
+# I'm getting disk space errors? but the file is being written? weird stuff.
+#readr::write_rds(merged_sce, integrated_sce_file)
 ```
 
 
