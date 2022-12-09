@@ -1,7 +1,7 @@
 This directory holds the workflow for pre-processing integration SCE files, which includes:
 
 - `Snakefile` and its `config.yaml`
-- `prepare_integration_libraries.Rmd`
+- `prepare_rms_library.R`
 - `logs/` contains workflow run logs
 
 
