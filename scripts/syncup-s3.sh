@@ -40,6 +40,7 @@ sync_dirs=(
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
   pathway-analysis/data/open-pbta
+  scRNA-seq-advanced/data/rms/processed
 )
 
 sync_files=(
