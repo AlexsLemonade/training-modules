@@ -55,6 +55,11 @@ sync_files=(
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
   scRNA-seq/analysis/mouse-liver/markers/cluster07_markers.tsv
+  # the _integration_ rms files
+  #scRNA-seq-advanced/data/rms/processed/SCPCL0000478.rds
+  #scRNA-seq-advanced/data/rms/processed/SCPCL0000479.rds
+  #scRNA-seq-advanced/data/rms/processed/SCPCL0000480.rds
+  #scRNA-seq-advanced/data/rms/processed/SCPCL0000471.rds
 )
 
 for loc in ${sync_dirs[@]}
