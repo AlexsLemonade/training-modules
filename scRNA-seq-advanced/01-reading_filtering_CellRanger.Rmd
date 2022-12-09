@@ -14,7 +14,7 @@ This notebook will demonstrate how to:
 
 - Read Cell Ranger data into R
 - Filter to cells using `emptyDropsCellRanger()`
-- Calculate quality control measures on RNA-seq data
+- Calculate quality control measures on scRNA-seq data
 - Remove likely compromised cells with `miQC()`
 - Normalize expression data across cells
 - Calculate and plot reduced dimension representations of expression data (PCA, UMAP)
@@ -45,7 +45,7 @@ This directory usually contains three files:
 - `barcodes.tsv.gz`, a table of the cell barcodes that 10X uses, corresponding to the columns of the count matrix.
 - `features.tsv.gz`, a table of the features (genes in this case) for which expression was quantified.
 This will usually also include a bit of metadata about the features, including gene symbols and the type of data it represents.
-- `matrix.mtx.gz`, The counts themselves, stored in a sparse ["Matrix Exchange" format] (https://math.nist.gov/MatrixMarket/formats.html).
+- `matrix.mtx.gz`, The counts themselves, stored in a sparse ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html).
 
 Cell Ranger will also export these data in a single `HDF5` format file with a `.h5` extension, but we have found that using the separate matrix files seems to work more efficiently in R, so we prefer to start with those files.  
 
@@ -64,6 +64,7 @@ raw_matrix_dir <- file.path(data_dir, "raw_feature_bc_matrix")
 
 # reference data directory
 ref_dir <- file.path("data", "reference")
+
 # Path to mitochondrial genes table
 mito_file <- file.path(ref_dir, "hs_mitochondrial_genes.tsv")
 
@@ -80,7 +81,7 @@ output_sce_file <- file.path(normalized_dir, "gliobastoma_normalized_sce.rds")
 
 ## Reading Cell Ranger data
 
-Whether the 10X Cell Ranger  data is in Matrix Exchange format or an HDF5 file, we can use the `read10xCounts()` function from the `DropletUtils` package to read the data into R and create a `SingleCellExperiment` object.
+Whether the 10X Cell Ranger data is in Matrix Exchange format or in an HDF5 file, we can use the `read10xCounts()` function from the `DropletUtils` package to read the data into R and create a `SingleCellExperiment` object.
 
 ```{r read SCE}
 raw_sce <- DropletUtils::read10xCounts(raw_matrix_dir) 
@@ -95,7 +96,7 @@ raw_sce
 
 We can see that this `SingleCellExperiment` (SCE) object contains 36,601 rows, which correspond to the features (genes) that were analyzed, and 734,492 columns, which correspond to the possible barcode tags that were used in the experiment.
 Note that not all of these barcode tags will have been used, and many of the features may never have been seen either.
-One of our firs steps will be to filter out barcodes that were never seen, or that may have only been seen in a droplet that did not contain a cell (an "empty droplet").
+One of our first steps will be to filter out barcodes that were never seen, or that may have only been seen in a droplet that did not contain a cell (an "empty droplet").
 
 ### Cell and feature metadata
 
@@ -119,6 +120,7 @@ We can look at the this table using the `colData()` function (and `head()` again
 head(colData(raw_sce))
 ```
 Here we see that there are two columns: 
+
 - one has the path of the file that we read in, listed as `Sample` (you may not see the whole path in this display); this should be identical in all rows from a single sample.
 - the other column is the `Barcode`, which is the sequence that was used to identify each potential droplet for sequencing (and a numeric tag, in this case).
 
@@ -149,11 +151,11 @@ Even if a cell does not have a cell in it, there will often be spurious reads fr
 
 We can identify these in part by low transcript counts, but we can also be a bit more clever, and look at the transcript counts _from_ the lowest-count droplets to create an expected distribution of transcript counts in droplets that don't contain cells.
 Then we can test each cell to determine whether or not its transcript distribution deviates from that expectation.
-If it does, then we have pretty good evidence that there is a cell in there.
+If it does, then we have pretty good evidence that there _is_ a cell in there.
 
 This test was first proposed by [Lun _et al._ (2019)](https://doi.org/10.1186/s13059-019-1662-y) and implemented as `emptyDrops()` in the `DropletUtils` package. 
 This method was then adopted, with some modifications, as the default cell filtering method used by Cell Ranger.
-Here we will use the `emptyDropsCellRanger()` function to perform the filtering to most closely match the Cell Ranger implementation.
+Here we will use the `emptyDropsCellRanger()` function to perform filtering that most closely matches the Cell Ranger implementation.
 
 
 ```{r calculate droplet stats}
@@ -163,13 +165,14 @@ droplet_df <- DropletUtils::emptyDropsCellRanger(counts(raw_sce))
 
 If we look at this table, we will see that most of the values in it are `NA`, because the low-count cells are used to generate the background distribution, and so do not have individual statistics calculated.
 
-We can look at just the rows without `NA` values by selected the ones where the FDR (which we will use again soon), is not `NA`
+We can look at just the rows without `NA` values by selected the ones where the FDR (which we will use again soon), is not `NA`.
 
 ```{r look at droplet stats}
 # view rows where FDR is not `NA`
 droplet_df[!is.na(droplet_df$FDR), ]
 ```
-You will notice that some cells with high counts also have NA values for many statistics, but in those cases  it is because they are automatically assumed to contain cells, so were not tested. 
+You will notice that some cells with high counts also have `NA` values for many statistics.
+In those cases, `NA` values are actually present _because_ of the high counts - `emptyDropsCellRanger()` automatically assumed cells were present, so they were also not tested. 
 
 
 Now we can filter our `raw_sce` object _by column_ to only keep the cells with a small FDR: those that are quite unlikely to be empty droplets. 
@@ -187,9 +190,10 @@ filtered_sce
 
 ## Additional Quality control
 
-In addition to filtering out empty droplets, we also will want to filter out real cells that may have been damaged during preparation of the library.
+In addition to filtering out empty droplets, we also will want to filter out real cells that may have been damaged during library preparation.
 These will often be characterized by a high proportion of mitochondrial transcripts.
-The idea here is that if a cell ruptures, the cytoplasmic transcripts will leak out, but mitochondrial transcripts, protected by the mitochondrial membrane, will be more protected. 
+This is because, if a cell ruptures, the cytoplasmic transcripts will leak out, but mitochondrial transcripts, protected by the mitochondrial membrane, will be more protected.
+As a consequence, there is an over-abundance of mitochondrial reads.
 
 Our first step then, is create a list of the mitochondrial genes that are present in our dataset.
 
@@ -231,18 +235,19 @@ miQC::plotMetrics(filtered_sce) + theme_bw()
 
 We can see that there is a range of mitochondrial percentages, and it does also seem that genes with high percentages of mitochondrial cells don't seem to detect very many unique genes.
 
+How do we filter with this information?
 One option is to define a cutoff for the mitochondrial percentage above which we call a cell compromised and exclude it from further analysis. 
-However, deciding on that cutoff can be a bit fraught, as the expected percentage of mitochondrial reads can vary depending on the cell type and library preparation methods. 
+However, choosing that cutoff can be a bit fraught, as the expected percentage of mitochondrial reads can vary depending on the cell type and library preparation methods. 
 So it might be nice to have a method to determine that cutoff from the data itself.
 
 ### Filtering compromised cells
 
-Determining mitochondrial cutoffs is exactly what the `miQC` package does ([Hippen _et al._ 2021] (https://doi.org/10.1371/journal.pcbi.1009290))!
+Determining mitochondrial cutoffs is exactly what the `miQC` package does ([Hippen _et al._ 2021](https://doi.org/10.1371/journal.pcbi.1009290))!
 In truth, it does something possibly even a bit better: it fits a mixture model to the data that consists of distributions of healthy cells and compromised cells.
 Then we can calculate whether each cell is more likely to belong to the healthy or compromised distribution.
 We can then exclude the cells that are more likely to be compromised. 
 
-To use miQC, we first fit a model to the data in our SCE object:
+To use `miQC`, we first fit a model to the data in our SCE object:
 
 ```{r miQC model}
 miqc_model <- miQC::mixtureModel(filtered_sce) 
@@ -294,7 +299,7 @@ qcfiltered_sce <- qcfiltered_sce[, which(qcfiltered_sce$detected >= 200)]
 
 ## Normalization and Dimension Reduction
 
-Now that we have done our filtering, we can set analyzing the expression counts for the remaining cells. 
+Now that we have done our filtering, we can start analyzing the expression counts for the remaining cells. 
 
 The next step at this point is to convert the raw counts into a measure that accounts for differences in sequencing depth between cells, and to convert the distribution of expression values from the skewed distribution we expect to see in raw counts to one that is more normally distributed.
 
@@ -332,8 +337,8 @@ While we could calculate the reduced dimensions using all of the genes that we h
 Reducing the number of genes we include will also speed up some of the calculations.
 
 To identify the most variable genes, we will use functions from the `scran` package. 
-The first, `modelGeneVar()` attempts to divide the variation we observe for each gene into a biological and technical component, with the intuition that genes with lower mean expression tend to have lower variance for purely technical reasons.
-We then use the output from that with the `getTopHVGs()` function to identify the genes with the highest _biological_ variation, which is  what we are most interested in.
+The first function, `modelGeneVar()`, attempts to divide the variation observed for each gene into a biological and technical component, with the intuition that genes with lower mean expression tend to have lower variance for purely technical reasons.
+We then provide the `modelGeneVar()` output to the `getTopHVGs()` function to identify the genes with the highest _biological_ variation, which is what we are most interested in.
 
 ```{r select HVGs}
 # identify 2000 genes 
@@ -350,11 +355,11 @@ hv_genes <- scran::getTopHVGs(gene_variance,
 
 ### Principal components analysis
 
-Now that we have selected the genes we would like to use for the reduced-dimension representations of the expression data, we can start to calculate them 
+Now that we have selected the genes we would like to use for the reduced-dimension representations of the expression data, we can start to calculate them.
 First we will use the `scater::runPCA()` function to calculate the principal components from the expression matrix. 
 This representation is fast and fairly robust, but may not always provide the best graphical representation, in part because we will usually want to keep a fairly large number of components. 
 
-The default number of components is 50, which we will stick with, but enter it manually just for the record.
+The default number of components is 50, which we will stick with, but let's enter it manually just for the record.
 
 ```{r runPCA}
 # calculate and save PCA results
@@ -364,7 +369,7 @@ normalized_sce <- scater::runPCA(normalized_sce,
                                  subset_row = hv_genes)
 ```
 
-These reduced dimension results will be stored in a `reducedDim` slot in the SCE object.
+These reduced-dimension results will be stored in a `reducedDim` slot in the SCE object.
 We can see that by looking at the object summary:
 
 ```{r view reduced dimensions}
@@ -398,7 +403,7 @@ normalized_sce <- scater::runUMAP(normalized_sce,
                                   dimred = "PCA")
 ```
 
-As before, we could extract the UMAP matrix from our SCE object with the `reducedDim()` function 
+As before, we could extract the UMAP matrix from our SCE object with the `reducedDim()` function.
 We can also visualize the UMAP results using the `plotReducedDim()` function.
 
 ```{r plotReducedDim}
