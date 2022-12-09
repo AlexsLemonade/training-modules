@@ -20,7 +20,7 @@ This notebook will demonstrate how to:
 
 ---
 
-In this notebook, we'll perform integration of several scRNA-seq datasets from the [`ScPCA`](https://scpca.alexslemonade.org/), a database of uniformly-processed pediatric scRNA-seq data built and maintained by the Data Lab.
+In this notebook, we'll perform integration of several scRNA-seq datasets from the [Single-cell Pediatric Cancer Atlas (SCPCA)](https://scpca.alexslemonade.org/), a database of uniformly-processed pediatric scRNA-seq data built and maintained by the Data Lab.
 Specifically, we'll have a look at four libraries from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), which contains rhabdomyosarcoma (RMS) data. 
 We'll perform integration with two methods, **which we will either describe here or in the slides, or a little column a/little column b.**
 
@@ -45,7 +45,8 @@ set.seed(12345)
 
 ### Functional programming
 
-We have already pre-processed (e.g., filtered cells, normalized counts, and calculated PCA reduced dimensions) the four SCE objects we'll be integrating, and they are available in the `data/rms/integration/` directory. 
+We have already pre-processed count data for the four samples we'll be integrating (i.e., filtered cells, normalized counts, and calculated PCA & UMAP).
+RDS files with the results of this preprocessing, stored as SCE objects, are available in the `data/rms/integration/` directory. 
 Files are named according to their library IDs:
 
 - `SCPCL000478.rds`
@@ -58,7 +59,7 @@ once for each of the files.
 A different and more modular coding approach to reading in these files (and more!) is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for _functional programming_.
 You can read more about functional programming in R in [Chapter 21 of _R for Data Science_](https://r4ds.had.co.nz/iteration.html#for-loops-vs.-functionals).
 
-Of particular interest is the [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) family of functions, which can be used to run a given function to each element of a list or vector in one call.
+Of particular interest is the [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) family of functions, which can be used to run a given function on each element of a list or vector in one call.
 The general syntax for `purrr::map()` and friends is:
 
 ```
@@ -133,8 +134,9 @@ sce_list
 ```
 
 Something you'll notice is that these SCE objects all contain colData columns `celltype_fine` and `celltype_broad`.
-These columns contain putative _cell type annotations_ as assigned in [Patel et al. 2022](https://doi.org/10.1016/j.devcel.2022.04.003). 
-We can actually leverage these cell type annotations to explore how successful our integration is: After integration, we expect cell types from different samples to cluster together, rather than being separated by batches. 
+These columns contain putative _cell type annotations_ as assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003). 
+We can leverage these cell type annotations to explore how successful our integration is:
+After integration, we expect cell types from different samples to cluster together, rather than being separated by batches. 
 
 Before we proceed, it's critical to remember that integration procedures do _not actually use_ these cell type annotations, and high-confidence annotations are not always (usually!) available for a given dataset.
 If we have annotations, they are a helpful "bonus" for assessing the integration's success, but they are not necessary for performing integration, nor should you expect to always be able to assess integration using them.
@@ -144,9 +146,8 @@ If we have annotations, they are a helpful "bonus" for assessing the integration
 
 > reviewer note: I need to make a diagram here to show areas in the SCE that need updating, and possibly also a before/after SCE sketch. 
 
-Now that we have a defined list of processed SCE objects, we need to merge the objects into one overall SCE object which we can provide as input to integration methods.
+Now that we have a list of processed SCE objects, we need to merge the objects into one overall SCE object which we can provide as input to integration methods.
 A word of caution before we begin: **This merged SCE object is NOT an integrated SCE!** 
-It still suffers from uncorrected batch effects, so it should not be used for any analyses besides input to integration itself.
 
 To merge SCE objects, we do need to do some wrangling and bookkeeping to ensure compatibility and that we don't lose important information.
 Overall we'll need to take care of these items: 
@@ -218,7 +219,7 @@ It's important to note that this is not necessarily a function for general use -
 
 ```{r format function}
 # Note for reviewers - I suggest this NOT be a live chunk!
-format_sce_list <- function(sce, library_name, shared_genes) {
+format_sce <- function(sce, library_name, shared_genes) {
   
   ###### Subset the SCE object to only contain the shared genes ######
   sce <- sce[shared_genes,]
@@ -247,13 +248,13 @@ format_sce_list <- function(sce, library_name, shared_genes) {
 }
 ```
 
-To run this function, we'll use the convenient `purrr::imap()` function, which _assumes_ that the second argument to the function we're calling are the list names:
+To run this function, we'll use the convenient `purrr::imap()` function, which automatically fills in the second argument to the function we're calling with the list names:
 
 ```{r format sces for merge}
 sce_list_formatted <- purrr::imap(
   sce_list,
   format_sce_list,
-  shared_genes
+  shared_genes = shared_genes
 )
 sce_list_formatted
 ```
@@ -276,7 +277,7 @@ You might have noticed that that there are already `PCA` and `UMAP` dimension re
 These represent the original dimension reductions that were performed on _each individual library_.
 
 We can also calculate PCA and UMAP for the merged SCE as a whole, which we will save with different names `merged_PCA` and `merged_UMAP` to distinguish them for the original.
-When calculating PCs on this merged object, we need to use a slightly different approach that respects the batch differences within. 
+When calculating PCs on this merged object, we will want to use a slightly different approach that respects the batch differences within. 
 We can compare these UMAP embeddings to those calculated after performing integration.
 
 
@@ -296,7 +297,7 @@ multi_pca <- batchelor::multiBatchPCA(merged_sce,
                                       preserve.single = TRUE)
 
 # add PCA results to merged SCE object 
-reducedDim(merged_sce, "merged_PCA") <- multi_pca@listData[[1]]
+reducedDim(merged_sce, "merged_PCA") <- multi_pca[[1]]
 
 # add merged_UMAP from merged_PCA
 merged_sce <- scater::runUMAP(merged_sce,
