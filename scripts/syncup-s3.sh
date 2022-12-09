@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # This script is used to sync files required for training module notebooks to S3
-# To run this script, you must have write permission to the destination bucket 
+# To run this script, you must have write permission to the destination bucket
 # and have set up credentials with `aws configure`
 
 # As new directories and files are required, they should be added to the
@@ -18,9 +18,9 @@ cd ..
 bucket=s3://ccdl-training-data/training-modules
 
 # Directories and files are listed separately so that we can take advantage
-# of the ability of `aws s3 sync` to avoid copying files inside directories that 
-# are already present on S3.  
-# Unfortunately, `sync` does not work on individual files, so we have to handle 
+# of the ability of `aws s3 sync` to avoid copying files inside directories that
+# are already present on S3.
+# Unfortunately, `sync` does not work on individual files, so we have to handle
 # them separately. While we could presumably check individual files for changes
 # before upload as well, it probably isn't worth it.
 sync_dirs=(
@@ -62,7 +62,7 @@ do
   if [[ -d ${loc} ]]; then
     # upload directories to S3, make public, ignore timestamps, ignore hidden files
     aws s3 sync ${loc} ${bucket}/${loc} \
-    --acl public-read --size-only \
+    --size-only \
     --exclude ".*"
   else
     echo "${loc} does not exist."
@@ -75,8 +75,7 @@ for loc in ${sync_files[@]}
 do
   if [[ -f ${loc} ]]; then
     # upload individual files to S3, make public
-    aws s3 cp ${loc} ${bucket}/${loc} \
-    --acl public-read
+    aws s3 cp ${loc} ${bucket}/${loc}
   else
     echo "${loc} does not exist."
   fi
