@@ -39,7 +39,7 @@ set.seed(12345)
 
 ### Directories and files
 
-The gene expression data were processed create an gene by cell expression matrix of counts using Cell Ranger 6.0.
+The gene expression data were processed to create a gene-by-cell expression matrix of counts for using Cell Ranger 6.0.
 We have provided the raw data directory, `raw_feature_bc_matrix`, which is usually produced by Cell Ranger and placed in its `outs` directory.
 This directory usually contains three files:
 - `barcodes.tsv.gz`, a table of the cell barcodes that 10X uses, corresponding to the columns of the count matrix.
@@ -146,11 +146,13 @@ Now we can look at how our SCE object has changed:
 raw_sce
 ```
 
-Of course, barcodes with zero counts are not the only ones that will not correspond to droplets without cells in them. 
-Even if a cell does not have a cell in it, there will often be spurious reads from RNA sequences that were present in the extracellular solution, whether from the original sample or cells that were disrupted during preparation for single-cell analysis. 
+But barcodes with zero counts are not the only ones that will not correspond to droplets without cells in them!
+Even if a droplet does not have a cell in it, there will often be spurious reads from RNA sequences that were present in the extracellular solution, whether from the original sample or cells that were disrupted during preparation for single-cell analysis. 
 
-We can identify these in part by low transcript counts, but we can also be a bit more clever, and look at the transcript counts _from_ the lowest-count droplets to create an expected distribution of transcript counts in droplets that don't contain cells.
-Then we can test each cell to determine whether or not its transcript distribution deviates from that expectation.
+We could identify these barcodes simply as those with low transcript counts.
+Or, we can be a bit more clever!
+We can look at the transcript counts _from_ the lowest-count droplets to create an expected distribution of transcripts in droplets that don't contain cells.
+Then we can test each droplet to determine whether or not its transcript distribution deviates from that expectation.
 If it does, then we have pretty good evidence that there _is_ a cell in there.
 
 This test was first proposed by [Lun _et al._ (2019)](https://doi.org/10.1186/s13059-019-1662-y) and implemented as `emptyDrops()` in the `DropletUtils` package. 
@@ -163,7 +165,8 @@ Here we will use the `emptyDropsCellRanger()` function to perform filtering that
 droplet_df <- DropletUtils::emptyDropsCellRanger(counts(raw_sce))
 ```
 
-If we look at this table, we will see that most of the values in it are `NA`, because the low-count cells are used to generate the background distribution, and so do not have individual statistics calculated.
+Most values in this table are `NA`, because individual statistics were not calculated for the low-count droplets that were used to generate the background distribution.
+(Most droplets don't have cells, so this makes some sense!)
 
 We can look at just the rows without `NA` values by selected the ones where the FDR (which we will use again soon), is not `NA`.
 
@@ -233,7 +236,7 @@ We can also plot some of these statistics, here using the `plotMetrics()` functi
 miQC::plotMetrics(filtered_sce) + theme_bw()
 ```
 
-We can see that there is a range of mitochondrial percentages, and it does also seem that genes with high percentages of mitochondrial cells don't seem to detect very many unique genes.
+We can see that there is a range of mitochondrial percentages, and it does also seem that cells with high percentages of mitochondrial genes don't seem to contain very many unique genes.
 
 How do we filter with this information?
 One option is to define a cutoff for the mitochondrial percentage above which we call a cell compromised and exclude it from further analysis. 
