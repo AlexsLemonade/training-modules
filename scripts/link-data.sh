@@ -35,6 +35,7 @@ mkdir -p scRNA-seq/data/mouse-liver
 # scRNA-seq-advanced module directories
 mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
 mkdir -p scRNA-seq-advanced/data/glioblastoma
+mkdir -p scRNA-seq-advanced/data/rms/processed
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -62,7 +63,7 @@ link_locs=(
   RNA-seq/data/medulloblastoma/txi
   RNA-seq/data/zebrafish-cortisol/zebrafish-cortisol_metadata.tsv
   RNA-seq/data/zebrafish-cortisol/salmon_quant
-  RNA-seq/data/open-pbta/pbta-histologies-subset.tsv 
+  RNA-seq/data/open-pbta/pbta-histologies-subset.tsv
   RNA-seq/data/open-pbta/pbta-rsem-expected_count-subset.rds
   scRNA-seq/analysis/mouse-liver/markers
   scRNA-seq/data/glioblastoma/preprocessed
@@ -80,6 +81,11 @@ link_locs=(
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
   scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
   scRNA-seq-advanced/data/reference
+  # only the _integration_ rms files
+  scRNA-seq-advanced/data/rms/processed/SCPCL000478.rds
+  scRNA-seq-advanced/data/rms/processed/SCPCL000479.rds
+  scRNA-seq-advanced/data/rms/processed/SCPCL000480.rds
+  scRNA-seq-advanced/data/rms/processed/SCPCL000481.rds
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
@@ -103,7 +109,7 @@ hs_index_dest=RNA-seq/index/Homo_sapiens/short_index
 hs_index_source=${share_base}/reference/refgenie/hg38_cdna/salmon_index/short
 if [[ -L ${hs_index_dest} || ! -e ${hs_index_dest} ]]
 then
-  ln -nsf ${hs_index_source} ${hs_index_dest} 
+  ln -nsf ${hs_index_source} ${hs_index_dest}
 else
   echo "${hs_index_dest} already exists and is not a link, delete or move it to create a link."
 fi
@@ -123,7 +129,7 @@ mm_index_dest=scRNA-seq/index/Mus_musculus/short_index
 mm_index_source=${share_base}/reference/refgenie/mm10_cdna/salmon_index/short
 if [[ -L ${mm_index_dest} || ! -e ${mm_index_dest} ]]
 then
-  ln -nsf ${mm_index_source} ${mm_index_dest} 
+  ln -nsf ${mm_index_source} ${mm_index_dest}
 else
   echo "${mm_index_dest} already exists and is not a link, delete or move it to create a link."
 fi
@@ -144,7 +150,7 @@ dr_index_dest=RNA-seq/index/Danio_rerio/short_index
 dr_index_source=${share_base}/reference/refgenie/z11_cdna/salmon_index/short
 if [[ -L ${dr_index_dest} || ! -e ${dr_index_dest} ]]
 then
-  ln -nsf ${dr_index_source} ${dr_index_dest} 
+  ln -nsf ${dr_index_source} ${dr_index_dest}
 else
   echo "${dr_index_dest} already exists and is not a link, delete or move it to create a link."
 fi
