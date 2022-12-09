@@ -39,11 +39,11 @@ sync_dirs=(
   scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
+  scRNA-seq-advanced/data/rms/processed
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
   pathway-analysis/data/open-pbta
-  scRNA-seq-advanced/data/rms/processed
 )
 
 sync_files=(
