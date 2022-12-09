@@ -80,8 +80,12 @@ link_locs=(
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
   scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
-  scRNA-seq-advanced/data/rms/processed
   scRNA-seq-advanced/data/reference
+  # only the _integration_ rms files
+  scRNA-seq-advanced/data/rms/processed/SCPCL0000478.rds
+  scRNA-seq-advanced/data/rms/processed/SCPCL0000479.rds
+  scRNA-seq-advanced/data/rms/processed/SCPCL0000480.rds
+  scRNA-seq-advanced/data/rms/processed/SCPCL0000471.rds
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
