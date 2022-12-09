@@ -1,0 +1,31 @@
+# Workflow for preprocessing SCPCP000005 data used for integration and DGE instruction modules
+# Raw *_filtered.rds files from ScPCA are expected to be present in the `raw/` directory inside `base_dir`
+
+configfile: "config.yaml"
+outdir = config["base_dir"]
+
+rule target:
+  input:
+    expand(os.path.join(outdir, "processed/{library}.rds"),
+           library = config["libraries"])
+
+
+rule prepare_library:
+  input:
+    filtered_rds = os.path.join(outdir, "raw/{library}_filtered.rds"),
+    celltype_tsv = config["celltypes_file"]
+  output:
+    os.path.join(outdir, "processed/{library}.rds")
+  log:
+    "logs/{library}_prep.log"
+  shell:
+    """
+      Rscript prepare_rms_library.R \
+        --input_sce_file "{input.filtered_rds}" \
+        --output_sce_file "{output}" \
+        --celltypes_file "{input.celltype_tsv}" \
+        >& {log}
+    """
+
+
+### Forthcoming rule to further process the DGE libraries ####
