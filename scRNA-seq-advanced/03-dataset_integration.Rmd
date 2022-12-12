@@ -23,13 +23,13 @@ This notebook will demonstrate how to:
 In this notebook, we'll perform integration of several scRNA-seq datasets from the [Single-cell Pediatric Cancer Atlas (`ScPCA`)](https://scpca.alexslemonade.org/), a database of uniformly-processed pediatric scRNA-seq data built and maintained by the Data Lab.
 This database currently hosts projects from ten different ALSF-funded labs who have generated single-cell pediatric cancer transcriptomic data with the ultimate goal of making this data easily accessible to investigators (like you!).
 
-Specifically, we'll have a look at four libraries from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), which contains rhabdomyosarcoma (RMS) data ([Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)).
-This data is part of an overall project led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Children's Research Hospital to characterize the heterogeneity of pediatric solid tumors.
-The four libraries we'll be looking were obtained from three different patients and were sequenced as single-nuclei with 10Xv3 technology. 
-These shared metadata properties hopefully make these datasets suitable for integration - it's important to bear in mind that not all datasets can/will integrate.
+Specifically, we'll have a look at four libraries from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005) led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Children's Research Hospital.
+This project performed single-cell sequencing of pediatric solid tumors, including the rhabdomyosarcoma (RMS) samples we'll be looking at here ([Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)).
 
-We'll be performing integration with two different tools, `fastmNN` and `harmony`. 
-One reason we're using two approaches is to compare their performance; as we might see (foreshadowing!), different methods may perform differently!
+
+
+We'll be integrating these libraries with two different tools, [`fastmNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) and [`harmony`](https://portals.broadinstitute.org/harmony/). 
+**Still fleshing this out**
 
 ## Set Up
 
@@ -89,6 +89,12 @@ purrr::map(squares, # vector to map over
 
 The output from running `purr::map()` is always a list (but note that there are other `purrr::map()` relatives which return other object types, as you can read about in [the `purrr::map()` documentation](https://purrr.tidyverse.org/reference/index.html)).
 
+We'll note that, in this case, it's possible to simply run `sqrt()` directly on the `squares` vector itself:
+```{r quick squares}
+sqrt(squares)
+```
+
+But, more involved scenarios (as we'll see!) will necessitate the use of `map()`.
 
 ### Directories and files
 
@@ -104,16 +110,20 @@ integrated_sce_file <- file.path(data_dir, "integrated_sce.rds")
 
 Now, let's use `purrr::map()` to read in our SCE objects so that they are immediately stored together in a list. 
 We'll want to use the `readr::read_rds()` function to read in each file, so we'll first need a vector of the file names we'll be reading in.
-We can use the handy `list.files()` function to help us find the names of all relevant `.rds` files in the input directory.
+
 
 ```{r read input} 
-# Find all files matching our pattern of `SCPCL<numbers>` in `.rds` in the input directory
-sce_paths <- list.files(data_dir, 
-                        # This regular expression forms the pattern: "SCPCL<numbers>rds"
-                        pattern = "SCPCL\\d+.rds", 
-                        # return the relative paths to the files, not just the file names themselves
-                        full.names = TRUE)
-sce_paths
+# Vector of all the libraries to read in:
+library_names <- c("SCPCL000478",
+                   "SCPCL000479",
+                   "SCPCL000480",
+                   "SCPCL000481")
+
+# Now, convert these to file paths matching `<data_dir>`/`<library_name>`.rds
+library_paths <- file.path(data_dir, 
+                           glue::glue("{library_names}.rds")
+)
+library_paths
 ```
 
 Now, let's read those files into a single list:
@@ -121,7 +131,7 @@ Now, let's read those files into a single list:
 ```{r}
 # Use purrr::map() to read all files into a list at once:
 sce_list <- purrr::map(
-  sce_paths, 
+  library_paths, 
   readr::read_rds
 )
 sce_list
@@ -131,12 +141,8 @@ We now have a list of length four, where each item is a processed SCE object!
 However, we'll need to keep track of which library each item is, so it's helpful to add _names_ to this list representing the relevant library names.
 
 ```{r add list names}
-# This code will extract the portion of each `sce_paths` string that matches
-#  the library name specifically
-stringr::str_extract_all(sce_paths, "SCPCL\\d+")
-
 # Assign the library names as the names for sce_list
-names(sce_list) <- stringr::str_extract_all(sce_paths, "SCPCL\\d+")
+names(sce_list) <- library_names
 
 sce_list
 ```
@@ -162,7 +168,9 @@ Overall we'll need to take care of these items:
 
 - We should be able to trace library-specific information back to its originating library, including...
   - Library-specific statistics, e.g. gene-level statistics for a given library found in `rowData`
-  - Cell-level information: Which library is each cell from?
+  - Cell-level information: Which library is each cell from? 
+  Although cells have unique barcode identifiers, these barcodes are only guaranteed to be unique _within_ a library. 
+  Now that we are combining libraries, there's no guarantee we can identify a cell's originating library from its barcode alone.
 - SCE objects should contain the same genes. In other words, each `rowData` table should have the same rownames.
 - SCE columns should match. In other words, the each `colData` should have the same column names.
 
@@ -306,12 +314,15 @@ We can compare these UMAP embeddings to those calculated after performing integr
 
 
 First, as usual we'll create our vector of high-variance genes to use for calculations.
+We need to do take this step on the `merged_sce` in order to consider the the high-variance genes among _all_ SCE objects simultaneously when calculating PCA.
+The original PCA calculated for each library considered only that given library's high-variance genes.
+
 ```{r}
 # calculate high-variance genes to use for dimension reduction
 gene_variance <- scran::modelGeneVar(merged_sce,
                                      # specify the grouping/batch column:
                                      block = merged_sce$sample)
-hvg_list <- scran::getTopHVGs(gene_variance,
+hv_genes <- scran::getTopHVGs(gene_variance,
                               n = 2000)
 ```
 
@@ -322,7 +333,7 @@ Once we have PCs, we can proceed to calculate UMAP.
 ```{r}
 # Use batchelor to calculate PCA from a merged group fo SCEs
 multi_pca <- batchelor::multiBatchPCA(merged_sce,
-                                      subset.row = hv_list,
+                                      subset.row = hv_genes,
                                       batch = merged_sce$sample,
                                       preserve.single = TRUE)
 
@@ -383,7 +394,7 @@ integrated_sce <- batchelor::fastMNN(
   batch = merged_sce$sample, 
   # Optionally, we can specify genes to use as the previously-ID'd
   #  high variance genes
-  subset.row = hv_list
+  subset.row = hv_genes
 )
 
 # Let's have a look!
@@ -533,11 +544,13 @@ scater::plotReducedDim(merged_sce,
 
 How do you think these methods' (`fastMNN` and `harmony`) performances compare on these data?
 
-Let's now save our final SCE object to a file:
+Let's now save our final SCE object to a file.
+We'll also specify the argument `compress = "bz2"`, which saves the file with an added layer of compression. 
+This file is otherwise quite large!
 
 ```{r save integration}
 # I'm getting disk space errors? but the file is being written? weird stuff.
-#readr::write_rds(merged_sce, integrated_sce_file)
+#readr::write_rds(merged_sce, integrated_sce_file, compress = "bz2")
 ```
 
 
