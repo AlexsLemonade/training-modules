@@ -7,7 +7,8 @@ outdir = config["base_dir"]
 rule target:
   input:
     expand(os.path.join(outdir, "processed/{library}.rds"),
-           library = config["libraries"])
+           library = config["libraries"]),
+    os.path.join(outdir, "integrated/rms_integrated.rds")
 
 
 rule prepare_library:
@@ -28,4 +29,18 @@ rule prepare_library:
     """
 
 
-### Forthcoming rule to further process the DGE libraries ####
+rule integrate:
+  input:
+    expand(os.path.join(outdir, "processed/{library}.rds"),
+           library = config["libraries"])
+  output:
+    os.path.join(outdir, "integrated/rms_integrated.rds")
+  log:
+    "logs/integration.log"
+  shell:
+    """
+      Rscript integrate_rms.R \
+        --input_file_list "{input}" \
+        --integrated_sce_file "{output}" \
+        >& {log}
+    """
