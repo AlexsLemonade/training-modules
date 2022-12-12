@@ -25,7 +25,7 @@ This database currently hosts projects from ten different ALSF-funded labs who h
 
 Specifically, we'll have a look at four libraries from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), which contains rhabdomyosarcoma (RMS) data ([Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)).
 This data is part of an overall project led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Children's Research Hospital to characterize the heterogeneity of pediatric solid tumors.
-The four libraries we'll be looking were obtained from four different patients at recurrences and were sequenced as single-nuclei with 10Xv3 technology. 
+The four libraries we'll be looking were obtained from three different patients and were sequenced as single-nuclei with 10Xv3 technology. 
 These shared metadata properties hopefully make these datasets suitable for integration - it's important to bear in mind that not all datasets can/will integrate.
 
 We'll be performing integration with two different tools, `fastmNN` and `harmony`. 
@@ -76,6 +76,11 @@ purrr::map(<input vector or list>,
 Let's see a very simple example in action by quickly taking the square root of a vector of values:
 ```{r map_example}
 squares <- c(4, 9, 16, 25, 36)
+
+# get the square root of each number without purrr
+sqrt(squares[1])
+sqrt(squares[2])
+sqrt(squares[3])
 
 # The `map()` function always returns a list
 purrr::map(squares, # vector to map over
@@ -223,7 +228,7 @@ Finally, how will we be able to tell the original library that each cell in the 
 There are two modifications that we can do to ensure we'll be able to track this information:
 
 - We can add a column `sample` to the SCE object that directly stores the given library name, which will also be used as input to integration methods.
-- The cell barcodes themselves (which are stored as `colData` rownames) can be modified to include library information
+- The cell barcodes themselves (which are stored as both the column names for the SCE object and the `colData` rownames) can be modified to include library information
   - For example (a hypothetical) barcode `ACGTACGTACGT` might be renamed to `SCPCL000478-ACGTACGTACGT`, thereby preserving both library and barcode information for the cell.
 
 
@@ -306,7 +311,7 @@ First, as usual we'll create our vector of high-variance genes to use for calcul
 gene_variance <- scran::modelGeneVar(merged_sce,
                                      # specify the grouping/batch column:
                                      block = merged_sce$sample)
-hv_list <- scran::getTopHVGs(gene_variance,
+hvg_list <- scran::getTopHVGs(gene_variance,
                               n = 2000)
 ```
 
@@ -392,7 +397,7 @@ While these are calculated and used during integration, they are **NOT** stand-a
 - The new `corrected` reduced dimension represents the principle components (PCs) of these corrected expression values. 
 
 
-To conveniently keep everything in one place, let's add these PCs information (with an informative name!) into our `merged_sce` object:
+To conveniently keep everything in one place, let's add the PCs information (with an informative name!) into our `merged_sce` object:
 
 ```{r fastmnn pcs}
 # Make a new reducedDim named fastMNN_PCA from the corrected reducedDim in integrated_sce
@@ -461,7 +466,7 @@ For contrast, let's see how integration performs when using the [`harmony` metho
 Algorithmic differences aside, there are a couple practical differences between `fastMNN` and `harmony` to be aware of:
 
 - Unlike `fastMNN`, `harmony` allows you to specify additional covariates (e.g., technology, patient, diagnosis, etc.)
-  - This requires slightly more setup that what we will show below.
+  - This requires slightly more setup than what we will show below.
 - Unlike `fastMNN`, `harmony` does not calculate corrected expression values nor does it return an SCE object.
 Instead, it directly returns a matrix of corrected PCs.
 
