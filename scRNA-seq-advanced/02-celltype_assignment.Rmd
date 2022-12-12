@@ -1,0 +1,212 @@
+---
+title: "Assigning Cell Types"
+author: Data Lab for ALSF
+date: 2022
+output:
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+## Objectives
+
+This notebook will demonstrate how to:
+
+- 
+
+---
+
+In this notebook, we will review basic processing for single-cell RNA-seq data, starting with the output from Cell Ranger, and proceeding through filtering, quality control, normalization, and dimension reduction. We will perform these tasks using tools from the [Bioconductor project](https://bioconductor.org), in particular [`SingleCellExperiment` objects](https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html) and functions that work with those objects.
+Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/3.16/OSCA/). 
+
+The data we will use for this notebook is derived from a 10x Genomics Dataset: https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p. 
+
+## Set Up
+
+To start, we will load some of the libraries we will need later, and set a random number seed for reproducibility.
+
+```{r setup}
+# Load libraries
+library(magrittr) # the pipe (%>%) operator
+library(ggplot2) # plotting functions
+library(SingleCellExperiment) # our main class for storing Single Cell data
+
+
+# Setting the seed for reproducibility
+set.seed(12345)
+```
+
+
+### Input and output
+
+```{r}
+data_dir <- file.path("data", "PBMC-TotalSeqB", "normalized")
+sce_file <- file.path(data_dir, "PBMC_TotalSeqB_normalized_sce.rds")
+```
+
+
+Read in the SingleCellExperiment
+```{r}
+sce <- readRDS(sce_file)
+```
+
+
+Let's explore what is in the SCE:
+
+```{r}
+sce
+```
+What do we have in the colData (cell information)?
+
+```{r}
+names(colData(sce))
+```
+
+
+```{r}
+# What proteins were assayed?
+adt_tags <- rownames(altExp(sce))
+adt_tags
+```
+
+
+## Clustering redux
+
+```{r}
+# perform clustering
+nn_k <- 20
+nn_clusters <- bluster::clusterRows(
+  reducedDim(sce, "PCA"), 
+  bluster::NNGraphParam(
+    k = nn_k, 
+    type = "jaccard",
+    cluster.fun = "louvain"
+  )
+)
+
+# add clusters to colData
+sce$nn_cluster <- nn_clusters
+```
+
+```{r}
+scater::plotUMAP(sce, 
+                 colour_by = "nn_cluster")
+```
+But what are these clusters? Do they correspond to cell types?
+
+## Cell surface markers
+
+The markers we have were presumably chosen for the fact that they mark particular cell types, so let's look at a few.
+
+CD3 is a marker of T-cells 
+```{r}
+scater::plotUMAP(sce, 
+                 colour_by = "CD3")
+```
+
+CD4+ T cells
+
+```{r}
+scater::plotUMAP(sce, 
+                 colour_by = "CD4")
+```
+
+```{r}
+scater::plotUMAP(sce, 
+                 colour_by = "CD8")
+```
+```{r}
+all_plots <- adt_tags %>%
+  purrr::map(~ scater::plotUMAP(sce, colour_by = .))
+
+patchwork::wrap_plots(all_plots)
+```
+
+
+So one thing we could do is construct a set of rules based on ADT tags, similar to how you might set gating rules for cell sorting.
+
+
+```{r}
+# convert to a data frame
+adt_df <- logcounts(altExp(sce)) %>%
+  t() %>% 
+  as.matrix() %>%
+  as.data.frame()
+```
+
+What thresholds should we use?
+
+```{r}
+ggplot(adt_df, aes(x = CD3)) + geom_density()
+```
+
+
+```{r}
+adt_df <- adt_df %>%
+  dplyr::mutate(
+    celltype = dplyr::case_when(
+      CD3 > 6.7 & CD4 > 8 ~ "CD4+ T cell",
+      CD3 > 6.7 & CD8 > 6 ~ "CD8+ T cell",
+      CD3 > 6.7 ~ "T cell"
+    )
+  )
+```
+
+```{r}
+sce$threshold_celltype <- adt_df$celltype
+scater::plotUMAP(sce, 
+                 colour_by = "threshold_celltype")
+```
+
+We could do similar things for any marker gene from the expression data as well.
+
+
+## Cell type annotation with SingleR
+
+Get some cell data
+```{r}
+# Don't ask about creating the cache directories, just create them
+ExperimentHub::setExperimentHubOption("ASK", FALSE)
+AnnotationHub::setAnnotationHubOption("ASK", FALSE)
+
+# Get the Human Primary Cell atlas from celldex
+hpc_atlas <- celldex::HumanPrimaryCellAtlasData(ensembl = TRUE)
+```
+What is this `hpc_atlas`?
+
+```{r}
+hpc_atlas
+```
+
+Explore the sample data:
+
+```{r}
+data.frame(colData(hpc_atlas))
+```
+
+### What does SingleR do?
+
+
+```{r}
+system.time(
+singler_results <- SingleR::SingleR(
+  test = sce, 
+  ref = hpc_atlas,
+  labels = hpc_atlas$label.main,
+  BPPARAM = BiocParallel::MulticoreParam(4)
+)
+)
+```
+```{r}
+system.time(
+singler_results <- SingleR::SingleR(
+  test = sce, 
+  ref = hpc_atlas,
+  labels = hpc_atlas$label.main,
+  BPPARAM = BiocParallel::MulticoreParam(4)
+)
+)
+```
+
+
+Idea: do singleR on kmeans clusters to reduce noise?
