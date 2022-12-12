@@ -46,6 +46,11 @@ set.seed(12345)
 
 ### Directories and files
 
+Before we get too far, we like to define the input and output files that the notebook will use near the top of the document. 
+While you might not know the names of all of the files you will need or create output files when you start an analysis, we have found it helpful to keep all file and directory names in a single place near the top of the document.
+This makes it easier for somebody coming to the code later to quickly see what files are needed as input and what will be produced as output.
+More often than not, that somebody is you!
+
 The gene expression data were processed to create a gene-by-cell expression matrix of counts for using Cell Ranger 6.0.
 We have provided the raw data directory, `raw_feature_bc_matrix`, which is usually produced by Cell Ranger and placed in its `outs` directory.
 This directory usually contains three files:
@@ -59,10 +64,10 @@ Cell Ranger will also export these data in a single `HDF5` format file with a `.
 We will also need a table of mitochondrial genes, which we have stored in the `data/reference` directory. 
 
 Finally, we will set up the our output directory, creating it if it does not yet exist, and define the name for the files we will save after all of our initial processing is complete.
-While you might not know the name of your output files when you start an analysis, we have found it helpful to keep all file and directory names in a single place near the top of the document, to allow somebody coming to the code later a way to quickly see what files are needed as input and what will be produced as output.
-
 
 ```{r filepaths}
+
+# Inputs --------------------------------------
 # main data directory
 data_dir <- file.path("data", "glioblastoma")
 
@@ -75,6 +80,9 @@ ref_dir <- file.path("data", "reference")
 # Path to mitochondrial genes table
 mito_file <- file.path(ref_dir, "hs_mitochondrial_genes.tsv")
 
+
+# Outputs ------------------------------------
+
 # Directory and file to save output
 normalized_dir <- file.path(data_dir, "normalized")
 if (!dir.exists(normalized_dir)) {
@@ -82,7 +90,6 @@ if (!dir.exists(normalized_dir)) {
 }
 
 output_sce_file <- file.path(normalized_dir, "gliobastoma_normalized_sce.rds")
-
 ```
 
 
@@ -288,7 +295,7 @@ The default is to exclude cells that have a posterior probability of 0.75 or gre
 
 
 ```{r miQC plotFiltering}
-miQC::plotFiltering(filtered_sce, miqc_model, posterior_cutoff = 0.75)
+miQC::plotFiltering(filtered_sce, miqc_model, posterior_cutoff = 0.75) + theme_bw()
 ```
 
 In this case, the line between kept and removed cells seems to correspond to a mitochondrial percentage of about 12.5%, but note that this will not always be constant: the cutoff point can vary for different numbers of unique genes.
@@ -483,7 +490,7 @@ nn_clusters <- bluster::clusterRows(
 We can save the cluster assignments back into the `colData` of the SCE object with a little shortcut: the `$` followed by the name of the new column we want to add.
 
 ```{r add clusters to SCE}
-
+# save clusters to SCE colData
 normalized_sce$nn_cluster <- nn_clusters
 ```
 
