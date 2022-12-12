@@ -44,7 +44,7 @@ set.seed(12345)
 ```
 
 
-### Functional programming
+### Operating on lists with `purrr::map()`
 
 We have already pre-processed count data for the four samples we'll be integrating (i.e., filtered cells, normalized counts, and calculated PCA & UMAP).
 These pre-processed SCE objects, stored as RDS files, are available in the `data/rms/processed/` directory. 
@@ -329,8 +329,7 @@ hv_genes <- scran::getTopHVGs(gene_variance,
 
 Next, we need to calculate PCs. 
 Since we're calculating PCs specifically on a merged object, we will want to use a slightly different approach that respects the batch differences within. 
-Once we have PCs, we can proceed to calculate UMAP.
-```{r}
+```{r merged_pca}
 # Use batchelor to calculate PCA from a merged group fo SCEs
 multi_pca <- batchelor::multiBatchPCA(merged_sce,
                                       subset.row = hv_genes,
@@ -339,7 +338,11 @@ multi_pca <- batchelor::multiBatchPCA(merged_sce,
 
 # add PCA results to merged SCE object 
 reducedDim(merged_sce, "merged_PCA") <- multi_pca[[1]]
+```
 
+Now that we have PCs, we can proceed to calculate UMAP.
+
+```{r merged_umap}
 # add merged_UMAP from merged_PCA
 merged_sce <- scater::runUMAP(merged_sce,
                               dimred = "merged_PCA",
@@ -447,6 +450,8 @@ scater::plotReducedDim(merged_sce,
   ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1)))
 ```
 
+
+
 Importantly, one reason that batches may still appear separated in the corrected UMAP is if they _should_ be separated - for example, maybe two batches contain very different cell types.
 In this case, we would not expect batches to mix heavily, since their cell types should retain some structure. 
 Recall from earlier, we conveniently have cell type annotations in our SCEs, so we can explore this here!
@@ -465,7 +470,9 @@ scater::plotReducedDim(merged_sce,
                        point_alpha = 0.2) +
   ggplot2::ggtitle("UMAP after integration with fastMNN") +
   # Modify the ggplot2 guides so that the legend points are larger and easier to see:
-  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1)))
+  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  # Again, let's facet by sample so we can see this information too:
+  ggplot2::facet_wrap(~merged_sce$sample, nrow=2)
 ```
 
 
@@ -495,9 +502,12 @@ harmony_pcs <- harmony::HarmonyMatrix(
 
 # The result is just the PCs!
 harmony_pcs[1:5, 1:5]
+```
 
+Let's store this information directly in our `merged_sce` object with an informative name that won't overwrite any of the existing reduced dimensions.
 
-# Let's store this directly into our `merged_sce` object, making sure to name it well!
+```{r save harmony}
+# Store PCA as `harmony_PCA`
 reducedDim(merged_sce, "harmony_PCA") <- harmony_pcs
 
 # As before, calculate UMAP on these PCs:
@@ -521,7 +531,7 @@ scater::plotReducedDim(merged_sce,
                        point_alpha = 0.2) +
   ggplot2::ggtitle("UMAP after integration with harmony") +
   # Modify the ggplot2 guides so that the legend points are larger and easier to see:
-  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1)))
+  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) 
 ```
 
 
@@ -532,14 +542,13 @@ scater::plotReducedDim(merged_sce,
                        dimred = "harmony_UMAP",
                        # color by broad celltypes
                        colour_by = "celltype_broad",
-                       # Let's also shape by the batches:
-                       shape_by = "sample",
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.2) +
   ggplot2::ggtitle("UMAP after integration with harmony") +
   # Modify the ggplot2 guides so that the legend points are larger and easier to see:
-  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1)))
+  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  ggplot2::facet_wrap(~merged_sce$sample, nrow=2)
 ```
 
 How do you think these methods' (`fastMNN` and `harmony`) performances compare on these data?
