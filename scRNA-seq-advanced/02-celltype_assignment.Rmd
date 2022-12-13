@@ -169,44 +169,211 @@ Get some cell data
 ExperimentHub::setExperimentHubOption("ASK", FALSE)
 AnnotationHub::setAnnotationHubOption("ASK", FALSE)
 
-# Get the Human Primary Cell atlas from celldex
-hpc_atlas <- celldex::HumanPrimaryCellAtlasData(ensembl = TRUE)
+# Get Data from the Blueprint & Encode projects from celldex
+be_data <- celldex::BlueprintEncodeData(ensembl = TRUE)
 ```
-What is this `hpc_atlas`?
+What is this `be_data`?
 
 ```{r}
-hpc_atlas
+be_data
 ```
 
 Explore the sample data:
 
 ```{r}
-data.frame(colData(hpc_atlas))
+colData(be_data)
+```
+
+
+```{r}
+data.frame(colData(be_data)) %>% 
+  dplyr::count(label.fine, label.main)
 ```
 
 ### What does SingleR do?
 
 
+First we build a model that we can use for classifying expression.
+Some options we might explore: how to find choose genes to include in the model.
+`genes = "de"` is the default, using genes differentially expressed among the labels
+`genes = "sd"`uses genes with the most variability across the data set.
+
+This time we will do the training and classification in a single step, using the convenience function `SingleR::SingleR()`.
+
 ```{r}
-system.time(
-singler_results <- SingleR::SingleR(
-  test = sce, 
-  ref = hpc_atlas,
-  labels = hpc_atlas$label.main,
-  BPPARAM = BiocParallel::MulticoreParam(4)
-)
+singler_result <- SingleR::SingleR(
+  sce,
+  ref = be_data,
+  labels = be_data$label.main
 )
 ```
+
+Plot the results:
 ```{r}
-system.time(
-singler_results <- SingleR::SingleR(
-  test = sce, 
-  ref = hpc_atlas,
-  labels = hpc_atlas$label.main,
+SingleR::plotScoreHeatmap(singler_result)
+```
+
+
+```{r}
+sce$celltype_main <- singler_result$pruned.labels
+```
+
+```{r}
+scater::plotUMAP(sce, colour_by = "celltype_main")
+```
+
+```{r}
+table(singler_result$pruned.labels)
+```
+
+```{r}
+# combine all of the uncommon cell types
+common_labels <- singler_result$pruned.labels %>%
+  forcats::fct_lump_min(100)
+sce$celltype_common <- common_labels
+```
+
+
+```{r}
+scater::plotUMAP(sce, colour_by = "celltype_common")
+```
+
+We can also use the finer-grained cell type data.
+
+If we were classifying multiple samples, we would want to do the training only once!
+
+As thi
+
+```{r}
+singler_finemodel <- SingleR::trainSingleR(
+  be_data,
+  labels = be_data$label.fine,
+  # use DE to select genes (default)
+  genes = "de", 
+  # only use genes in the sce object
+  restrict = rownames(sce),
   BPPARAM = BiocParallel::MulticoreParam(4)
 )
+```
+
+Now fit the model
+
+```{r}
+singler_result_fine <- SingleR::classifySingleR(
+  sce,
+  singler_finemodel,
+  BPPARAM = BiocParallel::MulticoreParam(4)
 )
 ```
 
 
-Idea: do singleR on kmeans clusters to reduce noise?
+
+```{r}
+sort(unique(singler_result_fine$labels))
+```
+```{r}
+singler_result_fine <- SingleR::SingleR(
+  sce,
+  ref = be_data,
+  labels = be_data$label.fine
+)
+```
+
+
+```{r}
+sce$celltype_fine <- singler_result_fine$pruned.labels
+scater::plotUMAP(sce, colour_by = "celltype_fine")
+```
+
+What are the counts for each of these labels?
+```{r}
+table(singler_result_fine$labels)
+```
+
+```{r}
+collapsed_labels <- singler_result_fine$pruned.labels %>%
+  forcats::fct_collapse(
+    "HSC" = c("CLP","CMP", "GMP", "HSC", "Megakaryocytes", "MEP", "MPP"),
+    "B-cells" = c("Class-switched memory B-cells", "Memory B-cells", "naive B-cells", "Plasma cells")
+  ) %>%
+  # Sort all CD4+ labels together at the start
+  forcats::fct_relevel("CD4+ T-cells", "CD4+ Tcm", "CD4+ Tem", "Tregs")
+```
+
+
+
+```{r}
+sce$celltype_collapsed <- collapsed_labels
+scater::plotUMAP(sce, colour_by = "celltype_collapsed")
+```
+
+
+
+
+### Operating on clusters
+
+```{r}
+sce_cluster_mat <- DelayedArray::colsum(logcounts(sce), sce$nn_cluster)
+dim(sce_cluster_mat)
+```
+
+```{r}
+singler_result_cluster <- SingleR::classifySingleR(
+  sce_cluster_mat, 
+  singler_finemodel
+  )
+```
+
+```{r}
+singler_result_cluster$labels
+```
+Add cluster labels to individual cells.
+
+```{r}
+sce$celltype_cluster <- singler_result_cluster$labels[sce$nn_cluster]
+```
+
+Plot with cluster labels.
+
+```{r}
+scater::plotUMAP(sce, colour_by = "celltype_cluster")
+```
+
+### MetaCellish
+
+Alternatively cluster cells with a fast algorithm to find neighbors, then assign types to those. 
+We have ~8000 cells, so lets cluster those into groups of ~40 cells, which means we want to make about 200 clusters.
+
+A quick way to do this is with k-means clustering.
+```{r}
+kclusters <- bluster::clusterRows(
+  reducedDim(sce, "PCA"), 
+  bluster::KmeansParam(
+    centers = 200,
+    iter.max = 100
+  )
+)
+```
+
+Now apply the same procedure, using these clusters:
+
+```{r}
+kcluster_mat <- DelayedArray::colsum(logcounts(sce), kclusters)
+kcluster_result <- SingleR::classifySingleR(
+  kcluster_mat, 
+  singler_finemodel
+  )
+
+sce$celltype_kcluster <- kcluster_result$labels[kclusters]
+```
+
+```{r}
+scater::plotUMAP(sce, colour_by = "celltype_kcluster")
+```
+
+## Session Info
+
+```{r session info}
+sessionInfo()
+```
+
