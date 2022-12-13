@@ -1,6 +1,4 @@
-# load training modules R proj
-training_modules_dir <- file.path(here::here(), "..")
-renv::load(training_modules_dir)
+# This script 
 
 # Load libraries
 suppressPackageStartupMessages({
@@ -16,7 +14,7 @@ set.seed(12345)
 options <- list(
   make_option(
     "--input_file_list",
-    help = "Comma separated list of processed SCE objects to integrate."
+    help = "Quoted space separated list of processed SCE objects to integrate."
   ),
   make_option(
     "--integrated_sce_file",
@@ -69,11 +67,10 @@ format_sce_list <- function(sce, sce_name, shared_genes) {
   rownames(colData(sce)) <- glue::glue("{sce_name}-{rownames(colData(sce))}")
   
   # Update the rowData names, except `gene_symbol`
-  names(rowData(sce)) <- ifelse(names(rowData(sce)) == "gene_symbol",
-                                "gene_symbol",
-                                glue::glue("{sce_name}-{names(rowData(sce))}")
+  names(rowData(sce)) <- c("gene_symbol", 
+                           glue::glue("{sce_name}-mean"),
+                           glue::glue("{sce_name}-detected"))
                                 
-  )
   # Add in sample-level information as stand-alone column
   colData(sce)$sample <- sce_name
   
@@ -106,6 +103,9 @@ gene_variance <- scran::modelGeneVar(combined_sce,
 hvg_list <- scran::getTopHVGs(gene_variance,
                               n = 2000)
 
+# store HVG in combined object for future use
+metadata(combined_sce)$combined_hvg <- hvg_list
+
 # Add PCA and UMAP into the SCE
 combined_sce <- combined_sce %>%
   scater::runPCA(subset_row = hvg_list) %>%
@@ -115,17 +115,20 @@ combined_sce <- combined_sce %>%
 
 # perform fastMNN integration 
 integrated_sce <- batchelor::fastMNN(combined_sce,
-                                     batch = combined_sce$sample)
+                                     batch = combined_sce$sample,
+                                     subset.row = hvg_list,
+                                     correct.all = TRUE)
 
+# add reconstructed object back to combined sce
+assay(combined_sce, "fastmnn_corrected") <- assay(integrated_sce, "reconstructed")
 
 # add integrated PCs to combined sce 
 reducedDim(combined_sce, "fastmnn_PCA") <- reducedDim(integrated_sce, "corrected")
 
 # add integrated UMAP to combined SCE 
 combined_sce <- scater::runUMAP(combined_sce,
-                              dimred = "fastmnn_PCA",
-                              name = "fastmnn_UMAP")
+                                dimred = "fastmnn_PCA",
+                                name = "fastmnn_UMAP")
 
 # write out combined SCE file with added integration PCs
 readr::write_rds(combined_sce, opt$integrated_sce_file)
-
