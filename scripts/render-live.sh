@@ -40,6 +40,7 @@ files=(
   # pathway-analysis/01-overrepresentation_analysis.Rmd
   # pathway-analysis/02-gene_set_enrichment_analysis.Rmd
   # pathway-analysis/03-gene_set_variation_analysis.Rmd
+  scRNA-seq-advanced/03-dataset_integration.Rmd
 )
 for file in ${files[@]}
 do
