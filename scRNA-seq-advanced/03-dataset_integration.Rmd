@@ -423,6 +423,9 @@ readr::write_rds(merged_sce,
 So far, we've created a `merged_sce` object which are (almost!) ready to integrate.
 
 The integration methods we'll be using here actually perform batch correction on a reduced dimension representation of the normalized gene expression values, specifically the PCA.
+The main reason for this is efficiency.
+
+
 On one hand, the merged SCE object object already contains PCA and UMAP reduced dimensions, which were calculated during our pre-processing:
 
 ```{r merged_sce view pca}
@@ -432,82 +435,100 @@ On one hand, the merged SCE object object already contains PCA and UMAP reduced 
 merged_sce
 ```
 
-_But_, we actually do not want to use these PCs specifically because they were calculated for each library individually.
-Instead, we want to calculate new PCs from 
-You might have noticed that that there are already `PCA` and `UMAP` dimension reductions in the merged SCE we created.
-These represent the original dimension reductions that were performed on _each individual library_.
+These represent the original dimension reductions that were performed on _each individual library_, but we actually need to calculate PCA (and UMAP for visualization) from the merged object directly.
 
-We can also calculate PCA and UMAP for the merged SCE as a whole, which we will save with different names `merged_PCA` and `merged_UMAP` to distinguish them for the original.
-When calculating PCs on this merged object, we will want to use a slightly different approach that respects the batch differences within. 
-EXPAND ON THIS - we do this for individual libraries but that doesn't work here because we want to scale all gene expression in the same space, and take batch information into account. 
+Why can't we use the library-specific PCA? 
+Part of the PCA calculation itself involves scaling the raw data to center the mean.
+When this is performed on each library individually, all libraries are separately centered, which leads to the data "overlapping" in space.
+To see this, let's look at the UMAP for individual libraries:
 
-We can compare that UMAP to the UMAP calculated after performing integration.
+```{r individual UMAPs}
+# UMAPs scaled separately when calculated from individual libraries:
+scater::plotReducedDim(merged_sce,
+                       dimred = "UMAP",
+                       # Color points based on the `sample` variable we added during merging
+                       colour_by = "sample",
+                       # Include some point styling to help us see the points
+                       point_size = 0.5,
+                       point_alpha = 0.2) +
+  # Modify the legend key so its points are larger and easier to see
+  guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  # Add a plot title
+  ggplot2::ggtitle("UMAP calculated on each library separately")
+```
 
 
+As we see in this UMAP, all libraries are centered at zero and all overlapping!
+This visual artifact can give the _incorrect impression_ that data is integrated - to be clear, this data is NOT integrated!
 
-First, as usual we'll create our vector of high-variance genes to use for calculations.
-We need to do take this step on the `merged_sce` in order to consider the the high-variance genes among _all_ SCE objects simultaneously when calculating PCA.
-The original PCA calculated for each library considered only that given library's high-variance genes.
+For input to integration, we'll want the PCA scaling to consider normalized gene expression values from all libraries simultaneously, while also taking into consideration batch differences, so we'll need to recalculate PCA (and UMAP for visualization). 
+We'll also save these new reduced dimensions with different names, `merged_PCA` and `merged_UMAP`, to distinguish them from already-present `PCA` and `UMAP`.
 
-```{r}
+
+First, as usual, we'll determine the high-variance genes to use for PCA from the `merged_sce` object.
+For this, we'll also provide the argument `block = merged_sce$sample` when modeling gene variance, which tells `scran::modelGeneVar()` to first model variance separately for each batch and then combine those modeling statistics.
+
+```{r calc merged hv_genes}
+num_genes <- 2000
+
 # calculate high-variance genes to use for dimension reduction
 gene_variance <- scran::modelGeneVar(merged_sce,
                                      # specify the grouping/batch column:
                                      block = merged_sce$sample)
+
+# find the high-variance genes
 hv_genes <- scran::getTopHVGs(gene_variance,
-                              n = 2000)
+                              n = num_genes)
 ```
 
 
-Next, we need to calculate PCs. 
-Since we're calculating PCs specifically on a merged object, we will want to use a slightly different approach that respects the batch differences within. 
-
-
-from docs:
-> This function is roughly equivalent to cbinding all matrices in ... and performing PCA on the merged matrix. The main difference is that each sample is forced to contribute equally to the identification of the rotation vectors. Specifically, the mean vector used for centering is defined as the grand mean of the mean vectors within each batch. Each batch's contribution to the gene-gene covariance matrix is also divided by the number of cells in that batch. 
+To calculate the PCs themselves, we'll use an approach from the `batchelor` package, which is the R package that contains the `fastMNN` method.
+In particular, we'll use the `batchelor::multiBatchPCA()` function which accommodates the fact that we have separate batches in our SCE to perform the appropriate scaling we need.
+According to the documentation for this function, 
+> This function is roughly equivalent to cbinding all matrices in and performing PCA on the merged matrix. The main difference is that each sample is forced to contribute equally to the identification of the rotation vectors. Specifically, the mean vector used for centering is defined as the grand mean of the mean vectors within each batch. Each batch's contribution to the gene-gene covariance matrix is also divided by the number of cells in that batch. 
 
 
 ```{r merged_pca}
-# Use batchelor to calculate PCA from a merged group fo SCEs
-multi_pca <- batchelor::multiBatchPCA(merged_sce,
-                                      subset.row = hv_genes,
-                                      batch = merged_sce$sample,
-                                      # Ensures that the returned object is a single 
-                                      #  matrix that contains all samples
-                                      preserve.single = TRUE)
+# Use batchelor to calculate PCA from for merged_sce
+merged_pca <- batchelor::multiBatchPCA(merged_sce,
+                                       # Consider only the high-variance genes
+                                       subset.row = hv_genes,
+                                       # Batch-level information
+                                       batch = merged_sce$sample,
+                                       # This argument ensures that the returned object 
+                                       #  is a single matrix that contains all samples, 
+                                       #  instead of a separate matrix for each sample
+                                       preserve.single = TRUE)
+ 
+
+# Not very interesting!
+merged_pca
 
 
-# print MAYBE? I should look at this object literally at least once.
-multi_pca
+# Use indexing to see the PCA matrix
+head(merged_pca[[1]])
+```
 
+
+We can now include this PCA matrix in our `merged_sce` object:
+```{r add merged_pca}
 # add PCA results to merged SCE object 
 reducedDim(merged_sce, "merged_PCA") <- multi_pca[[1]]
 ```
 
-Now that we have PCs, we can proceed to calculate UMAP.
 
+Now that we have the PCA matrix, we can proceed to calculate UMAP for visualization. 
+We'll calculate this as "usual":
 ```{r merged_umap}
 # add merged_UMAP from merged_PCA
 merged_sce <- scater::runUMAP(merged_sce,
                               dimred = "merged_PCA",
                               name = "merged_UMAP")
-
 merged_sce
 ```
 
 
-Let's first see how these uncorrected UMAPs compare:
-
-```{r uncorrected individual UMAPs}
-# UMAPs scaled separately when calculated from individual libraries:
-scater::plotReducedDim(merged_sce,
-                       dimred = "UMAP",
-                       colour_by = "sample",
-                       # Some styling to help us see the points:
-                       point_size = 0.5,
-                       point_alpha = 0.2) +
-  ggplot2::ggtitle("UMAPs separately calculated")
-```
+Now, let's see how this new `merged_UMAP` looks compared to the `UMAP` calculated from individual libraries:
 
 ```{r uncorrected merged UMAP}
 # UMAPs scaled together when calculated from the merged SCE
@@ -517,18 +538,16 @@ scater::plotReducedDim(merged_sce,
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.2) +
-  ggplot2::ggtitle("UMAPs calculated on merged data")
+  # Modify the legend key so its points are larger and easier to see
+  guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  # Add a plot title
+  ggplot2::ggtitle("UMAP calculated on merged_sce")
 ```
 
+Now that we've properly accounted for batches in the `merged_sce` object, we see that the libraries are separated in space, which more reasonably reflects that this data is _not yet batch-corrected_.
+Indeed, the primary "clustering" (not technical clustering, just what we see visually!) in these plots are the batches.
 
-Explain here about scaling and on top of each other != integration but an "artifact" of doing PCA separately on each library. 
-We see when libraries are merged, the batches are separated in space. Yes.
-
-The main "clustering" (not technical clustering, just what we see visually!) in these plots are the batches. 
-A well-integrated dataset will instead show much more mixing among batches, as the batch effects will have hopefully been corrected.
-How might you expect an integrated UMAP to look?
-
-
+Let's discuss: What visual differences do you think the UMAP on the integrated version of data will have?
 
 
 ### Integration with `fastMNN`
