@@ -41,6 +41,7 @@ sync_dirs=(
   pathway-analysis/data/medulloblastoma
   pathway-analysis/data/open-pbta
   scRNA-seq-advanced/data/rms/processed
+  scRNA-seq-advanced/data/rms/integrated
 )
 
 sync_files=(
