@@ -1,0 +1,376 @@
+---
+title: "Differential expression analysis for single-cell RNA-seq"
+author: Data Lab for ALSF
+date: 2022
+output:
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+## Objectives 
+
+This notebook will demonstrate how to:
+
+- Use pseudo-bulking to prepare `SingleCellExperiment` objects for differential expression
+- Perform differential expression with the `DESeq2` package
+- Identify cell type differences across single-cell RNA-seq samples 
+- Compare cell type abundance across samples
+
+---
+
+In this notebook, we will perform differential expression analysis across a set of samples using the `DESeq2` package. 
+We will continue working with samples from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005) we worked with in the integration notebook.
+
+## Set Up
+
+```{r}
+set.seed(2022)
+
+library(magrittr)
+library(SingleCellExperiment)
+library(ggplot2)
+
+library(DESeq2)
+```
+
+```{r}
+# set up file paths 
+data_dir <- file.path("data", "rms")
+
+# integrated file containing samples to for DE 
+integrated_sce_file <- file.path(data_dir, "integrated", "rms_all_integrated.rds")
+
+# sample metadata we will use for setting up DE 
+sample_metadata_file <- file.path(data_dir, "rms_sample_metadata.tsv")
+
+# output files 
+```
+
+
+```{r}
+# read in integrated SCE object 
+integrated_sce <- readr::read_rds(integrated_sce_file)
+
+# read in sample metadata file 
+sample_metadata <- readr::read_tsv(sample_metadata_file)
+```
+
+
+```{r}
+# UMAP to show cell type and integration  
+scater::plotReducedDim(combined_sce,
+                       dimred = "fastMNN_UMAP",
+                       colour_by = "batch",
+                       point_size= 0.5,
+                       point_alpha = 0.2)
+```
+```{r}
+# show cell types in the integrated dataset 
+scater::plotReducedDim(combined_sce,
+                       dimred = "fastMNN_UMAP",
+                       colour_by = "celltype_broad",
+                       point_size= 0.5, 
+                       point_alpha = 0.4)
+
+# facet the UMAP by sample to show the distribution of cell types across each sample
+scater::plotReducedDim(combined_sce,
+                       dimred = "fastMNN_UMAP",
+                       colour_by = "celltype_broad",
+                       point_size= 0.5, 
+                       point_alpha = 0.4,
+                       other_fields = "batch") +
+  facet_wrap(~ batch, nrow = 3)
+```
+
+```{r}
+# define libraries to keep
+scpca_library_ids <- c(
+  "SCPCL000479",
+  "SCPCL000480",
+  "SCPCL000481",
+  "SCPCL000484",
+  "SCPCL000488",
+  "SCPCL000491"
+)
+
+# subset sce to only contain samples with library IDs of interest 
+samples_to_keep <- integrated_sce$sample %in% scpca_library_ids
+rms_sce <- integrated_sce[,samples_to_keep]
+```
+
+```{r}
+# look at distribution of cell types across all libraries 
+as.data.frame(colData(rms_sce)) %>%
+  dplyr::count(celltype_broad)
+```
+
+
+```{r}
+# can also print out a summary of the cell types across each library 
+colData(rms_sce) %>%
+  as.data.frame() %>%
+  dplyr::count(sample, celltype_broad) %>%
+  dplyr::group_split(sample)
+```
+
+```{r}
+# take a look at the sample metadata 
+head(sample_metadata)
+
+# we have a mix of ARMS and ERMS 
+table(sample_metadata$subdiagnosis)
+```
+
+## Differential Expression Analysis
+
+### Pseudo-bulking 
+
+Before we can do DE analysis to compare the gene expression profiles of myoblasts in ARMS vs. ERMS patients, we will need to "pseudo-bulk" the gene counts. 
+Pseudo-bulking creates a new counts matrix that contains the total counts across all cells of a given label (e.g. cell type) for each sample. 
+This allows us to use single-cell resolution to define the labels and sum gene counts across groups of cells containing the same label, and avoids counting each cell as its own replicate. 
+
+Below are a few reasons why pseudo-bulking is helpful: 
+
+- Produces larger counts which are more amenable to standard normalization and differential expression methods used by bulk RNA-sequencing. 
+-  Collapses gene expression counts by sample, so that samples, rather than cells, represent replicates.
+- Masks variance within a sample to highlight variance across samples.
+
+Let's start with the simple comparison of looking at one cell type and comparing across ERMS and ARMS subtypes. 
+When we do this, we will first want to pseudo-bulk our dataset to group our cells by cell type and by sample.
+Then we can subset the pseudo-bulked dataset to just contain our cell type of interest before proceeding. 
+
+```{r}
+# first let's subset our coldata to only have the columns we care about in pseudobulking 
+pseudobulked_coldata <- colData(rms_sce)[, c("celltype_broad", "batch")]
+
+# this creates a new SCE object that contains the pseudobulked counts across the provided groups 
+pseudobulked_sce <- scater::aggregateAcrossCells(rms_sce, 
+                                                  id = pseudobulked_coldata)
+
+# column names aren't automatically added, so let's add them in 
+colnames(pseudobulked_sce) <- paste(pseudobulked_sce$celltype_broad, 
+                                    pseudobulked_sce$batch, sep = "-")
+
+pseudobulked_sce
+```
+
+```{r}
+# only 37 columns in the counts assay 
+counts(pseudobulked_sce)[1:10, 1:10]
+```
+
+Let's take a look at what the `colData` now looks like in the pseudo-bulked SCE object. 
+
+```{r}
+# note the new addition of the column with number of cells per group 
+colData(pseudobulked_sce)
+```
+
+Before we can perform DGE analysis, we want to do some quality control like filtering out any groups in the pseudo-bulked dataset that may have a low number of cells. 
+
+### Some filtering 
+
+```{r}
+# filter by number of cells 
+filtered_pseudobulked_sce <- pseudobulked_sce[, pseudobulked_sce$ncells >= 10]
+```
+
+We also want to filter out any genes that may be lowly expressed in our pseudo-bulked dataset.
+
+```{r}
+# filter out genes that might be lowly expressed using filterbyExpr in `edgeR`
+# provide sample groups from SCE to determine minimum sample size that genes should be expressed in 
+# we are grouping samples as ERMS vs. ARMS so use subdiagnosis
+genes_filter <- edgeR::filterByExpr(filtered_pseudobulked_sce,
+                                     group = filtered_pseudobulked_sce$subdiagnosis)
+filtered_pseudobulked_sce <- filtered_pseudobulked_sce[genes_filter,]
+
+```
+
+```{r}
+tumor_myoblast_sce <- filtered_pseudobulked_sce[, filtered_pseudobulked_sce$celltype_broad == "Tumor_Myoblast"]
+table(tumor_myoblast_sce$celltype_broad)
+```
+
+### Perform differential expression with DESeq2
+
+Something about DESeq2
+
+```{r}
+# deseq2 requires the coldata object as a separate input
+coldata_df <- as.data.frame(colData(tumor_myoblast_sce))
+  
+# set up the deseq object 
+deseq_object <- DESeq2::DESeqDataSetFromMatrix(counts(tumor_myoblast_sce),
+                                               colData = coldata_df,
+                                               design = ~ diagnosis_groups)
+```
+
+Use the median of ratios method for count normalization followed by regularized log transformation.
+
+```{r}
+# we get a warning if we don't use local that it can't find a model
+# this could likely be due to batch effects present in the data
+normalized_object <- DESeq2::rlog(deseq_object, blind = TRUE, fit = 'local')
+```
+
+Evaluate QC here using PCA. 
+Here we can label by the diagnosis groups to show that the highest amount of variance is due to different diagnosis types. 
+
+```{r}
+DESeq2::plotPCA(normalized_object, intgroup = "diagnosis_groups")
+```
+
+We can also label by other metadata to see if there are other factors that might be related to variation.
+
+```{r}
+DESeq2::plotPCA(normalized_object, intgroup = "disease_timing")
+```
+
+```{r}
+# run DESeq
+# use the same fit type as with rlog 
+deseq_object <- DESeq2::DESeq(deseq_object, fitType = 'local')
+```
+Next we take a look at the dispersions, we expect to see dispersions decrease as means are increasing and follow the line of best fit. 
+Here dispersions are increasing as mean is increasing but are following the line of best fit, so not the most ideal... perhaps underlying batch effects are here and affecting this? 
+
+```{r}
+plotDispEsts(deseq_object)
+```
+
+```{r}
+deseq_results <- DESeq2::results(deseq_object, alpha = 0.05)
+DESeq2::resultsNames(deseq_object)
+shrink_results <- DESeq2::lfcShrink(deseq_object, res = deseq_results, coef = 2, type = "apeglm")
+```
+
+```{r}
+# look at what actually happened when we applyed shrinkage (adjustment of large fold changes that are overestimated)
+comparison_df <- data.frame(
+  lfc_original = deseq_results$log2FoldChange,
+  lfc_shrunken = shrink_results$log2FoldChange,
+  logmean = log10(deseq_results$baseMean)
+  )
+
+ggplot(comparison_df, 
+       aes(x = lfc_original, 
+           y = lfc_shrunken, 
+           color = logmean)) +
+  geom_point(alpha = 0.1) +
+  theme_bw() +
+  scale_color_viridis_c() + 
+  coord_cartesian(xlim = c(-10,10), ylim = c(-10,10))
+```
+
+Let's get a table of the genes that are significant. 
+```{r}
+deseq_results <- shrink_results %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("ensembl_id")
+
+deseq_results_sig <- deseq_results %>%
+  dplyr::filter(padj <= 0.05)
+
+deseq_results_sig
+```
+
+### Exploring the identified differentially expressed genes 
+
+Let's also do some initial analysis to look at what types of genes are being identified and see if what is being identified as actually up/down regulated appear to correlate back to the single cell data. 
+
+The first plot we'll make is a volcano plot and we can label the significant genes with their gene symbols. 
+For now, let's use the DESeq results. 
+
+```{r}
+deseq_df <- shrink_results %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("ensembl_id")
+
+sce_rowdata_df <- rowData(tumor_myoblast_sce) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("ensembl_id")
+
+deseq_df <- deseq_df %>%
+  dplyr::left_join(sce_rowdata_df, by = "ensembl_id")
+
+```
+
+```{r}
+EnhancedVolcano::EnhancedVolcano(deseq_df,
+                x = 'log2FoldChange', # fold change statistic to plot
+                y = 'pvalue', # significance values
+                lab = deseq_df$gene_symbol.SCPCL000478, # labels for points
+                pCutoff = 1e-05, # The p value cutoff we will use (default)
+                FCcutoff = 1, # The fold change cutoff (default)
+                title = NULL, # no title
+                subtitle = NULL, # or subtitle
+                caption = NULL, # or caption
+                labSize = 3  # smaller labels
+                ) +
+  # change the overall theme
+  theme_classic() +
+  # move the legend to the bottom
+  theme(legend.position = "bottom")
+```
+
+Let's make some UMAPs where we plot a gene that's identified to be differentially expressed in a given cell type and see what the expression of that gene is across samples. 
+
+```{r}
+# add column to colData with expression of gene of interest 
+# here we will actually put all of the significant genes so then we can plot any of them 
+sig_expressed_genes <- deseq_df %>%
+  dplyr::filter(pvalue < 1e-5,
+                abs(log2FoldChange) > 2) %>%
+  dplyr::pull(ensembl_id)
+
+sig_genes_counts <- logcounts(combined_sce[sig_expressed_genes,]) %>%
+  as.matrix() %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::mutate(cell_id = colnames(combined_sce))
+  
+combined_coldata_df <- as.data.frame(colData(combined_sce)) %>%
+  dplyr::left_join(sig_genes_counts, by = "cell_id")
+
+# add back modified coldata containing gene expression for sig genes 
+colData(combined_sce) <- DataFrame(combined_coldata_df, row.names = combined_coldata_df$cell_id)
+```
+
+The first plot we will make is with SOX5 which is found in both `edgeR` and `DESeq` 
+
+```{r}
+# filter to just myoblast cells and remove any NA's before plotting
+myoblast_combined_sce <- combined_sce[, which(combined_sce$celltype_broad == "Tumor_Myoblast")]
+
+# first look at just ARMS vs. ERMS 
+scater::plotReducedDim(myoblast_combined_sce,
+                       dimred = "fastMNN_UMAP",
+                       colour_by = "ENSG00000134532", #SOX5
+                       point_size= 0.5,
+                       point_alpha = 0.4,
+                       other_fields = "diagnosis_groups") +
+  facet_wrap(~ diagnosis_groups, nrow = 3)
+```
+
+```{r}
+# now let's look at the same gene across each sample 
+scater::plotReducedDim(myoblast_combined_sce,
+                       dimred = "fastMNN_UMAP",
+                       colour_by = "ENSG00000134532", #SOX5
+                       point_size= 0.5,
+                       point_alpha = 0.4,
+                       other_fields = c("diagnosis_groups", "batch")) +
+  facet_wrap(~ diagnosis_groups + batch, nrow = 3, dir = 'v')
+```
+
+```{r}
+# explore some of the other significant genes and plot them! 
+```
+
+```{r}
+# look at identified genes across all cell types 
+```
+
+## Differential abundance of cell types 
