@@ -56,6 +56,7 @@ sync_files=(
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
   scRNA-seq/analysis/mouse-liver/markers/cluster07_markers.tsv
+  scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
 )
 
 for loc in ${sync_dirs[@]}
