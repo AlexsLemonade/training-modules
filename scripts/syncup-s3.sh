@@ -36,12 +36,15 @@ sync_dirs=(
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/gene-sets
   scRNA-seq/index/Mus_musculus
+  scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
+  scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
+  scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
+  scRNA-seq-advanced/data/rms/processed
+  scRNA-seq-advanced/data/rms/integrated
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
   pathway-analysis/data/open-pbta
-  scRNA-seq-advanced/data/rms/processed
-  scRNA-seq-advanced/data/rms/integrated
 )
 
 sync_files=(
@@ -57,6 +60,7 @@ sync_files=(
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
   scRNA-seq/analysis/mouse-liver/markers/cluster07_markers.tsv
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
+  scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv
 )
 
 for loc in ${sync_dirs[@]}
