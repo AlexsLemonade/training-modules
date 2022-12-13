@@ -36,6 +36,8 @@ mkdir -p scRNA-seq/data/mouse-liver
 mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
 mkdir -p scRNA-seq-advanced/data/glioblastoma
 mkdir -p scRNA-seq-advanced/data/rms/processed
+mkdir -p scRNA-seq-advanced/data/rms/integrated
+mkdir -p scRNA-seq-advanced/data/rms/annotations
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -86,6 +88,8 @@ link_locs=(
   scRNA-seq-advanced/data/rms/processed/SCPCL000479.rds
   scRNA-seq-advanced/data/rms/processed/SCPCL000480.rds
   scRNA-seq-advanced/data/rms/processed/SCPCL000481.rds
+  scRNA-seq-advanced/data/rms/integrated/rms_all_sce.rds
+  scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
