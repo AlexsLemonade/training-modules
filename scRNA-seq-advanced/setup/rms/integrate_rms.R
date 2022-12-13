@@ -71,7 +71,7 @@ format_sce_list <- function(sce, sce_name, shared_genes) {
   # Update the rowData names, except `gene_symbol`
   names(rowData(sce)) <- ifelse(names(rowData(sce)) == "gene_symbol",
                                 "gene_symbol",
-                                glue::glue("{sce_name}-{rownames(rowData(sce))}")
+                                glue::glue("{sce_name}-{names(rowData(sce))}")
                                 
   )
   # Add in sample-level information as stand-alone column
@@ -107,8 +107,8 @@ hvg_list <- scran::getTopHVGs(gene_variance,
                               n = 2000)
 
 # Add PCA and UMAP into the SCE
-combined_sce <- scater::runPCA(combined_sce,
-                               subset_row = hvg_list) %>%
+combined_sce <- combined_sce %>%
+  scater::runPCA(subset_row = hvg_list) %>%
   scater::runUMAP(dimred = "PCA")
 
 # Integration ------------------------------------------------------------------
