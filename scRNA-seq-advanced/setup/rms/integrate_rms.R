@@ -1,4 +1,7 @@
-# This script 
+# This script reads in a list of processed SCE files, merges into one SCE object,
+# and then performs integration using fastMNN.
+# The returned object contains the merged object with the corrected expression and
+# corrected PCA and UMAP results.
 
 # Load libraries
 suppressPackageStartupMessages({
