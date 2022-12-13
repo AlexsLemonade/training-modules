@@ -206,7 +206,7 @@ Overall we'll want to take care of these items:
 2. SCE objects should contain the same genes: Each `rowData` table should have the same rownames.
 3. SCE columns should match: Each `colData` should have the same column names.
 
-Here is a schematic of what this wrangling will look like, **but a lot of the text that explains the technical steps happens in the next chunks and interweaved text so should this diagram be lower?**
+Here is a schematic of what this wrangling will look like, **but a lot of the text that explains the technical steps happens in the next chunks and subsection so should this diagram be lower?**
 
 ![](diagrams/technical_merge_sce.png)
 
@@ -402,13 +402,9 @@ head( rowData(merged_sce) )
 ```
 
 Let's export this to our `merged_sce_file`.
-Since this object is quite large (~855 MB!), we'll export it with some file compression to keep the output smaller.
-This export will take a few minutes to run due to the compression step.
 ```{r export merged_sce}
 readr::write_rds(merged_sce, 
-                 merged_sce_file,
-                 # Specify compression
-                 compress = "gz")
+                 merged_sce_file)
 
 ```
 
@@ -452,9 +448,9 @@ scater::plotReducedDim(merged_sce,
                        point_size = 0.5,
                        point_alpha = 0.2) +
   # Modify the legend key so its points are larger and easier to see
-  guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   # Add a plot title
-  ggplot2::ggtitle("UMAP calculated on each library separately")
+  ggtitle("UMAP calculated on each library separately")
 ```
 
 
@@ -513,7 +509,7 @@ head(merged_pca[[1]])
 We can now include this PCA matrix in our `merged_sce` object:
 ```{r add merged_pca}
 # add PCA results to merged SCE object 
-reducedDim(merged_sce, "merged_PCA") <- multi_pca[[1]]
+reducedDim(merged_sce, "merged_PCA") <- merged_pca[[1]]
 ```
 
 
@@ -539,23 +535,26 @@ scater::plotReducedDim(merged_sce,
                        point_size = 0.5,
                        point_alpha = 0.2) +
   # Modify the legend key so its points are larger and easier to see
-  guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   # Add a plot title
-  ggplot2::ggtitle("UMAP calculated on merged_sce")
+  ggtitle("UMAP calculated on merged_sce")
 ```
 
 Now that we've properly accounted for batches in the `merged_sce` object, we see that the libraries are separated in space, which more reasonably reflects that this data is _not yet batch-corrected_.
 Indeed, the primary "clustering" (not technical clustering, just what we see visually!) in these plots are the batches.
+We can think of this UMAP as our "before" UMAP, and we can compare to the "after" UMAP we see post-integration.
 
 Let's discuss: What visual differences do you think the UMAP on the integrated version of data will have?
-
+What similarities do you think the integrated UMAP will have to this plot?
 
 ### Integration with `fastMNN`
 
 Finally, we're ready to integrate!
 To start, we'll use the `fastMNN` approach from the Bioconductor [`batchelor` package](http://www.bioconductor.org/packages/3.16/bioc/html/batchelor.html).
-As the name suggests, this method is pretty fast! 
-It returns a new SCE object containing integrated results:
+
+`fastMNN` takes as input the `merged_sce` object to integrate, and the first step it performs is actually to run `batchelor::multiBatchPCA()` on that SCE!
+The `batch` argument is used to specify the different groupings within the `merged_sce`, and the `subset.row` argument can optionally be used to provide a vector of high-variance genes that should be considered for this PCA calculation.
+`fastMNN` will return an SCE object that contains a batch-corrected PCA.
 
 ```{r}
 integrated_sce <- batchelor::fastMNN(
@@ -574,12 +573,12 @@ integrated_sce
 
 There are couple pieces of information here of interest:
 
-- The new `reconstructed` assay represents the batch-corrected normalized expression values.
-While these are calculated and used during integration, they are **NOT** stand-alone values that you should use for other applications, e.g. differential gene expression.
-- The new `corrected` reduced dimension represents the principle components (PCs) of these corrected expression values. 
+- The `corrected` reduced dimension represents the batch-corrected PCA.
+- The `reconstructed` assay represents the batch-corrected normalized expression values, which `fastMNN` "back-calculated" from the batch-corrected PCA.
+Generally speaking, these are not stand-alone values that you should use for other applications like differential gene expression.
+If the `subset.row` argument was provided (as we did here), only genes present in `subset.row` are included in these reconstructed expression values, but this can be overridden so that all genes have reconstructed expression with the argument `correct.all = TRUE`.
 
-
-To conveniently keep everything in one place, let's add the PCs information (with an informative name!) into our `merged_sce` object:
+We're mostly interested in the PCA that `fastMNN` calculated, so let's save that information ( (with an informative and unique name!) into our `merged_sce` object:
 
 ```{r fastmnn pcs}
 # Make a new reducedDim named fastMNN_PCA from the corrected reducedDim in integrated_sce
@@ -594,7 +593,7 @@ Finally, we'll calculate UMAPs from these corrected PCs and plot them so we can 
 # Calculate UMAP
 merged_sce <- scater::runUMAP(
   merged_sce, 
-  # create UMAP from these PCs:
+  # create UMAP from this PCA matrix:
   dimred = "fastMNN_PCA", 
   # name the UMAP:
   name = "fastMNN_UMAP"
@@ -613,37 +612,68 @@ scater::plotReducedDim(merged_sce,
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.2) +
-  ggplot2::ggtitle("UMAP after integration with fastMNN") +
-  # Modify the ggplot2 guides so that the legend points are larger and easier to see:
-  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1)))
+  # Modify legend so they key is larger and easier to see
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  # add plot title
+  ggtitle("UMAP after integration with fastMNN")
 ```
 
+
+
+This `fastMNN_UMAP` certainly looks different from the one we made from `merged_UMAP`!
+It particularly looks like `SCPCL000479` and `SCPCL000480` have substantial overlap - intriguingly, these two samples are from the same patient, so this overlap may have some true biological underpinnings!
+
+However, it's a bit challenging to see all the points given the amount of overlap in the plot.
+One way we can all the points a bit better is to facet the plot by sample:
+
+```{r fastmnn umap batches faceted}
+scater::plotReducedDim(merged_sce,
+                       dimred = "fastMNN_UMAP",
+                       colour_by = "sample",
+                       point_size = 0.5,
+                       point_alpha = 0.2, 
+                       # Allow for faceting by a variable using `other_fields`:
+                       other_fields = "sample") +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  ggtitle("UMAP after integration with fastMNN") +
+  facet_wrap(~sample)
+```
 
 
 Importantly, one reason that batches may still appear separated in the corrected UMAP is if they _should_ be separated - for example, maybe two batches contain very different cell types.
 In this case, we would not expect batches to mix heavily, since their cell types should retain some structure. 
 Recall from earlier, we conveniently have cell type annotations in our SCEs, so we can explore this here!
-We can re-plot this UMAP to highlight cell types: A well-integrated dataset will show cell types grouped together.
-
+Let's re-plot this UMAP to highlight cell types:
 
 
 ```{r fastmnn umap celltypes}
 scater::plotReducedDim(merged_sce,
-                       # plot the fastMNN coordinates
                        dimred = "fastMNN_UMAP",
                        # color by broad celltypes
                        colour_by = "celltype_broad",
-                       # Some styling to help us see the points:
                        point_size = 0.5,
-                       point_alpha = 0.2, 
-                       # This argument will allow us to easily facet by `sample`
-                       other_fields = "sample") +
-  ggplot2::ggtitle("UMAP after integration with fastMNN") +
-  # Modify the ggplot2 guides so that the legend points are larger and easier to see:
-  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) +
-  # Again, let's facet by sample so we can see this information too:
-  ggplot2::facet_wrap(~sample, nrow=2)
+                       point_alpha = 0.2) +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  ggtitle("UMAP after integration with fastMNN")
 ```
+
+Something we can see already from this UMAP is that the non-tumor cell types (mostly vascular endotheliem, muscle cells, and monocytes) tend to cluster together and are generally far separated from the tumor cell types, which is an encouraging pattern!
+
+```{r fastmnn umap celltypes faceted}
+scater::plotReducedDim(merged_sce,
+                       dimred = "fastMNN_UMAP",
+                       # color by broad celltypes
+                       colour_by = "celltype_broad",
+                       point_size = 0.5,
+                       point_alpha = 0.2,
+                       other_fields = "sample") +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  ggtitle("UMAP after integration with fastMNN") + 
+  facet_wrap(~sample)
+```
+Looking at the cell type annotation, it appears that `SCPCL000478` uniquely is dominated by the `Tumor` cell type compared to the other samples.
+`SCPCL000479` and `SCPCL000480`, which are derived from the same patient, appears both dominated by `Tumor_Myoblast` and `Tumor_Mesoderm`, and `SCPCL000481` appears dominated by `Tumor_Myoblast` and `Tumor_Myocyte`. 
+The faceted plot also shows us that `SCPCL000478` fibroblasts appear to cluster with `SCPCL000480` and `SCPCL000481` muscle cells.
 
 
 ### Integration with `harmony`
@@ -654,14 +684,16 @@ For contrast, let's see how integration performs when using the [`harmony` metho
 Algorithmic differences aside, there are a couple practical differences between `fastMNN` and `harmony` to be aware of:
 
 - Unlike `fastMNN`, `harmony` allows you to specify additional covariates (e.g., technology, patient, diagnosis, etc.)
-  - This requires slightly more setup than what we will show below.
+  - This requires additional setup beyond than we will show below.
 - Unlike `fastMNN`, `harmony` does not calculate corrected expression values nor does it return an SCE object.
 Instead, it starts with an uncorrected PC matrix and directly returns a matrix of corrected PCs.
 
+For input, `harmony` can either take a matrix of normalized expression values, from which it will calculate a PCA matrix which it will then batch-correct, or it can take a PCA matrix directly to perform batch-correction on.
+Since we already calculated batch PCA (`merged_PCA`), we'll provide this information directly, specifying the additional argument `do_pca=FALSE` to tell `harmony` that the input matrix we provided already is PCA.
 
 
 ```{r harmony}
-harmony_pcs <- harmony::HarmonyMatrix(
+harmony_pca <- harmony::HarmonyMatrix(
   # Provide the uncorrected PCs:
   data_mat  = reducedDim(merged_sce, "merged_PCA"),
   # Provide the batch information:
@@ -670,66 +702,104 @@ harmony_pcs <- harmony::HarmonyMatrix(
   do_pca = FALSE
 )
 
-# The result is just the PCs!
-harmony_pcs[1:5, 1:5]
+# The result is a PCA matrix:
+harmony_pca[1:5, 1:5]
 ```
 
-Let's store this information directly in our `merged_sce` object with an informative name that won't overwrite any of the existing reduced dimensions.
+As before with `fastMNN` results, let's store this PCA matrix directly in our `merged_sce` object with an informative name that won't overwrite any of the existing PCA matrices.
 
 ```{r save harmony}
 # Store PCA as `harmony_PCA`
-reducedDim(merged_sce, "harmony_PCA") <- harmony_pcs
+reducedDim(merged_sce, "harmony_PCA") <- harmony_pca
 
 # As before, calculate UMAP on these PCs:
 merged_sce <- scater::runUMAP(merged_sce, 
                               dimred = "harmony_PCA", 
-                              name = "harmony_UMAP")
+                              name   = "harmony_UMAP")
 ```
+
 
 Let's see how the `harmony` UMAP, colored by either batch or cell type, looks compared to the `fastMNN` UMAP:
 
-
-
 ```{r harmony umap batches}
 scater::plotReducedDim(merged_sce,
-                       # plot the harmony coordinates
                        dimred = "harmony_UMAP",
                        # color by sample (batch)
                        colour_by = "sample",
-                       # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.2) +
-  ggplot2::ggtitle("UMAP after integration with harmony") +
-  # Modify the ggplot2 guides so that the legend points are larger and easier to see:
-  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) 
+  ggtitle("UMAP after integration with harmony") +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) 
 ```
 
+This UMAP looks very different from the one we made from `fastMNN` integration!
+`SCPCL000481` uniquely appears "unintegrated" compared to the other libraries, which is unexpected given that the `SCPCL000478` library is the one with more unique cell types!
+This result may qualitatively suggest that `harmony` integration was less successful than was `fastMNN`, but let's dig into these results a little deeper.
 
+Let's highlight the cell types in the harmony UMAP:
 
-```{r harmony umap celltypes}
+```{r harmony umap celltypes broad}
 scater::plotReducedDim(merged_sce,
-                       # plot the harmony coordinates
                        dimred = "harmony_UMAP",
                        # color by broad celltypes
                        colour_by = "celltype_broad",
-                       # Some styling to help us see the points:
                        point_size = 0.5,
-                       point_alpha = 0.2, 
+                       point_alpha = 0.2) +
+  ggtitle("UMAP after integration with harmony") +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) 
+```
+Similar to the `fastMNN` results, the non-tumor cell types do appear to have been well-integrated across batches, but that one library does stand out!
+We can see that 
+
+Now is a good time to remember we actually have two cell type variables: `celltype_broad` and `celltype_fine`, where the latter contains finer-grained Tumor characterizations based on differentiation stage.
+Let's see what we observe if we color the UMAP instead by the finer-grained cell types:
+
+```{r harmony umap celltypes fine}
+scater::plotReducedDim(merged_sce,
+                       dimred = "harmony_UMAP",
+                       # color by FINE celltypes
+                       colour_by = "celltype_fine",
+                       point_size = 0.5,
+                       point_alpha = 0.1, 
                        other_fields = "sample") +
-  ggplot2::ggtitle("UMAP after integration with harmony") +
-  # Modify the ggplot2 guides so that the legend points are larger and easier to see:
-  ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size = 3, alpha = 1))) +
-  ggplot2::facet_wrap(~sample, nrow=2)
+  ggtitle("UMAP after integration with harmony") +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  facet_wrap(~sample)
+  
 ```
 
-How do you think these methods' (`fastMNN` and `harmony`) performances compare on these data?
+It looks as though `SCPCL000481` may indeed be comprised of relatively distinct cell types, which we can check with a barplot:
 
-Let's now save our final SCE object to a file.
-We'll also specify the argument `compress = "bz2"`, which saves the file with an added layer of compression. 
-This file is otherwise quite large!
+<!-- LATE BREAKING ADDITION IN NEED OF REVIEW/DISCUSSION, including where to put this plot? Should I make this plot? -->
+```{r count celltypes fine}
+# Create a table of counts sample and celltype_fine combinations
+sample_celltype_table <- colData(merged_sce) %>%
+  as.data.frame() %>%
+  dplyr::count(sample, celltype_fine) 
+
+
+sample_celltype_table
+
+# Let's look at just tumor cells:
+sample_celltype_table %>%
+  dplyr::filter(stringr::str_detect(celltype_fine, "Tumor")) %>%
+  ggplot(aes(x = sample, y = n, fill = celltype_fine)) +
+  geom_col(position = "dodge")
+```
+
+Indeed, we see that `SCPCL000481` has a substantial `Tumor_Myocyte-A` population that the other libraries do not have, and the two libraries from the same patient show similar trends. 
+
+
+What similarities and differences between `fastMNN` and `harmony` integration do you notice?
+How do you think these results compare?
+
+### Export 
+
+Finally, we'll export the final SCE object with both `fastMNN` and `harmony` integration to a file.
 
 ```{r save integration}
-readr::write_rds(merged_sce, integrated_sce_file, compress = "bz2")
+readr::write_rds(merged_sce, 
+                 integrated_sce_file)
 ```
 
 
