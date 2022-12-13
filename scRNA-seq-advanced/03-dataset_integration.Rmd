@@ -189,8 +189,6 @@ If we have annotations, they are a helpful "bonus" for assessing the integration
 
 ## Prepare the SCE list for integration
 
-> reviewer note: I need to make a diagram here to show areas in the SCE that need updating, and possibly also a before/after SCE sketch. 
-
 Now that we have a list of processed SCE objects, we need to merge the objects into one overall SCE object which we can provide as input to integration methods.
 A word of caution before we begin: **This merged SCE object is NOT an integrated SCE!** 
 Merging SCEs itself does not perform any batch correction; that's why we proceed to integration next.
@@ -206,7 +204,9 @@ Overall we'll want to take care of these items:
 2. SCE objects should contain the same genes: Each `rowData` table should have the same rownames.
 3. SCE columns should match: Each `colData` should have the same column names.
 
-Here is a schematic of what this wrangling will look like, **but a lot of the text that explains the technical steps happens in the next chunks and subsection so should this diagram be lower?**
+Here is a schematic of what this wrangling will look like:
+
+<!-- But! a lot of the text that explains the technical steps happens in the next chunks and subsection so should this diagram be lower?--> 
 
 ![](diagrams/technical_merge_sce.png)
 
@@ -246,11 +246,11 @@ The `rowData` table in SCE objects will often contain both "general" and "librar
 head( rowData(sce_list$SCPCL000478) )
 ```
 
-Here, the rownames are ensembl gene IDs, and columns are `gene_symbol`, `mean`, and `detected`. 
+Here, the rownames are Ensembl gene IDs, and columns are `gene_symbol`, `mean`, and `detected`. 
 The `gene_symbol` column is general information not specific to any library or experiment, but `mean` and `detected` are library-specific gene statistics. 
 So, `gene_symbol` does not need to be traced back to its originating library, but `mean` and `detected` do.
 To this end, we can take a similar approach to what we'll do for cell barcodes: We can change the library-specific `rowData` column names by prepending the library name.
-For example, rather than being called `mean`, this column will be named ``SCPCL000478-mean` for the `SCPCL000478` library.
+For example, rather than being called `mean`, this column will be named `SCPCL000478-mean` for the `SCPCL000478` library.
 
 All our SCE objects have the same `rowData` columns (as we can see in the next chunk), so we'll perform this renaming across all SCEs.
 
@@ -481,7 +481,7 @@ hv_genes <- scran::getTopHVGs(gene_variance,
 To calculate the PCs themselves, we'll use an approach from the `batchelor` package, which is the R package that contains the `fastMNN` method.
 In particular, we'll use the `batchelor::multiBatchPCA()` function which accommodates the fact that we have separate batches in our SCE to perform the appropriate scaling we need.
 According to the documentation for this function, 
-> This function is roughly equivalent to cbinding all matrices in and performing PCA on the merged matrix. The main difference is that each sample is forced to contribute equally to the identification of the rotation vectors. Specifically, the mean vector used for centering is defined as the grand mean of the mean vectors within each batch. Each batch's contribution to the gene-gene covariance matrix is also divided by the number of cells in that batch. 
+> This function is roughly equivalent to `cbinding` all matrices in and performing PCA on the merged matrix. The main difference is that each sample is forced to contribute equally to the identification of the rotation vectors. Specifically, the mean vector used for centering is defined as the grand mean of the mean vectors within each batch. Each batch's contribution to the gene-gene covariance matrix is also divided by the number of cells in that batch. 
 
 
 ```{r merged_pca}
@@ -657,7 +657,7 @@ scater::plotReducedDim(merged_sce,
   ggtitle("UMAP after integration with fastMNN")
 ```
 
-Something we can see already from this UMAP is that the non-tumor cell types (mostly vascular endotheliem, muscle cells, and monocytes) tend to cluster together and are generally far separated from the tumor cell types, which is an encouraging pattern!
+Something we can see already from this UMAP is that the non-tumor cell types (mostly vascular endothelium, muscle cells, and monocytes) tend to cluster together and are generally far separated from the tumor cell types, which is an encouraging pattern!
 
 ```{r fastmnn umap celltypes faceted}
 scater::plotReducedDim(merged_sce,
