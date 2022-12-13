@@ -2,3 +2,4 @@ This directory holds the workflow for pre-processing `SCPCP000005` SCE files, wh
 
 - `Snakefile` and its `config.yaml`
 - `prepare_rms_library.R`
+- `integrate_rms.R`

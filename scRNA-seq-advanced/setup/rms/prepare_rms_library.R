@@ -89,7 +89,7 @@ celltypes_df <- celltypes_df %>%
   dplyr::filter(library == library_name) %>%
   dplyr::select(-library)
 
-# join colDdata to celltype
+# join coldata to celltype
 celltype_coldata <-  colData(norm_sce) %>%
   as.data.frame() %>%
   # Use a left_join since there may be more cells in the SCE than there are in
