@@ -27,12 +27,12 @@ Specifically, we'll have a look at four libraries from the [`SCPCP000005` projec
 The particular libraries we'll integrate come from three rhabdomyosarcoma (RMS) patients ([Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)), and all samples (which are single-nuclei) were sequenced with 10Xv3 technology.
 
 We'll be integrating these libraries with two different tools, [`fastmNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) and [`harmony`](https://portals.broadinstitute.org/harmony/). 
-Integration corrects for batch effects that arise from different library preparations so that libraries can be jointly analyzed. 
-`fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about [from this resource](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
+Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that samples can be jointly analyzed. 
+`fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about from this [vignette by Lun (2019)](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
 
 
-Regardless of which integration tool is used, the SCE objects to be integrated need to be re-formatted and merged into a single (uncorrected!) SCE object that contains all cells from all SCES for all genes that the SCEs have in common.
+Regardless of which integration tool is used, the SCE objects to be integrated need to be reformatted and merged into a single (uncorrected!) SCE object that contains all cells from all SCES for all genes that the SCEs have in common.
 This merged SCE, which should also contain explicit information about batch origins for each cell, can be provided to the integration method to obtain a formally batch-corrected SCE object. 
 
 Before we dive into this, let's first see what this merging process conceptually looks like:
@@ -53,7 +53,7 @@ set.seed(12345)
 ```
 
 
-## Operating on lists with `purrr::map()`
+## Operating on lists with `purrr`
 
 We have already prepared count data for the four samples we'll be integrating (i.e., filtered cells, normalized counts, and calculated PCA & UMAP).
 These SCE objects, stored as RDS files, are available in the `data/rms/processed/` directory. 
@@ -65,8 +65,9 @@ Files are named according to their `ScPCA` library IDs:
 - `SCPCL000481.rds`
 
 To read in these files, we could use `readr::read_rds()` (or the base R `readRDS()`) function four times, once for each of the files. 
-A different and more modular coding approach to reading in these files (and more!) is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for _functional programming_.
-You can read more about functional programming in R in [Chapter 21 of _R for Data Science_](https://r4ds.had.co.nz/iteration.html#for-loops-vs.-functionals).
+We could also use a `for` loop, which the approach that many programming languages would lean toward.
+A different and more modular coding approach to reading in these files (and more!) is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for operating on lists.
+You can read more about these functions, their power and utility, in R in [Chapter 21 of _R for Data Science_](https://r4ds.had.co.nz/iteration.html#for-loops-vs.-functionals).
 
 Of particular interest is the [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) family of functions, which can be used to run a given function on each element of a list or vector in one call.
 The general syntax for `purrr::map()` and friends is:
@@ -102,7 +103,7 @@ We'll note that, in this case, it's possible to simply run `sqrt()` directly on 
 sqrt(squares)
 ```
 
-But, more involved scenarios (as we'll see!) will necessitate the use of `map()`, in particular when the input is a list itself.
+But more involved scenarios (as we'll see!) will necessitate the use of `map()`, in particular when the input is a list itself.
 
 
 One other new coding strategy we'll learn in this notebook is using the [`glue`](https://glue.tidyverse.org/) package to combine strings.
@@ -183,7 +184,7 @@ If you look closely at the printed SCE objects, you may notice that they all con
 These columns (which we added to SCE objects during pre-processing) contain putative _cell type annotations_ as assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003). 
 We will end up leveraging these cell type annotations to explore how successful our integration is: After integration, we expect cell types from different samples to cluster together, rather than being separated by batches. 
 
-Before we proceed, it's critical to remember that integration methods _do not actually use_ these cell type annotations, and high-confidence annotations are not always (usually!) available for a given dataset.
+Before we proceed, it's critical to remember that integration methods _do not actually use_ these cell type annotations.
 If we have annotations, they are a helpful "bonus" for assessing the integration's success, but they are not necessary for performing integration, nor should you expect to always be able to assess integration using them.
 
 
@@ -202,7 +203,7 @@ Overall we'll want to take care of these items:
   Now that we are merging several libraries, we won't necessarily be able to identify a cell's originating library from its barcode alone.
   - Library-specific statistics, e.g. gene-level statistics for a given library found in `rowData`
 2. SCE objects should contain the same genes: Each `rowData` table should have the same rownames.
-3. SCE columns should match: Each `colData` should have the same column names.
+3. SCE cell metadata columns should match: Each `colData` should have the same column names.
 
 Here is a schematic of what this wrangling will look like:
 
@@ -212,7 +213,7 @@ Here is a schematic of what this wrangling will look like:
 
 We'll begin by take some time to thoroughly explore our SCE objects to figure out what wrangling steps we need to take for these specific data.
 Don't skip this exploration!
-Bear in mind that we determine here needs wrangling will probably not be exactly the same for other SCE objects you work with.
+Bear in mind that the exact wrangling shown here will not be the same for other SCE objects you work with, but the same general principles apply.
 
 
 #### Preserving library information at the cell level
@@ -222,20 +223,21 @@ How will we be able to tell which library a given cell came from?
 First, we'll want to directly add information to the SCE that indicates the different libraries.
 The best way to do this is simply to add a `colData` column with the library information.
 
-In addition, we want to pay some attention to the `colData` rownames, which must remain unique after merging since duplicate rownames will cause an R error.
-Usually (but not always!), the `colData` _rownames_` themselves are cell barcodes, which is the case for our SCE objects (one is shown below as an example):
+In addition, we want to pay some attention to the SCE object's column names (the cell ids), which must remain unique after merging since duplicate ids will cause an R error.
+Note that these ids also correspond to the _row names_ of the `colData` and any reduced dimension matrices.
+Usually (but not always!), the cell ids themselves are cell barcodes, which is the case for our SCE objects (one is shown below as an example):
 
 ```{r barcodes}
-# Look at the colData rownames for the `SCPCL000478` library, for example
-rownames( colData(sce_list$SCPCL000478) ) %>%
+# Look at the column names for the `SCPCL000478` library, for example
+colnames(sce_list$SCPCL000478) %>%
   # Only print out the first 6 for convenience
   head()
 ```
 
-Because barcodes theoretically can be repeated across libraries, we could end up in a situation with non-unique rownames, which would make R complain!
+Because barcodes theoretically can be repeated across libraries, we could end up in a situation with non-unique rownames for the `colData`, which would make R complain!
 
-One way to ensure that barcodes remain unique even after merging is to actually modify the rownames by _prepending_ the relevant library name. 
-For example, we'll update the `CCTTTGGCACTACCCT` in the `SCPCL000478` SCE to become: `SCPCL000478-CCTTTGGCACTACCCT`, thereby ensuring fully unique rownames for all cells.
+One way to ensure that barcodes remain unique even after merging is to actually modify the ids by _prepending_ the relevant library name. 
+For example, we'll update the `CCTTTGGCACTACCCT` id in the `SCPCL000478` SCE to become: `SCPCL000478-CCTTTGGCACTACCCT`, thereby ensuring fully unique ids for all cells.
 
 #### Preserving library information at the gene level
 
@@ -247,7 +249,7 @@ head( rowData(sce_list$SCPCL000478) )
 ```
 
 Here, the rownames are Ensembl gene IDs, and columns are `gene_symbol`, `mean`, and `detected`. 
-The `gene_symbol` column is general information not specific to any library or experiment, but `mean` and `detected` are library-specific gene statistics. 
+The `gene_symbol` column is general information about all genes, not specific to any library or experiment, but `mean` and `detected` are library-specific gene statistics. 
 So, `gene_symbol` does not need to be traced back to its originating library, but `mean` and `detected` do.
 To this end, we can take a similar approach to what we'll do for cell barcodes: We can change the library-specific `rowData` column names by prepending the library name.
 For example, rather than being called `mean`, this column will be named `SCPCL000478-mean` for the `SCPCL000478` library.
@@ -265,7 +267,7 @@ purrr::map(sce_list,
 
 #### Ensuring that only shared genes are used
 
-The final step in ensuring SCE compatibility is to make sure they all contain the same genes, which are unambiguously stored in our SCE objects as Ensembl ID `rowData` rownames, which you can map back to gene names by simply asking my co-instructor Josh. 
+The final step in ensuring SCE compatibility is to make sure they all contain the same genes, found in the rownames of the `rowData`, which you can map back to gene names by simply asking my co-instructor Josh. 
 
 We can use some `purrr` magic to quickly find the set of shared genes among our libraries:
 ```{r shared genes}
@@ -328,12 +330,13 @@ format_sce <- function(sce, library_name, shared_genes) {
   
   ###### Ensure that we can identify the originating library ######
   # Add a column called `sample` that stores this information
-  colData(sce)$sample <- library_name
+  # This will be stored in `colData`
+  sce$sample <- library_name
   
   
   ###### Ensure colData rownames will be unique ######
-  # Update the colData row names by prepending {library_name}
-  rownames(colData(sce)) <- glue::glue("{library_name}-{rownames(colData(sce))}")
+  # Update the SCE object column names (cell ids) by prepending {library_name}
+ colnames(sce) <- glue::glue("{library_name}-{colnames(sce)}")
         
   
   ###### Ensure gene-level statisticss can be identified ######
@@ -375,8 +378,8 @@ sce_list_formatted
 
 At long last, we are ready to merge the SCEs!
 We'll use the R function `cbind()` for this.
-The `cbind()` function is often used to combine data frames by column, i.e. "stack" them on top of each other.
-The same principle applies here, but when run on SCE objects, `cbind()` will create a new SCE object by combining `counts` and `logcounts` matrices by column, as well as combining reduced dimension slots appropriately.
+The `cbind()` function is often used to combine data frames or matrices by column, i.e. "stack" them next to of each other.
+The same principle applies here, but when run on SCE objects, `cbind()` will create a new SCE object by combining `counts` and `logcounts` matrices by column, as well as combining metadata and reduced dimension slots appropriately.
 
 Since we need to apply `cbind()` to a _list_ of objects, we need to use some slightly-gnarly syntax: We'll use the function `do.call()`, which allows the `cbind()` input to be a list of objects to combine.
 
@@ -416,7 +419,7 @@ readr::write_rds(merged_sce,
 ## Integration
 
 
-So far, we've created a `merged_sce` object which are (almost!) ready to integrate.
+So far, we've created a `merged_sce` object which is (almost!) ready to integrate.
 
 The integration methods we'll be using here actually perform batch correction on a reduced dimension representation of the normalized gene expression values, specifically the PCA.
 The main reason for this is efficiency.
@@ -540,8 +543,8 @@ scater::plotReducedDim(merged_sce,
   ggtitle("UMAP calculated on merged_sce")
 ```
 
-Now that we've properly accounted for batches in the `merged_sce` object, we see that the libraries are separated in space, which more reasonably reflects that this data is _not yet batch-corrected_.
-Indeed, the primary "clustering" (not technical clustering, just what we see visually!) in these plots are the batches.
+Now that we've put all of the samples from our `merged_sce` object in the same UMAP space, we see that the libraries are separated in space, which more reasonably reflects that this data is _not yet batch-corrected_.
+Indeed, the primary "clustering" (not technical clustering, just what we see visually!) in these plots are the samples.
 We can think of this UMAP as our "before" UMAP, and we can compare to the "after" UMAP we see post-integration.
 
 Let's discuss: What visual differences do you think the UMAP on the integrated version of data will have?
@@ -578,7 +581,7 @@ There are couple pieces of information here of interest:
 Generally speaking, these are not stand-alone values that you should use for other applications like differential gene expression.
 If the `subset.row` argument was provided (as we did here), only genes present in `subset.row` are included in these reconstructed expression values, but this can be overridden so that all genes have reconstructed expression with the argument `correct.all = TRUE`.
 
-We're mostly interested in the PCA that `fastMNN` calculated, so let's save that information ( (with an informative and unique name!) into our `merged_sce` object:
+We're mostly interested in the PCA that `fastMNN` calculated, so let's save that information (with an informative and unique name!) into our `merged_sce` object:
 
 ```{r fastmnn pcs}
 # Make a new reducedDim named fastMNN_PCA from the corrected reducedDim in integrated_sce
@@ -624,7 +627,7 @@ This `fastMNN_UMAP` certainly looks different from the one we made from `merged_
 It particularly looks like `SCPCL000479` and `SCPCL000480` have substantial overlap - intriguingly, these two samples are from the same patient, so this overlap may have some true biological underpinnings!
 
 However, it's a bit challenging to see all the points given the amount of overlap in the plot.
-One way we can all the points a bit better is to facet the plot by sample:
+One way we can see all the points a bit better is to facet the plot by sample:
 
 ```{r fastmnn umap batches faceted}
 scater::plotReducedDim(merged_sce,
@@ -684,11 +687,11 @@ For contrast, let's see how integration performs when using the [`harmony` metho
 Algorithmic differences aside, there are a couple practical differences between `fastMNN` and `harmony` to be aware of:
 
 - Unlike `fastMNN`, `harmony` allows you to specify additional covariates (e.g., technology, patient, diagnosis, etc.)
-  - This requires additional setup beyond than we will show below.
+  - This requires additional setup beyond what we will show below.
 - Unlike `fastMNN`, `harmony` does not calculate corrected expression values nor does it return an SCE object.
 Instead, it starts with an uncorrected PC matrix and directly returns a matrix of corrected PCs.
 
-For input, `harmony` can either take a matrix of normalized expression values, from which it will calculate a PCA matrix which it will then batch-correct, or it can take a PCA matrix directly to perform batch-correction on.
+For input, `harmony` can either take a matrix of normalized expression values, from which it will calculate a PCA matrix to batch-correct, or it can take a PCA matrix directly to perform batch-correction on.
 Since we already calculated batch PCA (`merged_PCA`), we'll provide this information directly, specifying the additional argument `do_pca=FALSE` to tell `harmony` that the input matrix we provided already is PCA.
 
 
@@ -799,7 +802,8 @@ Finally, we'll export the final SCE object with both `fastMNN` and `harmony` int
 
 ```{r save integration}
 readr::write_rds(merged_sce, 
-                 integrated_sce_file)
+                 integrated_sce_file,
+                 compress = "gz")
 ```
 
 
