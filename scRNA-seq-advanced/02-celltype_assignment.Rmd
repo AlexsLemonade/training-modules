@@ -342,6 +342,25 @@ scater::plotUMAP(sce, colour_by = "celltype_collapsed")
 ### Heatmap of cell types & clusters
 
 
+Let's look at how the cell type assignments we have compare to the clusters we found from the data alone.
+
+```{r}
+type_cluster_tab <- table(sce$celltype_fine, sce$nn_cluster)
+
+# Normalize by cluster size (columns)
+type_cluster_tab <- apply(
+  type_cluster_tab, 
+  2, # apply function to columns
+  function(x){x/sum(x)} # function to apply
+)
+
+type_cluster_tab <- scale(type_cluster_tab, 
+                          center = FALSE, 
+                          scale = colSums(type_cluster_tab))
+
+# plot with pheatmap
+pheatmap::pheatmap(type_cluster_tab)
+```
 
 
 
