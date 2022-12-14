@@ -45,8 +45,17 @@ set.seed(12345)
 ### Input and output
 
 ```{r}
+### Input files
 data_dir <- file.path("data", "PBMC-TotalSeqB", "normalized")
 sce_file <- file.path(data_dir, "PBMC_TotalSeqB_normalized_sce.rds")
+
+### output files
+analysis_dir <- file.path("analysis", "PBMC-TotalSeqB")
+if (!dir.exists(analysis_dir)){
+  dir.create(analysis_dir, recursive = TRUE)
+}
+
+cellinfo_file <- file.path(analysis_dir, "PBMC_TotalSeqB_cellinfo.tsv")
 ```
 
 
@@ -434,6 +443,16 @@ sce$celltype_kcluster <- kcluster_result$labels[kclusters]
 ```{r}
 scater::plotUMAP(sce, colour_by = "celltype_kcluster")
 ```
+
+### Save results
+
+To save space, we won't write out the whole SCE object, as we haven't changed any of the core data there. 
+Instead we will just write out the cell information table (`colData`) as a TSV file.
+
+```{r save sce}
+readr::write_tsv(as.data.frame(colData(sce)), file = cellinfo_file)
+```
+
 
 ## Session Info
 
