@@ -40,6 +40,7 @@ sync_dirs=(
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
   scRNA-seq-advanced/data/rms/processed
+  scRNA-seq-advanced/data/rms/integrated
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
@@ -58,6 +59,7 @@ sync_files=(
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
   scRNA-seq/analysis/mouse-liver/markers/cluster07_markers.tsv
+  scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv
 )
 
