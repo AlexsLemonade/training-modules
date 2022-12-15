@@ -16,29 +16,35 @@ This notebook will demonstrate how to:
 - Prepare SCE objects for integration
 - Apply integration methods including `fastMNN` and `harmony`
 - Visually explore the results of integration
-- Learn skills in functional programming in the `tidyverse` with `purrr`
+- Use `purrr::map()` functions for iterating over lists
 
 ---
 
 In this notebook, we'll perform integration on scRNA-seq datasets from the [Single-cell Pediatric Cancer Atlas (`ScPCA`)](https://scpca.alexslemonade.org/), a database of uniformly-processed pediatric scRNA-seq data built and maintained by the Data Lab.
 This database currently hosts projects from ten different ALSF-funded labs who have generated single-cell pediatric cancer transcriptomic data with the ultimate goal of making this data easily accessible to investigators (like you!).
 
-Specifically, we'll have a look at four libraries from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), an investigation of pediatric solid tumors led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Children's Research Hospital.
-The particular libraries we'll integrate come from three rhabdomyosarcoma (RMS) patients ([Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)), and all samples (which are single-nuclei) were sequenced with 10Xv3 technology.
+Specifically, we'll have a look at four libraries from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005; [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)), an investigation of pediatric solid tumors led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Children's Research Hospital.
+The particular libraries we'll integrate come from two rhabdomyosarcoma (RMS) patients, with two libraries (each from separate samples) from two patients each.
+All library are single-nuclei and were sequenced with 10Xv3 technology.
 
 We'll be integrating these libraries with two different tools, [`fastmNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html; [Haghverdi _et al._ (2018)](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/; [Korsunsky _et al._ (2019)](https://doi.org/10.1038/s41592-019-0619-0)). 
-Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that samples can be jointly analyzed. 
+Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed. 
 `fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about from this [vignette by Lun (2019)](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
 
 
 Regardless of which integration tool is used, the SCE objects to be integrated need to be reformatted and merged into a single (uncorrected!) SCE object that contains all cells from all SCES for all genes that the SCEs have in common.
-This merged SCE, which should also contain explicit information about batch origins for each cell, can be provided to the integration method to obtain a formally batch-corrected SCE object. 
+This merged SCE, which should also contain explicit information about batch origins for each cell (here, the originating library), can be provided to the integration method to obtain a formally batch-corrected SCE object. 
 
-Before we dive into this, let's first see what this merging process conceptually looks like:
+Before we dive into this, let's first build a sense of what this merging process looks like.
+
+Here's a diagram of a single SCE object, obtained from the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/3.16/OSCA.intro/the-singlecellexperiment-class.html).
 
 
-<!-- Insert diagram ala https://bioconductor.org/books/3.13/OSCA.intro/the-singlecellexperiment-class.html showing before/after SCE objects. Explain the diagram aloud. --> 
+![](diagrams/SingleCellExperiment.png)
+The diagram below shows, conceptually, how two SCEs (named "a" and "b") would be merged:
+
+<!-- Insert diagram from issue #580. Explain the diagram aloud. --> 
 
 ## Set Up
 
@@ -57,14 +63,13 @@ set.seed(12345)
 ## Directories and files
 
 
-We have already prepared count data for the four samples we'll be integrating (i.e., filtered cells, normalized counts, and calculated PCA & UMAP).
-These SCE objects, stored as RDS files, are available in the `data/rms/processed/` directory. 
-The files are interested in are named according to their `ScPCA` library IDs:
+We have already prepared count data for the four libraries we'll be integrating (i.e., filtered cells, normalized counts, and calculated PCA & UMAP).
+These SCE objects, stored as RDS files, are available in the `data/rms/processed/` directory and are named according to their `ScPCA` library IDs:
 
-- `SCPCL000478.rds`
-- `SCPCL000479.rds`
-- `SCPCL000480.rds`
-- `SCPCL000481.rds`
+- `SCPCL000479.rds` (Patient A)
+- `SCPCL000480.rds` (Patient A)
+- `SCPCL000481.rds` (Patient B)
+- `SCPCL000482.rds` (Patient B)
 
 To begin, let's set up our directories and files:
 
@@ -156,10 +161,10 @@ We'll want to use the `readr::read_rds()` function to read in each file, so we'l
 
 ```{r read input} 
 # Vector of all the libraries to read in:
-library_names <- c("SCPCL000478",
-                   "SCPCL000479",
+library_names <- c("SCPCL000479",
                    "SCPCL000480",
-                   "SCPCL000481")
+                   "SCPCL000481",
+                   "SCPCL000482")
 
 # Now, convert these to file paths matching `<input_dir>`/`<library_name>`.rds
 library_paths <- file.path(input_dir, 
@@ -191,7 +196,7 @@ sce_list
 
 If you look closely at the printed SCE objects, you may notice that they all contain colData columns `celltype_fine` and `celltype_broad`.
 These columns (which we added to SCE objects during pre-processing) contain putative _cell type annotations_ as assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003). 
-We will end up leveraging these cell type annotations to explore how successful our integration is: After integration, we expect cell types from different samples to cluster together, rather than being separated by batches. 
+We will end up leveraging these cell type annotations to explore how successful our integration is: After integration, we expect cell types from different libraries to cluster together, rather than being separated by batches. 
 
 Before we proceed, it's critical to remember that integration methods _do not actually use_ these cell type annotations.
 If we have annotations, they are a helpful "bonus" for assessing the integration's success, but they are not part of the procedure itself.
@@ -235,8 +240,8 @@ Note that these ids also correspond to the _row names_ of the `colData` and any 
 Usually (but not always!), the cell ids themselves are cell barcodes, which is the case for our SCE objects (one is shown below as an example):
 
 ```{r barcodes}
-# Look at the column names for the `SCPCL000478` library, for example
-colnames(sce_list$SCPCL000478) %>%
+# Look at the column names for the `SCPCL000479` library, for example
+colnames(sce_list$SCPCL000479) %>%
   # Only print out the first 6 for convenience
   head()
 ```
@@ -252,7 +257,7 @@ The `rowData` table in SCE objects will often contain both "general" and "librar
 
 
 ```{r rowdata colnames}
-head( rowData(sce_list$SCPCL000478) )
+head( rowData(sce_list$SCPCL000479) )
 ```
 
 Here, the rownames are Ensembl gene IDs, and columns are `gene_symbol`, `mean`, and `detected`. 
@@ -276,12 +281,11 @@ purrr::map(sce_list,
 
 The final step in ensuring SCE compatibility is to make sure they all contain the same genes, which are stored as the SCE object's row names (these names are also found the `rowData` slot's row names). 
 Here, those gene ids are unique Ensembl gene ids.
-We'll note that while we use to recommend the `biomartr` package for querying Ensembl gene information, we now favor the approach of just asking Josh.
 
 We can use some `purrr` magic to quickly find the set of shared genes among our libraries:
 ```{r shared genes}
 shared_genes <- sce_list %>%
-  # get rownames for each SCE in sce_list
+  # get rownames (genes) for each SCE in sce_list
   purrr::map(rownames) %>%
   # reduce to the _intersection_ among lists
   purrr::reduce(intersect)
@@ -314,6 +318,14 @@ It looks like the column names are all already matching among SCEs, so there's n
 ### Perform SCE merging
 
 
+
+
+```{r}
+sce_list
+
+
+```
+
 As you can see, there's a lot of moving parts to consider! 
 Again, these moving parts may (will!) differ for SCEs that you are working with, so you have to explore your own SCEs in depth to prepare for merging.
 
@@ -329,9 +341,9 @@ format_sce <- function(sce, library_name) {
   # This function returns a formatted SCE object.
   
   ###### Ensure that we can identify the originating library ######
-  # Add a column called `sample` that stores this information
+  # Add a column called `library` that stores this information
   # This will be stored in `colData`
-  sce$sample <- library_name
+  sce$library <- library_name
   
   
   ###### Ensure cell ids will be unique ######
@@ -388,14 +400,24 @@ We now have a single SCE object that contains all cells from all libraries we'd 
 
 Let's take a peek at some of the innards of this new SCE object:
 ```{r explore merged_sce}
-# What are the unique values in the `sample` column?
-unique( colData(merged_sce)$sample )
+# What are the unique values in the `library` column?
+unique( colData(merged_sce)$library )
 
 # What are the new cell ids (column names)?
 head( colnames(merged_sce) )
 
 # What does rowData look like?
 head( rowData(merged_sce) )
+```
+
+TODO: Something else that might be fun is to have patient information and toss onto UMAPs, but with only 4 libraries already ordered by patient pairs, this is easy enough to do by eye in a batch-level UMAP so I don't think we necessarily need this. It could be useful to show though?
+
+```{r add patient metadata}
+merged_sce$patient <- dplyr::case_when(
+  merged_sce$library %in% c("SCPCL000479", "SCPCL000480") ~ "A",
+  merged_sce$library %in% c("SCPCL000481", "SCPCL000482") ~ "B"
+  
+)
 ```
 
 
@@ -405,7 +427,7 @@ head( rowData(merged_sce) )
 So far, we've created a `merged_sce` object which is (almost!) ready to integrate.
 
 The integration methods we'll be using here actually perform batch correction on a reduced dimension representation of the normalized gene expression values, specifically the PCA.
-The main reason for using these reduced dimenions is efficiency.
+The main reason for using these reduced dimensions is efficiency.
 
 You'll notice that the merged SCE object object already contains PCA and UMAP reduced dimensions, which were calculated during our pre-processing:
 
@@ -424,8 +446,8 @@ To see this, let's look at the UMAP for individual libraries:
 # UMAPs scaled separately when calculated from individual libraries:
 scater::plotReducedDim(merged_sce,
                        dimred = "UMAP",
-                       # Color points based on the `sample` variable we added during merging
-                       colour_by = "sample",
+                       # Color points based on the `library` variable we added during merging
+                       colour_by = "library",
                        # Include some point styling to help us see the points
                        point_size = 0.5,
                        point_alpha = 0.2) +
@@ -444,15 +466,15 @@ We'll also save these new reduced dimensions with different names, `merged_PCA` 
 
 
 First, as usual, we'll determine the high-variance genes to use for PCA from the `merged_sce` object.
-For this, we'll also provide the argument `block = merged_sce$sample` when modeling gene variance, which tells `scran::modelGeneVar()` to first model variance separately for each batch and then combine those modeling statistics.
+For this, we'll also provide the argument `block = merged_sce$library` when modeling gene variance, which tells `scran::modelGeneVar()` to first model variance separately for each batch and then combine those modeling statistics.
 
 ```{r calc merged hv_genes}
 num_genes <- 2000
 
 # calculate high-variance genes to use for dimension reduction
 gene_variance <- scran::modelGeneVar(merged_sce,
-                                     # specify the grouping/batch column:
-                                     block = merged_sce$sample)
+                                     # specify the grouping column:
+                                     block = merged_sce$library)
 
 # find the high-variance genes
 hv_genes <- scran::getTopHVGs(gene_variance,
@@ -461,8 +483,7 @@ hv_genes <- scran::getTopHVGs(gene_variance,
 
 
 To calculate the PCs themselves, we'll use an approach from the `batchelor` package, which is the R package that contains the `fastMNN` method.
-We'll use the [`batchelor::multiBatchPCA()`](https://rdrr.io/bioc/batchelor/man/multiBatchPCA.html) function which can accommodate the fact that we have separate batches.
-Specifically, this function performs scaling  function performs in our SCE such that the scaling corrects for the different number of cells across batches.
+We'll use the [`batchelor::multiBatchPCA()`](https://rdrr.io/bioc/batchelor/man/multiBatchPCA.html) function which can accommodate the fact that we have separate batches (specifically by ensuring that batches, which may have very different numbers of cells. contribute equally during scaling).
 
 ```{r merged_pca}
 # Use batchelor to calculate PCA from for merged_sce
@@ -470,10 +491,10 @@ merged_pca <- batchelor::multiBatchPCA(merged_sce,
                                        # Consider only the high-variance genes
                                        subset.row = hv_genes,
                                        # Batch-level information
-                                       batch = merged_sce$sample,
+                                       batch = merged_sce$library,
                                        # This argument ensures that the returned object 
-                                       #  is a single matrix that contains all samples, 
-                                       #  instead of a separate matrix for each sample
+                                       #  is a single matrix that contains all libraries, 
+                                       #  instead of a separate matrix for each library
                                        preserve.single = TRUE)
  
 
@@ -510,7 +531,7 @@ Now, let's see how this new `merged_UMAP` looks compared to the `UMAP` calculate
 # UMAPs scaled together when calculated from the merged SCE
 scater::plotReducedDim(merged_sce,
                        dimred = "merged_UMAP",
-                       colour_by = "sample",
+                       colour_by = "library",
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.2) +
@@ -520,12 +541,13 @@ scater::plotReducedDim(merged_sce,
   ggtitle("UMAP calculated on merged_sce")
 ```
 
-Now that we've put all of the samples from our `merged_sce` object in the same UMAP space, we see that the libraries are separated in space, which more reasonably reflects that this data is _not yet batch-corrected_.
-Indeed, the primary "clustering" (not technical clustering, just what we see visually!) in these plots are the samples.
+Now that we've put all of the libraries from our `merged_sce` object in the same UMAP space, we see that the libraries are highly distinct which more reasonably reflects that this data is _not yet batch-corrected_.
 We can think of this UMAP as our "before" UMAP, and we can compare to the "after" UMAP we see post-integration.
 
 Let's discuss: What visual differences do you think the UMAP on the integrated version of data will have?
 What similarities do you think the integrated UMAP will have to this plot?
+
+
 
 ### Integration with `fastMNN`
 
@@ -540,8 +562,8 @@ The `batch` argument is used to specify the different groupings within the `merg
 integrated_sce <- batchelor::fastMNN(
   # the merged SCE object
   merged_sce,
-  # vector indicating the batches, which we created as `$sample` when formatting SCEs
-  batch = merged_sce$sample, 
+  # vector indicating the batches, which we created as `$library` when formatting SCEs
+  batch = merged_sce$library, 
   # Optionally, we can specify genes to use as the previously-ID'd
   #  high variance genes
   subset.row = hv_genes
@@ -587,8 +609,8 @@ A well-integrated dataset will show batch mixing, but a poorly-integrated datase
 scater::plotReducedDim(merged_sce,
                        # plot the fastMNN coordinates
                        dimred = "fastMNN_UMAP",
-                       # color by sample (batch)
-                       colour_by = "sample",
+                       # color by library
+                       colour_by = "library",
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.2) +
@@ -598,30 +620,29 @@ scater::plotReducedDim(merged_sce,
   ggtitle("UMAP after integration with fastMNN")
 ```
 
-
-
 This `fastMNN_UMAP` certainly looks different from the one we made from `merged_UMAP`!
-It particularly looks like `SCPCL000479` and `SCPCL000480` have substantial overlap - intriguingly, these two samples are from the same patient, so this overlap may have some true biological underpinnings!
+
 
 However, it's a bit challenging to see all the points given the amount of overlap in the plot.
-One way we can see all the points a bit better is to facet the plot by sample:
+One way we can see all the points a bit better is to facet the plot by library:
 
 ```{r fastmnn umap batches faceted}
 scater::plotReducedDim(merged_sce,
                        dimred = "fastMNN_UMAP",
-                       colour_by = "sample",
+                       colour_by = "library",
                        point_size = 0.5,
                        point_alpha = 0.2, 
                        # Allow for faceting by a variable using `other_fields`:
-                       other_fields = "sample") +
+                       other_fields = "library") +
   guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with fastMNN") +
-  facet_wrap(~sample)
+  facet_wrap(~library)
 ```
 
 
-Importantly, one reason that batches may still appear separated in the corrected UMAP is if they _should_ be separated - for example, maybe two batches contain very different cell types.
-In this case, we would not expect batches to mix heavily, since their cell types should retain some structure. 
+
+Importantly, one reason that batches may still appear separated in the corrected UMAP is if they _should_ be separated - for example, maybe two batches contain very different cell types, or two batches are from the different patients.
+In this case, we would not expect batches to mix heavily, since their cell types for instance should retain some structure. 
 Recall from earlier, we conveniently have cell type annotations in our SCEs, so we can explore this here!
 Let's re-plot this UMAP to highlight cell types:
 
@@ -636,8 +657,10 @@ scater::plotReducedDim(merged_sce,
   guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with fastMNN")
 ```
+Something we can see already see from this UMAP is that the non-tumor cell types (mostly vascular endothelium, muscle cells, and monocytes) tend to cluster together and are generally far separated from the tumor cell types, which is an encouraging pattern!
 
-Something we can see already from this UMAP is that the non-tumor cell types (mostly vascular endothelium, muscle cells, and monocytes) tend to cluster together and are generally far separated from the tumor cell types, which is an encouraging pattern!
+Let's look at a faceted version:
+
 
 ```{r fastmnn umap celltypes faceted}
 scater::plotReducedDim(merged_sce,
@@ -645,15 +668,40 @@ scater::plotReducedDim(merged_sce,
                        # color by broad celltypes
                        colour_by = "celltype_broad",
                        point_size = 0.5,
-                       point_alpha = 0.2,
-                       other_fields = "sample") +
+                       point_alpha = 0.2, 
+                       other_fields = "library") +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  ggtitle("UMAP after integration with fastMNN") +
+  facet_wrap(~library)
+```
+
+Now is a good time to remember we actually have two cell type variables: `celltype_broad` and `celltype_fine`, where the latter contains finer-grained Tumor characterizations based on differentiation stage.
+
+Let's see what we observe if we color the UMAP instead by the finer-grained cell types.
+For this plot, we'll focus only on Tumor cell types and remove all the "healthy" cells so we can see Tumor cells more clearly:
+
+```{r fastmnn umap fine tumor}
+# First, let's filter to only cell types that contain the word "Tumor"
+# In which cells is "Tumor" present in the celltype_fine variable?
+tumor_cells <- grep("Tumor", merged_sce$celltype_fine)
+merged_sce_tumor <- merged_sce[,tumor_cells]
+
+
+# Make the UMAP
+scater::plotReducedDim(merged_sce_tumor,
+                       dimred = "fastMNN_UMAP",
+                       # color by fine celltypes
+                       colour_by = "celltype_fine",
+                       point_size = 0.5,
+                       point_alpha = 0.2, 
+                       other_fields = "library") +
   guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with fastMNN") + 
-  facet_wrap(~sample)
+  # We'll facet by library to make points even easier to see still
+  facet_wrap(~library)
+
 ```
-Looking at the cell type annotation, it appears that `SCPCL000478` uniquely is dominated by the `Tumor` cell type compared to the other samples.
-`SCPCL000479` and `SCPCL000480`, which are derived from the same patient, appears both dominated by `Tumor_Myoblast` and `Tumor_Mesoderm`, and `SCPCL000481` appears dominated by `Tumor_Myoblast` and `Tumor_Myocyte`. 
-The faceted plot also shows us that `SCPCL000478` fibroblasts appear to cluster with `SCPCL000480` and `SCPCL000481` muscle cells.
+
 
 
 ### Integration with `harmony`
@@ -677,7 +725,7 @@ harmony_pca <- harmony::HarmonyMatrix(
   # Provide the uncorrected PCs:
   data_mat  = reducedDim(merged_sce, "merged_PCA"),
   # Provide the batch information:
-  meta_data = colData(merged_sce)$sample,
+  meta_data = colData(merged_sce)$library,
   # Set do_pca = FALSE since we are passing in PCs directly
   do_pca = FALSE
 )
@@ -704,17 +752,14 @@ Let's see how the `harmony` UMAP, colored by either batch or cell type, looks co
 ```{r harmony umap batches}
 scater::plotReducedDim(merged_sce,
                        dimred = "harmony_UMAP",
-                       # color by sample (batch)
-                       colour_by = "sample",
+                       # color by library
+                       colour_by = "library",
                        point_size = 0.5,
                        point_alpha = 0.2) +
   ggtitle("UMAP after integration with harmony") +
   guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) 
 ```
 
-This UMAP looks very different from the one we made from `fastMNN` integration!
-`SCPCL000481` uniquely appears "unintegrated" compared to the other libraries, which is unexpected given that the `SCPCL000478` library is the one with more unique cell types!
-This result may qualitatively suggest that `harmony` integration was less successful than was `fastMNN`, but let's dig into these results a little deeper.
 
 Let's highlight the cell types in the harmony UMAP:
 
@@ -728,11 +773,7 @@ scater::plotReducedDim(merged_sce,
   ggtitle("UMAP after integration with harmony") +
   guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) 
 ```
-Similar to the `fastMNN` results, the non-tumor cell types do appear to have been well-integrated across batches, but that one library does stand out!
-We can see that 
 
-Now is a good time to remember we actually have two cell type variables: `celltype_broad` and `celltype_fine`, where the latter contains finer-grained Tumor characterizations based on differentiation stage.
-Let's see what we observe if we color the UMAP instead by the finer-grained cell types:
 
 ```{r harmony umap celltypes fine}
 scater::plotReducedDim(merged_sce,
@@ -741,34 +782,12 @@ scater::plotReducedDim(merged_sce,
                        colour_by = "celltype_fine",
                        point_size = 0.5,
                        point_alpha = 0.1, 
-                       other_fields = "sample") +
+                       other_fields = "library") +
   ggtitle("UMAP after integration with harmony") +
   guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
-  facet_wrap(~sample)
+  facet_wrap(~library)
   
 ```
-
-It looks as though `SCPCL000481` may indeed be comprised of relatively distinct cell types, which we can check with a barplot:
-
-<!-- LATE BREAKING ADDITION IN NEED OF REVIEW/DISCUSSION, including where to put this plot? Should I make this plot? -->
-```{r count celltypes fine}
-# Create a table of counts sample and celltype_fine combinations
-sample_celltype_table <- colData(merged_sce) %>%
-  as.data.frame() %>%
-  dplyr::count(sample, celltype_fine) 
-
-
-sample_celltype_table
-
-# Let's look at just tumor cells:
-sample_celltype_table %>%
-  dplyr::filter(stringr::str_detect(celltype_fine, "Tumor")) %>%
-  ggplot(aes(x = sample, y = n, fill = celltype_fine)) +
-  geom_col(position = "dodge")
-```
-
-Indeed, we see that `SCPCL000481` has a substantial `Tumor_Myocyte-A` population that the other libraries do not have, and the two libraries from the same patient show similar trends. 
-
 
 What similarities and differences between `fastMNN` and `harmony` integration do you notice?
 How do you think these results compare?
