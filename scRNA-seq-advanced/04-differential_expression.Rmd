@@ -77,7 +77,7 @@ scater::plotReducedDim(integrated_sce[metadata(integrated_sce)$combined_hvg,],
                        point_alpha = 0.2)
 ```
 
-We can also look at the sample metadata that we have been provided that contains information about each sample in the dataset.
+We can also look at the sample metadata:
 
 ```{r}
 sample_metadata
@@ -173,15 +173,15 @@ rms_sce <- integrated_sce[,samples_to_keep]
 # we are left with 3 from each sub type 
 sample_metadata %>%
   dplyr::filter(library_id %in% library_ids) %>%
-  dplyr::pull(subdiagnosis) %>%
-  table()
+  dplyr::count(subdiagnosis)
 ```
 
 
 ```{r}
 # look at distribution of cell types across all libraries 
 as.data.frame(colData(rms_sce)) %>%
-  dplyr::count(celltype_broad)
+  dplyr::count(celltype_broad) %>%
+  dplyr::arrange(desc(n))
 ```
 
 The `Tumor_Myoblast` cell type is the most prominent cell type, and based on the UMAPs is found in all 6 of our samples.
@@ -198,16 +198,16 @@ This allows us to use single-cell resolution to define the labels and sum gene c
 
 Pseudo-bulking is implemented prior to differential expression analysis for the following reasons: 
 
-- Produces larger counts, which are more amenable to standard normalization and differential expression methods used by bulk RNA-sequencing. 
+- Produces larger counts, which allows us to use standard normalization and differential expression methods used by bulk RNA-sequencing. 
 -  Collapses gene expression counts by sample, so that samples, rather than cells, represent replicates.
-- Masks variance within a sample to highlight variance across samples.
+- Masks variance within a sample to emphasize variance across samples.
 
-We are staring with the simple comparison of looking at one cell type and comparing across two groups of samples, samples belonging to either the ERMS and ARMS subtypes. 
-When we do this, we will first want to pseudo-bulk our dataset to group our cells by cell type and by sample.
-This will create a new `SingleCellExperiment` object that contains the pseudo-bulked counts to be used as input for differential expression analysis. 
-Then we can subset the pseudo-bulked object to just contain our cell type of interest before proceeding. 
+We are starting with the simple comparison of looking at one cell type and comparing across two groups of samples: the ERMS and ARMS subdiagnoses. 
+Our first step will be to pseudo-bulk our dataset to group our cells by cell type and by sample.
+This will create a new `SingleCellExperiment` (SCE) object that contains the pseudo-bulked counts for all genes. 
+We can subset this SCE to just contain our cell type of interest (tumor myoblasts) for input to differential expression analysis. 
 
-Before we apply pseudo-bulking to our dataset, lets look at a simple example of how pseudo-bulking works. 
+Before we apply pseudo-bulking to our dataset, let's look at a simple example of how pseudo-bulking works. 
 
 ```{r}
 # create an example counts matrix
@@ -222,20 +222,20 @@ counts_mtx
 ```{r}
 # create new matrix, summing the counts for each gene across all cells in the specified group
 pseudobulked_counts <- cbind(
-  rowSums(counts_mtx[,1:2]), # sum all counts for cells labeled with group A
-  rowSums(counts_mtx[,3:4]) # sum all counts for cells labeled with group B
+  rowSums(counts_mtx[,c("A-cell1", "A-cell2")]), # sum all counts for cells labeled with group A
+  rowSums(counts_mtx[,c("B-cell1", "B-cell2")]) # sum all counts for cells labeled with group B
 )
 pseudobulked_counts 
 ```
 Now the actual pseudo-bulking for our dataset! 
-We can pseudo-bulk using any groups that we are interested in.
+We can pseudo-bulk using any grouping that we are interested in.
 For right now, we would are interested in looking at gene expression across cell types, so we want to group the counts matrix by both cell type and sample. 
 
 ```{r}
-# first let's subset our coldata to only have the columns we care about in pseudobulking 
+# first let's subset our coldata to only have the columns we care about in pseudo-bulking 
 pseudobulked_coldata <- colData(rms_sce)[, c("celltype_broad", "sample")]
 
-# this creates a new SCE object that contains the pseudobulked counts across the provided groups 
+# this creates a new SCE object that contains the pseudo-bulked counts across the provided groups 
 pseudobulked_sce <- scater::aggregateAcrossCells(rms_sce, 
                                                   id = pseudobulked_coldata)
 
