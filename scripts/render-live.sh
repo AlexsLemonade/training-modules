@@ -32,7 +32,7 @@ files=(
   scRNA-seq/05-clustering_markers_scRNA.Rmd
   scRNA-seq/06-overrepresentation_analysis.Rmd
   scRNA-seq/07-gene_set_enrichment_analysis.Rmd
-  scRNA-seq-advanced/01-reading_filtering_CellRanger.Rmd
+  scRNA-seq-advanced/01-read_filter_normalize_scRNA.Rmd
   scRNA-seq-advanced/03-dataset_integration.Rmd
   # machine-learning/01-openpbta_heatmap.Rmd
   # machine-learning/02-openpbta_consensus_clustering.Rmd
