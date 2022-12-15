@@ -174,6 +174,9 @@ library_ids <- c(
 # subset sce to only contain samples with library IDs of interest 
 samples_to_keep <- integrated_sce$sample %in% library_ids
 rms_sce <- integrated_sce[,samples_to_keep]
+
+# remove original integrated object 
+rm(integrated_sce)
 ```
 
 ```{r}
@@ -440,24 +443,24 @@ sig_expressed_genes <- deseq_results %>%
                 abs(log2FoldChange) > 2) %>%
   dplyr::pull(ensembl_id)
 
-sig_genes_counts <- logcounts(integrated_sce[sig_expressed_genes,]) %>%
+sig_genes_counts <- logcounts(rms_sce[sig_expressed_genes,]) %>%
   as.matrix() %>%
   t() %>%
   as.data.frame() %>%
-  dplyr::mutate(cell_id = colnames(integrated_sce))
+  dplyr::mutate(cell_id = colnames(rms_sce))
   
-combined_coldata_df <- as.data.frame(colData(integrated_sce)) %>%
+combined_coldata_df <- as.data.frame(colData(rms_sce)) %>%
   dplyr::left_join(sig_genes_counts, by = "cell_id")
 
 # add back modified coldata containing gene expression for sig genes 
-colData(integrated_sce) <- DataFrame(combined_coldata_df, row.names = combined_coldata_df$cell_id)
+colData(rms_sce) <- DataFrame(combined_coldata_df, row.names = combined_coldata_df$cell_id)
 ```
 
 We will pick a gene and look at the expression of that gene across subdiagnosis, sample, and cell type.
 
 ```{r}
 # filter to just myoblast cells and remove any NA's before plotting
-myoblast_combined_sce <- integrated_sce[, which(integrated_sce$celltype_broad == "Tumor_Myoblast")]
+myoblast_combined_sce <- rms_sce[, which(rms_sce$celltype_broad == "Tumor_Myoblast")]
 
 # first look at just ARMS vs. ERMS 
 scater::plotReducedDim(myoblast_combined_sce,
@@ -475,7 +478,7 @@ scater::plotReducedDim(myoblast_combined_sce,
 celltypes <- c("Tumor_Myoblast", "Tumor_Mesoderm", "Tumor_Myocyte", "Vascular Endothelium")
 
 # subset to just tumor celltypes that we are interested in
-tumor_sce <- integrated_sce[, which(integrated_sce$celltype_broad %in% celltypes)]
+tumor_sce <- rms_sce[, which(rms_sce$celltype_broad %in% celltypes)]
 ```
 
 
