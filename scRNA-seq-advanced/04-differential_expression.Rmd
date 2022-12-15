@@ -48,7 +48,7 @@ integrated_sce_file <- file.path(data_dir, "integrated", "rms_all_sce.rds")
 sample_metadata_file <- file.path(data_dir, "annotations", "rms_sample_metadata.tsv")
 
 # output files 
-deseq_dir <- file.path(data_dir, "deseq")
+deseq_dir <- file.path("analysis", "rms", "deseq")
 if(!dir.exists(deseq_dir)){
   dir.create(deseq_dir, recursive = TRUE)
 }
@@ -70,7 +70,7 @@ Before we set up our experiment, lets explore our dataset a little.
 
 ```{r}
 # First just plot by sample
-scater::plotReducedDim(integrated_sce[metadata(integrated_sce)$combined_hvg,],
+scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
                        colour_by = "sample",
                        point_size= 0.5,
@@ -96,19 +96,19 @@ coldata_df <- colData(integrated_sce) %>%
   # merge with sample metadata 
   dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) %>%
     # simplify subdiagnosis for easy plotting and DE later
-  dplyr::mutate(diagnosis_groups = factor(
-    dplyr::case_when(
-      subdiagnosis == "Alveolar rhabdomyosarcoma" ~ "ARMS",
-      subdiagnosis == "Embryonal rhabdomyosarcoma" ~ "ERMS"
-    )),
-    cell_id = paste(sample, barcode, sep = "-"))
+  dplyr::mutate(cell_id = paste(sample, barcode, sep = "-"),
+                diagnosis_group = forcats::fct_recode(
+                  subdiagnosis,
+                  "ARMS" = "Alveolar rhabdomyosarcoma",
+                  "ERMS" = "Embryonal rhabdomyosarcoma"
+                ))
 
 # add back to sce 
 colData(integrated_sce) <- DataFrame(coldata_df, row.names = coldata_df$cell_id)
 ```
 
 Now we can use that sample metadata when making our plots. 
-Lets start by looking at our different diagnosis types.
+Lets start by looking at our different subdiagnoses.
 
 ```{r}
 scater::plotReducedDim(integrated_sce,
@@ -116,13 +116,13 @@ scater::plotReducedDim(integrated_sce,
                        colour_by = "sample",
                        point_size= 0.5,
                        point_alpha = 0.2,
-                       other_fields = "subdiagnosis") +
-  facet_wrap(~subdiagnosis)
+                       other_fields = "diagnosis_group") +
+  facet_wrap(~diagnosis_group)
 ```
 
-Interestingly, it looks like samples from the ARMS and ERMS sub type tend to integrate with each other rather than integrate all together. 
+Interestingly, it looks like samples from the ARMS and ERMS subdiagnoses tend to integrate with each other rather than integrate all together. 
 
-We can also look at the distribution of cell types to see if these sub types have different or shared cell types.
+We can also look at the distribution of cell types to see if these subdiagnoses have different or shared cell types.
 
 *Talk about looking across cell types and comparing cell types* 
 
@@ -133,25 +133,32 @@ scater::plotReducedDim(integrated_sce,
                        colour_by = "celltype_broad",
                        point_size= 0.5, 
                        point_alpha = 0.4,
-                       other_fields = "subdiagnosis") +
-  facet_wrap(~ subdiagnosis)
+                       other_fields = "diagnosis_group") +
+  facet_wrap(~ diagnosis_group)
+```
+We can also look at the distribution of cell types across each sample.
 
-# we can also look at the sample level
-scater::plotReducedDim(integrated_sce,
-                       dimred = "fastmnn_UMAP",
-                       colour_by = "celltype_broad",
-                       point_size= 0.5, 
-                       point_alpha = 0.4,
-                       other_fields = "sample") +
-  facet_wrap(~ sample)
+```{r}
+tumor_cells_df <- coldata_df %>%
+  dplyr::filter(stringr::str_detect(celltype_broad, "Tumor"))
+
+ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) + 
+    geom_bar(color = "black", size = 0.2) +
+    labs(
+      x = "Sample",
+      y = "Number of cells", 
+      fill = "Cell type"
+    ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90))+
+  facet_wrap(~diagnosis_group, scales = "free_x")
 ```
 
-
-We can use these plots to help explore all of the samples and visualize the distribution of cell types across our dataset.
 *Need to explain the difference between tumor/tumor_myoblast, etc*
-These plots show that ARMS and ERMS share a lot of the same cell types, but perhaps there are differences in the cells in each sub type.
+These plots show that ARMS and ERMS share a lot of the same cell types, but perhaps there are differences in the cells in each subdiagnoses.
 We also see that 6 of the libraries show a mixture of tumor cells belonging to the mesoderm, myoblast, and myocyte classes.
-3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified and the remaining library appears to not have been assigned any cell types, as they are all labeled with `NA`. 
+3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified and the remaining library appears to not have been assigned any cell types, as they are all labeled with `NA`.
+We will not be using these 3 libraries.
 
 ```{r}
 # define libraries to keep
@@ -170,7 +177,7 @@ rms_sce <- integrated_sce[,samples_to_keep]
 ```
 
 ```{r}
-# we are left with 3 from each sub type 
+# we are left with 3 from each subdiagnosis 
 sample_metadata %>%
   dplyr::filter(library_id %in% library_ids) %>%
   dplyr::count(subdiagnosis)
@@ -184,7 +191,7 @@ as.data.frame(colData(rms_sce)) %>%
   dplyr::arrange(desc(n))
 ```
 
-The `Tumor_Myoblast` cell type is the most prominent cell type, and based on the UMAPs is found in all 6 of our samples.
+The `Tumor_Myoblast` is the most prominent cell type, and based on the UMAPs is found in all 6 of our samples.
 We will start by comparing the gene expression of the myoblasts across ARMS and ERMS samples.
 
 
@@ -196,7 +203,7 @@ Before we can compare the gene expression profiles of myoblasts in ARMS vs. ERMS
 Pseudo-bulking creates a new counts matrix that contains the total counts across all cells of a given label (e.g. cell type) for each sample. 
 This allows us to use single-cell resolution to define the labels and sum gene counts across groups of cells containing the same label, and avoids counting each cell as its own replicate. 
 
-Pseudo-bulking is implemented prior to differential expression analysis for the following reasons: 
+Pseudo-bulking is implemented prior to differential expression analysis on single-cell data for the following reasons: 
 
 - Produces larger counts, which allows us to use standard normalization and differential expression methods used by bulk RNA-sequencing. 
 -  Collapses gene expression counts by sample, so that samples, rather than cells, represent replicates.
@@ -227,17 +234,18 @@ pseudobulked_counts <- cbind(
 )
 pseudobulked_counts 
 ```
+
 Now the actual pseudo-bulking for our dataset! 
 We can pseudo-bulk using any grouping that we are interested in.
-For right now, we would are interested in looking at gene expression across cell types, so we want to group the counts matrix by both cell type and sample. 
+For right now, we are interested in looking at gene expression across cell types, so we want to group the pseudo-bulked counts matrix by both cell type and sample. 
 
 ```{r}
 # first let's subset our coldata to only have the columns we care about in pseudo-bulking 
-pseudobulked_coldata <- colData(rms_sce)[, c("celltype_broad", "sample")]
+pseudobulked_groups <- colData(rms_sce)[, c("celltype_broad", "sample")]
 
 # this creates a new SCE object that contains the pseudo-bulked counts across the provided groups 
-pseudobulked_sce <- scater::aggregateAcrossCells(rms_sce, 
-                                                  id = pseudobulked_coldata)
+pseudobulked_sce <- scuttle::aggregateAcrossCells(rms_sce, 
+                                                  id = pseudobulked_groups)
 
 # column names aren't automatically added, so let's add them in 
 colnames(pseudobulked_sce) <- paste(pseudobulked_sce$celltype_broad, 
@@ -264,17 +272,11 @@ colData(pseudobulked_sce)
 
 *Add a bit more justification on filtering and why we need it*
 
-```{r}
-# filter to only the HVG list
-hv_genes <- metadata(integrated_sce)$combined_hvg
-filtered_pseudobulked_sce <- pseudobulked_sce[hv_genes, ]
-```
-
 We want to remove any groups in the pseudo-bulked dataset that may have a low number of cells. 
 
 ```{r}
 # filter by number of cells 
-filtered_pseudobulked_sce <- filtered_pseudobulked_sce[, pseudobulked_sce$ncells >= 10]
+filtered_pseudobulked_sce <- pseudobulked_sce[, pseudobulked_sce$ncells >= 10]
 ```
 
 We also want to filter out any genes that may be lowly expressed in our pseudo-bulked dataset.
@@ -285,10 +287,10 @@ We also want to filter out any genes that may be lowly expressed in our pseudo-b
 # filter out genes that might be lowly expressed using filterbyExpr in `edgeR`
 # provide sample groups from SCE to determine minimum sample size that genes should be expressed in 
 # we are grouping samples as ERMS vs. ARMS so use subdiagnosis
-genes_filter <- edgeR::filterByExpr(filtered_pseudobulked_sce,
-                                     group = filtered_pseudobulked_sce$subdiagnosis)
-# filter by genes
-filtered_pseudobulked_sce <- filtered_pseudobulked_sce[genes_filter,]
+# genes_filter <- edgeR::filterByExpr(filtered_pseudobulked_sce,
+#                                      group = filtered_pseudobulked_sce$subdiagnosis)
+# # filter by genes
+# filtered_pseudobulked_sce <- filtered_pseudobulked_sce[genes_filter,]
 
 ```
 
@@ -302,7 +304,7 @@ dim(filtered_pseudobulked_sce)
 
 *Intro about DESeq2*
 
-Before we identify differentially expressed genes, we will want to subset the pseudo-bulked `SingleCellExperiment` object to contain only the cell type that we are interested in comparing across the two sub types.
+Before we identify differentially expressed genes, we will want to subset the pseudo-bulked `SingleCellExperiment` object to contain only the cell type that we are interested in comparing across the two subdiagnoses.
 
 ```{r}
 tumor_myoblast_sce <- filtered_pseudobulked_sce[, filtered_pseudobulked_sce$celltype_broad == "Tumor_Myoblast"]
@@ -323,7 +325,7 @@ coldata_df <- as.data.frame(colData(tumor_myoblast_sce))
 # set up the deseq object 
 deseq_object <- DESeq2::DESeqDataSetFromMatrix(counts(tumor_myoblast_sce),
                                                colData = coldata_df,
-                                               design = ~ diagnosis_groups)
+                                               design = ~ diagnosis_group)
 ```
 
 Use the median of ratios method for count normalization followed by regularized log transformation.
@@ -341,7 +343,7 @@ Evaluate QC here using PCA.
 Here we can label by the diagnosis groups to show that the highest amount of variance is due to different subdiagnoses. 
 
 ```{r}
-DESeq2::plotPCA(normalized_object, intgroup = "diagnosis_groups")
+DESeq2::plotPCA(normalized_object, intgroup = "diagnosis_group")
 ```
 
 ```{r}
@@ -356,20 +358,14 @@ Next we take a look at the dispersions, we expect to see dispersions decrease as
 plotDispEsts(deseq_object)
 ```
 
-We see more of a straight line... not sure how to add some interpretation on that? 
-
 Now we can extract the results from the object, specifying the p-value threshold that we would like to use.
 
 ```{r}
 # extract the results as a DataFrame
 deseq_results <- DESeq2::results(deseq_object, alpha = 0.05)
-
-# take a look at it
-head(deseq_results)
 ```
-But we aren't done yet!
 
-### Shrinking log fold change 
+But we aren't done yet!
 
 The estimates of log2 fold change calculated by `DESeq()` are not corrected for expression level.
 This means that when counts are small, we are likely to end up with some large fold change values that overestimate the true extent of the change between conditions.
@@ -388,26 +384,6 @@ DESeq2::resultsNames(deseq_object)
 # appyly logFC shrinkage
 shrink_results <- DESeq2::lfcShrink(deseq_object, res = deseq_results, coef = 2, type = "apeglm")
 ```
-
-```{r}
-# look at what actually happened when we applyed shrinkage (adjustment of large fold changes that are overestimated)
-comparison_df <- data.frame(
-  lfc_original = deseq_results$log2FoldChange,
-  lfc_shrunken = shrink_results$log2FoldChange,
-  logmean = log10(deseq_results$baseMean)
-  )
-
-ggplot(comparison_df, 
-       aes(x = lfc_original, 
-           y = lfc_shrunken, 
-           color = logmean)) +
-  geom_point(alpha = 0.1) +
-  theme_bw() +
-  scale_color_viridis_c() + 
-  coord_cartesian(xlim = c(-10,10), ylim = c(-10,10))
-```
-
-Not a ton of shrinkage, but there is some. 
 
 Now we can get the updated results and combine with the `rowData` from the SCE object to extract the gene symbol. 
 
