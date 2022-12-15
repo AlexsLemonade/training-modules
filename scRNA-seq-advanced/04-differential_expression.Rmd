@@ -481,40 +481,44 @@ scater::plotReducedDim(myoblast_combined_sce,
                        colour_by = "ENSG00000196090", #PTPRT
                        point_size= 0.5,
                        point_alpha = 0.4,
-                       other_fields = "diagnosis_groups") +
-  facet_wrap(~ diagnosis_groups, nrow = 3)
+                       other_fields = "diagnosis_group") +
+  facet_wrap(~ diagnosis_group, nrow = 3)
 ```
 
-```{r}
-scater::plotReducedDim(myoblast_combined_sce,
-                       dimred = "fastmnn_UMAP",
-                       colour_by = "ENSG00000196090", #PTPRT
-                       point_size= 0.5,
-                       point_alpha = 0.4,
-                       other_fields = c("diagnosis_groups", "sample")) +
-  facet_wrap(~ diagnosis_groups + sample, nrow = 3, dir = 'v')
-```
 
 ```{r}
 # let's look across some other cell types
-celltypes <- c("Tumor_Myoblast", "Tumor_Mesoderm", "Tumor_Myocyte")
+celltypes <- c("Tumor_Myoblast", "Tumor_Mesoderm", "Tumor_Myocyte", "Vascular Endothelium")
 
 # subset to just tumor celltypes that we are interested in
 tumor_sce <- integrated_sce[, which(integrated_sce$celltype_broad %in% celltypes)]
+```
+
+
+```{r}
+# pick a few genes to look at 
+genes_to_plot <- c("ENSG00000196090", #PTPRT
+                   "ENSG00000148935") #GAS2
 
 # create a violin plot across cell types of interest
 scater::plotExpression(tumor_sce,
-                       features = "ENSG00000196090", #PTPRT
-                       x = "diagnosis_groups", 
-                       colour_by = "diagnosis_groups",
+                       features = genes_to_plot, #PTPRT
+                       x = "diagnosis_group", 
+                       colour_by = "diagnosis_group",
                        other_fields = "celltype_broad",
                        point_size = 0.1) +
-  facet_wrap(~ celltype_broad)
+  facet_wrap(Feature ~ celltype_broad, ncol = 4) + 
+  theme(strip.text = element_text(size = 7)) + 
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1)))
 ```
 
 ```{r}
 # now do some exploration of other genes on your own! 
 ```
 
-## Differential abundance of cell types 
+## Session Info 
+
+```{r}
+sessionInfo()
+```
 
