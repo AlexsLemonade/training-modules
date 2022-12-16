@@ -109,7 +109,7 @@ if (all(rownames(celltype_coldata) == colnames(norm_sce))){
 ### Save -------------------
 
 # Write the SCE file
-readr::write_rds(norm_sce, opts$output_sce_file)
+readr::write_rds(norm_sce, opts$output_sce_file, compress = "gz")
 
 
 
