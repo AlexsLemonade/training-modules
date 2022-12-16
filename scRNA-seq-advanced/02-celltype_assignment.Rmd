@@ -143,17 +143,8 @@ scater::plotUMAP(sce,
                  colour_by = "CD8")
 ```
 
-Looking at all of the markers here, but we probably don't want to do this, as we haven't introduced `purrr` yet.
-```{r}
-all_plots <- adt_tags %>%
-  purrr::map(~ scater::plotUMAP(sce, colour_by = .))
-
-patchwork::wrap_plots(all_plots)
-```
-
 
 So one thing we could do is construct a set of rules based on ADT tags, similar to how you might set gating rules for cell sorting.
-
 
 
 What thresholds should we use?
@@ -170,12 +161,26 @@ adt_df <- logcounts(altExp(sce)) %>%
   as.matrix() %>%
   as.data.frame()
 ```
+
+With a bit more wrangling, we can put the expression data for the three tags we care about into a single column, which will allow us to plot all three together a bit more neatly.
+Here we are using the `tidyr::pivot_longer()` function, which allows us to convert our data frame with one column per tag into a data frame with separate columns for the tag id (`ADT`) and the expression value (`logcount`).
+
+```{r}
+adt_df_long <- adt_df %>%
+  dplyr::select(c("CD3", "CD4", "CD8")) %>%
+  tidyr::pivot_longer(everything(), names_to = "ADT", values_to = "logcount")
+```
+
+
 Now we can make a density plot with `ggplot2`!
 
 ```{r}
-ggplot(adt_df, aes(x = CD3)) + 
+ggplot(adt_df_long, aes(x = logcount, fill = ADT)) + 
   geom_density() +
-  theme_bw()
+  scale_x_continuous(breaks = seq(0, 10, by = 2)) + 
+  facet_wrap(~ADT, ncol = 1) +
+  theme_bw() +
+  theme(legend.position = "none")
 ```
 
 Looking at a few of these, we can define some rough cutoffs.
@@ -185,9 +190,9 @@ This is very manual and not particularly principled, but it _is_ a potential way
 adt_df <- adt_df %>%
   dplyr::mutate(
     celltype = dplyr::case_when(
-      CD3 > 6.7 & CD4 > 8 ~ "CD4+ T cell",
-      CD3 > 6.7 & CD8 > 6 ~ "CD8+ T cell",
-      CD3 > 6.7 ~ "T cell"
+      CD3 > 6.7 & CD4 > 8 ~ "CD4+ T-cell",
+      CD3 > 6.7 & CD8 > 6 ~ "CD8+ T-cell",
+      CD3 > 6.7 ~ "T-cell"
     )
   )
 ```
@@ -200,12 +205,16 @@ scater::plotUMAP(sce,
 
 We could do similar things for any marker gene from the expression data as well.
 
-A more careful version of this is `AUCell`... do we want to introduce this?
+While we did this in a fairly ad-hoc manner, there are some more principled versions of this technique.
+One of those is found in the [`AUCell` package](https://bioconductor.org/packages/release/bioc/html/AUCell.html), which allows identification of groups of cells based on their expression of sets of genes.
 
 
 ## Cell type annotation with `SingleR`
 
-Get some cell data
+First, we need some reference data.
+Text about importance of reference data goes here!
+
+
 ```{r}
 # Don't ask about creating the cache directories, just create them
 ExperimentHub::setExperimentHubOption("ASK", FALSE)
@@ -214,15 +223,16 @@ AnnotationHub::setAnnotationHubOption("ASK", FALSE)
 # Get Data from the Blueprint & Encode projects from celldex
 blueprint_encode <- celldex::BlueprintEncodeData(ensembl = TRUE)
 ```
-What is this `blueprint_encode`?
+What is this `blueprint_encode` object?
 
 ```{r}
 blueprint_encode
 ```
 
-A SummarizedExperiment is very similar to a SingleCellExperiment, except rather than having each column as a cell, each column is a sample.
+A `SummarizedExperiment` is very similar to a `SingleCellExperiment`, except rather than having each column as a cell, each column is a sample.
 Otherwise, the components are very similar: each row is still a gene, for example, and additional data about the samples
 are stored in the `colData`.
+In fact, the `SingleCellExperiment` is derived from a `SummarizedExperiment`, with some extra slots that are more relevant to single cell data.
 
 What information do we have for the samples?
 
@@ -239,10 +249,8 @@ data.frame(colData(blueprint_encode)) %>%
 
 ### What does `SingleR` do?
 
-First we build a model that we can use for classifying expression.
-Some options we might explore: how to find choose genes to include in the model.
-`genes = "de"` is the default, using genes differentially expressed among the labels
-`genes = "sd"`uses genes with the most variability across the data set.
+SingleR builds a model from a set of training data, and then uses that model to classify cells (or groups of cells) in new data sets.
+We will show how to separate these reulsts
 
 This time we will do the training and classification in a single step, using the convenience function `SingleR::SingleR()`.
 
@@ -268,10 +276,13 @@ sce$celltype_main <- singler_result$pruned.labels
 scater::plotUMAP(sce, colour_by = "celltype_main")
 ```
 
+This is a pretty clean plot, for which we can thank that this is a PBMC data set.
+
 ```{r}
-table(singler_result$pruned.labels)
+table(singler_result$pruned.labels, useNA = "ifany")
 ```
 
+ 
 We can do some cleanup using `forcats`.
 
 ```{r}
@@ -319,7 +330,7 @@ singler_result_fine <- SingleR::classifySingleR(
 What labels were assigned, and how many?
 
 ```{r}
-table(singler_result_fine$labels)
+table(singler_result_fine$pruned.labels, useNA = "ifany")
 ```
 
 ```{r}
@@ -353,20 +364,30 @@ scater::plotUMAP(sce, colour_by = "celltype_collapsed")
 
 Let's look at how the cell type assignments we have compare to the clusters we found from the data alone.
 
-```{r}
-type_cluster_tab <- table(sce$celltype_fine, sce$nn_cluster)
+To do this, we will first use `table` function to build a contingency table of the cell types and clusters that each cell was classified with. 
 
-# Normalize by cluster size (columns)
+```{r}
+# create a table of clusters & cell type counts
+type_cluster_tab <- table(sce$celltype_fine, sce$nn_cluster, useNA = "ifany")
+```
+
+Since the number of cells in each cluster will vary, we'd like to convert these counts into proportions. 
+We'll do this by dividing each cluster/cell type count by the total number of cells in that cluster.
+
+
+```{r}
+# normalize by the number of cells in each cluster (columns)
 type_cluster_tab <- apply(
   type_cluster_tab, 
   2, # apply function to columns
   function(x){x/sum(x)} # function to apply
 )
+```
 
-type_cluster_tab <- scale(type_cluster_tab, 
-                          center = FALSE, 
-                          scale = colSums(type_cluster_tab))
+Now we can plot these results as a heatmap, using the `pheatmap` package. 
+There is a lot of customization we could do here, but `pheatmap` (pretty heatmap) has good defaults, so we won't spend too much time on it for now.
 
+```{r}
 # plot with pheatmap
 pheatmap::pheatmap(type_cluster_tab)
 ```
