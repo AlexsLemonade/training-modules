@@ -26,7 +26,7 @@ Much of the material in this notebook is directly inspired by, and draws heavily
 
 
 The data we will use for this notebook is derived from a human glioblastoma specimen. 
-The sample was processed by  10X Genomics using a 3ʹ RNA kit (v3.1),  sequenced, and quantified with  Cell Ranger 6.0. 
+The sample was processed by 10X Genomics using a 3' RNA kit (v3.1), sequenced, and quantified with Cell Ranger 6.0. 
 Further details about the sample and processing can be found on the [10X website](https://www.10xgenomics.com/resources/datasets/2-k-sorted-cells-from-human-glioblastoma-multiforme-3-v-3-1-3-1-standard-6-0-0).
 
 
@@ -122,13 +122,13 @@ One of our first steps will be to filter out barcodes that were never seen, or t
 
 ### Structure of the `SingleCellExperiment` object
 
-In addition to the main `counts` matrix, which you can see listed as an `assay` in the `SingleCellExperiment` object summary above, the SCE object can contain a number of other tables and matrices, each stored in a "slot" with a particular format. 
+In addition to the main `counts` matrix, listed as an `assay` in the SCE summary above, the SCE object can contain a number of other tables and matrices, each stored in a "slot" with a particular format. 
 The overall structure of the object can be seen in the figure below, which comes from an [OSCA Introduction chapter](http://bioconductor.org/books/3.16/OSCA.intro/the-singlecellexperiment-class.html).
 
 ![structure of a SingleCellExperiment object](diagrams/SingleCellExperiment.png)
 
 We have just mentioned the main `assay` slot, which contains full matrices of data (such as transcript counts) with each row a feature and each column a cell. 
-There are also a couple of tables for metadata, and a slot to store reduced-dimension representations of the expression data.
+There are also a couple of tables for metadata, and a slot to store reduced-dimension representations (e.g., PCA and/or UMAP) of the expression data.
 
 We'll start with the `rowData` slot, which is a table of metadata for each feature in our object. 
 For now, that for now contains the contents of the `features.tsv.gz` file that we discussed earlier.
@@ -184,7 +184,7 @@ raw_sce
 ```
 
 But barcodes with zero counts are not the only ones that correspond to droplets without cells in them!
-Even if a droplet does not have a cell in it, there will often be spurious reads from RNA sequences that were present in the extracellular solution, whether from the original sample or cells that were disrupted during library preparation for single-cell analysis. 
+Even if a droplet does not have a cell in it, there will often be spurious reads from RNA sequences that were present in the extracellular solution, whether from the original sample or from cells that were damaged during single-cell library preparation. 
 
 We could identify these barcodes simply as those with low transcript counts.
 Or, we can be a bit more clever!
@@ -230,12 +230,12 @@ filtered_sce
 
 ## Additional Quality control
 
-In addition to filtering out empty droplets, we also will want to filter out "real" cells that may have been damaged during library preparation.
+In addition to filtering out empty droplets, we also will want to filter out cells that may have been damaged during library preparation.
 These will often be characterized by a high proportion of mitochondrial transcripts.
 When a cell ruptures, cytoplasmic transcripts will leak out, but mitochondrial transcripts, still protected by the mitochondrial membrane, may remain.
 As a consequence, there will be an over-abundance of mitochondrial reads.
 
-Our first step then, is create a vector (list) of the mitochondrial genes that are present in our dataset.
+Our first step then, is create a vector of the mitochondrial genes that are present in our dataset.
 The mitochondrial file we defined during setup (`mito_file`) is a TSV file containing all of the human mitochondrial genes with additional annotation information for each gene, such as the gene location and alternative names. 
 (For more detail on the steps we took to create this file, you can look at [one of our setup notebooks](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/setup/mito_gene_lists.Rmd))
 
@@ -333,7 +333,7 @@ The cutoff point can vary for different numbers of unique genes within a sample,
 
 At this point, we can perform the actual filtering using the `filterCells()` function, giving us a further filtered SCE object.
 
-```{r miQC filtercells,live=TRUE}
+```{r miQC filtercells, live=TRUE}
 qcfiltered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
 ```
 
@@ -341,7 +341,7 @@ qcfiltered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
 
 While the miQC filtering is pretty good, you may have noticed that it still left some cells that had very low numbers of unique genes.
 While these cells may not be compromised, the information from them is also not likely to be useful, so we will filter those as well. 
-We will use a cutoff of 200 unique genes as a minimum for the cells we want to keep. 
+We will only keep cells that have at least 200 unique genes.
 
 ```{r unique cutoff, live=TRUE}
 # filter cells by unique gene count (`detected`)
@@ -374,7 +374,7 @@ normalized_sce <- scuttle::logNormCounts(qcfiltered_sce)
 ```
 
 This creates a new "assay" in the `normalized_sce` object, `logcounts`, which contains the normalized count values for each cell and gene.
-(The data here are not _actually_ the log of the counts, since we also applied the scaling factors, but that is what we have.)
+(The data here are not _actually_ the log of the counts, since we also applied the scaling factors, but that name is used for historicial reasons.)
 
 Let's take a look:
 
