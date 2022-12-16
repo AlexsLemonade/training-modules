@@ -36,16 +36,6 @@ Integration corrects for batch effects that arise from different library prepara
 Regardless of which integration tool is used, the SCE objects to be integrated need to be reformatted and merged into a single (uncorrected!) SCE object that contains all cells from all SCES for all genes that the SCEs have in common.
 This merged SCE, which should also contain explicit information about batch origins for each cell (here, the originating library), can be provided to the integration method to obtain a formally batch-corrected SCE object. 
 
-Before we dive into this, let's first build a sense of what this merging process looks like.
-
-Here's a diagram of a single SCE object, obtained from the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/3.16/OSCA.intro/the-singlecellexperiment-class.html).
-
-
-![](diagrams/SingleCellExperiment.png)
-The diagram below shows, conceptually, how two SCEs (named "a" and "b") would be merged:
-
-<!-- Insert diagram from issue #580. Explain the diagram aloud. --> 
-
 ## Set Up
 
 ```{r setup}
@@ -80,8 +70,13 @@ input_dir <- file.path("data", "rms", "processed")
 # Define directory to save integrated SCE object to
 output_dir <- file.path("data", "rms", "integrated")
 
-# Output file name for the integrated object
-integrated_sce_file <- file.path(output_dir, "integrated_sce.rds")
+# Create output directory if it doesn't exist
+if (!(dir.exists(output_dir))) {
+  dir.create(output_dir)
+}
+
+# Define output file name for the integrated object
+integrated_sce_file <- file.path(output_dir, "rms_integrated_subset.rds")
 ```
 
 
@@ -155,12 +150,19 @@ glue::glue("Welcome to the {org_name} workshop on Advanced scRNA-seq!")
 
 
 
-Now, let's use `purrr::map()` to read in our SCE objects so that they are immediately stored together in a list. 
-We'll want to use the `readr::read_rds()` function to read in each file, so we'll first need a vector of the file names we'll be reading in.
+Now, let's use `purrr::map()` to read in our SCE objects so that they are immediately stored together in a list.
+Recall, these are the library files:
 
+```{r dir input2}
+dir(input_dir)
+```
+
+We'll first need to define a vector of the library file paths to read in.
+We'll start by creating a vector of library names themselves and then formatting them into the correct paths.
+This way (foreshadowing!) we also have a stand-alone vector of just library names, which will come in handy!
 
 ```{r read input} 
-# Vector of all the libraries to read in:
+# Vector of all the library names to read in:
 library_names <- c("SCPCL000479",
                    "SCPCL000480",
                    "SCPCL000481",
@@ -213,11 +215,14 @@ Overall we'll want to take care of these items:
 
 1. We should be able to trace library-specific information back to the originating library, including...
   - Cell-level information: Which library is each cell from? 
-  Although cells have unique barcode identifiers, these barcodes are only guaranteed to be unique _within_ a library. 
-  Now that we are merging several libraries, we won't necessarily be able to identify a cell's originating library from its barcode alone.
+  SCE column names represent unique cell ids, which are often barcodes.
+  These cell ids (barcodes) are only guaranteed to be unique _within_ a library but may be repeated across libraries, so after merging, it's technically possible that multiple cells have the same barcode.
+  This would be a problem for two reasons: First we wouldn't be able to identify the cell's originating library.
+  Second, it would literally cause an error in R, which does not allow duplicate coumn names.
+  We need to ensure that these cell id column names remain unique for two reasons - to be able to identify cells, and to avoid R errors cause by duplicate column names), 
   - Library-specific statistics, e.g. gene-level statistics for a given library found in `rowData`
 2. SCE objects should contain the same genes: Each SCE object should have the same row names.
-3. SCE cell metadata columns should match: Each SCE object should have the same column names.
+3. SCE cell metadata columns should match: Each SCE object's `colData` should have the same column names.
 
 Here is a schematic of what how one of the SCE objects will ultimately be modified into the final merged SCE:
 
@@ -269,11 +274,11 @@ For example, rather than being called `mean`, this column will be named `SCPCL00
 All our SCE objects have the same `rowData` columns (as we can see in the next chunk), so we'll perform this renaming across all SCEs.
 
 ```{r compare rowdata}
-# Use `purrr::map()` to quickly extract rowData names for all SCEs
+# Use `purrr::map()` to quickly extract rowData column names for all SCEs
 purrr::map(sce_list,
            # This syntax is a formula where the period is a stand-in for 
            # each item in sce_list
-           ~names(rowData(.)))
+           ~colnames(rowData(.)))
 ```
 
 
