@@ -134,4 +134,4 @@ combined_sce <- scater::runUMAP(combined_sce,
                                 name = "fastmnn_UMAP")
 
 # write out combined SCE file with added integration PCs
-readr::write_rds(combined_sce, opt$integrated_sce_file)
+readr::write_rds(combined_sce, opt$integrated_sce_file, compress = "gz")
