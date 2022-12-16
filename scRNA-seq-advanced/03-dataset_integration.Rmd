@@ -33,7 +33,7 @@ Integration corrects for batch effects that arise from different library prepara
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
 
 
-Regardless of which integration tool is used, the SCE objects to be integrated need to be reformatted and merged into a single (uncorrected!) SCE object that contains all cells from all SCES for all genes that the SCEs have in common.
+Regardless of which integration tool is used, the `SingleCellExperiment` (SCE) objects to be integrated need to be reformatted and merged into a single (uncorrected!) SCE object that contains all cells from all SCES for all genes that the SCEs have in common.
 This merged SCE, which should also contain explicit information about batch origins for each cell (here, the originating library), can be provided to the integration method to obtain a formally batch-corrected SCE object. 
 
 Before we dive into this, let's first build a sense of what this merging process looks like.
@@ -92,7 +92,7 @@ dir(input_dir)
 ```
 
 To read in these files, we could use `readr::read_rds()` (or the base R `readRDS()`) function four times, once for each of the files. 
-We could also use a `for` loop, which the approach that many programming languages would lean toward.
+We could also use a `for` loop, which is the approach that many programming languages would lean toward.
 A different and more modular coding approach to reading in these files (and more!) is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for operating on lists.
 You can read more about these functions, their power and utility, in R in [Chapter 21 of _R for Data Science_](https://r4ds.had.co.nz/iteration.html#for-loops-vs.-functionals).
 
@@ -217,7 +217,7 @@ Overall we'll want to take care of these items:
   Now that we are merging several libraries, we won't necessarily be able to identify a cell's originating library from its barcode alone.
   - Library-specific statistics, e.g. gene-level statistics for a given library found in `rowData`
 2. SCE objects should contain the same genes: Each SCE object should have the same row names.
-3. SCE cell metadata columns should match: Each SCE object should have the same column names.
+3. SCE cell metadata columns should match: The column data for each SCE object should have the same column names.
 
 Here is a schematic of what how one of the SCE objects will ultimately be modified into the final merged SCE:
 
@@ -232,7 +232,7 @@ Bear in mind that the exact wrangling shown here will not be the same for other 
 
 How will we be able to tell which library a given cell came from?
 
-First, we'll want to directly add information to the SCE that indicates the different libraries.
+We must ensure that the column names of the SCE object are unique and directly add information to the SCE that indicates the different libraries.
 The best way to do this is simply to add a `colData` column with the library information.
 
 In addition, we want to pay some attention to the SCE object's column names (the cell ids), which must remain unique after merging since duplicate ids will cause an R error.
@@ -246,7 +246,7 @@ colnames(sce_list$SCPCL000479) %>%
   head()
 ```
 
-Because barcodes theoretically can be repeated across libraries, we could end up in a situation with non-unique rownames for the `colData`, which would make R complain!
+Because barcodes theoretically can be repeated across libraries, we could end up in a situation with non-unique column names for the SCE object, which would make R complain!
 
 One way to ensure that cell ids remain unique even after merging is to actually modify them by _prepending_ the relevant library name. 
 For example, we'll update the `CCTTTGGCACTACCCT` id in the `SCPCL000478` SCE to become: `SCPCL000478-CCTTTGGCACTACCCT`, thereby ensuring fully unique ids for all cells across all libraries.
@@ -279,7 +279,7 @@ purrr::map(sce_list,
 
 #### Ensuring that only shared genes are used
 
-The final step in ensuring SCE compatibility is to make sure they all contain the same genes, which are stored as the SCE object's row names (these names are also found the `rowData` slot's row names). 
+The next step in ensuring SCE compatibility is to make sure they all contain the same genes, which are stored as the SCE object's row names (these names are also found the `rowData` slot's row names). 
 Here, those gene ids are unique Ensembl gene ids.
 
 We can use some `purrr` magic to quickly find the set of shared genes among our libraries:
@@ -290,7 +290,7 @@ shared_genes <- sce_list %>%
   # reduce to the _intersection_ among lists
   purrr::reduce(intersect)
 
-# We've now created a vector genes that are present in all SCEs
+# We've now created a vector of genes that are present in all SCEs
 head(shared_genes)
 ```
 
