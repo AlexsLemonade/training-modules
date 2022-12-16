@@ -100,7 +100,9 @@ output_sce_file <- file.path(normalized_dir, "gliobastoma_normalized_sce.rds")
 ## Reading Cell Ranger data
 
 Whether the 10X Cell Ranger data is in Matrix Exchange format or in an HDF5 file, we can use the `read10xCounts()` function from the `DropletUtils` package to read the data into R and create a `SingleCellExperiment` object.
-(If you used something other than Cell Ranger to process the raw data, you would need to use a different function to read it in and create the `SingleCellExperiment` object.)
+
+If you used something other than Cell Ranger to process the raw data, you would need to use a different function to read it in and create the `SingleCellExperiment` object.
+Some of these functions for other common data formats are discussed in [Chapter 3 of OSCA] (http://bioconductor.org/books/3.16/OSCA.intro/getting-scrna-seq-datasets.html#reading-counts-into-r).
 
 ```{r read SCE, live=TRUE}
 # read SCE from matrix directory
@@ -130,6 +132,8 @@ There are also a couple of tables for metadata, and a slot to store reduced-dime
 
 We'll start with the `rowData` slot, which is a table of metadata for each feature in our object. 
 For now, that for now contains the contents of the `features.tsv.gz` file that we discussed earlier.
+If we had read the data from something other than Cell Ranger output, we might have different contents, but each row would still correspond to a single feature of the SCE object.
+
 Let's look at this table, extracting it from the SCE object with the `rowData()` function and using `head()` to view only the first 6 rows.
 
 ```{r rowdata}
@@ -137,8 +141,8 @@ Let's look at this table, extracting it from the SCE object with the `rowData()`
 head(rowData(raw_sce))
 ```
 
-You can see that this table includes an `ID` for each gene, which is usually the Ensembl gene ID, as well as the corresponding gene symbol in the `Symbol` column. 
-Finally there is a column for `Type`, which in this case is always "Gene Expression".
+You can see that this table includes an `ID` for each feature, which is usually the Ensembl gene ID, as well as the corresponding gene symbol in the `Symbol` column. 
+Finally there is a column for `Type`, which in this case is always "Gene Expression", as all of the features in this data set are genes.
 If there were another modality of data that had been assayed in this experiment, there might be other values in this column, such as "Antibody Capture" for CITE-seq experiments.
 
 The second slot is the `colData` table, which now corresponds to the `barcodes.tsv.gz` file, containing one row per cell barcode, or, more generally, one row per column of the `counts` assay.
@@ -233,7 +237,9 @@ As a consequence, there will be an over-abundance of mitochondrial reads.
 
 Our first step then, is create a vector (list) of the mitochondrial genes that are present in our dataset.
 The mitochondrial file we defined during setup (`mito_file`) is a TSV file containing all of the human mitochondrial genes with additional annotation information for each gene, such as the gene location and alternative names. 
-All we need now is the `gene_id`, and only for the genes that are present in our SCE, so we will do some filtering with `dplyr` to pull out just a vector with those ids.
+(For more detail on the steps we took to create this file, you can look at [one of our setup notebooks](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/setup/mito_gene_lists.Rmd))
+
+All we need now is the `gene_id`, and only for the genes that are present in our SCE, so we will do some filtering with `dplyr` to pull out a vector with just those ids.
 
 ```{r get mitochondrial genes}
 # read in a table of mitochondrial genes and extract ids
@@ -287,7 +293,7 @@ We can then exclude the cells that are more likely to be compromised.
 
 To use `miQC`, we first fit a model to the data in our SCE object:
 
-```{r miQC model}
+```{r miQC model, live=TRUE}
 # fit the miQC model
 miqc_model <- miQC::mixtureModel(filtered_sce) 
 ```
@@ -537,8 +543,14 @@ What would you want to do next?
 We will now save our filtered and normalized object, including the dimension reduction and clustering results to an `RDS` file, using the file path that we defined at the start of the notebook.
 If we were to want to return to this data, we could load this file directly into a new R session and not have to repeat the processing that we have done up to this point.
 
+The data in these objects tends to be quite large, but very compressible. 
+To save space on disk (at the expense of time), we will make sure that the data is compressed internally before writing it out to a file. 
+Note that the file we write is still going to be an `.rds` file with no additional extension.
+(Further note: The base R function `saveRDS()` uses compression by default, but the `tidyverse` function `readr::write_rds` does not.)
+
 ```{r save SCE, live=TRUE}
-readr::write_rds(normalized_sce, file = output_sce_file, compress="gz")
+# write RDS file with compression
+readr::write_rds(normalized_sce, file = output_sce_file, compress = "gz")
 ```
 
 
