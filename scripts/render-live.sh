@@ -33,6 +33,7 @@ files=(
   scRNA-seq/06-overrepresentation_analysis.Rmd
   scRNA-seq/07-gene_set_enrichment_analysis.Rmd
   scRNA-seq-advanced/01-reading_filtering_CellRanger.Rmd
+  scRNA-seq-advanced/02-celltype_assignment.Rmd
   scRNA-seq-advanced/03-dataset_integration.Rmd
   # machine-learning/01-openpbta_heatmap.Rmd
   # machine-learning/02-openpbta_consensus_clustering.Rmd
