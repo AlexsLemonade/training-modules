@@ -163,74 +163,118 @@ Does it bother you that we just used the default nearest-neighbor graph clusteri
 Do you know what those were?
 
 
-## Using cell surface marker data
+## Investigating cell types
 
-The markers we have were presumably chosen for the fact that they mark particular cell types, so let's look at a few.
+### Using cell surface marker data
 
-CD3 is a marker of T-cells 
+The first way we will work on to identify the cell types of the individual cells in our sample is to work with the ADT markers that are part of this data set. 
+These antibody markers were (hopefully) chosen for their relevance to the cell population we are working with.
 
-```{r}
-scater::plotUMAP(sce, 
-                 colour_by = "CD3")
+The first marker we will look at is `CD3`, which is a protein complex that is found on the surface of T cells.
+We can plot where this is found using the same `plotUMAP()` function as before. 
+
+Note that the function is able to look for plotting data in fields found in the `colData` object (as we used it above), in the gene expression matrix (as we used it in the previous notebook), *AND* in `altExp` matrices!
+So all we need to do to color by the ADT counts (as normalized into the `logcounts` matrix) is give the name of the tag that we want to plot in the `colour_by` argument.
+
+```{r plot CD3, live = TRUE}
+# plot CD3 expression
+scater::plotUMAP(sce, colour_by = "CD3")
 ```
 
-CD4+ T-cells
+It appears that we have a number of potential T cells down in the lower left!
 
-```{r}
+Let's look at a couple of other markers to try to break those up more specifically.
+
+Two other markers of relevance to the T cells are `CD4` and `CD8`.
+The `CD4` complex is present in helper T cells (hence their other common name, CD4+ T cells).
+By contrast, the `CD8` complex is found on killer T cells (CD8+ cells).
+
+Let's plot the ADT results for those two markers as well below:
+
+```{r plot CD4, live=TRUE}
+# plot CD4 marker
 scater::plotUMAP(sce, 
                  colour_by = "CD4")
 ```
-CD8+ T-cells
 
-```{r}
+```{r plot CD8, live=TRUE}
+# plot CD8 marker
 scater::plotUMAP(sce, 
                  colour_by = "CD8")
 ```
 
 
-So one thing we could do is construct a set of rules based on ADT tags, similar to how you might set gating rules for cell sorting.
+### Rule-based classification
 
+When we have markers like these, with clear and established cell types, we might want to start our classification by working with these markers alone.
+Such classification might be considered as analogous to a cell-sorter assay, where we would set up some rules to look at a few markers for each cell and use those to assign a cell type classification.
 
-What thresholds should we use?
-If this is a useful marker, we should see a bimodal plot of the marker density.
+To do this, we will need to make some decisions, like what thresholds should we use to determine whether a cell is or is not expressing a particular marker. 
+In general, if a marker is going to be useful for this type of assignment, we would like to see a bimodal plot for the marker in question that can be used to separate the population into two groups of cells based on the level of that marker.
 
-We'll do a bit of wrangling to pull out the ADT data, transpose it so each row is a cell,
-then convert it into a data frame for plotting. 
-(We have to first convert to a "regular" R matrix or R won't know how to convert it to a data frame)
+To look at the expression levels of each of the marker genes we are interested in, we will pull out the expression values for the markers from the SCE object and do some data wrangling. 
 
-```{r}
-# convert to a data frame
+The data we are interested is the normalized count data for the ADT tags, which is stored in the `logcounts` assay.
+If you recall, this matrix is stored with the columns as cells and rows as markers, but we really want it the other way, so we will first transpose the data, then convert it to a data frame for our next steps.
+Because the SCE object stores the main data matrices in a specialized format, we have to do one extra step convert it first to a "regular" R matrix or R won't know how to convert it to a data frame.
+
+```{r extract ADT}
+# convert logcounts data to a data frame
 adt_df <- logcounts(altExp(sce)) %>%
-  t() %>% 
-  as.matrix() %>%
-  as.data.frame()
+  t() %>% # transpose
+  as.matrix() %>% # convert to matrix
+  as.data.frame() # convert to data frame
+
+# view the data frame
+head(adt_df)
 ```
 
-With a bit more wrangling, we can put the expression data for the three tags we care about into a single column, which will allow us to plot all three together a bit more neatly.
-Here we are using the `tidyr::pivot_longer()` function, which allows us to convert our data frame with one column per tag into a data frame with separate columns for the tag id (`ADT`) and the expression value (`logcount`).
+If we just wanted to plot one of these tags, we could do so right away, but with a bit more data wrangling, we can convert these results into a "tidier" format, that will allow us to take full advantage of `tidyverse` tools!
 
-```{r}
+Right now the data is in a "wide" format, with each column a different tag. 
+But the data in all of the columns is the same type, and measures something similar: the normalized count of an ADT.
+One could even argue that each row contains 10 different observations, where the "tidy" data ideal, as espoused by [Wickham (2014)](https://doi.org/10.18637/jss.v059.i10), requires a single observation per row, a "long" format.
+This long format will have one column that tells us which ADT was measured and a second column with the measurement value itself.
+
+We can perform this conversion using the `tidyr::pivot_longer()` function.
+Following conversion, we can filter to just the ADTs that we care about.
+which allows us to convert our data frame with one column per tag into a data frame with separate columns for the tag id (`ADT`) and the expression value (`logcount`).
+
+```{r pivot longer, live=TRUE}
 adt_df_long <- adt_df %>%
-  dplyr::select(c("CD3", "CD4", "CD8")) %>%
-  tidyr::pivot_longer(everything(), names_to = "ADT", values_to = "logcount")
+  # pivot to long format
+  tidyr::pivot_longer(
+    everything(), # use all columns
+    names_to = "ADT", # convert row names to a column called "ADT"
+    values_to = "logcount" # name the value column "logcount"
+  ) %>%
+  # filter to tags we are interested in
+  dplyr::filter(ADT %in% c("CD3", "CD4", "CD8"))
+
+# look at the resulting df
+head(adt_df_long)
 ```
 
+Now we can make a density plot with `ggplot2` for all three ADTs we are interested in at once.
 
-Now we can make a density plot with `ggplot2`!
-
-```{r}
+```{r plot ADTs, live=TRUE}
+# plot logcounts by ADT
 ggplot(adt_df_long, aes(x = logcount, fill = ADT)) + 
-  geom_density() +
-  scale_x_continuous(breaks = seq(0, 10, by = 2)) + 
-  facet_wrap(~ADT, ncol = 1) +
-  theme_bw() +
-  theme(legend.position = "none")
+  geom_density() + # density plot
+  facet_wrap(~ADT, ncol = 1) + # facet by ADT
+  theme_bw() + # nicer theme
+  theme(legend.position = "none") # no legend needed
 ```
 
-Looking at a few of these, we can define some rough cutoffs.
-This is very manual and not particularly principled, but it _is_ a potential way to assign cell types.
+These look pretty good!
+There seem to be different baseline levels for each of the different tags, but each has a pretty nice bimodal distribution.
 
-```{r}
+We can now use the values from these plots to construct a set of rules to classify the T cells. 
+We will do this using the "wide" data frame from earlier. 
+
+The thresholds we are using here were found just "by eye", so this is not a particularly principled method of cell type assignment, but it can be fairly effective.
+
+```{r threshold celltypes}
 adt_df <- adt_df %>%
   dplyr::mutate(
     celltype = dplyr::case_when(
@@ -241,16 +285,31 @@ adt_df <- adt_df %>%
   )
 ```
 
-```{r}
+Now we will want to add the cell types we have assigned back to our original SCE object.
+We can do that by defining a new column name, `threshold_celltype` that will be added to the `colData` object.
+Creating and assigning values to this column can be done with the `$` shortcut, and then we can plot our results with the `plotUMAP()` function as before.
+
+```{r plot thresholds}
 sce$threshold_celltype <- adt_df$celltype
 scater::plotUMAP(sce, 
                  colour_by = "threshold_celltype")
 ```
 
-We could do similar things for any marker gene from the expression data as well.
+How did we do? 
 
-While we did this in a fairly ad-hoc manner, there are some more principled versions of this technique.
-One of those is found in the [`AUCell` package](https://bioconductor.org/packages/release/bioc/html/AUCell.html), which allows identification of groups of cells based on their expression of sets of genes.
+Note that while we applied this technique to assign cell types using the ADT data, we could use the same type of procedure using gene expression data alone, or a combination of gene expression data and tag data.
+
+However, what we did here was very ad-hoc and quite manual!
+We didn't calculate any statistics, and we had to look at every tag we were interested in to pick thresholds.
+A different data set might have different background levels, which would require different thresholds. 
+
+So while this technique is quite limited in its utility.
+It might be good for some simple experiments, but it might not translate well to more complex data sets with multiple samples.
+We also looked at each marker separately, which might not be the most efficient or robust method of analysis.
+
+For a more principled approach that allows identification of cell types by looking at the expression of sets of genes that are known to characterize each cell type, you might look at the [`AUCell` package](https://bioconductor.org/packages/release/bioc/html/AUCell.html).
+For more on that method, the OSCA chapter [Assigning cell labels from gene sets](http://bioconductor.org/books/3.16/OSCA.basic/cell-type-annotation.html#assigning-cell-labels-from-gene-sets) is a very good reference.
+
 
 
 ## Cell type annotation with `SingleR`
