@@ -35,6 +35,7 @@ files=(
   scRNA-seq-advanced/01-read_filter_normalize_scRNA.Rmd
   scRNA-seq-advanced/02-celltype_assignment.Rmd
   scRNA-seq-advanced/03-dataset_integration.Rmd
+  scRNA-seq-advanced/04-differential_expression.Rmd
   # machine-learning/01-openpbta_heatmap.Rmd
   # machine-learning/02-openpbta_consensus_clustering.Rmd
   # machine-learning/03-openpbta_PLIER.Rmd
