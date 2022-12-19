@@ -66,7 +66,7 @@ integrated_sce <- readr::read_rds(integrated_sce_file)
 sample_metadata <- readr::read_tsv(sample_metadata_file)
 ```
 
-Before we set up our experiment, lets explore our dataset a little.
+Before we set up our experiment, let's explore our dataset a little.
 
 ```{r}
 # First just plot by sample
@@ -155,7 +155,7 @@ ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
 ```
 
 *Need to explain the difference between tumor/tumor_myoblast, etc*
-These plots show that ARMS and ERMS share a lot of the same cell types, but perhaps there are differences in the cells in each subdiagnoses.
+These plots show that ARMS and ERMS share a lot of the same cell types, but perhaps there are differences in the cells between subdiagnoses.
 We also see that 6 of the libraries show a mixture of tumor cells belonging to the mesoderm, myoblast, and myocyte classes.
 3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified and the remaining library appears to not have been assigned any cell types, as they are all labeled with `NA`.
 We will not be using these 3 libraries.
@@ -251,8 +251,7 @@ pseudobulked_sce <- scuttle::aggregateAcrossCells(rms_sce,
                                                   id = pseudobulked_groups)
 
 # column names aren't automatically added, so let's add them in 
-colnames(pseudobulked_sce) <- paste(pseudobulked_sce$celltype_broad, 
-                                    pseudobulked_sce$sample, sep = "-")
+colnames(pseudobulked_sce) <- glue::glue("{pseudobulked_sce$celltype_broad}_{pseudobulked_sce$sample}")
 
 pseudobulked_sce
 ```
@@ -307,6 +306,7 @@ Now we are ready to set up our `DESeq2` object.
 
 ```{r}
 # deseq2 requires the coldata object as a separate input
+#  in data.frame format
 coldata_df <- as.data.frame(colData(tumor_myoblast_sce))
   
 # set up the deseq object 
@@ -336,7 +336,7 @@ DESeq2::plotPCA(normalized_object, intgroup = "diagnosis_group")
 ```{r}
 # run DESeq
 # use the same fit type as with rlog 
-deseq_object <- DESeq2::DESeq(deseq_object, fitType = 'local')
+deseq_object <- DESeq2::DESeq(deseq_object, fitType = "local")
 ```
 
 Next we take a look at the dispersions, we expect to see dispersions decrease as means are increasing and follow the line of best fit. 
@@ -377,9 +377,7 @@ Now we can get the updated results and combine with the `rowData` from the SCE o
 ```{r}
 # create a data frame with the results 
 deseq_results <- shrink_results %>%
-  as.data.frame() %>%
-  # create a new column with the ensembl ID from the rows
-  tibble::rownames_to_column("ensembl_id")
+  tibble::as_tibble(rownames = "ensembl_id")
 
 # first look at the significant results 
 deseq_results_sig <- deseq_results %>%
