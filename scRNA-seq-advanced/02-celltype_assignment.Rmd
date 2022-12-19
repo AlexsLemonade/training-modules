@@ -49,82 +49,116 @@ set.seed(12345)
 
 ### Input and output
 
-```{r}
-### Input files
+As mentioned, our input file here is a single normalized and processed SCE object, stored as an `rds` file. 
+That should be all we need to read in!
+
+Our output will be a table of per-cell information, which will include the cell type assignments we have made throughout this notebook.
+We aren't planning any significant modifications of the underlying data, so we won't bother re-saving it as a new object this time.
+
+```{r filepaths, live=TRUE}
+# directory for the input data
 data_dir <- file.path("data", "PBMC-TotalSeqB", "normalized")
+
+# the input file itself
 sce_file <- file.path(data_dir, "PBMC_TotalSeqB_normalized_sce.rds")
 
-### output files
+# A directory to store outputs
 analysis_dir <- file.path("analysis", "PBMC-TotalSeqB")
+
+# check whether the output directory exists 
 if (!dir.exists(analysis_dir)){
   dir.create(analysis_dir, recursive = TRUE)
 }
 
+# output table path
 cellinfo_file <- file.path(analysis_dir, "PBMC_TotalSeqB_cellinfo.tsv")
 ```
 
 
-Read in the SingleCellExperiment
-```{r}
+## Exploring a CITE-seq `SingleCellExperiment`
+
+Now that the preliminary setup is out of the way, we can get started. 
+First we will read in the `SingleCellExperiment` from the input file we defined earlier.
+
+```{r read SCE, live=TRUE}
+# read in the SCE file
 sce <- readRDS(sce_file)
-```
-
-
-Let's explore what is in the SCE already:
-
-```{r}
+# print a summary of the SCE
 sce
 ```
+This should look similar to the SCE objects that we have seen before, containing `counts` and `logcounts` assays where each cell is a column and each row is a gene.
+We also have some of the `rowData`, `colData` and reduced dimension matrices that we have seen before.
 
-Notice the `altExpNames`?
-Those are the ADT data, stored as an _Alternative Experiment_.
-To access these, we can use the `altExp()` function. 
+But where are the data from the ADTs?
+We wouldn't necessarily want those stored in the main data matrices, as the characteristics of ADT barcode data is going to be quite different from gene expression data.
+
+To keep the ADT data separate, we have split this data off into an _alternative experiment_ (`altExp`) slot.
+You can see the name of this `altExp` on the line `altExpNames` above. 
+We _could_ have more than one type of alternative experiment, but in this case, just the one.
+
+To access the contents of the `altExp` slot, we can use the `altExp()` function.
 Let's look at what we have in that slot:
 
-```{r}
+```{r view altExp, live=TRUE}
 altExp(sce, "ADT")
 ```
 
+It is another `SingleCellExperiment`! 
+Inception!
+Let's look at that embedded SCE more closely.
 
-Ah! Another SingleCellExperiment! Inception!
-Since there is only one `altExp`, the second argument is optional, so we won't use it for the rest of this notebook.
-Here the columns are again the cells, but now the rows are the proteins that were assayed with the antibodies and tags.
+The first thing to note is that we have the same number of columns for this `altExp` as we did with the full SCE. 
+Those corresponded to the individual cells before, and still do!
 
-```{r}
+There are only 10 rows, however, and these now correspond to the ADTs that were assayed by this particular experiment. 
+Just as we did with the full SCE, we can use `rowData()` to look at table of metadata for each of these rows.
+We'll add the `altExp()` function to point it to the embedded object we are interested in. 
+Since there is only one `altExp`, we don't need the second argument (`"ADT"`) that we used above; the default behavior of `altExp()` is to just give us the first `altExp`, and that is all we need.
+
+
+```{r adt rows, live=TRUE}
 # What proteins were assayed?
-adt_tags <- rownames(altExp(sce))
+adt_tags <- rowData(altExp(sce))
 adt_tags
 ```
+
+You can see here that the names and symbols of the tags used, along with the designation that all have an "Antibody Capture" type.
+One you might note looks different is the `IgG1` control, which is actually a mouse antibody used as a negative control. 
 
 
 ### Clustering redux
 
-These data don't have clusters assigned yet, so let's add those, using the PCA matrix we have for the gene expression data.
+While these data did have dimension reduction performed, they were not analyzed for clustering yet.
+
+Let's assign some clusters to our cells, using graph-based clustering and default parameters, taking as input the PCA matrix that was previously calculated.
+Note that this PCA matrix and the UMAP built from it were derived from the gene expression data, so the clustering is going to reflect the gene expression data only.
+While we have the ADT data, it is _not_ being used for this stage of the analysis.
 
 
 ```{r}
 # perform clustering
-nn_k <- 20
 nn_clusters <- bluster::clusterRows(
+  # PCA input
   reducedDim(sce, "PCA"), 
-  bluster::NNGraphParam(
-    k = nn_k, 
-    type = "jaccard",
-    cluster.fun = "louvain"
-  )
+  # graph clustering & parameters
+  bluster::NNGraphParam()
 )
 
 # add clusters to colData
 sce$nn_cluster <- nn_clusters
 ```
 
-```{r}
+Now we can plot the clusters we have identified with our old friend `scater::plotUMAP()`.
+
+```{r, }
 scater::plotUMAP(sce, 
                  colour_by = "nn_cluster")
 ```
-But what are these clusters? Do they correspond to cell types?
+But what are these clusters? 
+Do they correspond to particular cell types that we are interested in?
 
-## Cell surface markers
+
+## Using cell surface marker data
 
 The markers we have were presumably chosen for the fact that they mark particular cell types, so let's look at a few.
 
