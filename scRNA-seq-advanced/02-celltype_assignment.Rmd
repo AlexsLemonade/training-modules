@@ -1,0 +1,492 @@
+---
+title: "Assigning Cell Types"
+author: Data Lab for ALSF
+date: 2022
+output:
+  html_notebook: 
+    toc: true
+    toc_float: true
+---
+
+## Objectives
+
+This notebook will demonstrate how to:
+
+- 
+
+---
+
+In this notebook, we will attempt to assign cell types to each of the cells in a dataset, using some of the automated tools that are available within the Bioconductor universe.
+
+
+Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/3.16/OSCA/). 
+
+The data we will use for this notebook is derived from a 10x Genomics Dataset: https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p. 
+The data here have already been filtered, normalized, and had dimension reductions calculated.
+
+In addition to gene expression data, this data set includes data from antibody-derived tags (ADTs) which are used to mark cell-surface proteins. 
+
+## Set Up
+
+To start, we will load some of the libraries we will need later, and set a random number seed for reproducibility.
+
+```{r setup}
+# Load libraries
+library(magrittr) # the pipe (%>%) operator
+library(ggplot2) # plotting functions
+library(SingleCellExperiment) # our main class for storing Single Cell data
+
+
+# Setting the seed for reproducibility
+set.seed(12345)
+```
+
+
+### Input and output
+
+```{r}
+### Input files
+data_dir <- file.path("data", "PBMC-TotalSeqB", "normalized")
+sce_file <- file.path(data_dir, "PBMC_TotalSeqB_normalized_sce.rds")
+
+### output files
+analysis_dir <- file.path("analysis", "PBMC-TotalSeqB")
+if (!dir.exists(analysis_dir)){
+  dir.create(analysis_dir, recursive = TRUE)
+}
+
+cellinfo_file <- file.path(analysis_dir, "PBMC_TotalSeqB_cellinfo.tsv")
+```
+
+
+Read in the SingleCellExperiment
+```{r}
+sce <- readRDS(sce_file)
+```
+
+
+Let's explore what is in the SCE already:
+
+```{r}
+sce
+```
+
+Notice the `altExpNames`?
+Those are the ADT data, stored as an _Alternative Experiment_.
+To access these, we can use the `altExp()` function. 
+Let's look at what we have in that slot:
+
+```{r}
+altExp(sce, "ADT")
+```
+
+
+Ah! Another SingleCellExperiment! Inception!
+Since there is only one `altExp`, the second argument is optional, so we won't use it for the rest of this notebook.
+Here the columns are again the cells, but now the rows are the proteins that were assayed with the antibodies and tags.
+
+```{r}
+# What proteins were assayed?
+adt_tags <- rownames(altExp(sce))
+adt_tags
+```
+
+
+### Clustering redux
+
+These data don't have clusters assigned yet, so let's add those, using the PCA matrix we have for the gene expression data.
+
+
+```{r}
+# perform clustering
+nn_k <- 20
+nn_clusters <- bluster::clusterRows(
+  reducedDim(sce, "PCA"), 
+  bluster::NNGraphParam(
+    k = nn_k, 
+    type = "jaccard",
+    cluster.fun = "louvain"
+  )
+)
+
+# add clusters to colData
+sce$nn_cluster <- nn_clusters
+```
+
+```{r}
+scater::plotUMAP(sce, 
+                 colour_by = "nn_cluster")
+```
+But what are these clusters? Do they correspond to cell types?
+
+## Cell surface markers
+
+The markers we have were presumably chosen for the fact that they mark particular cell types, so let's look at a few.
+
+CD3 is a marker of T-cells 
+
+```{r}
+scater::plotUMAP(sce, 
+                 colour_by = "CD3")
+```
+
+CD4+ T-cells
+
+```{r}
+scater::plotUMAP(sce, 
+                 colour_by = "CD4")
+```
+CD8+ T-cells
+
+```{r}
+scater::plotUMAP(sce, 
+                 colour_by = "CD8")
+```
+
+
+So one thing we could do is construct a set of rules based on ADT tags, similar to how you might set gating rules for cell sorting.
+
+
+What thresholds should we use?
+If this is a useful marker, we should see a bimodal plot of the marker density.
+
+We'll do a bit of wrangling to pull out the ADT data, transpose it so each row is a cell,
+then convert it into a data frame for plotting. 
+(We have to first convert to a "regular" R matrix or R won't know how to convert it to a data frame)
+
+```{r}
+# convert to a data frame
+adt_df <- logcounts(altExp(sce)) %>%
+  t() %>% 
+  as.matrix() %>%
+  as.data.frame()
+```
+
+With a bit more wrangling, we can put the expression data for the three tags we care about into a single column, which will allow us to plot all three together a bit more neatly.
+Here we are using the `tidyr::pivot_longer()` function, which allows us to convert our data frame with one column per tag into a data frame with separate columns for the tag id (`ADT`) and the expression value (`logcount`).
+
+```{r}
+adt_df_long <- adt_df %>%
+  dplyr::select(c("CD3", "CD4", "CD8")) %>%
+  tidyr::pivot_longer(everything(), names_to = "ADT", values_to = "logcount")
+```
+
+
+Now we can make a density plot with `ggplot2`!
+
+```{r}
+ggplot(adt_df_long, aes(x = logcount, fill = ADT)) + 
+  geom_density() +
+  scale_x_continuous(breaks = seq(0, 10, by = 2)) + 
+  facet_wrap(~ADT, ncol = 1) +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+Looking at a few of these, we can define some rough cutoffs.
+This is very manual and not particularly principled, but it _is_ a potential way to assign cell types.
+
+```{r}
+adt_df <- adt_df %>%
+  dplyr::mutate(
+    celltype = dplyr::case_when(
+      CD3 > 6.7 & CD4 > 8 ~ "CD4+ T-cell",
+      CD3 > 6.7 & CD8 > 6 ~ "CD8+ T-cell",
+      CD3 > 6.7 ~ "T-cell"
+    )
+  )
+```
+
+```{r}
+sce$threshold_celltype <- adt_df$celltype
+scater::plotUMAP(sce, 
+                 colour_by = "threshold_celltype")
+```
+
+We could do similar things for any marker gene from the expression data as well.
+
+While we did this in a fairly ad-hoc manner, there are some more principled versions of this technique.
+One of those is found in the [`AUCell` package](https://bioconductor.org/packages/release/bioc/html/AUCell.html), which allows identification of groups of cells based on their expression of sets of genes.
+
+
+## Cell type annotation with `SingleR`
+
+First, we need some reference data.
+Text about importance of reference data goes here!
+
+
+```{r}
+# Don't ask about creating the cache directories, just create them
+ExperimentHub::setExperimentHubOption("ASK", FALSE)
+AnnotationHub::setAnnotationHubOption("ASK", FALSE)
+
+# Get Data from the Blueprint & Encode projects from celldex
+blueprint_encode <- celldex::BlueprintEncodeData(ensembl = TRUE)
+```
+What is this `blueprint_encode` object?
+
+```{r}
+blueprint_encode
+```
+
+A `SummarizedExperiment` is very similar to a `SingleCellExperiment`, except rather than having each column as a cell, each column is a sample.
+Otherwise, the components are very similar: each row is still a gene, for example, and additional data about the samples
+are stored in the `colData`.
+In fact, the `SingleCellExperiment` is derived from a `SummarizedExperiment`, with some extra slots that are more relevant to single cell data.
+
+What information do we have for the samples?
+
+```{r}
+colData(blueprint_encode)
+```
+
+Let's see how many samples of each type we have:
+
+```{r}
+data.frame(colData(blueprint_encode)) %>% 
+  dplyr::count(label.main, label.fine)
+```
+
+### What does `SingleR` do?
+
+`SingleR` builds a model from a set of training data, and then uses that model to classify cells (or groups of cells) in new data sets.
+We will show how to separate these results
+
+This time we will do the training and classification in a single step, using the convenience function `SingleR::SingleR()`.
+
+```{r}
+singler_result <- SingleR::SingleR(
+  sce,
+  ref = blueprint_encode,
+  labels = blueprint_encode$label.main
+)
+```
+
+Plot the results:
+```{r}
+SingleR::plotScoreHeatmap(singler_result)
+```
+
+
+```{r}
+sce$celltype_main <- singler_result$pruned.labels
+```
+
+```{r}
+scater::plotUMAP(sce, colour_by = "celltype_main")
+```
+
+This is a pretty clean plot, for which we can thank that this is a PBMC data set.
+
+```{r}
+table(singler_result$pruned.labels, useNA = "ifany")
+```
+
+ 
+We can do some cleanup using `forcats`.
+
+```{r}
+# combine all of the uncommon cell types
+common_labels <- singler_result$pruned.labels %>%
+  forcats::fct_lump_min(100)
+sce$celltype_common <- common_labels
+```
+
+
+```{r}
+scater::plotUMAP(sce, colour_by = "celltype_common")
+```
+
+We can also use the finer-grained cell type data.
+
+If we were classifying multiple samples, we would want to do the training only once!
+
+So let's separate the training from the fitting.
+First fit the model.
+
+```{r}
+singler_finemodel <- SingleR::trainSingleR(
+  blueprint_encode,
+  labels = blueprint_encode$label.fine,
+  # use DE to select genes (default)
+  genes = "de", 
+  # only use genes in the sce object
+  restrict = rownames(sce),
+  BPPARAM = BiocParallel::MulticoreParam(4)
+)
+```
+
+Now classify the cells based on that model.
+
+```{r}
+singler_result_fine <- SingleR::classifySingleR(
+  sce,
+  singler_finemodel,
+  BPPARAM = BiocParallel::MulticoreParam(4)
+)
+```
+
+
+What labels were assigned, and how many?
+
+```{r}
+table(singler_result_fine$pruned.labels, useNA = "ifany")
+```
+
+```{r}
+sce$celltype_fine <- singler_result_fine$pruned.labels
+scater::plotUMAP(sce, colour_by = "celltype_fine")
+```
+
+That's a pretty messy plot.
+Let's collapse a bit more manually this time. 
+
+```{r}
+collapsed_labels <- singler_result_fine$pruned.labels %>%
+  forcats::fct_collapse(
+    "HSC" = c("CLP","CMP", "GMP", "HSC", "Megakaryocytes", "MEP", "MPP"),
+    "B-cells" = c("Class-switched memory B-cells", "Memory B-cells", "naive B-cells", "Plasma cells")
+  ) %>%
+  # Sort all CD4+ labels together at the start
+  forcats::fct_relevel("CD4+ T-cells", "CD4+ Tcm", "CD4+ Tem", "Tregs")
+```
+
+Now we plot.
+
+```{r}
+sce$celltype_collapsed <- collapsed_labels
+scater::plotUMAP(sce, colour_by = "celltype_collapsed")
+```
+
+
+### Heatmap of cell types & clusters
+
+
+Let's look at how the cell type assignments we have compare to the clusters we found from the data alone.
+
+To do this, we will first use `table` function to build a contingency table of the cell types and clusters that each cell was classified with. 
+
+```{r}
+# create a table of clusters & cell type counts
+type_cluster_tab <- table(sce$celltype_fine, sce$nn_cluster, useNA = "ifany")
+type_cluster_tab
+```
+
+Since the number of cells in each cluster will vary, we'd like to convert these counts into proportions. 
+We'll do this by dividing each cluster/cell type count by the total number of cells in that cluster.
+
+
+```{r}
+# normalize by the number of cells in each cluster (columns)
+type_cluster_tab <- apply(
+  type_cluster_tab, 
+  2, # apply function to columns
+  function(x){x/sum(x)} # function to apply
+)
+type_cluster_tab
+```
+
+Now we can plot these results as a heatmap, using the `pheatmap` package. 
+There is a lot of customization we could do here, but `pheatmap` (pretty heatmap) has good defaults, so we won't spend too much time on it for now.
+
+```{r}
+# plot with pheatmap
+pheatmap::pheatmap(type_cluster_tab)
+```
+
+
+
+### Classifying by clusters
+
+This section inspired by the fact that `SingleR()` has a `clusters` argument.
+
+First we will make a new matrix where we sum the counts across cells that are from the same type according to our clustering.
+The idea here is that we can reduce noise by combining a bunch of cells.
+
+Note that in this case we are using raw counts. 
+`SingleR` is non-parametric, so it shouldn't matter! 
+(And adding log values felt bad.)
+
+```{r}
+sce_cluster_mat <- DelayedArray::colsum(counts(sce), sce$nn_cluster)
+dim(sce_cluster_mat)
+```
+
+```{r}
+singler_result_cluster <- SingleR::classifySingleR(
+  sce_cluster_mat, 
+  singler_finemodel
+)
+```
+
+```{r}
+singler_result_cluster$labels
+```
+Add cluster labels to individual cells.
+
+```{r}
+sce$celltype_cluster <- singler_result_cluster$labels[sce$nn_cluster]
+```
+
+Plot with cluster labels.
+
+```{r}
+scater::plotUMAP(sce, colour_by = "celltype_cluster")
+```
+
+This sure looks nice, but what have we done here? 
+We are _assuming_ that each cluster has only a single cell type!
+
+
+### MetaCell-like
+
+Inspired by https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1812-2 
+(I may refine to match methods better, but maybe this is good enough?)
+
+Alternatively cluster cells with a fast algorithm to find neighbors, then assign types to those. 
+We have ~8000 cells, so lets cluster those into groups of ~40 cells, which means we want to make about 200 clusters.
+
+A quick way to do this is with k-means clustering.
+
+```{r}
+kclusters <- bluster::clusterRows(
+  reducedDim(sce, "PCA"), 
+  bluster::KmeansParam(
+    centers = 200,
+    iter.max = 100 # more iterations to be sure of convergence
+  )
+)
+```
+
+Now apply the same procedure, using these clusters:
+
+```{r}
+kcluster_mat <- DelayedArray::colsum(counts(sce), kclusters)
+kcluster_result <- SingleR::classifySingleR(
+  kcluster_mat, 
+  singler_finemodel
+  )
+
+sce$celltype_kcluster <- kcluster_result$labels[kclusters]
+```
+
+```{r}
+scater::plotUMAP(sce, colour_by = "celltype_kcluster")
+```
+
+### Save results
+
+To save space, we won't write out the whole SCE object, as we haven't changed any of the core data there. 
+Instead we will just write out the cell information table (`colData`) as a TSV file.
+
+```{r save sce}
+readr::write_tsv(as.data.frame(colData(sce)), file = cellinfo_file)
+```
+
+
+## Session Info
+
+```{r session info}
+sessionInfo()
+```
+
