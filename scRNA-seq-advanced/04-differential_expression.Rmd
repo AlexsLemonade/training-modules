@@ -12,9 +12,8 @@ output:
 
 This notebook will demonstrate how to:
 
-- Use pseudo-bulking to prepare `SingleCellExperiment` objects for differential expression
+- Use pseudo-bulking to prepare single-cell RNA-sequencing libraries for differential expression
 - Perform differential expression with the `DESeq2` package
-- Compare cell type abundance across samples
 
 ---
 
@@ -22,44 +21,45 @@ In this notebook, we will perform differential expression analysis across a set 
 We will continue working with samples from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005) we worked with in the integration notebook.
 This particular dataset contains 10 different samples that have been integrated using `fastMNN`, following the same procedure we outlined in `03-dataset_integration.Rmd`.
 
-*Need to spend some time here introducing DE analysis and the packages we will be using* 
-
 ## Set Up
 
-```{r}
+```{r setup}
+# set seed for reproducibility
 set.seed(2022)
 
-library(magrittr)
-library(SingleCellExperiment)
-library(ggplot2)
+# load libraries
+library(magrittr) # the pipe (%>%)
+library(SingleCellExperiment) 
+library(ggplot2) # plotting functions
 
+# package used for differential expression analysis
 library(DESeq2)
 ```
 
-```{r}
+```{r filepaths}
 # set up file paths 
 # data directory for RMS data
 data_dir <- file.path("data", "rms")
 
-# integrated file containing samples to for DE 
+# integrated file containing all libraries to use for DE analysis
 integrated_sce_file <- file.path(data_dir, "integrated", "rms_all_sce.rds")
 
-# sample metadata with information needed to setup DE
+# sample metadata with information needed to setup DE analysis
 sample_metadata_file <- file.path(data_dir, "annotations", "rms_sample_metadata.tsv")
 
-# output files 
+# directory to store output
 deseq_dir <- file.path("analysis", "rms", "deseq")
 if(!dir.exists(deseq_dir)){
   dir.create(deseq_dir, recursive = TRUE)
 }
 
-# results from deseq
+# results file to output from DE analysis
 deseq_output_file <- file.path(deseq_dir, "rms_myoblast_deseq_results.tsv")
 ```
 
 
-```{r}
-# read in integrated SCE object 
+```{r read files}
+# read in the SCE object that has already been integrated
 integrated_sce <- readr::read_rds(integrated_sce_file)
 
 # read in sample metadata file 
@@ -68,19 +68,29 @@ sample_metadata <- readr::read_tsv(sample_metadata_file)
 
 Before we set up our experiment, let's explore our dataset a little.
 
-```{r}
-# First just plot by sample
+```{r dimnames }
+# look at the names of the dimensionality reduction present in the SCE object
+reducedDimNames(integrated_sce)
+```
+
+
+```{r all library UMAP}
+# UMAP plot of all libraries in integrated data
 scater::plotReducedDim(integrated_sce,
+                       # use the UMAP results from integrating with fastMNN
                        dimred = "fastmnn_UMAP",
-                       colour_by = "sample",
+                       # color points by original library name
+                       colour_by = "library",
+                       # adjust the point size and transparency
                        point_size= 0.5,
                        point_alpha = 0.2)
 ```
 
 We can also look at the sample metadata:
 
-```{r}
-sample_metadata
+```{r sample metadata}
+# print out sample metadata
+head(sample_metadata)
 ```
 
 Looking at this sample table, we notice that all the samples are of the same diagnosis, rhabdomyosarcoma, but come from two types of rhabdomyosarcoma - embryonal rhabdomyosarcoma (ERMS) and alveolar rhabdomyosarcoma (ARMS).
@@ -89,34 +99,39 @@ These samples also come from a variety of tissue sites and stages of disease (in
 For today's example, we are particularly interested in comparing the gene expression across cell types in samples from patients diagnosed with ARMS vs. samples from patients diagnosed with ERMS.
 To help us out later on when we are performing our analysis and making plots, let's incorporate the information in this sample metadata table into the `colData` of the integrated dataset.
 
-```{r}
-# add the sample metadata to the coldata 
+```{r modify coldata}
+# add the sample metadata to the colData from the integrated SCE object
 coldata_df <- colData(integrated_sce) %>%
+  # convert from DataFrame to data.frame
   as.data.frame() %>%
   # merge with sample metadata 
-  dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) %>%
-    # simplify subdiagnosis for easy plotting and DE later
-  dplyr::mutate(cell_id = paste(sample, barcode, sep = "-"),
+  dplyr::left_join(sample_metadata, by = c("library" = "library_id")) %>%
+  # create a new columns
+  dplyr::mutate(cell_id = paste(library, barcode, sep = "-"), # combination of barcode and library
+                # simplify subdiagnosis for easy plotting and DE later
                 diagnosis_group = forcats::fct_recode(
                   subdiagnosis,
                   "ARMS" = "Alveolar rhabdomyosarcoma",
                   "ERMS" = "Embryonal rhabdomyosarcoma"
                 ))
 
-# add back to sce 
+# add modified data.frame back to SCE as DataFrame
 colData(integrated_sce) <- DataFrame(coldata_df, row.names = coldata_df$cell_id)
 ```
 
 Now we can use that sample metadata when making our plots. 
 Lets start by looking at our different subdiagnoses.
 
-```{r}
+```{r diagnosis group UMAP}
+# UMAP of all libraries, separating by diagnosis group
 scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
                        colour_by = "sample",
                        point_size= 0.5,
                        point_alpha = 0.2,
+                       # additional fields to indicate in plot
                        other_fields = "diagnosis_group") +
+  # split plots by diagnosis group
   facet_wrap(~diagnosis_group)
 ```
 
@@ -126,31 +141,37 @@ We can also look at the distribution of cell types to see if these subdiagnoses 
 
 *Talk about looking across cell types and comparing cell types* 
 
-```{r}
-# facet the UMAP by sample to show the distribution of cell types across each subdiagnosis
+```{r celltype UMAP}
+# # UMAP of all libraries, separating by diagnosis group and labeling cell type
 scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
+                       # color each point by cell type
                        colour_by = "celltype_broad",
                        point_size= 0.5, 
                        point_alpha = 0.4,
                        other_fields = "diagnosis_group") +
+  # split plots by diagnosis group 
   facet_wrap(~ diagnosis_group)
 ```
 We can also look at the distribution of cell types across each sample.
 
-```{r}
+```{r celltype barplot}
+# filter coldata data.frame to only include tumor cells
 tumor_cells_df <- coldata_df %>%
   dplyr::filter(stringr::str_detect(celltype_broad, "Tumor"))
 
-ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) + 
+# create a stacked barplot
+ggplot(tumor_cells_df, aes(x = library, fill = celltype_broad)) + 
     geom_bar(color = "black", size = 0.2) +
     labs(
-      x = "Sample",
+      x = "Library",
       y = "Number of cells", 
       fill = "Cell type"
     ) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90))+
+  # split by diagnosis group 
+  # only show non-NA values on x-axis
   facet_wrap(~diagnosis_group, scales = "free_x")
 ```
 
@@ -160,7 +181,7 @@ We also see that 6 of the libraries show a mixture of tumor cells belonging to t
 3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified and the remaining library appears to not have been assigned any cell types, as they are all labeled with `NA`.
 We will not be using these 3 libraries.
 
-```{r}
+```{r subset sce}
 # define libraries to keep
 library_ids <- c(
   "SCPCL000479",
@@ -171,26 +192,28 @@ library_ids <- c(
   "SCPCL000491"
 )
 
-# subset sce to only contain samples with library IDs of interest 
-samples_to_keep <- integrated_sce$sample %in% library_ids
-rms_sce <- integrated_sce[,samples_to_keep]
+# subset sce to only contain libraries with library IDs of interest 
+libraries_to_keep <- integrated_sce$sample %in% library_ids
+rms_sce <- integrated_sce[,libraries_to_keep]
 
 # remove original integrated object 
 rm(integrated_sce)
 ```
 
-```{r}
-# we are left with 3 from each subdiagnosis 
+```{r count diagnosis}
+# total how many of each diagnosis group are left after subsetting 
 sample_metadata %>%
   dplyr::filter(library_id %in% library_ids) %>%
-  dplyr::count(subdiagnosis)
+  dplyr::count(diagnosis_group)
 ```
 
 
-```{r}
+```{r celltype table}
 # look at distribution of cell types across all libraries 
 as.data.frame(colData(rms_sce)) %>%
+  # count number of cells in each cell type
   dplyr::count(celltype_broad) %>%
+  # sort from largest to smallest
   dplyr::arrange(desc(n))
 ```
 
