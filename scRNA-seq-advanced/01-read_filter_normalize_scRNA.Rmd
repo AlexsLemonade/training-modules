@@ -1,5 +1,5 @@
 ---
-title: "Reading and filtering scRNA-seq data"
+title: "Reading, filtering, and normalizing scRNA-seq data"
 author: Data Lab for ALSF
 date: 2022
 output:
@@ -22,10 +22,11 @@ This notebook will demonstrate how to:
 ---
 
 In this notebook, we will review basic processing for single-cell RNA-seq data, starting with the output from Cell Ranger, and proceeding through filtering, quality control, normalization, and dimension reduction. We will perform these tasks using tools from the [Bioconductor project](https://bioconductor.org), in particular [`SingleCellExperiment` objects](https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html) and functions that work with those objects.
-Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/3.16/OSCA/). 
+Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_ (OSCA)](http://bioconductor.org/books/3.16/OSCA/).
+
 
 The data we will use for this notebook is derived from a human glioblastoma specimen. 
-The sample was processed by  10X Genomics using a 3ʹ RNA kit (v3.1),  sequenced, and quantified with  Cell Ranger 6.0. 
+The sample was processed by 10X Genomics using a 3' RNA kit (v3.1), sequenced, and quantified with Cell Ranger 6.0. 
 Further details about the sample and processing can be found on the [10X website](https://www.10xgenomics.com/resources/datasets/2-k-sorted-cells-from-human-glioblastoma-multiforme-3-v-3-1-3-1-standard-6-0-0).
 
 
@@ -65,8 +66,7 @@ We will also need a table of mitochondrial genes, which we have stored in the `d
 
 Finally, we will set up the our output directory, creating it if it does not yet exist, and define the name for the files we will save after all of our initial processing is complete.
 
-```{r filepaths}
-
+```{r inputs, live=TRUE}
 # Inputs --------------------------------------
 # main data directory
 data_dir <- file.path("data", "glioblastoma")
@@ -79,16 +79,20 @@ ref_dir <- file.path("data", "reference")
 
 # Path to mitochondrial genes table
 mito_file <- file.path(ref_dir, "hs_mitochondrial_genes.tsv")
+```
 
-
+```{r outputs}
 # Outputs ------------------------------------
 
 # Directory and file to save output
 normalized_dir <- file.path(data_dir, "normalized")
+
+# create the directory if it does not exist 
 if (!dir.exists(normalized_dir)) {
   dir.create(normalized_dir, recursive = TRUE)
 }
 
+# output RDS file for normalized data
 output_sce_file <- file.path(normalized_dir, "gliobastoma_normalized_sce.rds")
 ```
 
@@ -97,57 +101,75 @@ output_sce_file <- file.path(normalized_dir, "gliobastoma_normalized_sce.rds")
 
 Whether the 10X Cell Ranger data is in Matrix Exchange format or in an HDF5 file, we can use the `read10xCounts()` function from the `DropletUtils` package to read the data into R and create a `SingleCellExperiment` object.
 
-```{r read SCE}
+If you used something other than Cell Ranger to process the raw data, you would need to use a different function to read it in and create the `SingleCellExperiment` object.
+Some of these functions for other common data formats are discussed in [Chapter 3 of OSCA] (http://bioconductor.org/books/3.16/OSCA.intro/getting-scrna-seq-datasets.html#reading-counts-into-r).
+
+```{r read SCE, live=TRUE}
+# read SCE from matrix directory
 raw_sce <- DropletUtils::read10xCounts(raw_matrix_dir) 
 ```
 
-
 Let's look at the contents of the object after reading it in:
 
-```{r view SCE}
+```{r view SCE, live=TRUE}
+# view SCE object
 raw_sce
 ```
 
-We can see that this `SingleCellExperiment` (SCE) object contains 36,601 rows, which correspond to the features (genes) that were analyzed, and 734,492 columns, which correspond to the possible barcode tags that were used in the experiment.
+We can see from this summary that this `SingleCellExperiment` (SCE) object contains 36,601 rows, which correspond to the features (genes) that were analyzed, and 734,492 columns, which correspond to the possible barcode tags that were used in the experiment.
 Note that not all of these barcode tags will have been used, and many of the features may never have been seen either.
 One of our first steps will be to filter out barcodes that were never seen, or that may have only been seen in a droplet that did not contain a cell (an "empty droplet").
 
-### Cell and feature metadata
+### Structure of the `SingleCellExperiment` object
 
-In addition to the main `counts` matrix, which you can see listed as an `assay` in the SCE object, there are two other tables of particular interest we will want to look at.
+In addition to the main `counts` matrix, listed as an `assay` in the SCE summary above, the SCE object can contain a number of other tables and matrices, each stored in a "slot" with a particular format. 
+The overall structure of the object can be seen in the figure below, which comes from an [OSCA Introduction chapter](http://bioconductor.org/books/3.16/OSCA.intro/the-singlecellexperiment-class.html).
 
-The first is the `rowData` table, which includes the contents of the `features.tsv.gz` file from earlier.
+![structure of a SingleCellExperiment object](diagrams/SingleCellExperiment.png)
+
+We have just mentioned the main `assay` slot, which contains full matrices of data (such as transcript counts) with each row a feature and each column a cell. 
+There are also a couple of tables for metadata, and a slot to store reduced-dimension representations (e.g., PCA and/or UMAP) of the expression data.
+
+We'll start with the `rowData` slot, which is a table of metadata for each feature in our object. 
+For now that contains the contents of the `features.tsv.gz` file that we discussed earlier.
+If we had read the data from something other than Cell Ranger output, we might have different contents, but each row would still correspond to a single feature of the SCE object.
+
 Let's look at this table, extracting it from the SCE object with the `rowData()` function and using `head()` to view only the first 6 rows.
 
 ```{r rowdata}
+# view rowData (features)
 head(rowData(raw_sce))
 ```
 
-You can see that this table includes an `ID` for each gene, which is usually the Ensembl gene ID, as well as the corresponding gene symbol in the `Symbol` column. 
-Finally there is a column for `Type`, which in this case is always "Gene Expression".
+You can see that this table includes an `ID` for each feature, which is usually the Ensembl gene ID, as well as the corresponding gene symbol in the `Symbol` column. 
+Finally there is a column for `Type`, which in this case is always "Gene Expression", as all of the features in this data set are genes.
 If there were another modality of data that had been assayed in this experiment, there might be other values in this column, such as "Antibody Capture" for CITE-seq experiments.
 
-The second table is the `colData` table, which now corresponds to the `barcodes.tsv.gz` file, containing one row per column of the `counts` assay.
-We can look at the this table using the `colData()` function (and `head()` again to prevent printing the whole table):
+The second slot is the `colData` table, which now corresponds to the `barcodes.tsv.gz` file, containing one row per cell barcode, or, more generally, one row per column of the `counts` assay.
+We can look at this table using the `colData()` function (and `head()` again to prevent printing the whole table):
 
 ```{r coldata}
+# view colData (cell barcodes)
 head(colData(raw_sce))
 ```
-Here we see that there are two columns: 
+
+Here we see that there are currently two columns: 
 
 - the `Sample` column has the path of the file that we read in (you may not see the whole path in this display); this should be identical in all rows from a single sample.
 - the `Barcode` column contains the sequence that was used to identify each potential droplet for sequencing (and a numeric tag, in this case).
 These will be unique within a sample.
+
+As we proceed to calculate per-cell statistics, we will be adding new data to this table.
 
 
 ### Filtering empty droplets
 
 Most of the barcodes in any given 10X experiment will not be seen at all, so our first step can be to filter this raw data to only the cells where there is at least one transcript that was counted with that barcode.
 
-To do this, we will use the `colSums()` function to quickly add up all the counts that correspond to each possible barcode, then filter our `raw_sce` down to just those columns.
+To do this, we will use the `colSums()` function to quickly add up all the counts that correspond to each possible cell barcode, then filter our `raw_sce` down to just those columns where there are non-zero total counts.
 We will need to extract the `counts` matrix from our SCE object, which we can do using the `counts()` function, conveniently enough.
 
-```{r remove zeros}
+```{r remove zeros, live=TRUE}
 # sum columns from counts matrix
 barcode_counts <- colSums(counts(raw_sce))
 
@@ -157,12 +179,12 @@ raw_sce <- raw_sce[, which(barcode_counts > 0)]
 
 Now we can look at how our SCE object has changed:
 
-```{r zero-removed SCE}
+```{r zero-filtered SCE}
 raw_sce
 ```
 
-But barcodes with zero counts are not the only ones that will not correspond to droplets without cells in them!
-Even if a droplet does not have a cell in it, there will often be spurious reads from RNA sequences that were present in the extracellular solution, whether from the original sample or cells that were disrupted during preparation for single-cell analysis. 
+But barcodes with zero counts are not the only ones that correspond to droplets without cells in them!
+Even if a droplet does not have a cell in it, there will often be spurious reads from RNA sequences that were present in the extracellular solution, whether from the original sample or from cells that were damaged during single-cell library preparation. 
 
 We could identify these barcodes simply as those with low transcript counts.
 Or, we can be a bit more clever!
@@ -172,10 +194,10 @@ If it does, then we have pretty good evidence that there _is_ a cell in there.
 
 This test was first proposed by [Lun _et al._ (2019)](https://doi.org/10.1186/s13059-019-1662-y) and implemented as `emptyDrops()` in the `DropletUtils` package. 
 This method was then adopted, with some modifications, as the default cell filtering method used by Cell Ranger.
-Here we will use the `emptyDropsCellRanger()` function to perform filtering that most closely matches the Cell Ranger implementation.
+Here we will use the [`emptyDropsCellRanger()` function](https://rdrr.io/github/MarioniLab/DropletUtils/man/emptyDropsCellRanger.html) to perform filtering that more closely matches the Cell Ranger implementation.
 
 
-```{r calculate droplet stats}
+```{r calculate droplet stats, live=TRUE}
 # create a table of statistics using emptyDropsCellRanger
 droplet_df <- DropletUtils::emptyDropsCellRanger(counts(raw_sce))
 ```
@@ -185,17 +207,17 @@ Most values in this table are `NA`, because individual statistics were not calcu
 
 We can look at just the rows without `NA` values by selected the ones where the FDR (which we will use again soon), is not `NA`.
 
-```{r look at droplet stats}
+```{r droplet stats}
 # view rows where FDR is not `NA`
 droplet_df[!is.na(droplet_df$FDR), ]
 ```
 You will notice that some cells with high counts also have `NA` values for many statistics.
 In those cases, `NA` values are actually present _because_ of the high counts - `emptyDropsCellRanger()` automatically assumed cells were present, so they were also not tested. 
 
-
 Now we can filter our `raw_sce` object _by column_ to only keep the cells with a small FDR: those that are quite unlikely to be empty droplets. 
 
-```{r filter emptydrops}
+```{r filter emptydrops, live=TRUE}
+# filter droplets using `which` to prevent NA trouble
 cells_to_retain <- which(droplet_df$FDR < 0.01)
 filtered_sce <- raw_sce[, cells_to_retain]
 ```
@@ -208,14 +230,16 @@ filtered_sce
 
 ## Additional Quality control
 
-In addition to filtering out empty droplets, we also will want to filter out real cells that may have been damaged during library preparation.
-These will often be characterized by a high proportion of mitochondrial transcripts.
-This is because, if a cell ruptures, the cytoplasmic transcripts will leak out, but mitochondrial transcripts, protected by the mitochondrial membrane, will be more protected.
-As a consequence, there is an over-abundance of mitochondrial reads.
+In addition to filtering out empty droplets, we also will want to filter out cells that may have been damaged during library preparation.
+These will often be characterized by a high proportion of mitochondrial transcripts and a smaller overall number of unique transcripts. 
+When a cell ruptures, cytoplasmic transcripts will leak out, but mitochondrial transcripts, still protected by the mitochondrial membrane, may remain.
+As a consequence, there will be an over-abundance of mitochondrial reads, and fewer unique transcripts expressed.
 
 Our first step then, is create a vector of the mitochondrial genes that are present in our dataset.
-The mitochondrial file we defined during setup (`mito_file`) is a TSV file with additional annotation information for each gene such as the gene location and alternative names. 
-All we need now is the `gene_id`, and only for the genes that are present in our SCE, so we will do some filtering with `dplyr` to pull out just a vector with those ids.
+The mitochondrial file we defined during setup (`mito_file`) is a TSV file containing all of the human mitochondrial genes with additional annotation information for each gene, such as the gene location and alternative names. 
+(For more detail on the steps we took to create this file, you can look at [one of our setup notebooks](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/setup/mito_gene_lists.Rmd))
+
+All we need now is the `gene_id`, and only for the genes that are present in our SCE, so we will do some filtering with `dplyr` to pull out a vector with just those ids.
 
 ```{r get mitochondrial genes}
 # read in a table of mitochondrial genes and extract ids
@@ -235,18 +259,18 @@ In this case, we will use our `mito_genes` vector to define a subset called `mit
 The `mito` name is important in that it is the name that will be expected by a later function.
 (We could define more subsets, but for now this one will do.)
 
-```{r per cell QC}
+```{r per cell QC, live=TRUE}
 filtered_sce <- scuttle::addPerCellQC(filtered_sce,
                                       subsets = list(mito = mito_genes))
 ```
 
 Now we can look at the colData to see what was added:
 
-```{r view coldata stats}
+```{r view colData stats}
 head(colData(filtered_sce))
 ```
 
-We can also plot some of these statistics, here using the `plotMetrics()` function from the `miQC` package to plots the percent of reads that are mitochondrial (the `subsets_mito_percent` column) against the number of unique genes detected (the `detected` column) for each cell.
+We can also plot some of these statistics, here using the `plotMetrics()` function from the `miQC` package to plot the percent of reads that are mitochondrial (the `subsets_mito_percent` column) against the number of unique genes detected (the `detected` column) for each cell.
 
 ```{r miQC plotMetrics}
 # use miQC::plotMetrics()
@@ -269,11 +293,12 @@ We can then exclude the cells that are more likely to be compromised.
 
 To use `miQC`, we first fit a model to the data in our SCE object:
 
-```{r miQC model}
+```{r miQC model, live=TRUE}
+# fit the miQC model
 miqc_model <- miQC::mixtureModel(filtered_sce) 
 ```
 
-Now we can plot the model results to see how it corresponds to our data.
+Now we can plot the model results using the `plotModel()` function to see how it corresponds to our data.
 We should expect to see two fit lines: 
 
 - One line will correspond the the "healthy" cells and should show little to no relationship between the number of unique genes detected and the mitochondrial percentage.
@@ -285,37 +310,43 @@ It is also critical to note that this model can _and does_ fail at times.
 Plotting the results as we have done here is not a step to skip. 
 **Always look at your data!**
 
-```{r miQC plotModel}
-miQC::plotModel(filtered_sce, miqc_model) + theme_bw()
+```{r miQC plotModel, live=TRUE}
+# plot the miQC model
+miQC::plotModel(filtered_sce, miqc_model) + 
+  theme_bw()
 ```
 
 We can now filter our data based on the probability compromised as calculated from the model.
-But before we do that, we might want to quickly plot to see what would be filtered out with a given cutoff.
+But before we do that, we might want to quickly plot to see what would be filtered out with a given cutoff, using the `plotFiltering()` function.
 The default is to exclude cells that have a posterior probability of 0.75 or greater of being compromised.
+We stick with that default, but for clarity, we will also include it in our code!
 
 
 ```{r miQC plotFiltering}
-miQC::plotFiltering(filtered_sce, miqc_model, posterior_cutoff = 0.75) + theme_bw()
+# look at miQC filtering
+miQC::plotFiltering(filtered_sce, miqc_model, posterior_cutoff = 0.75) + 
+  theme_bw()
 ```
 
-In this case, the line between kept and removed cells seems to correspond to a mitochondrial percentage of about 12.5%, but note that this will not always be constant: the cutoff point can vary for different numbers of unique genes.
+In this case, the line between the cells to be kept and those that will be removed seems to correspond to a mitochondrial percentage of about 12.5%, but note that this will not always be constant.
+The cutoff point can vary for different numbers of unique genes within a sample, and it will certainly vary among samples!
 
 At this point, we can perform the actual filtering using the `filterCells()` function, giving us a further filtered SCE object.
 
-```{r miQC filtercells}
+```{r miQC filtercells, live=TRUE}
 qcfiltered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
 ```
 
-### One more filter: unique genes
+### One more filter: unique gene count
 
-While the miQC filtering is pretty good, you may have noticed that it still left some cells that had very low numbers of unique genes. 
+While the miQC filtering is pretty good, you may have noticed that it still left some cells that had very low numbers of unique genes.
 While these cells may not be compromised, the information from them is also not likely to be useful, so we will filter those as well. 
-For now, we will use a cutoff of 200 unique genes as a minimum. 
+We will only keep cells that have at least 200 unique genes.
 
-```{r unique cutoff}
+```{r unique cutoff, live=TRUE}
+# filter cells by unique gene count (`detected`)
 qcfiltered_sce <- qcfiltered_sce[, which(qcfiltered_sce$detected >= 200)]
 ```
-
 
 
 ## Normalization and Dimension Reduction
@@ -325,12 +356,12 @@ Now that we have done our filtering, we can start analyzing the expression count
 The next step at this point is to convert the raw counts into a measure that accounts for differences in sequencing depth between cells, and to convert the distribution of expression values from the skewed distribution we expect to see in raw counts to one that is more normally distributed.
 
 We will do this using functions from the `scran` and `scuttle` packages. 
-The procedure we will use here is derived from [Orchestrating Single-Cell Analysis with Bioconductor](http://bioconductor.org/books/3.16/OSCA.basic/normalization.html#normalization-by-deconvolution).
+The procedure we will use here is derived from the [OSCA chapter on normalization](http://bioconductor.org/books/3.16/OSCA.basic/normalization.html#normalization-by-deconvolution).
 The idea is that the varying expression patterns that different cell types exhibit will affect the scaling factors that we would apply.
 To account for that variation, we first do a rough clustering of cells by their expression with `scran::quickCluster()`, then use that clustering to calculate the scaling factor for each cell within the clusters using `scran::computeSumFactors()`.
 Finally, we apply the scaling factor to the expression values for each cell and calculate the log-scaled expression values using the `scuttle::logNormCounts()` function.
 
-```{r normalization}
+```{r normalization, live=TRUE}
 # Perform rough clustering
 qclust <- scran::quickCluster(qcfiltered_sce)
 
@@ -343,7 +374,8 @@ normalized_sce <- scuttle::logNormCounts(qcfiltered_sce)
 ```
 
 This creates a new "assay" in the `normalized_sce` object, `logcounts`, which contains the normalized count values for each cell and gene.
-(The data here are not _actually_ the log of the counts, since we also applied the scaling factors, but that is what we have.)
+(The data here are not _actually_ the log of the counts, since we also applied the scaling factors, but that name is used for historical reasons.)
+
 Let's take a look:
 
 ```{r normalized sce}
@@ -382,8 +414,6 @@ The result is a vector of gene ids (ordered from most to least variable):
 head(hv_genes)
 ```
 
-
-
 ### Principal components analysis
 
 Now that we have selected the genes we would like to use for the reduced-dimension representations of the expression data, we can start to calculate them.
@@ -393,9 +423,10 @@ We want keep a fair number of components (dimensions) in order to accurately rep
 
 The default number of components is 50, which we will stick with, but let's enter it manually just for the record.
 
-```{r runPCA}
+```{r runPCA, live=TRUE}
 # calculate and save PCA results
 normalized_sce <- scater::runPCA(normalized_sce,
+                                 # how many components to keep
                                  ncomponents = 50,
                                  # use only the variable genes we chose
                                  subset_row = hv_genes)
@@ -412,7 +443,7 @@ If we want to extract the PCA results, we can do that with the `reducedDim()` fu
 Note that for these reduced-dimensionality matrices, the rows are the cells and the columns are the PC dimensions.
 
 ```{r getReducedDim}
-# extact the PCA matrix
+# extract the PCA matrix
 pca_matrix <- reducedDim(normalized_sce, "PCA")
 
 # look at the shape of the matrix
@@ -434,7 +465,7 @@ The UMAP coordinates themselves should never be used for downstream analysis.
 Since the UMAP procedure would be slow to calculate with the full data, so the `runUMAP()` function first calculates a PCA matrix and then uses _that_ to calculate the UMAP. 
 Since we already have a PCA matrix, we will tell the function use that instead of recalculating it.
 
-```{r runUMAP}
+```{r runUMAP, live=TRUE}
 normalized_sce <- scater::runUMAP(normalized_sce,
                                   dimred = "PCA")
 ```
@@ -442,7 +473,7 @@ normalized_sce <- scater::runUMAP(normalized_sce,
 As before, we could extract the UMAP matrix from our SCE object with the `reducedDim()` function.
 We can also visualize the UMAP results using the `plotReducedDim()` function.
 
-```{r plotReducedDim}
+```{r plotReducedDim, live=TRUE}
 # plot the UMAP
 scater::plotReducedDim(normalized_sce, 
                        "UMAP",
@@ -471,7 +502,7 @@ It is also worth noting that the the cluster assignments are somewhat stochastic
 In particular, the names/numbers of the clusters can be quite inconsistent between runs! 
 
 
-```{r clustering}
+```{r clustering, live=TRUE}
 nn_clusters <- bluster::clusterRows(
   pca_matrix, 
   bluster::NNGraphParam(
@@ -489,15 +520,15 @@ nn_clusters <- bluster::clusterRows(
 
 We can save the cluster assignments back into the `colData` of the SCE object with a little shortcut: the `$` followed by the name of the new column we want to add.
 
-```{r add clusters to SCE}
+```{r add clusters to SCE, live=TRUE}
 # save clusters to SCE colData
 normalized_sce$nn_cluster <- nn_clusters
 ```
 
 Now we can plot the UMAP again, this time colored by the cluster assignments that we just created.
-Here rather than the general `plotReducedDim()` function, we will use `plotUMAP()`, which is exactly the same except it always plots from the `reducedDim` slot named `UMAP`, so we can skip that argument.
+Here rather than the general `plotReducedDim()` function, we will use `plotUMAP()`, which is exactly the same, except it always plots from the `reducedDim` slot named `UMAP`, so we can skip that argument.
 
-```{r plot clusters}
+```{r plot clusters, live=TRUE}
 # plot UMAP with assigned clusters
 scater::plotUMAP(normalized_sce,
                  colour_by = "nn_cluster") 
@@ -512,8 +543,14 @@ What would you want to do next?
 We will now save our filtered and normalized object, including the dimension reduction and clustering results to an `RDS` file, using the file path that we defined at the start of the notebook.
 If we were to want to return to this data, we could load this file directly into a new R session and not have to repeat the processing that we have done up to this point.
 
-```{r save SCE}
-saveRDS(normalized_sce, file = output_sce_file)
+The data in these objects tends to be quite large, but very compressible. 
+To save space on disk (at the expense of time), we will make sure that the data is compressed internally before writing it out to a file. 
+Note that the file we write is still going to be an `.rds` file with no additional extension.
+(Further note: The base R function `saveRDS()` uses compression by default, but the `tidyverse` function `readr::write_rds` does not.)
+
+```{r save SCE, live=TRUE}
+# write RDS file with compression
+readr::write_rds(normalized_sce, file = output_sce_file, compress = "gz")
 ```
 
 
