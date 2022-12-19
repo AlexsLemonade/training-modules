@@ -27,7 +27,7 @@ Specifically, we'll have a look at four libraries from the [`SCPCP000005` projec
 The particular libraries we'll integrate come from two rhabdomyosarcoma (RMS) patients, with two libraries (each from separate samples) from two patients each.
 All library are single-nuclei and were sequenced with 10Xv3 technology.
 
-We'll be integrating these libraries with two different tools, [`fastmNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html; [Haghverdi _et al._ (2018)](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/; [Korsunsky _et al._ (2019)](https://doi.org/10.1038/s41592-019-0619-0)). 
+We'll be integrating these libraries with two different tools, [`fastmNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) ([Haghverdi _et al._ (2018)](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ (2019)](https://doi.org/10.1038/s41592-019-0619-0)). 
 Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed. 
 `fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about from this [vignette by Lun (2019)](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
@@ -214,19 +214,16 @@ To merge SCE objects, we do need to do some wrangling and bookkeeping to ensure 
 Overall we'll want to take care of these items: 
 
 1. We should be able to trace library-specific information back to the originating library, including...
-  - Cell-level information: Which library is each cell from? 
-  SCE column names represent unique cell ids, which are often barcodes.
-  These cell ids (barcodes) are only guaranteed to be unique _within_ a library but may be repeated across libraries, so after merging, it's technically possible that multiple cells have the same barcode.
-  This would be a problem for two reasons: First we wouldn't be able to identify the cell's originating library.
-  Second, it would literally cause an error in R, which does not allow duplicate column names.
-  We need to be able to map each cell id back to its originating library and ensure that these cell id column names remain unique.
-  - Library-specific statistics, e.g. gene-level statistics for a given library found in `rowData`
+    - Cell-level information: Which library is each cell from? 
+    SCE column names represent unique cell ids, which are often barcodes.
+    These cell ids (barcodes) are only guaranteed to be unique _within_ a library but may be repeated across libraries, so after merging, it's technically possible that multiple cells have the same barcode.
+    This would be a problem for two reasons: First we wouldn't be able to identify the cell's originating library.
+    Second, it would literally cause an error in R, which does not allow duplicate column names.
+    We need to be able to map each cell id back to its originating library and ensure that these cell id column names remain unique.
+    - Library-specific feature statistics, e.g. gene-level statistics for a given library found in `rowData`
 2. SCE objects should contain the same genes: Each SCE object should have the same row names.
 3. SCE cell metadata columns should match: The `colData` for each SCE object should have the same column names.
 
-Here is a schematic of how one of the SCE objects will ultimately be modified into the final merged SCE:
-
-![](diagrams/technical_merge_sce.png)
 
 We'll begin by taking some time to thoroughly explore our SCE objects and figure out what wrangling steps we need to take for these specific data.
 Don't skip this exploration!
@@ -327,12 +324,15 @@ It looks like the column names are all already matching among SCEs, so there's n
 
 ```{r}
 sce_list
-
-
 ```
 
 As you can see, there's a lot of moving parts to consider! 
 Again, these moving parts may (will!) differ for SCEs that you are working with, so you have to explore your own SCEs in depth to prepare for merging.
+
+Based on our exploration, here is a schematic of how one of the SCE objects will ultimately be modified into the final merged SCE:
+
+![](diagrams/technical_merge_sce.png)
+
 
 We'll write a _custom function_ (seen in the chunk below) tailored to our wrangling steps that prepares a single SCE object for merging.
 We'll then use our new `purrr::map()` programming skills to run this function over the `sce_list` to end up with a formatted version of `sce_list` that we can merge.
@@ -389,8 +389,9 @@ sce_list_formatted
 
 At long last, we are ready to merge the SCEs!
 We'll use the R function `cbind()` for this.
-The `cbind()` function is often used to combine data frames or matrices by column, i.e. "stack" them next to of each other.
-The same principle applies here, but when run on SCE objects, `cbind()` will create a new SCE object by combining `counts` and `logcounts` matrices by column, as well as combining metadata and reduced dimension slots appropriately.
+The `cbind()` function is often used to combine data frames or matrices by column, i.e. "stack" them next to each other.
+The same principle applies here, but when run on SCE objects, `cbind()` will create a new SCE object by combining `counts` and `logcounts` matrices by column.
+Following that structure, other SCE slots (`colData`, `rowData`, reduced dimensions, and other metadata) are combined appropriately.
 
 Since we need to apply `cbind()` to a _list_ of objects, we need to use some slightly-gnarly syntax: We'll use the function `do.call()`, which allows the `cbind()` input to be a list of objects to combine.
 
@@ -552,6 +553,7 @@ To start, we'll use the `fastMNN` approach from the Bioconductor [`batchelor` pa
 `fastMNN` takes as input the `merged_sce` object to integrate, and the first step it performs is actually to run `batchelor::multiBatchPCA()` on that SCE!
 The `batch` argument is used to specify the different groupings within the `merged_sce`, and the `subset.row` argument can optionally be used to provide a vector of high-variance genes that should be considered for this PCA calculation.
 `fastMNN` will return an SCE object that contains a batch-corrected PCA.
+
 
 ```{r}
 integrated_sce <- batchelor::fastMNN(
