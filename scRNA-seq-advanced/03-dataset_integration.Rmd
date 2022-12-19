@@ -23,18 +23,17 @@ This notebook will demonstrate how to:
 In this notebook, we'll perform integration on scRNA-seq datasets from the [Single-cell Pediatric Cancer Atlas (`ScPCA`)](https://scpca.alexslemonade.org/), a database of uniformly-processed pediatric scRNA-seq data built and maintained by the Data Lab.
 This database currently hosts projects from ten different ALSF-funded labs who have generated single-cell pediatric cancer transcriptomic data with the ultimate goal of making this data easily accessible to investigators (like you!).
 
-Specifically, we'll have a look at four libraries from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005; [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)), an investigation of pediatric solid tumors led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Children's Research Hospital.
-The particular libraries we'll integrate come from two rhabdomyosarcoma (RMS) patients, with two libraries (each from separate samples) from two patients each.
-All library are single-nuclei and were sequenced with 10Xv3 technology.
+Specifically, we'll have a look at four samples (where each sample has a single associated library) from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005; [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)), an investigation of pediatric solid tumors led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Children's Research Hospital.
+The particular samples we'll integrate come from two rhabdomyosarcoma (RMS) patients, with two samples from two patients each, and all samples are single-nuclei and were sequenced with 10Xv3 technology.
 
-We'll be integrating these libraries with two different tools, [`fastmNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) ([Haghverdi _et al._ (2018)](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ (2019)](https://doi.org/10.1038/s41592-019-0619-0)). 
+We'll be integrating these samples with two different tools, [`fastmNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) ([Haghverdi _et al._ (2018)](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ (2019)](https://doi.org/10.1038/s41592-019-0619-0)). 
 Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed. 
 `fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about from this [vignette by Lun (2019)](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
 
 
 Regardless of which integration tool is used, the `SingleCellExperiment` (SCE) objects to be integrated need to be reformatted and merged into a single (uncorrected!) SCE object that contains all cells from all SCES for all genes that the SCEs have in common.
-This merged SCE, which should also contain explicit information about batch origins for each cell (here, the originating library), can be provided to the integration method to obtain a formally batch-corrected SCE object. 
+This merged SCE, which should also contain explicit information about batch origins for each cell (here, the originating sample), can be provided to the integration method to obtain a formally batch-corrected SCE object. 
 
 ## Set Up
 
@@ -151,28 +150,28 @@ glue::glue("Welcome to the {org_name} workshop on Advanced scRNA-seq!")
 
 
 Now, let's use `purrr::map()` to read in our SCE objects so that they are immediately stored together in a list.
-Recall, these are the library files:
+Recall, these are the SCE files:
 
 ```{r dir input2}
 dir(input_dir)
 ```
 
-We'll first need to define a vector of the library file paths to read in.
-We'll start by creating a vector of library names themselves and then formatting them into the correct paths.
-This way (foreshadowing!) we also have a stand-alone vector of just library names, which will come in handy!
+We'll first need to define a vector of the file paths to read in.
+We'll start by creating a vector of sample names themselves and then formatting them into the correct paths.
+This way (foreshadowing!) we also have a stand-alone vector of just sample names, which will come in handy!
 
 ```{r read input} 
-# Vector of all the library names to read in:
-library_names <- c("SCPCL000479",
-                   "SCPCL000480",
-                   "SCPCL000481",
-                   "SCPCL000482")
+# Vector of all the sample names to read in:
+sample_names <- c("SCPCL000479",
+                "SCPCL000480",
+                "SCPCL000481",
+                "SCPCL000482")
 
-# Now, convert these to file paths matching `<input_dir>`/`<library_name>`.rds
-library_paths <- file.path(input_dir, 
-                           glue::glue("{library_names}.rds")
+# Now, convert these to file paths matching `<input_dir>`/`<sample_name>`.rds
+sce_paths <- file.path(input_dir, 
+                       glue::glue("{sample_names}.rds")
 )
-library_paths
+sce_paths
 ```
 
 We can now read these files in and create a list of four SCE objects:
@@ -180,7 +179,7 @@ We can now read these files in and create a list of four SCE objects:
 ```{r}
 # Use purrr::map() to read all files into a list at once:
 sce_list <- purrr::map(
-  library_paths, 
+  sce_paths, 
   readr::read_rds
 )
 sce_list
@@ -190,17 +189,17 @@ We now have a list of length four, where each item is a processed SCE object!
 However, we'll need to keep track of which library each item is, so it's helpful to add _names_ to this list representing the relevant library names.
 
 ```{r add list names}
-# Assign the library names as the names for sce_list
-names(sce_list) <- library_names
+# Assign the sample names as the names for sce_list
+names(sce_list) <- sample_names
 
 sce_list
 ```
 
-If you look closely at the printed SCE objects, you may notice that they all contain colData columns `celltype_fine` and `celltype_broad`.
+If you look closely at the printed SCE objects, you may notice that they all contain `colData` table columns `celltype_fine` and `celltype_broad`.
 These columns (which we added to SCE objects during pre-processing) contain putative _cell type annotations_ as assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003). 
 We will end up leveraging these cell type annotations to explore how successful our integration is: After integration, we expect cell types from different libraries to cluster together, rather than being separated by batches. 
 
-Before we proceed, it's critical to remember that integration methods _do not actually use_ these cell type annotations.
+Thaat said, integration methods _do not actually use_ these cell type annotations.
 If we have annotations, they are a helpful "bonus" for assessing the integration's success, but they are not part of the procedure itself.
 
 
@@ -213,11 +212,11 @@ Merging SCEs itself does not perform any batch correction; that's why we proceed
 To merge SCE objects, we do need to do some wrangling and bookkeeping to ensure compatibility and that we don't lose important information.
 Overall we'll want to take care of these items: 
 
-1. We should be able to trace library-specific information back to the originating library, including...
-    - Cell-level information: Which library is each cell from? 
+1. We should be able to trace sample-specific information back to the originating sample, including...
+    - Cell-level information: Which sample is each cell from? 
     SCE column names represent unique cell ids, which are often barcodes.
     These cell ids (barcodes) are only guaranteed to be unique _within_ a library but may be repeated across libraries, so after merging, it's technically possible that multiple cells have the same barcode.
-    This would be a problem for two reasons: First we wouldn't be able to identify the cell's originating library.
+    This would be a problem for two reasons: First we wouldn't be able to identify the cell's originating sample.
     Second, it would literally cause an error in R, which does not allow duplicate column names.
     We need to be able to map each cell id back to its originating library and ensure that these cell id column names remain unique.
     - Library-specific feature statistics, e.g. gene-level statistics for a given library found in `rowData`
