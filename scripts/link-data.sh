@@ -35,7 +35,6 @@ mkdir -p scRNA-seq/data/mouse-liver
 # scRNA-seq-advanced module directories
 mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
 mkdir -p scRNA-seq-advanced/data/glioblastoma
-mkdir -p scRNA-seq-advanced/data/rms/processed
 mkdir -p scRNA-seq-advanced/data/rms/integrated
 mkdir -p scRNA-seq-advanced/data/rms/annotations
 
@@ -83,11 +82,7 @@ link_locs=(
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
   scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
   scRNA-seq-advanced/data/reference
-  # only the _integration_ rms files
-  scRNA-seq-advanced/data/rms/processed/SCPCL000478.rds
-  scRNA-seq-advanced/data/rms/processed/SCPCL000479.rds
-  scRNA-seq-advanced/data/rms/processed/SCPCL000480.rds
-  scRNA-seq-advanced/data/rms/processed/SCPCL000481.rds
+  scRNA-seq-advanced/data/rms/processed
   scRNA-seq-advanced/data/rms/integrated/rms_all_sce.rds
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   machine-learning/data/open-pbta
