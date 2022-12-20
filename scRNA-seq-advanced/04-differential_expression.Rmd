@@ -112,12 +112,12 @@ The `fastmnn_corrected` data contains the corrected gene expression data obtaine
 For this exercise we will not be using the `fastmnn_corrected` data (more on why not once we get to setting up the differential expression), but we need to be aware that it is present and be able to distinguish it from our uncorrected data. 
 
 In the `reducedDim` slots you should see `PCA` and `UMAP` which both correspond to the pre-integrated dimensionality reduction results.
-Both the `fastmnn_PCA` and `fastmnn_UMAP` obtain the dimensionality reduction calculated post-correction and integration.
+You should also see `fastmnn_PCA` and `fastmnn_UMAP` reduced dimensions, which correspond to the integrated results.
 Let's start by looking at the UMAP of our data and labeling each sample.
 
 Which reduced dimensionality slot should we use for making our UMAP plot?
 
-```{r all library UMAP}
+```{r all sample UMAP}
 # UMAP plot of all samples in integrated data
 scater::plotReducedDim(integrated_sce,
                        # use the UMAP results from integrating with fastMNN
@@ -132,7 +132,7 @@ scater::plotReducedDim(integrated_sce,
 Here we used the `fastmnn_UMAP`, because these UMAP embeddings have been corrected for batch effects and now transform all data points into the same gene expression space. 
 If you were to plot the default of `dimred=UMAP` you would see visually separate clusters that align to the individual samples as discussed in the data integration notebook. 
 
-**Note: Be sure to use the batch-corrected dimensionality reduction results for visualizing datasets containing multiple libraries**
+**Note: You should always use the batch-corrected dimensionality reduction results for visualizing datasets containing multiple libraries or samples.**
 
 We can also take a look at the sample metadata table that we loaded: 
 
@@ -157,7 +157,7 @@ coldata_df <- colData(integrated_sce) %>%
   dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) %>%
   # create a new columns
   dplyr::mutate(cell_id = paste(sample, barcode, sep = "-"), # combination of barcode and sample
-                # simplify subdiagnosis for easy plotting and DE later
+                # simplify subdiagnosis for easier plotting and DE later
                 diagnosis_group = forcats::fct_recode(
                   subdiagnosis,
                   "ARMS" = "Alveolar rhabdomyosarcoma",
@@ -173,7 +173,7 @@ head(colData(integrated_sce))
 
 Now when we look at the `colData` of the SCE object we should see new columns, including the `diagnosis_group` column which indicates if each cell comes from an ERMS or ARMS sample.
 We can now use that column to label any UMAP plots (or other plot types) that we make.
-In the below chunk we will color our cells by subdiagnosis.
+In the chunk below we will color our cells by subdiagnosis.
 
 ```{r diagnosis group UMAP}
 # UMAP of all samples, separating by diagnosis group
@@ -193,7 +193,8 @@ Is that the case with this dataset?
 _A word of caution when evaluating the cell type results for this dataset: The cell types for this dataset were assigned in a two stage process.
 The first stage assigned cells as tumor or non-tumor.
 The next stage further classified tumor cells into type of tumor cell (i.e., myoblast, myocyte, or mesoderm).
-Not all samples contain tumor cells that were further classified and samples will either have all `Tumor` or a mix of `Tumor_Mesoderm`, `Tumor_Myoblast`, and `Tumor_Myocyte`._
+Some samples could not be further classified, so all of their tumor cells are denoted Tumor.
+The samples which could be further classified have a mix of `Tumor_Mesoderm`, `Tumor_Myoblast`, and `Tumor_Myocyte`._
 
 ```{r celltype UMAP}
 # # UMAP of all libraries, separating by diagnosis group and labeling cell type
@@ -208,7 +209,7 @@ scater::plotReducedDim(integrated_sce,
 Unlike with the previous datasets we have seen where all cells of the same cell type always grouped together, this dataset shows some slightly different patterns.
 We see that there are at least 2 clear distinct groups for each cell type, 1 in each half of the UMAP.
 It looks like this is because the difference in diagnosis group accounts for differences across all cells in the sample, even those from the same type. 
-We can take advantage of another `ggplot` tool, the `facet_wrap()` function to look at two (or more, but we'll start with two) variables in the `colData` at once - the cell type and the subdiagnosis.
+We can take advantage of the `facet_wrap()` function from `ggplot2` to look at two (or more, but we'll start with two) variables in the `colData` at once - the cell type and the subdiagnosis.
 In the below plot we will color our cells by cell type but we will also use `facet_wrap()` to plot the cells from each subdiagnosis in their own separate panel of the plot.
 
 
@@ -225,7 +226,7 @@ scater::plotReducedDim(integrated_sce,
   facet_wrap(~ diagnosis_group)
 ```
 
-As expected, we see that the visual clusters of cell types are being separated most likely due to different subdiagnoses.
+As expected, we see that the visual clusters of cell types are being separated, most likely due to different subdiagnoses.
 Although we expect that the same cell types are present in both, each of the subdiagnoses for rhabdomyosarcoma have a distinct genomic and epigenomic landscape, likely accounting for the global gene expression changes seen between samples from these two subdiagnoses in the UMAP ([Shern _et al._ 2014](https://doi.org/10.1158/2159-8290.CD-13-0639), [Stewart _et al._](https://doi.org/10.1016/j.ccell.2018.07.012)).
 
 We can also use a stacked barplot to look at the distribution of cell types across each sample.
@@ -244,20 +245,22 @@ ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
       fill = "Cell type"
     ) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
   # split by diagnosis group 
   # only show non-NA values on x-axis
-  facet_wrap(~diagnosis_group, scales = "free_x")
+  facet_wrap(~diagnosis_group, 
+             scales = "free_x",
+             space = "free_x")
 ```
 
-Similar to the UMAP, this plot shows that ARMS and ERMS share a lot of the same cell types, although it is likely that these cell types may have distinct gene expression patterns defined by the associated subdiagnosis.
+Similar to the UMAP, this plot shows that ARMS and ERMS share a lot of the same cell types.
 
 We also see that only 6 of these libraries have tumor cells that have been further classified into cell type. 
 3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified and the remaining library appears to not have been assigned any cell types, as they are all labeled with `NA`.
 We will continue our analysis only using the 6 libraries with fully classified cell types, removing the other 3 before we proceed with differential expression.
 
 The reason we want to pare down our list of samples to consider is that we want to ensure that the cell types (or subpopulations) that we are interested in are present in all samples included in our differential gene expression analysis. 
-We would want to remove any samples that do not contain our population of interest as they would have no counts to contribute to the differential expression analysis.
+We want to remove any samples that do not contain our cell population(s) of interest as they have no counts to contribute to the differential expression analysis.
 
 ```{r subset sce}
 # define samples to keep
@@ -308,7 +311,7 @@ as.data.frame(colData(rms_sce)) %>%
 ```
 
 This table shows us that the majority of cells are tumor cells, in particular the largest population of cells are the `Tumor_Myoblast`.
-If we were to look at our stacked boxplot again we would see that this cell type is shared among all 6 of our selected samples. 
+Looking back at our stacked boxplot, we can see that this cell type is shared among all 6 of our selected samples. 
 
 For this example we will focus on identifying differentially expressed genes in one cell type, the `Tumor_Myoblast` cells, but the principles applied below can be applied to any cell types or subpopulations of interest.
 
