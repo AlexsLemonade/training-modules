@@ -27,7 +27,7 @@ The antibodies used here are the [The TotalSeq™-B Human TBNK Cocktail](https:/
 
 The data here have already been filtered, normalized, and had dimension reductions calculated for the scRNA-seq data.
 The ADT data has also been separately filtered and normalized.
-For details about how to these tasks were performed with data that has been processed with Cell Ranger, have a look at our `exercise_01` notebook in this directory.
+For details about how to perform these tasks with data that has been processed with Cell Ranger, have a look at our `exercise_01` notebook in this directory.
 
 The processed gene expression and ADT data were saved into a combined `SingleCellExperiment` (SCE) object, and we will start with that object for our exploration here.
 
@@ -93,7 +93,7 @@ But where are the data from the ADTs?
 We wouldn't necessarily want those stored in the main data matrices, as the characteristics of ADT barcode data is going to be quite different from gene expression data.
 
 To keep the ADT data separate, we have split this data off into an _alternative experiment_ (`altExp`) slot.
-You can see the name of this `altExp` on the line `altExpNames` above. 
+You can see the name of this `altExp` on the line `altExpNames` in the SCE output. 
 We _could_ have more than one type of alternative experiment, but in this case, just the one.
 
 To access the contents of the `altExp` slot, we can use the `altExp()` function.
@@ -107,11 +107,11 @@ It is another `SingleCellExperiment`!
 Inception!
 Let's look at that embedded SCE more closely.
 
-The first thing to note is that we have the same number of columns for this `altExp` as we did with the full SCE. 
+The first thing to note is that this `altExp` has the same number of columns as did the main SCE object. 
 Those corresponded to the individual cells before, and still do!
 
-There are only 10 rows, however, and these now correspond to the ADTs that were assayed by this particular experiment. 
-Just as we did with the full SCE, we can use `rowData()` to look at table of metadata for each of these rows.
+There are only 10 rows, however, and these correspond to the ADTs that were assayed by this particular experiment. 
+Just as we did with the full SCE, we can use `rowData()` to view the table containing metadata associated with each of these rows.
 We'll add the `altExp()` function to point it to the embedded object we are interested in. 
 Since there is only one `altExp`, we don't need the second argument (`"ADT"`) that we used above; the default behavior of `altExp()` is to just give us the first `altExp`, and that is all we need.
 
@@ -128,7 +128,7 @@ One you might note looks different is the `IgG1` control, which is actually a mo
 
 ### Clustering redux
 
-While these data did have dimension reduction performed, they were not analyzed for clustering yet.
+While dimension reduction was performed on this data, we have not yet performed any clustering.
 
 Let's assign some clusters to our cells, using graph-based clustering and default parameters, taking as input the PCA matrix that was previously calculated.
 Note that this PCA matrix and the UMAP built from it were derived from the gene expression data, so the clustering is going to reflect the gene expression data only.
@@ -167,13 +167,13 @@ Do you know what those were?
 
 ### Using cell surface marker data
 
-The first way we will work on to identify the cell types of the individual cells in our sample is to work with the ADT markers that are part of this data set. 
-These antibody markers were (hopefully) chosen for their relevance to the cell population we are working with.
+The first way we will identify cell types of individual cells is to use the ADT normalized counts.
+These antibody markers were (hopefully) chosen for their relevance to the sequenced cell population.
 
 The first marker we will look at is `CD3`, which is a protein complex that is found on the surface of T cells.
-We can plot where this is found using the same `plotUMAP()` function as before. 
+We can again use the `plotUMAP()` function to color cells by `CD3` ADT levels. 
 
-Note that the function is able to look for plotting data in fields found in the `colData` object (as we used it above), in the gene expression matrix (as we used it in the previous notebook), *AND* in `altExp` matrices!
+Note that this function can plot data from the `colData` table (as we used it above when plotting clusters), in the main gene expression matrix (as we used it in the previous notebook), *AND* in `altExp` tables and matrices!
 So all we need to do to color by the ADT counts (as normalized into the `logcounts` matrix) is give the name of the tag that we want to plot in the `colour_by` argument.
 
 ```{r plot CD3, live = TRUE}
@@ -207,14 +207,14 @@ scater::plotUMAP(sce,
 ### Rule-based classification
 
 When we have markers like these, with clear and established cell types, we might want to start our classification by working with these markers alone.
-Such classification might be considered as analogous to a cell-sorter assay, where we would set up some rules to look at a few markers for each cell and use those to assign a cell type classification.
+Such classification could be considered as analogous to a cell-sorter assay, where we would set up some rules to look at a few markers for each cell and use those to assign a cell type classification.
 
 To do this, we will need to make some decisions, like what thresholds should we use to determine whether a cell is or is not expressing a particular marker. 
 In general, if a marker is going to be useful for this type of assignment, we would like to see a bimodal plot for the marker in question that can be used to separate the population into two groups of cells based on the level of that marker.
 
 To look at the expression levels of each of the marker genes we are interested in, we will pull out the expression values for the markers from the SCE object and do some data wrangling. 
 
-The data we are interested is the normalized count data for the ADT tags, which is stored in the `logcounts` assay.
+We are interested in the normalized counts for the ADT tags, which are stored in the `logcounts` assay of the `altExp`.
 If you recall, this matrix is stored with the columns as cells and rows as markers, but we really want it the other way, so we will first transpose the data, then convert it to a data frame for our next steps.
 Because the SCE object stores the main data matrices in a specialized format, we have to do one extra step convert it first to a "regular" R matrix or R won't know how to convert it to a data frame.
 
@@ -231,12 +231,12 @@ head(adt_df)
 
 If we just wanted to plot one of these tags, we could do so right away, but with a bit more data wrangling, we can convert these results into a "tidier" format, that will allow us to take full advantage of `tidyverse` tools!
 
-Right now the data is in a "wide" format, with each column a different tag. 
+Right now the data is in a "wide" format, such that each column is a different tag. 
 But the data in all of the columns is the same type, and measures something similar: the normalized count of an ADT.
 One could even argue that each row contains 10 different observations, where the "tidy" data ideal, as espoused by [Wickham (2014)](https://doi.org/10.18637/jss.v059.i10), requires a single observation per row, a "long" format.
 This long format will have one column that tells us which ADT was measured and a second column with the measurement value itself.
 
-We can perform this conversion using the `tidyr::pivot_longer()` function.
+We can perform this conversion using the [`tidyr::pivot_longer()`](https://tidyr.tidyverse.org/articles/pivot.html) function.
 Following conversion, we can filter to just the ADTs that we care about.
 which allows us to convert our data frame with one column per tag into a data frame with separate columns for the tag id (`ADT`) and the expression value (`logcount`).
 
@@ -267,13 +267,13 @@ ggplot(adt_df_long, aes(x = logcount, fill = ADT)) +
 ```
 
 These look pretty good!
-There seem to be different baseline levels for each of the different tags, but each has a pretty nice bimodal distribution.
+There seem to be different baseline levels for each of the different tags, but each has a pretty clear bimodal distribution.
 
 We can now use the values from these plots to construct a set of rules to classify the T cells. 
 We will do this using the "wide" data frame from earlier. 
 
 The thresholds we are using here were found just "by eye", so this is not a particularly principled method of cell type assignment, but it can be fairly effective.
-Here we are assigning only three cell types: cells that do not fit any of these criteria will be set as `NA`.
+Here we are assigning only three cell types; cells that do not fit any of these criteria will be set as `NA`.
 
 ```{r threshold celltypes}
 adt_df <- adt_df %>%
