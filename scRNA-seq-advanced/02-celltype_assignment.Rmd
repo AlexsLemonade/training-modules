@@ -53,7 +53,7 @@ As mentioned, our input file here is a single normalized and processed SCE objec
 That should be all we need to read in!
 
 Our output will be a table of per-cell information, which will include the cell type assignments we have made throughout this notebook.
-We aren't planning any significant modifications of the underlying data, so we won't bother re-saving it as a new object this time.
+We aren't planning any significant modifications of the underlying data, so we won't bother re-saving the whole SCE object as a new `.rds` file this time.
 
 ```{r filepaths, live=TRUE}
 # directory for the input data
@@ -92,7 +92,7 @@ We also have some of the `rowData`, `colData` and reduced dimension matrices tha
 But where are the data from the ADTs?
 We wouldn't necessarily want those stored in the main data matrices, as the characteristics of ADT barcode data is going to be quite different from gene expression data.
 
-To keep the ADT data separate, we have split this data off into an _alternative experiment_ (`altExp`) slot.
+To keep the ADT data separate from the RNA gene expression data, we have split this data off into an _alternative experiment_ (`altExp`) slot.
 You can see the name of this `altExp` on the line `altExpNames` above. 
 We _could_ have more than one type of alternative experiment, but in this case, just the one.
 
@@ -113,7 +113,7 @@ Those corresponded to the individual cells before, and still do!
 There are only 10 rows, however, and these now correspond to the ADTs that were assayed by this particular experiment. 
 Just as we did with the full SCE, we can use `rowData()` to look at table of metadata for each of these rows.
 We'll add the `altExp()` function to point it to the embedded object we are interested in. 
-Since there is only one `altExp`, we don't need the second argument (`"ADT"`) that we used above; the default behavior of `altExp()` is to just give us the first `altExp`, and that is all we need.
+Since there is only one `altExp`, we don't need the second (name) argument (`"ADT"`) that we used above; the default behavior of `altExp()` is to just give us the first `altExp`, and that is all we need since there is only one.
 
 
 ```{r adt rows, live=TRUE}
@@ -211,6 +211,7 @@ Such classification might be considered as analogous to a cell-sorter assay, whe
 
 To do this, we will need to make some decisions, like what thresholds should we use to determine whether a cell is or is not expressing a particular marker. 
 In general, if a marker is going to be useful for this type of assignment, we would like to see a bimodal plot for the marker in question that can be used to separate the population into two groups of cells based on the level of that marker.
+One group of cells will have only a background level signal for each marker (due to non-specific binding or other factors), while the other group will have a much higher level of binding and higher counts.
 
 To look at the expression levels of each of the marker genes we are interested in, we will pull out the expression values for the markers from the SCE object and do some data wrangling. 
 
@@ -267,6 +268,7 @@ ggplot(adt_df_long, aes(x = logcount, fill = ADT)) +
 ```
 
 These look pretty good!
+We can see 
 There seem to be different baseline levels for each of the different tags, but each has a pretty nice bimodal distribution.
 
 We can now use the values from these plots to construct a set of rules to classify the T cells. 
