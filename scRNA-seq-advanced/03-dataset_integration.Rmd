@@ -315,13 +315,6 @@ It looks like the column names are all already matching among SCEs, so there's n
 
 ### Perform SCE merging
 
-
-
-
-```{r}
-sce_list
-```
-
 As you can see, there's a lot of moving parts to consider! 
 Again, these moving parts may (will!) differ for SCEs that you are working with, so you have to explore your own SCEs in depth to prepare for merging.
 
@@ -341,19 +334,19 @@ format_sce <- function(sce, library_name) {
   ## library_name: The SCE object's name
   # This function returns a formatted SCE object.
   
-  ###### Ensure that we can identify the originating library ######
-  # Add a column called `library` that stores this information
+  ###### Ensure that we can identify the originating sample information ######
+  # Add a column called `sample` that stores this information
   # This will be stored in `colData`
-  sce$library <- library_name
+  sce$sample <- library_name
   
   
   ###### Ensure cell ids will be unique ######
-  # Update the SCE object column names (cell ids) by prepending {library_name}
+  # Update the SCE object column names (cell ids) by prepending `library_name`
  colnames(sce) <- glue::glue("{library_name}-{colnames(sce)}")
         
   
   ###### Ensure gene-level statistics can be identified in `rowData` ######
-  # We want to rename the columns `mean` and `detected` to contain the {library_name}
+  # We want to rename the columns `mean` and `detected` to contain the `library_name`
   # Recall the names are: "gene_symbol", "mean", "detected"   
   colnames(rowData(sce)) <- c("gene_symbol", 
                            glue::glue("{library_name}-mean"),
@@ -398,7 +391,7 @@ merged_sce <- do.call(cbind, sce_list_formatted)
 # Let's have a look!
 merged_sce
 ```
-We now have a single SCE object that contains all cells from all libraries we'd like to integrate.
+We now have a single SCE object that contains all cells from all samples we'd like to integrate.
 
 Let's take a peek at some of the innards of this new SCE object:
 ```{r explore merged_sce}
