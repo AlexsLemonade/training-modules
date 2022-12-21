@@ -14,25 +14,23 @@ This notebook will demonstrate how to:
 
 - Use pseudo-bulking to prepare single-cell RNA-sequencing libraries for differential expression
 - Perform differential expression with the `DESeq2` package
-- Use `ggplot` and `EnhancedVolcano` to visualize gene expression changes across cell types and samples
+- Use `ggplot2` and `EnhancedVolcano` to visualize gene expression changes across cell types and samples
 
 ---
 
-Many of the previous steps that we have discussed - filtering through clustering and assignment of cell types are done on an individual sample level.
-During cell type assignment, marker genes for sub populations and clusters of cells were assigned by comparing the gene expression in these sub populations to the gene expression of all other cells in the sample. 
-
-Just like bulk RNA-seq, it is likely that one of our goals of performing single-cell RNA-seq will be to compare the gene expression of multiple samples to each other.
+Just like bulk RNA-seq, it is likely that one of the goals when performing single-cell RNA-seq will be to compare the gene expression of multiple samples to each other.
+Unlike bulk RNA-seq analysis, single-cell RNA-seq analysis allows us to identify and annotate cell types or subpopulations of cells present in each of our samples.
+This means that we can account for differences in cell type composition across samples and specifically focus on cell types or populations of interest when performing differential expression (DE) analysis.
 In this notebook, we will work with multiple samples to identify differentially expressed genes across cell types of interest using the [`DESeq2`](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) package. 
 
 We will continue working with samples from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), an investigation of pediatric solid tumors led by the Dyer and Chen labs at St. Jude Children's Research Hospital.
 This particular dataset contains 10 different samples that have been integrated using `fastMNN`, following the same procedure we outlined in `03-dataset_integration.Rmd`.
-These 10 samples represent two different types of rhabdomyosarcoma - embryonal rhabdomyosarcoma and alveolar rhabdomyosarcoma.
-We will read in a `SingleCellExperiment` object that contains both the uncorrected (merged but not integrated) and corrected (post-integration) gene expression data for all 10 samples.
-
-Just like in the integration notebook, this dataset contains the cell type annotations found in the `celltype_fine` and `celltype_broad` columns of the `colData`.
-These cell types were originally assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003).
-We will use these cell type assignments to set up the differential expression analysis below, but they are not required.
-Differential gene expression can be applied to any sub population of interest that is shared across samples and does not need to be explicitly defined by a cell type.
+These 10 samples represent two different types of rhabdomyosarcoma (RMS): embryonal rhabdomyosarcoma (ERMS) and alveolar rhabdomyosarcoma (ARMS).
+These two subtypes can be distinguished by the presence of the `PAX3/PAX7-FOXO1` fusion gene present only in ARMS patients.
+Additionally, cells found in ARMS tumors tend to have an increased mutational burden and cells are in a more differentiated state in comparison to ERMS tumor cells ([Shern _et al._ 2014](https://doi.org/10.1158/2159-8290.CD-13-0639), [Stewart _et al._](https://doi.org/10.1016/j.ccell.2018.07.012)).
+RMS tumors, regardless of subtype, are made up of cells typically associated with development of skeletal muscle: mesoderm, myoblasts, and myocytes ([Sebire and Malone 2003](https://doi.org/10.1136/jcp.56.6.412)).
+The group that published the data we are going to look at in this notebook identified distinct differences between ARMS and ERMS tumors. 
+Here we will look at a subset of the samples they sequenced and walk through testing one of their hypothesis that cell types have distinct gene expression patterns in ARMS vs. ERMS samples.
 
 ## Set Up
 
@@ -42,17 +40,19 @@ set.seed(2022)
 
 # load libraries
 library(magrittr) # the pipe (%>%)
-library(SingleCellExperiment) 
 library(ggplot2) # plotting functions
+library(SingleCellExperiment) 
 
 # package used for differential expression analysis
 library(DESeq2)
 ```
 
-Prior to integration all 10 samples have gone through the same filtering, normalization, and dimensionality reduction.
+We will start by reading in a `SingleCellExperiment` (SCE) object that contains both the uncorrected (merged but not integrated) and corrected (integrated) gene expression data for all 10 samples.
+
+Prior to integration all 10 samples went through the same filtering, normalization, and dimensionality reduction.
 These 10 samples were then merged into one `SingleCellExperiment` object following the same steps outlined in `03-dataset_integration.Rmd`.
-The merged object was then integrated to obtain a corrected gene expression assay and corrected reduced dimensionality results.
-The final `SingleCellExperiment`(SCE) object, stored in `data/rms/integrated/rms_all_sce.rds`.
+The merged object was then integrated with `fastMNN` to obtain a corrected gene expression assay and corrected reduced dimensionality results.
+The final SCE object was stored in `data/rms/integrated/rms_all_sce.rds`.
 
 We also have provided a metadata file, `data/rms/annotations/rms_sample_metadata.tsv`, that contains information from each sample, such as diagnosis, sex, age, etc.
 In this file each row corresponds to a sample found in the integrated SCE object.
@@ -64,7 +64,7 @@ To begin, let's set up our directories and files:
 # data directory for RMS data
 data_dir <- file.path("data", "rms")
 
-# integrated file containing all libraries to use for DE analysis
+# integrated file containing all samples to use for DE analysis
 integrated_sce_file <- file.path(data_dir, "integrated", "rms_all_sce.rds")
 
 # sample metadata with information needed to setup DE analysis
@@ -95,10 +95,13 @@ sample_metadata <- readr::read_tsv(sample_metadata_file)
 Before we dive into differential expression, let's explore our integrated SCE object and the dataset a little more.
 
 We'll start by looking at what's inside the object.
-Here we should have data from both the uncorrected and the corrected, integrated data for both the gene expression data and the reduced dimensionality results.
+Here we should have both the original (uncorrected) data and the integrated (corrected) data for both the gene expression and the reduced dimensionality results.
 How are those stored in our object?
 
-```{r dimnames }
+```{r print sce}
+# print out entire object
+integrated_sce
+
 # look at the assay names in our object
 assayNames(integrated_sce)
 
@@ -107,46 +110,40 @@ reducedDimNames(integrated_sce)
 ```
 
 When we look at the assay names we should see that there are 3 matrices, `counts`, `logcounts`, and `fastmnn_corrected`. 
-The `counts` and `logcounts` assay correspond to the uncorrected gene expression data that has just been merged and has NOT been integrated.
+The `counts` and `logcounts` assays correspond to the uncorrected gene expression data that has been merged but NOT integrated.
 The `fastmnn_corrected` data contains the corrected gene expression data obtained from integration. 
 For this exercise we will not be using the `fastmnn_corrected` data (more on why not once we get to setting up the differential expression), but we need to be aware that it is present and be able to distinguish it from our uncorrected data. 
 
 In the `reducedDim` slots you should see `PCA` and `UMAP` which both correspond to the pre-integrated dimensionality reduction results.
-Both the `fastmnn_PCA` and `fastmnn_UMAP` obtain the dimensionality reduction calculated post-correction and integration.
-Let's start by looking at the UMAP of our data and labeling each sample.
+You should also see `fastmnn_PCA` and `fastmnn_UMAP` reduced dimensions, which correspond to the integrated results.
 
-Which reduced dimensionality slot should we use for making our UMAP plot?
+Just like in the integration notebook, this dataset also contains the cell type annotations found in the `celltype_fine` and `celltype_broad` columns of the `colData`.
+These cell types were originally assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003).
+We will use these cell type assignments to set up the DE analysis below, but they are not required.
+It's important to note that DE analysis can be applied to any subpopulation of interest that is shared across samples and does not need to be explicitly defined by a cell type.
 
-```{r all library UMAP}
-# UMAP plot of all samples in integrated data
-scater::plotReducedDim(integrated_sce,
-                       # use the UMAP results from integrating with fastMNN
-                       dimred = "fastmnn_UMAP",
-                       # color points by original sample name
-                       colour_by = "sample",
-                       # adjust the point size and transparency
-                       point_size= 0.5,
-                       point_alpha = 0.2)
+Because we are going to be doing DE analysis between ARMS and ERMS samples, let's start by labeling cells in the integrated dataset based on their RMS subtype.
+To do this we will need to be sure that the subtype is present in the `colData` of the integrated SCE object.
+If it's not there, we need to add it in.
+
+```{r coldata head}
+# look at the head of the coldata
+head(colData(integrated_sce))
 ```
 
-Here we used the `fastmnn_UMAP`, because these UMAP embeddings have been corrected for batch effects and now transform all data points into the same gene expression space. 
-If you were to plot the default of `dimred=UMAP` you would see visually separate clusters that align to the individual samples as discussed in the data integration notebook. 
+Fortunately we also have the sample metadata table that we read in earlier, which contains information about each of the samples present in the dataset.
 
-**Note: Be sure to use the batch-corrected dimensionality reduction results for visualizing datasets containing multiple libraries**
-
-We can also take a look at the sample metadata table that we loaded: 
 
 ```{r sample metadata}
 # print out sample metadata
 head(sample_metadata)
 ```
 
-Looking at this sample table, we see that all the samples are of the same diagnosis, rhabdomyosarcoma, but come from two types of rhabdomyosarcoma - embryonal rhabdomyosarcoma (ERMS) and alveolar rhabdomyosarcoma (ARMS).
-These samples also come from a variety of tissue sites and stages of disease (initial diagnosis vs recurrence).
+Looking at this sample table, we see a column named `subdiagnosis` which accounts for the RMS subtype, ARMS or ERMS.
+We also see other columns that contain information about each specific sample and may contribute to differences seen across the samples.
 
-For today's example, we are particularly interested in comparing the gene expression across cell types in samples from patients diagnosed with ARMS vs. samples from patients diagnosed with ERMS.
-To help us out later on when we are performing our analysis and making plots, let's incorporate the information in this sample metadata table into the `colData` of the integrated SCE object.
-This will allow us to match each of the samples in the SCE object with the diagnosis group.
+We can incorporate the information in this sample metadata table into the `colData` of the integrated SCE object.
+This will allow us to match each of the samples in the SCE object with the RMS subtype and also allow us to use any of the columns in the sample metadata for plotting.
 
 ```{r modify coldata}
 # add the sample metadata to the colData from the integrated SCE object
@@ -156,8 +153,8 @@ coldata_df <- colData(integrated_sce) %>%
   # merge with sample metadata 
   dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) %>%
   # create a new columns
-  dplyr::mutate(cell_id = paste(sample, barcode, sep = "-"), # combination of barcode and sample
-                # simplify subdiagnosis for easy plotting and DE later
+  dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"), # combination of barcode and sample
+                # simplify subdiagnosis for easier plotting and DE later
                 diagnosis_group = forcats::fct_recode(
                   subdiagnosis,
                   "ARMS" = "Alveolar rhabdomyosarcoma",
@@ -173,7 +170,9 @@ head(colData(integrated_sce))
 
 Now when we look at the `colData` of the SCE object we should see new columns, including the `diagnosis_group` column which indicates if each cell comes from an ERMS or ARMS sample.
 We can now use that column to label any UMAP plots (or other plot types) that we make.
-In the below chunk we will color our cells by subdiagnosis.
+In the chunk below we will start by taking a look at our integration results and color our cells by RMS subtype.
+
+**Reminder: You should always use the batch-corrected dimensionality reduction results for visualizing datasets containing multiple libraries or samples.**
 
 ```{r diagnosis group UMAP}
 # UMAP of all samples, separating by diagnosis group
@@ -184,16 +183,17 @@ scater::plotReducedDim(integrated_sce,
                        point_alpha = 0.2) 
 ```
 
-Interestingly, it looks like samples from the ARMS and ERMS subdiagnoses tend to integrate with or samples of the same subdiagnosis rather than integrate all together. 
+Interestingly, it looks like samples from the ARMS and ERMS subtypes tend to cluster with samples of the same subtype rather than cluster all together. 
 
 In the integration notebook we also looked at the distribution of cell types after integration.
-We expect that cells of the same cell type should integrate with other cells of the same type.
+In that notebook we discussed that cells of the same cell type are expected to integrate with other cells of the same type.
 Is that the case with this dataset?
 
-_A word of caution when evaluating the cell type results for this dataset: The cell types for this dataset were assigned in a two stage process.
+A word of caution when evaluating the cell type results for this dataset: The cell types for this dataset were assigned in a two stage process as described in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003).
 The first stage assigned cells as tumor or non-tumor.
-The next stage further classified tumor cells into type of tumor cell (i.e., myoblast, myocyte, or mesoderm).
-Not all samples contain tumor cells that were further classified and samples will either have all `Tumor` or a mix of `Tumor_Mesoderm`, `Tumor_Myoblast`, and `Tumor_Myocyte`._
+The next stage further classified tumor cells into one of three types of tumor cells: myoblast, myocyte, or mesoderm.
+Some samples could not be further classified, so all of their tumor cells are denoted `Tumor`.
+The samples which could be further classified have a mix of `Tumor_Mesoderm`, `Tumor_Myoblast`, and `Tumor_Myocyte`.
 
 ```{r celltype UMAP}
 # # UMAP of all libraries, separating by diagnosis group and labeling cell type
@@ -205,59 +205,64 @@ scater::plotReducedDim(integrated_sce,
                        point_alpha = 0.4)
 ```
 
-Unlike with the previous datasets we have seen where all cells of the same cell type always grouped together, this dataset shows some slightly different patterns.
-We see that there are at least 2 clear distinct groups for each cell type, 1 in each half of the UMAP.
-It looks like this is because the difference in diagnosis group accounts for differences across all cells in the sample, even those from the same type. 
-We can take advantage of another `ggplot` tool, the `facet_wrap()` function to look at two (or more, but we'll start with two) variables in the `colData` at once - the cell type and the subdiagnosis.
-In the below plot we will color our cells by cell type but we will also use `facet_wrap()` to plot the cells from each subdiagnosis in their own separate panel of the plot.
+Unlike with the previous datasets we have seen where all cells of the same cell type always grouped together, this dataset shows some slightly different patterns and not all cells of the same cell type cluster together.
+One reason is that tumor data can be heterogeneous and every tumor is unique.
+Depending on the tumor type we may not expect every sample to integrate perfectly and more heterogeneous tumor types will be more difficult to integrate together.
+In this particular case we are looking at two subtypes of RMS that have distinct mutation burdens and differentiation states, so it's likely that those differences contribute to how well they integrate.
 
+To explore whether cells are grouping together both by cell type and by RMS subtype, we can create a plot that incorporates both pieces of metadata.
+We will take advantage of the `facet_grid()` function from `ggplot2` to look at two variables in the `colData` at once - the cell type and the subdiagnosis.
+In the below plot we will color our cells by cell type while also using `facet_grid()` so that cells from different subdiagnoses will be in their own plot panel.
 
 ```{r celltype subdiagnosis UMAP}
-# # UMAP of all libraries, separating by diagnosis group and labeling cell type
+# UMAP of all samples, separating by diagnosis group and labeling cell type
 scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
                        # color each point by cell type
                        colour_by = "celltype_broad",
                        point_size= 0.5, 
                        point_alpha = 0.4,
+                       # tell scater that we want to use diagnosis_group for plotting
                        other_fields = "diagnosis_group") +
-  # split plots by diagnosis group 
-  facet_wrap(~ diagnosis_group)
+  # include each diagnosis group as a separate plot in its own column
+  facet_grid(cols = vars(diagnosis_group))
 ```
 
-As expected, we see that the visual clusters of cell types are being separated most likely due to different subdiagnoses.
-Although we expect that the same cell types are present in both, each of the subdiagnoses for rhabdomyosarcoma have a distinct genomic and epigenomic landscape, likely accounting for the global gene expression changes seen between samples from these two subdiagnoses in the UMAP ([Shern _et al._ 2014](https://doi.org/10.1158/2159-8290.CD-13-0639), [Stewart _et al._](https://doi.org/10.1016/j.ccell.2018.07.012)).
+As expected, we see that the visual clusters of cell types are being separated, most likely due to different RMS subtypes.
 
 We can also use a stacked barplot to look at the distribution of cell types across each sample.
 
 ```{r celltype barplot}
 # filter coldata data.frame to only include tumor cells
 tumor_cells_df <- coldata_df %>%
+  # find rows where the cell type name contains the string "Tumor"
   dplyr::filter(stringr::str_detect(celltype_broad, "Tumor"))
 
 # create a stacked barplot
 ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) + 
-    geom_bar(color = "black", size = 0.2) +
+    geom_bar(position = "fill", color = "black", size = 0.2) +
     labs(
-      x = "Library",
+      x = "Sample",
       y = "Number of cells", 
       fill = "Cell type"
     ) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
   # split by diagnosis group 
   # only show non-NA values on x-axis
-  facet_wrap(~diagnosis_group, scales = "free_x")
+  facet_grid(cols = vars(diagnosis_group), 
+             scales = "free_x",
+             space = "free_x")
 ```
 
-Similar to the UMAP, this plot shows that ARMS and ERMS share a lot of the same cell types, although it is likely that these cell types may have distinct gene expression patterns defined by the associated subdiagnosis.
+Similar to the UMAP, this plot shows that ARMS and ERMS share a lot of the same cell types.
 
-We also see that only 6 of these libraries have tumor cells that have been further classified into cell type. 
-3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified and the remaining library appears to not have been assigned any cell types, as they are all labeled with `NA`.
+We also see that only 6 of these libraries have tumor cells that have been further classified into mesoderm, myoblast, and myocyte. 
+3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified, and the remaining library appears to not have been assigned any cell types and is not present in our plot, as they are all labeled with `NA`.
 We will continue our analysis only using the 6 libraries with fully classified cell types, removing the other 3 before we proceed with differential expression.
 
-The reason we want to pare down our list of samples to consider is that we want to ensure that the cell types (or subpopulations) that we are interested in are present in all samples included in our differential gene expression analysis. 
-We would want to remove any samples that do not contain our population of interest as they would have no counts to contribute to the differential expression analysis.
+The reason we want to pare down our list of samples to consider is that we want to ensure that the cell types (or subpopulations) that we are interested in are present in all samples included in our DE analysis. 
+We want to remove any samples that do not contain our cell population(s) of interest as they have no counts to contribute to the DE analysis.
 
 ```{r subset sce}
 # define samples to keep
@@ -274,43 +279,23 @@ library_ids <- c(
 samples_to_keep <- integrated_sce$sample %in% library_ids
 rms_sce <- integrated_sce[,samples_to_keep]
 
-# remove original integrated object 
+# remove original integrated object to save some memory
 rm(integrated_sce)
+
+# print out our new sce 
+rms_sce
 ```
 
 
 We now have an updated SCE object that contains 6 samples that were obtained from a mix of ARMS and ERMS patients.
-We are particularly interested in identifying differentially expressed genes in tumor cell types between ARMS and ERMS.
-Before we do that we need to ensure that we have enough biological replicates from each group to set up our experiment. 
-It is imperative to consider good experimental design and ensure that we have enough biological replicates (at least > 3 for each group) when performing differential gene expression analysis.
-Here one sample, or group of cells collected together, from one piece of tissue is one biological replicate.
+We can then ask the question, do specific tumor cell types contain sets of differentially expressed genes between ARMS and ERMS samples?
 
-We can count how many samples we have from each diagnosis group to ensure we have enough replicates.
+We should make sure that we have enough biological replicates from each group to set up our experiment. 
+It is imperative to consider good experimental design and ensure that we have enough biological replicates (at least 3 for each group) when performing differential gene expression analysis.
 
-```{r count diagnosis}
-# total how many of each diagnosis group are left after subsetting 
-sample_metadata %>%
-  dplyr::filter(library_id %in% library_ids) %>%
-  dplyr::count(subdiagnosis)
-```
-
-We have 3 ARMS and 3 ERMS samples which is great! 
-We can now proceed forward with these 6 samples to identify differentially expressed genes in each of the shared cell types.
-Lets take another look at the cell types found in these libraries and also how many of each cell type are present in our dataset.
-
-```{r celltype table}
-# look at distribution of cell types across all libraries 
-as.data.frame(colData(rms_sce)) %>%
-  # count number of cells in each cell type
-  dplyr::count(celltype_broad) %>%
-  # sort from largest to smallest
-  dplyr::arrange(desc(n))
-```
-
-This table shows us that the majority of cells are tumor cells, in particular the largest population of cells are the `Tumor_Myoblast`.
-If we were to look at our stacked boxplot again we would see that this cell type is shared among all 6 of our selected samples. 
-
-For this example we will focus on identifying differentially expressed genes in one cell type, the `Tumor_Myoblast` cells, but the principles applied below can be applied to any cell types or subpopulations of interest.
+If we look back at our stacked barplot we see that we picked 3 ARMS and 3 ERMS samples.
+We can also see that the majority of cells are tumor cells, in particular the largest population of cells appears to be the `Tumor_Myoblast`. 
+For this example we will focus on identifying DE genes in one cell type, the `Tumor_Myoblast` cells, but the principles applied below can be applied to any cell types or subpopulations of interest.
 
 ## Differential Expression Analysis
 
