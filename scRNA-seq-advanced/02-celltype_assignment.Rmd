@@ -37,7 +37,6 @@ To start, we will load some of the libraries we will need later, and set a rando
 
 ```{r setup}
 # Load libraries
-library(magrittr) # the pipe (%>%) operator
 library(ggplot2) # plotting functions
 library(SingleCellExperiment) # our main class for storing Single Cell data
 
@@ -225,9 +224,9 @@ Because the SCE object stores the assay data matrices in a specialized format, w
 
 ```{r extract ADT}
 # convert logcounts data to a data frame
-adt_df <- logcounts(altExp(sce)) %>%
-  t() %>% # transpose
-  as.matrix() %>% # convert to matrix
+adt_df <- logcounts(altExp(sce)) |>
+  t() |> # transpose
+  as.matrix() |> # convert to matrix
   as.data.frame() # convert to data frame
 
 # view the data frame
@@ -247,13 +246,13 @@ which allows us to convert our data frame with one column per tag into a data fr
 Following conversion, we will filter to just the ADTs that we care about.
 
 ```{r pivot longer, live=TRUE}
-adt_df_long <- adt_df %>%
+adt_df_long <- adt_df |>
   # pivot to long format
   tidyr::pivot_longer(
     everything(), # use all columns
     names_to = "ADT", # convert row names to a column called "ADT"
     values_to = "logcount" # name the value column "logcount"
-  ) %>%
+  ) |>
   # filter to tags we are interested in
   dplyr::filter(ADT %in% c("CD3", "CD4", "CD8"))
 
@@ -282,7 +281,7 @@ The thresholds we are using here were found just "by eye", so this is not a part
 Here we are assigning only three cell types; cells that do not fit any of these criteria will be set as `NA`.
 
 ```{r threshold celltypes}
-adt_df <- adt_df %>%
+adt_df <- adt_df |>
   dplyr::mutate(
     celltype = dplyr::case_when(
       CD3 > 6.7 & CD4 > 8 ~ "CD4+ T-cell",
@@ -388,8 +387,8 @@ Another component we would like to explore is how many of each of these cell typ
 A bit of quick `dplyr` wrangling can give us the answe.
 
 ```{r}
-colData(monaco_ref) %>% 
-  as.data.frame() %>%
+colData(monaco_ref) |> 
+  as.data.frame() |>
   dplyr::count(label.main, label.fine)
 ```
 
@@ -536,7 +535,7 @@ First we will use `fct_collapse` to take some of the finer labels that we might 
 After that, we will use `fct_relevel` to put the remaining factor levels in the order we would like them to appear for plotting.
 
 ```{r collapse labels}
-collapsed_labels <- singler_result_fine$pruned.labels %>%
+collapsed_labels <- singler_result_fine$pruned.labels |>
   forcats::fct_collapse(
     "Monocytes" = c(
         "Classical monocytes", 
@@ -562,7 +561,7 @@ collapsed_labels <- singler_result_fine$pruned.labels %>%
         "Exhausted B cells",
         "Plasmablasts"		
     )
-  ) %>%
+  ) |>
   # order for plotting
   forcats::fct_relevel(
     "Helper T cells",
