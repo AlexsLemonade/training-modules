@@ -14,12 +14,12 @@ This notebook will demonstrate how to:
 
 - Use pseudo-bulking to prepare single-cell RNA-sequencing libraries for differential expression
 - Perform differential expression with the `DESeq2` package
-- Use `ggplot` and `EnhancedVolcano` to visualize gene expression changes across cell types and samples
+- Use `ggplot2` and `EnhancedVolcano` to visualize gene expression changes across cell types and samples
 
 ---
 
 Just like bulk RNA-seq, it is likely that one of the goals when performing single-cell RNA-seq will be to compare the gene expression of multiple samples to each other.
-Unlike in bulk RNA-seq analysis, single-cell RNA-seq analysis allows us to identify and annotate cell types or subpopulations of cells present in each of our samples.
+Unlike bulk RNA-seq analysis, single-cell RNA-seq analysis allows us to identify and annotate cell types or subpopulations of cells present in each of our samples.
 This means that we can account for differences in cell type composition across samples and specifically focus on cell types or populations of interest when performing differential expression (DE) analysis.
 In this notebook, we will work with multiple samples to identify differentially expressed genes across cell types of interest using the [`DESeq2`](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) package. 
 
@@ -51,7 +51,7 @@ We will start by reading in a `SingleCellExperiment` (SCE) object that contains 
 
 Prior to integration all 10 samples went through the same filtering, normalization, and dimensionality reduction.
 These 10 samples were then merged into one `SingleCellExperiment` object following the same steps outlined in `03-dataset_integration.Rmd`.
-The merged object was then integrated to obtain a corrected gene expression assay and corrected reduced dimensionality results.
+The merged object was then integrated with `fastMNN` to obtain a corrected gene expression assay and corrected reduced dimensionality results.
 The final SCE object was stored in `data/rms/integrated/rms_all_sce.rds`.
 
 We also have provided a metadata file, `data/rms/annotations/rms_sample_metadata.tsv`, that contains information from each sample, such as diagnosis, sex, age, etc.
@@ -122,7 +122,7 @@ These cell types were originally assigned in [Patel _et al._ (2022)](https://doi
 We will use these cell type assignments to set up the DE analysis below, but they are not required.
 It's important to note that DE analysis can be applied to any sub population of interest that is shared across samples and does not need to be explicitly defined by a cell type.
 
-Because we are going to be doing DE analysis between ARMS and ERMS samples, let's start by first looking at our integrated dataset and labeling our cells by which RMS subtype they are from.
+Because we are going to be doing DE analysis between ARMS and ERMS samples, let's start by labeling cells in the integrated dataset based on their RMS subtype.
 To do this we will need to be sure that the subtype is present in the `colData` of the integrated SCE object.
 If it's not there, we need to add it in.
 
@@ -191,7 +191,7 @@ Is that the case with this dataset?
 
 A word of caution when evaluating the cell type results for this dataset: The cell types for this dataset were assigned in a two stage process as described in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003).
 The first stage assigned cells as tumor or non-tumor.
-The next stage further classified tumor cells into type of tumor cell (i.e., myoblast, myocyte, or mesoderm).
+The next stage further classified tumor cells into one of three types of tumor cells: myoblast, myocyte, or mesoderm.
 Some samples could not be further classified, so all of their tumor cells are denoted `Tumor`.
 The samples which could be further classified have a mix of `Tumor_Mesoderm`, `Tumor_Myoblast`, and `Tumor_Myocyte`.
 
@@ -211,9 +211,9 @@ One reason is that tumor data can be heterogeneous and every tumor is unique.
 Depending on the tumor type we may not expect every sample to integrate perfectly.
 In this particular case we are looking at two subtypes of RMS that have been shown to have distinctly different mutation burdens and differentiation states, so it's likely that those differences are contributing to how well they will be integrated.
 
-To confirm our hypothesis that cells are grouping together both by cell type and by RMS subtype we can create a plot that incorporates both pieces of metadata.
+To explore whether cells are grouping together both by cell type and by RMS subtype, we can create a plot that incorporates both pieces of metadata.
 We will take advantage of the `facet_wrap()` function from `ggplot2` to look at two (or more, but we'll start with two) variables in the `colData` at once - the cell type and the subdiagnosis.
-In the below plot we will color our cells by cell type but we will also use `facet_wrap()` to plot the cells from each subdiagnosis in their own separate panel of the plot.
+In the below plot we will color our cells by cell type while also using `facet_wrap()` so that cells from different subdiagnoses will be in their own plot panel.
 
 ```{r celltype subdiagnosis UMAP}
 # UMAP of all samples, separating by diagnosis group and labeling cell type
@@ -290,7 +290,7 @@ rms_sce
 We now have an updated SCE object that contains 6 samples that were obtained from a mix of ARMS and ERMS patients.
 We are particularly interested in identifying DE genes in tumor cell types between ARMS and ERMS.
 We should also make sure that we have enough biological replicates from each group to set up our experiment. 
-It is imperative to consider good experimental design and ensure that we have enough biological replicates (at least > 3 for each group) when performing differential gene expression analysis.
+It is imperative to consider good experimental design and ensure that we have enough biological replicates (at least 3 for each group) when performing differential gene expression analysis.
 
 If we look back at our stacked barplot we see that we picked 3 ARMS and 3 ERMS samples.
 We can also see that the majority of cells are tumor cells, in particular the largest population of cells appears to be the `Tumor_Myoblast`. 
