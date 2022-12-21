@@ -120,7 +120,7 @@ You should also see `fastmnn_PCA` and `fastmnn_UMAP` reduced dimensions, which c
 Just like in the integration notebook, this dataset also contains the cell type annotations found in the `celltype_fine` and `celltype_broad` columns of the `colData`.
 These cell types were originally assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003).
 We will use these cell type assignments to set up the DE analysis below, but they are not required.
-It's important to note that DE analysis can be applied to any sub population of interest that is shared across samples and does not need to be explicitly defined by a cell type.
+It's important to note that DE analysis can be applied to any subpopulation of interest that is shared across samples and does not need to be explicitly defined by a cell type.
 
 Because we are going to be doing DE analysis between ARMS and ERMS samples, let's start by first looking at our integrated dataset and labeling our cells by which RMS subtype they are from.
 To do this we will need to be sure that the subtype is present in the `colData` of the integrated SCE object.
@@ -153,7 +153,7 @@ coldata_df <- colData(integrated_sce) %>%
   # merge with sample metadata 
   dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) %>%
   # create a new columns
-  dplyr::mutate(cell_id = paste(sample, barcode, sep = "-"), # combination of barcode and sample
+  dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"), # combination of barcode and sample
                 # simplify subdiagnosis for easier plotting and DE later
                 diagnosis_group = forcats::fct_recode(
                   subdiagnosis,
@@ -205,15 +205,14 @@ scater::plotReducedDim(integrated_sce,
                        point_alpha = 0.4)
 ```
 
-That doesn't appear to be the case with this dataset. 
 Unlike with the previous datasets we have seen where all cells of the same cell type always grouped together, this dataset shows some slightly different patterns and not all cells of the same cell type cluster together.
 One reason is that tumor data can be heterogeneous and every tumor is unique.
-Depending on the tumor type we may not expect every sample to integrate perfectly.
-In this particular case we are looking at two subtypes of RMS that have been shown to have distinctly different mutation burdens and differentiation states, so it's likely that those differences are contributing to how well they will be integrated.
+Depending on the tumor type we may not expect every sample to integrate perfectly and more heterogeneous tumor types will be more difficult to integrate together.
+In this particular case we are looking at two subtypes of RMS that have distinct mutation burdens and differentiation states, so it's likely that those differences contribute to how well they integrate.
 
 To confirm our hypothesis that cells are grouping together both by cell type and by RMS subtype we can create a plot that incorporates both pieces of metadata.
-We will take advantage of the `facet_wrap()` function from `ggplot2` to look at two (or more, but we'll start with two) variables in the `colData` at once - the cell type and the subdiagnosis.
-In the below plot we will color our cells by cell type but we will also use `facet_wrap()` to plot the cells from each subdiagnosis in their own separate panel of the plot.
+We will take advantage of the `facet_grid()` function from `ggplot2` to look at two variables in the `colData` at once - the cell type and the subdiagnosis.
+In the below plot we will color our cells by cell type but we will also use `facet_grid()` to plot the cells from each subdiagnosis in their own separate panel of the plot.
 
 ```{r celltype subdiagnosis UMAP}
 # UMAP of all samples, separating by diagnosis group and labeling cell type
@@ -225,8 +224,8 @@ scater::plotReducedDim(integrated_sce,
                        point_alpha = 0.4,
                        # tell scater that we want to use diagnosis_group for plotting
                        other_fields = "diagnosis_group") +
-  # split plots by diagnosis group 
-  facet_wrap(~ diagnosis_group)
+  # include each diagnosis group as a separate plot in its own column
+  facet_grid(cols = vars(diagnosis_group))
 ```
 
 As expected, we see that the visual clusters of cell types are being separated, most likely due to different RMS subtypes.
@@ -236,13 +235,14 @@ We can also use a stacked barplot to look at the distribution of cell types acro
 ```{r celltype barplot}
 # filter coldata data.frame to only include tumor cells
 tumor_cells_df <- coldata_df %>%
+  # find rows where the cell type name contains the string "Tumor"
   dplyr::filter(stringr::str_detect(celltype_broad, "Tumor"))
 
 # create a stacked barplot
 ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) + 
     geom_bar(position = "fill", color = "black", size = 0.2) +
     labs(
-      x = "Library",
+      x = "Sample",
       y = "Number of cells", 
       fill = "Cell type"
     ) +
@@ -288,8 +288,9 @@ rms_sce
 
 
 We now have an updated SCE object that contains 6 samples that were obtained from a mix of ARMS and ERMS patients.
-We are particularly interested in identifying DE genes in tumor cell types between ARMS and ERMS.
-We should also make sure that we have enough biological replicates from each group to set up our experiment. 
+We can then ask the question, do specific tumor cell types contain sets of differentially expressed genes between ARMS and ERMS samples?
+
+We should make sure that we have enough biological replicates from each group to set up our experiment. 
 It is imperative to consider good experimental design and ensure that we have enough biological replicates (at least > 3 for each group) when performing differential gene expression analysis.
 
 If we look back at our stacked barplot we see that we picked 3 ARMS and 3 ERMS samples.
