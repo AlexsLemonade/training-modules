@@ -39,7 +39,6 @@ Here we will look at a subset of the samples they sequenced and identify differe
 set.seed(2022)
 
 # load libraries
-library(magrittr) # the pipe (%>%)
 library(ggplot2) # plotting functions
 library(SingleCellExperiment) 
 
@@ -153,11 +152,11 @@ This will allow us to match each of the samples in the SCE object with the RMS s
 
 ```{r modify coldata}
 # add the sample metadata to the colData from the integrated SCE object
-coldata_df <- colData(integrated_sce) %>%
+coldata_df <- colData(integrated_sce) |>
   # convert from DataFrame to data.frame
-  as.data.frame() %>%
+  as.data.frame() |>
   # merge with sample metadata 
-  dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) %>%
+  dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) |>
   # create a new columns
   dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"), # combination of barcode and sample
                 # simplify subdiagnosis for easier plotting and DE later
@@ -241,7 +240,7 @@ We can also use a stacked barplot to look at the distribution of cell types acro
 
 ```{r celltype barplot}
 # filter coldata data.frame to only include tumor cells
-tumor_cells_df <- coldata_df %>%
+tumor_cells_df <- coldata_df |>
   # find rows where the cell type name contains the string "Tumor"
   dplyr::filter(stringr::str_detect(celltype_broad, "Tumor"))
 
@@ -534,16 +533,16 @@ Before we save the results as a file, we will grab the gene symbols from the `ro
 
 ```{r add gene symbol}
 # convert shrunken results to a data.frame and add ensembl id as a column
-deseq_results <- shrink_results %>%
+deseq_results <- shrink_results |>
   tibble::as_tibble(rownames = "ensembl_id")
 
 # convert rowdata to data.frame 
-sce_rowdata_df <- rowData(tumor_myoblast_sce) %>%
+sce_rowdata_df <- rowData(tumor_myoblast_sce) |>
   # create a column with rownames stored as ensembl id to use for joining with deseq results
   tibble::as_tibble(rownames = "ensembl_id")
 
 # combine deseq results with rowdata by ensembl id 
-deseq_results <- deseq_results %>%
+deseq_results <- deseq_results |>
   dplyr::left_join(sce_rowdata_df, by = "ensembl_id")
 
 head(deseq_results)
@@ -561,7 +560,7 @@ Here we will want to use the adjusted p-value, found in the `padj` column of the
 
 ```{r}
 # first look at the significant results 
-deseq_results_sig <- deseq_results %>%
+deseq_results_sig <- deseq_results |>
   # filter based on adjusted pvalue
   dplyr::filter(padj <= 0.05)
 
