@@ -460,6 +460,7 @@ We can thank the fact that this is a PBMC sample and that we have a good referen
 Quite often with other kinds of samples (especially cancer cells!) things will be much less clean!
 
 We can also look to see how the cell type assignments are distributed using the base R function `table()`
+Since we like to keep track of the cells that ended up as `NA` in the pruned labels, we will include the `useNA = "ifany"` argument.
 
 ```{r cell type table}
 table(singler_result$pruned.labels, useNA = "ifany")
@@ -603,8 +604,7 @@ scater::plotUMAP(sce,
 
 Let's look at how the cell type assignments we have compare to the clusters that we found using the unsupervised clustering at the start of this notebook.
 
-To do this, we will first use the very handy base R `table()` function to build a contingency table of the cell types and clusters that each cell was classified with. 
-Since we used the "pruned" cell type assignments and we'd still like to keep track of the cells that ended up as `NA`, we will include the `useNA = "ifany"` argument.
+To do this, we will again use the `table()` function, but now with two vectors as input, to build a contingency table of the cell types and clusters that each cell was classified with. 
 
 ```{r}
 # create a table of clusters & cell type counts
@@ -673,7 +673,7 @@ You can see that the resulting matrix still has the same number of rows we have 
 Now we can apply the same `SingleR` model to these results, using the new matrix as input along with the previously trained model.
 As there are only 20 clusters to classify, this will be very quick, and we don't need to parallelize it!
 
-```{r singler cluster, live = true}
+```{r singler cluster, live = TRUE}
 singler_cluster <- SingleR::classifySingleR(
   cluster_mat, 
   singler_finemodel
