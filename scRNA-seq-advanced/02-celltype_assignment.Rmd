@@ -593,29 +593,39 @@ scater::plotUMAP(sce,
 
 ### Heatmap of cell types & clusters
 
+Let's look at how the cell type assignments we have compare to the clusters that we found using the unsupervised clustering at the start of this notebook.
 
-Let's look at how the cell type assignments we have compare to the clusters we found from the data alone.
-
-To do this, we will first use `table` function to build a contingency table of the cell types and clusters that each cell was classified with. 
+To do this, we will first use the very handy base R `table()` function to build a contingency table of the cell types and clusters that each cell was classified with. 
+Since we used the "pruned" cell type assignments and we'd still like to keep track of the cells that ended up as `NA`, we will include the `useNA = "ifany" argument.
 
 ```{r}
 # create a table of clusters & cell type counts
 type_cluster_tab <- table(sce$celltype_fine, sce$nn_cluster, useNA = "ifany")
-type_cluster_tab
+
+# look at the top corner of the results
+type_cluster_tab[1:5, 1:5]
 ```
 
-Since the number of cells in each cluster will vary, we'd like to convert these counts into proportions. 
-We'll do this by dividing each cluster/cell type count by the total number of cells in that cluster.
+As you can see, this produced a table with rows for each cell type and columns for each cluster number.
+The values are the count of cells for each cluster/cell type combination.
+These raw counts of cells are not quite what we are going to want for visualization. 
+Since the total number of cells in each cluster will vary, we'd like to convert these counts into the proportions of each cell type in each cluster.
 
+We'll do this by going through the table column by column and dividing each value by the sum for that cluster.
+To do that, we will use the `apply` function, which allows us to operate on a matrix row by row or column by column, applying a function to each "slice".
+Since the function we want to apply is very short, we will use R's new anonymous function shorthand: 
+`\(x) ...` can be used to define a function that that takes as input values `x` (where the `...` is where you would put the expression to calculate).
+Here we will apply the expression `x/sum(x)`, which will divide each element of a vector `x` by the sum of its values.
 
-```{r}
+```{r normalize by column}
 # normalize by the number of cells in each cluster (columns)
 type_cluster_tab <- apply(
   type_cluster_tab, 
   2, # apply function to columns
-  function(x){x/sum(x)} # function to apply
+  \(x) x/sum(x) # function to apply
 )
-type_cluster_tab
+# print the normalized values
+type_cluster_tab[1:5, 1:5]
 ```
 
 Now we can plot these results as a heatmap, using the `pheatmap` package. 
@@ -626,89 +636,116 @@ There is a lot of customization we could do here, but `pheatmap` (pretty heatmap
 pheatmap::pheatmap(type_cluster_tab)
 ```
 
-
+We can see that most of our clusters are indeed defined by a single cell type, though there are some clusters (e.g., 1 & 9) that have a number of (related) cell types within them.
+There are also some places where single cell types are spread across a few different clusters (Classical monocytes, for example).
 
 ### Classifying by clusters
 
-This section inspired by the fact that `SingleR()` has a `clusters` argument.
+While most of the time we will want to classify single cells, sometimes the sparseness of the data may mean that individual cells do not provide reliable estimates of cell types. 
 
-First we will make a new matrix where we sum the counts across cells that are from the same type according to our clustering.
-The idea here is that we can reduce noise by combining a bunch of cells.
+An alternative approach is to classify the clusters as a whole, assuming that the clusters we have identified represent a single cell state.
+If that is the case, then we should be able to combine the data for all cells across each cluster, then apply our cell typing method to this group of cells. 
+This is similar to an approach we will return to later in the context of differential expression. 
 
-Note that in this case we are using raw counts. 
-`SingleR` is non-parametric, so it shouldn't matter! 
-(And adding log values felt bad.)
+The first step here is to create a new matrix where we sum the counts across cells that are from the same type according to our clustering.
+Because `SingleR` is a non-parametric approach, we will perform this step with the raw counts matrix.
+There are a few different ways to do this, but we will use the function `DelayedArray::colsum()`, which can work directly on the sparse matrices that are often found in SCE objects.
+We will provide it with the matrix we need, and then a vector of the cluster assignments for each column of the matrix.
+The function will then sum expression values for each gene across all of the columns that have that value.
 
-```{r}
-sce_cluster_mat <- DelayedArray::colsum(counts(sce), sce$nn_cluster)
-dim(sce_cluster_mat)
+```{r sum clusters}
+# sum count matrix by cluster
+cluster_mat <- DelayedArray::colsum(counts(sce), sce$nn_cluster)
+# print new dimensions
+dim(cluster_mat)
 ```
 
-```{r}
-singler_result_cluster <- SingleR::classifySingleR(
-  sce_cluster_mat, 
+You can see that the resulting matrix still has the same number of rows we have seen before, but now only has rows for the number of clusters that were assigned.
+
+Now we can apply the same `SingleR` model to these results, using the new matrix as input along with the previously trained model.
+As there are only 20 clusters to classify, this will be very quick, and we don't need to parallelize it!
+
+```{r singler cluster, live = true}
+singler_cluster <- SingleR::classifySingleR(
+  cluster_mat, 
   singler_finemodel
 )
+
+# view results
+head(singler_cluster)
 ```
 
-```{r}
-singler_result_cluster$labels
-```
-Add cluster labels to individual cells.
+The result is a fairly small table of results, but we are interested most in the labels, which we would like to assign back to our SCE object cell by cell for visualization.
+Since the cluster labels are the row names of that table, we can perform a cute little trick to assign labels back to each cell based on the name of the cluster that it was assigned to. 
+(In this case the cluster names are all numbers, but that might not always be the case.)
+We'll select values repeatedly from the `singler_cluster` table, using the cluster assignment to pick a row, and then always picking the `pruned.labels` column.
 
-```{r}
-sce$celltype_cluster <- singler_result_cluster$labels[sce$nn_cluster]
+```{r assign cell labels}
+sce$celltype_cluster <- singler_cluster[sce$nn_cluster, "pruned.labels"]
 ```
 
-Plot with cluster labels.
+Now we can plot these cluster-based cell type assignments using the now familiar `plotUMAP()` function
 
 ```{r}
 scater::plotUMAP(sce, colour_by = "celltype_cluster")
 ```
 
-This sure looks nice, but what have we done here? 
-We are _assuming_ that each cluster has only a single cell type!
+This sure looks nice, but what have we really done here? 
+We are _assuming_ that each cluster has only a single cell type, which is a pretty bold assumption, as we really aren't sure that the clusters we created were correct.
+You may recall that clustering algorithms are quite sensitive to parameter choice, so a different parameter choice could quite likely give a different result.
 
+### MetaCell approaches
 
-### MetaCell-like
+As an intermediate step between the potentially messy single-cell cell type assignment and the almost certainly overconfident cluster-based assignment above, we can take an approach inspired by a paper by [Baran _et al._ (2019)](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1812-2) that they called _metacells_. 
+The idea is that we can perform fine-scaled clustering to identify groups of similar very similar cells, then sum the counts within those clusters  for further analysis. 
+The original paper includes a number of optimizations to make sure that the metacell clusters have desired properties for downstream analysis.
+We won't go into that depth here, but we can apply similar ideas.
 
-Inspired by https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1812-2 
-(I may refine to match methods better, but maybe this is good enough?)
+To begin, we will perform some fine-scale clustering, using a simpler clustering algorithm: K-means clustering.
+We will use the same `bluster` package, clustering based on the PCA results we have from earlier, but this algorithm allows us to specify the number of clusters we want to end up with.
+We have  about 8000 cells, so let's cluster those into groups of approximately 80 cells, which works out to 100 clusters.
+While this is almost certainly more clusters than are "real" in this data set, our goal here is not to find differences among clusters, just to get homogeneous groups of cells.
 
-Alternatively cluster cells with a fast algorithm to find neighbors, then assign types to those. 
-We have ~8000 cells, so lets cluster those into groups of ~40 cells, which means we want to make about 200 clusters.
-
-A quick way to do this is with k-means clustering.
-
-```{r}
+```{r kmeans cluster}
+# perform k-means clustering
 kclusters <- bluster::clusterRows(
   reducedDim(sce, "PCA"), 
   bluster::KmeansParam(
-    centers = 200,
+    centers = 100, # the number of clusters 
     iter.max = 100 # more iterations to be sure of convergence
   )
 )
 ```
 
-Now apply the same procedure, using these clusters:
+Now we can apply exactly the same approach we did when we had the 20 clusters we had identified with the earlier graph-based clustering.
 
-```{r}
-kcluster_mat <- DelayedArray::colsum(counts(sce), kclusters)
-kcluster_result <- SingleR::classifySingleR(
-  kcluster_mat, 
+```{r metacell singler}
+# create a "metacell" matrix by summing fine-scale clusters
+metacell_mat <- DelayedArray::colsum(counts(sce), kclusters)
+
+# apply SingleR model to metacell matrix
+metacell_singler <- SingleR::classifySingleR(
+  metacell_mat, 
   singler_finemodel
-  )
+)
 
-sce$celltype_kcluster <- kcluster_result$labels[kclusters]
+# apply metacell cell type assignments to individual cells
+sce$celltype_metacell <- metacell_singler[kclusters, "pruned.labels"]
 ```
 
-```{r}
-scater::plotUMAP(sce, colour_by = "celltype_kcluster")
+Now we can plot the results as we have done before.
+
+```{r metacell umap}
+scater::plotUMAP(sce, colour_by = "celltype_metacell")
 ```
+
+What do you think of this plot? 
+Is this more or less useful than the original cell-based clustering?
+
 
 ### Save results
 
-To save space, we won't write out the whole SCE object, as we haven't changed any of the core data there. 
+To save disk space (and time), we won't write out the whole SCE object, as we haven't changed any of the core data there. 
 Instead we will just write out the cell information table (`colData`) as a TSV file.
 
 ```{r save sce}
