@@ -12,7 +12,10 @@ output:
 
 This notebook will demonstrate how to:
 
-- 
+- Explore data from antibody-derived tags (CITE-seq)
+- Apply simple rule-based classification to identify cell types
+- Identify cell types by similarity to reference datasets with `SingleR`
+- Apply `SingleR` classification to groups of cells
 
 ---
 
@@ -161,7 +164,6 @@ Do they correspond to particular cell types that we are interested in?
 
 Does it bother you that we just used the default nearest-neighbor graph clustering parameters?
 Do you know what those were?
-
 
 ## Investigating cell types
 
@@ -314,7 +316,7 @@ While this technique might be good for some simple experiments, and can be usefu
 We also looked at each marker separately, which might not be the most efficient or robust method of analysis.
 
 For a more principled approach that allows identification of cell types by looking at the expression of sets of genes that are known to characterize each cell type, you might look at the [`AUCell` package](https://bioconductor.org/packages/release/bioc/html/AUCell.html).
-For more on that method, the OSCA chapter [Assigning cell labels from gene sets](http://bioconductor.org/books/3.16/OSCA.basic/cell-type-annotation.html#assigning-cell-labels-from-gene-sets) is a very good reference.
+For more on that method, the OSCA section [Assigning cell labels from gene sets](http://bioconductor.org/books/3.16/OSCA.basic/cell-type-annotation.html#assigning-cell-labels-from-gene-sets) is a very good reference.
 
 
 
@@ -416,7 +418,7 @@ If there are multiple cell types with high scores, an optional fine-tuning step 
 For our first run, we will do the marker gene selection (training) and classification in a single step, using the convenience function `SingleR::SingleR()`.
 For this we need only supply three main arguments: Our `sce` object, a reference matrix (here in `SummarizedExperiment` format), and the labels for each of the samples in the reference that we want to use.
 
-Because this function is doing many repeptitive calculations (lots of correlations!), we can speed it up by including the `BPPARAM` argument.
+Because this function is doing many repetitive calculations (lots of correlations!), we can speed it up by including the `BPPARAM` argument.
 This is a common argument in `Bioconductor` packages where `BP` stands for the `BiocParallel` package, which provides multiprocessing capabilities to many Bioconductor functions. 
 In this case, we will use the argument `BiocParallel::MulticoreParam(4)` to specify we want to use local multicore processing with 4 "workers".
 
@@ -478,7 +480,13 @@ We can then specify the method used to select the genes that will be used for cl
 The default method is `"de"`, which performs a differential expression analysis for each pair of labels, but we could also use `"sd"` to select the genes which are most variable across labels, or `"all"` to use all genes.
 If we want to get really fancy, we could even provide a specific list of genes to use.
 
-We also want to be sure that the genes selected will be those present in our SCE object, so we will use the `restrict` argument with a vector of the genes in our SCE.
+We should note here that the reference dataset for `SingleR` does not need to be from a compendium like `celldex`!
+If you have any well-classified data set that you want to use as a reference, you can, as long as you can create a gene by sample expression matrix and a vector of cell types for each sample. 
+You will want to ensure that the cell types you expect to see are present in the reference data set, and data should be normalized, but otherwise the method can be quite flexible. 
+You can even use a previously-annotated SingleCellExperiment as a reference for a new data set.
+For more details about custom references, see  the [OSCA chapter on cell type annotation](http://bioconductor.org/books/3.13/OSCA.basic/cell-type-annotation.html#using-custom-references)
+
+We do want to be sure that the genes selected for the model will be among those present in our SCE object, so we will use the `restrict` argument with a vector of the genes in our SCE.
 This step would happen automatically wiht the `SingleR::SingleR()` function, but we need to add it manually for this use case.
 
 
