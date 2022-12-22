@@ -26,11 +26,11 @@ In this notebook, we will work with multiple samples to identify differentially 
 We will continue working with samples from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), an investigation of pediatric solid tumors led by the Dyer and Chen labs at St. Jude Children's Research Hospital.
 This particular dataset contains 10 different samples that have been integrated using `fastMNN`, following the same procedure we outlined in `03-dataset_integration.Rmd`.
 These 10 samples represent two different types of rhabdomyosarcoma (RMS): embryonal rhabdomyosarcoma (ERMS) and alveolar rhabdomyosarcoma (ARMS).
-These two subtypes can be distinguished by the presence of the `PAX3/PAX7-FOXO1` fusion gene present only in ARMS patients.
-Additionally, cells found in ARMS tumors tend to have an increased mutational burden and cells are in a more differentiated state in comparison to ERMS tumor cells ([Shern _et al._ 2014](https://doi.org/10.1158/2159-8290.CD-13-0639), [Stewart _et al._](https://doi.org/10.1016/j.ccell.2018.07.012)).
+These two subtypes are distinguished by the presence of the `PAX3/PAX7-FOXO1` fusion gene, which is present only in ARMS patients.
+Additionally, cells found in ARMS tumors tend to have an increased mutational burden and cells are in a more differentiated state in comparison to ERMS tumor cells ([Shern _et al._ 2014](https://doi.org/10.1158/2159-8290.CD-13-0639); [Stewart _et al._ 2018](https://doi.org/10.1016/j.ccell.2018.07.012)).
 RMS tumors, regardless of subtype, are made up of cells typically associated with development of skeletal muscle: mesoderm, myoblasts, and myocytes ([Sebire and Malone 2003](https://doi.org/10.1136/jcp.56.6.412)).
-The group that published the data we are going to look at in this notebook identified distinct differences between ARMS and ERMS tumors. 
-Here we will look at a subset of the samples they sequenced and walk through testing one of their hypothesis that cell types have distinct gene expression patterns in ARMS vs. ERMS samples.
+In [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003), they tested the hypothesis that cell types have distinct gene expression patterns in ARMS vs. ERMS samples.
+Here we will look at a subset of the samples they sequenced and identify differentially expressed genes in tumor cells between ARMS and ERMS samples.
 
 ## Set Up
 
@@ -67,7 +67,7 @@ data_dir <- file.path("data", "rms")
 # integrated file containing all samples to use for DE analysis
 integrated_sce_file <- file.path(data_dir, "integrated", "rms_all_sce.rds")
 
-# sample metadata with information needed to setup DE analysis
+# sample metadata with information needed to set up DE analysis
 sample_metadata_file <- file.path(data_dir, "annotations", "rms_sample_metadata.tsv")
 
 # directory to store output
@@ -101,10 +101,16 @@ How are those stored in our object?
 ```{r print sce}
 # print out entire object
 integrated_sce
+```
 
+
+```{r print assay names}
 # look at the assay names in our object
 assayNames(integrated_sce)
+```
 
+
+```{r print reducedDim names}
 # look at the names of the dimensionality reduction present in the SCE object
 reducedDimNames(integrated_sce)
 ```
@@ -162,7 +168,8 @@ coldata_df <- colData(integrated_sce) %>%
                 ))
 
 # add modified data.frame back to SCE as DataFrame
-colData(integrated_sce) <- DataFrame(coldata_df, row.names = coldata_df$cell_id)
+colData(integrated_sce) <- DataFrame(coldata_df, 
+                                     row.names = coldata_df$cell_id)
 
 # take a look at the new modified colData
 head(colData(integrated_sce))
@@ -279,13 +286,14 @@ library_ids <- c(
 samples_to_keep <- integrated_sce$sample %in% library_ids
 rms_sce <- integrated_sce[,samples_to_keep]
 
-# remove original integrated object to save some memory
-rm(integrated_sce)
-
-# print out our new sce 
+# print out our new SCE 
 rms_sce
 ```
 
+```{r remove sce}
+# remove original integrated object to save some memory
+rm(integrated_sce)
+```
 
 We now have an updated SCE object that contains 6 samples that were obtained from a mix of ARMS and ERMS patients.
 We can then ask the question, do specific tumor cell types contain sets of differentially expressed genes between ARMS and ERMS samples?
@@ -295,7 +303,7 @@ It is imperative to consider good experimental design and ensure that we have en
 
 If we look back at our stacked barplot we see that we picked 3 ARMS and 3 ERMS samples.
 We can also see that the majority of cells are tumor cells, in particular the largest population of cells appears to be the `Tumor_Myoblast`. 
-For this example we will focus on identifying DE genes in one cell type, the `Tumor_Myoblast` cells, but the principles applied below can be applied to any cell types or subpopulations of interest.
+For this example we will focus on identifying DE genes in these `Tumor_Myoblast` cells, but the principles applied below can be applied to any cell types or subpopulations of interest.
 
 ## Differential Expression Analysis
 
