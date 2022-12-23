@@ -74,7 +74,7 @@ if (!(dir.exists(output_dir))) {
 }
 
 # Define output file name for the integrated object
-integrated_sce_file <- file.path(output_dir, "rms_integrated_samples.rds")
+integrated_sce_file <- file.path(output_dir, "rms_integrated_subset.rds")
 ```
 
 
@@ -210,13 +210,6 @@ Overall we'll want to take care of these items:
 
 1. We should be able to trace sample-specific information back to the originating sample, including...
     - Cell-level information: Which sample is each cell from? 
-    SCE column names represent unique cell ids, which are often barcodes.
-    These cell ids (barcodes) are only guaranteed to be unique _within_ a sample but may be repeated across samples.
-    So, after merging, it's technically possible that multiple cells will have the same barcode.
-    This would be a problem for two reasons: 
-    First, we wouldn't be able to identify the cell's originating sample.
-    Second, it would literally cause an error in R, which does not allow duplicate column names.
-    We need to be able to map each cell id back to its originating sample name and ensure that these cell id column names remain unique.
     - Library-specific feature statistics, e.g. gene-level statistics for a given library found in `rowData`
 2. SCE objects should contain the same genes: Each SCE object should have the same row names.
 3. SCE cell metadata columns should match: The `colData` for each SCE object should have the same column names.
@@ -231,17 +224,18 @@ Bear in mind that the exact wrangling shown here will not be the same for other 
 
 How will we be able to tell which sample a given cell came from?
 
-The best way to do this is simply to add a `colData` column with the sample information.
-
-We also must ensure that the column names of the SCE object are unique, even when combined with other SCE objects.
-The current column names are cell ids (barcodes) that are only guaranteed to be unique _within_ a sample but may be repeated across samples.
-This would be a problem for two reasons: 
-First we wouldn't be able to identify the cell's originating sample.
-Second, it would literally cause an error in R, which does not allow duplicate column names.
+The best way to do this is simply to add a `colData` column with the sample information, so that we can know which sample each row came from.
 
 In addition, we want to pay some attention to the SCE object's column names (the cell ids), which must remain unique after merging since duplicate ids will cause an R error.
-Note that these ids also correspond to the _row names_ of the `colData` and any reduced dimension matrices.
-Usually (but not always!), the cell ids themselves are cell barcodes, which is the case for our SCE objects (one is shown below as an example):
+In this case, the SCE column names are barcodes (which is usually but not always the case in SCE objects), which are only guaranteed to be unique _within_ a sample but may be repeated across samples.
+So, after merging, it's technically possible that multiple cells will have the same barcode.
+This would be a problem for two reasons: 
+First, the cell id would not be able to point us back to cell's originating sample.
+Second, it would literally cause an error in R, which does not allow duplicate column names.
+
+
+One way to ensure that cell ids remain unique even after merging is to actually modify them by _prepending_ the relevant sample name. 
+For example, consider these barcodes for the `SCPCL000479` sample:
 
 ```{r barcodes}
 # Look at the column names for the `SCPCL000479` sample, for example
@@ -250,10 +244,7 @@ colnames(sce_list$SCPCL000479) %>%
   head()
 ```
 
-Because barcodes theoretically can be repeated across samples, we could end up in a situation with non-unique column names for the SCE object, which would make R complain!
-
-One way to ensure that cell ids remain unique even after merging is to actually modify them by _prepending_ the relevant sample name. 
-For example, we'll update the `CCTTTGGCACTACCCT` id in the `SCPCL000478` SCE to become: `SCPCL000478-CCTTTGGCACTACCCT`, thereby ensuring fully unique ids for all cells across all samples.
+These IDs will be updated `SCPCL000479-GGGACCTCAAGCGGAT`, `SCPCL000479-CACAGATAGTGAGTGC`, and so on, thereby ensuring fully unique ids for all cells across all samples.
 
 #### Preserving sample information at the gene level
 
@@ -427,9 +418,9 @@ reducedDimNames(merged_sce)
 
 These represent the original dimension reductions that were performed on _each individual SCE_ before merging, but we actually need to calculate PCA (and UMAP for visualization) from the merged object directly.
 
-Why can't we use the sample-specific PCA matrix? 
-Part of PCA calculation itself involves scaling the raw data to center the mean.
-When this is performed on each sample individually, all samples are separately centered, which leads to the data "overlapping" in space.
+Why can't we use the sample-specific PCA and UMAP matrices? 
+Part of these calculations themselves involves scaling the raw data to center the mean.
+When this is performed on each sample individually, all samples are separately centered, which leads to the data "overlapping" in space while also influencing coordinates overall.
 To see this, let's look at the UMAP for individual samples:
 
 ```{r individual UMAPs}
@@ -492,8 +483,9 @@ merged_pca <- batchelor::multiBatchPCA(merged_sce,
 merged_pca
 
 
-# We can use indexing to see the PCA matrix calculated:
-head(merged_pca[[1]])
+# We can use indexing `[[1]]` to see the PCA matrix calculated, looking at a 
+# small subset for convenience
+merged_pca[[1]][1:5,1:5]
 ```
 
 
@@ -505,7 +497,6 @@ reducedDim(merged_sce, "merged_PCA") <- merged_pca[[1]]
 
 
 Now that we have the PCA matrix, we can proceed to calculate UMAP to visualize the uncorrected merged data.
-This can serve as our "before" comparison before batch correction.
 
 We'll calculate UMAP as "usual":
 ```{r merged_umap}
@@ -548,11 +539,11 @@ To start, we'll use the `fastMNN` approach from the Bioconductor [`batchelor` pa
 
 `fastMNN` takes as input the `merged_sce` object to integrate, and the first step it performs is actually to run `batchelor::multiBatchPCA()` on that SCE!
 It then uses that PCA matrix to perform the actual batch correction.
-The `batch` argument is used to specify the different groupings within the `merged_sce`, and the `subset.row` argument can optionally be used to provide a vector of high-variance genes that should be considered for this PCA calculation.
+The `batch` argument is used to specify the different groupings within the `merged_sce` (i.e. the original sample that each cell belongs to), and the `subset.row` argument can optionally be used to provide a vector of high-variance genes that should be considered for this PCA calculation.
 `fastMNN` will return an SCE object that contains a batch-corrected PCA.
 
 
-```{r}
+```{r run_fastmnn}
 integrated_sce <- batchelor::fastMNN(
   # the merged SCE object
   merged_sce,
@@ -578,8 +569,8 @@ We're mostly interested in the PCA that `fastMNN` calculated, so let's save that
 
 ```{r fastmnn pcs}
 # TODO: Should we make this `fastmnn_PCA` (lowercase method) to match the DE notebook? I think this is probably low stakes consistency
-# Make a new reducedDim named fastMNN_PCA from the corrected reducedDim in integrated_sce
-reducedDim(merged_sce, "fastMNN_PCA") <- reducedDim(integrated_sce, "corrected")
+# Make a new reducedDim named fastmnn_PCA from the corrected reducedDim in integrated_sce
+reducedDim(merged_sce, "fastmnn_PCA") <- reducedDim(integrated_sce, "corrected")
 
 merged_sce
 ```
@@ -590,9 +581,9 @@ Finally, we'll calculate UMAP from these corrected PCA matrix for visualization.
 merged_sce <- scater::runUMAP(
   merged_sce, 
   # create UMAP from this PCA matrix:
-  dimred = "fastMNN_PCA", 
+  dimred = "fastmnn_PCA", 
   # name the UMAP:
-  name = "fastMNN_UMAP"
+  name = "fastmnn_UMAP"
 )
 ```
 
@@ -603,7 +594,7 @@ Note that this is a more qualitative way to assess the success of integration, b
 ```{r fastmnn umap batches}
 scater::plotReducedDim(merged_sce,
                        # plot the fastMNN coordinates
-                       dimred = "fastMNN_UMAP",
+                       dimred = "fastmnn_UMAP",
                        # color by sample
                        colour_by = "sample",
                        # Some styling to help us see the points:
@@ -615,7 +606,7 @@ scater::plotReducedDim(merged_sce,
   ggtitle("UMAP after integration with fastMNN")
 ```
 
-This `fastMNN_UMAP` certainly looks different from the one we made from `merged_UMAP`!
+This `fastmnn_UMAP` certainly looks different from the one we made from `merged_UMAP`!
 What trends do you see? 
 Do all samples look "equally well" integrated, from a first look?
 
@@ -647,7 +638,7 @@ Let's re-plot this UMAP to highlight cell types:
 
 ```{r fastmnn umap celltypes}
 scater::plotReducedDim(merged_sce,
-                       dimred = "fastMNN_UMAP",
+                       dimred = "fastmnn_UMAP",
                        # color by broad celltypes
                        colour_by = "celltype_broad",
                        point_size = 0.5,
@@ -663,7 +654,7 @@ One way we can see all the points a bit better is to facet the plot by sample, u
 
 ```{r fastmnn umap celltype faceted}
 scater::plotReducedDim(merged_sce,
-                       dimred = "fastMNN_UMAP",
+                       dimred = "fastmnn_UMAP",
                        colour_by = "celltype_broad",
                        point_size = 0.5,
                        point_alpha = 0.2,
@@ -678,7 +669,6 @@ scater::plotReducedDim(merged_sce,
 ```
 
 All `Tumor` cell types appear to group with one another, with the main exception of `Tumor_Mesoderm` (along with what looks like one `Tumor_Myoblast` cell) for which a small number of cells are located with healthy muscle tissue.
-This _potentially_ suggests that these Tumor cells were incorrectly classified and are actually not cancerous, which is a hypothesis one could further explore, but on the other hand RMS does share many features with muscle tissue.
 
 ### Integration with `harmony`
 
@@ -687,7 +677,6 @@ For example, some methods can accommodate additional covariates (e.g., technolog
 In fact the data we are using has a known _patient_ covariate; `SCPCL000479` and `SCPCL000480` are from the first patient, and `SCPCL000481` and `SCPCL000482` are from the second patient.
 
 So, let's perform integration with a method that can use this information - [`harmony`](https://portals.broadinstitute.org/harmony/)!
-One such method is , which (algorithm aside) has a couple practical differences from `fastMNN`:
 
 To begin setting up for `harmony` integration, we need to add explicit patient information into our merged SCE.
 We'll create a new column `patient` whose value is either "A" or "B" depending on the given sample name, using the [`dplyr::case_when()`](https://dplyr.tidyverse.org/reference/case_when.html).
@@ -760,8 +749,7 @@ scater::plotReducedDim(merged_sce,
   ggtitle("UMAP after integration with harmony") +
   guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) 
 ```
-This UMAP looks a little different from the `fastMNN` UMAP, in that `SCPCL000481` does not integrate as well with the other samples.
-Again, this might be explained by the presence of a unique cell type population in this sample.
+How do you think this `harmony` UMAP compares to that from `fastMNN` integration?
 
 Let's see how this UMAP looks colored by cell type, and faceted for visibility:
 
