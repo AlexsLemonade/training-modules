@@ -27,7 +27,7 @@ Specifically, we'll have a look at four samples from the [`SCPCP000005` project]
 The particular libraries we'll integrate come from two rhabdomyosarcoma (RMS) patients, with two samples from each of two patients, all sequenced with 10Xv3 technology.
 Each library is from a separate biological sample.
 
-We'll be integrating these libraries with two different tools, [`fastmNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) ([Haghverdi _et al._ (2018)](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ (2019)](https://doi.org/10.1038/s41592-019-0619-0)). 
+We'll be integrating these libraries with two different tools, [`fastMNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) ([Haghverdi _et al._ (2018)](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ (2019)](https://doi.org/10.1038/s41592-019-0619-0)). 
 Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed. 
 `fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about from this [vignette by Lun (2019)](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
@@ -442,7 +442,7 @@ scater::plotReducedDim(merged_sce,
 As we see in this UMAP, all samples are centered at zero and all overlapping!
 This visual artifact can give the _incorrect impression_ that data is integrated - to be clear, this data is NOT integrated!
 
-For input to integration, we'll want the PCA scaling to consider normalized gene expression values from all samples simultaneously.
+For input to integration, we'll want the reduced dimension calculations to consider normalized gene expression values from all samples simultaneously.
 So we'll need to recalculate PCA (and UMAP for visualization) on the merged object. 
 We'll also save these new reduced dimensions with different names, `merged_PCA` and `merged_UMAP`, to distinguish them from already-present `PCA` and `UMAP`.
 
@@ -525,9 +525,9 @@ scater::plotReducedDim(merged_sce,
 ```
 
 Samples are now separated, which more reasonably reflects that this data is _not yet batch-corrected_.
-We can think of this UMAP as our "before" UMAP, and we can compare to the "after" UMAP we see post-integration.
+We can think of this UMAP as our "before" UMAP, and we can compare this to the "after" UMAP we see post-integration.
 
-Let's discuss: What visual differences do you think the UMAP on the integrated version of data will have?
+Let's discuss a little first: What visual differences do you think the UMAP on the integrated version of data will have?
 What similarities do you think the integrated UMAP will have to this plot?
 
 
@@ -607,7 +607,7 @@ scater::plotReducedDim(merged_sce,
 ```
 
 This `fastmnn_UMAP` certainly looks different from the one we made from `merged_UMAP`!
-What trends do you see? 
+What different trends do you see? 
 Do all samples look "equally well" integrated, from a first look?
 
 Importantly, one reason that batches may still appear separated in the corrected UMAP is if they _should_ be separated - for example, maybe two batches contain very different cell types, have very different diagnoses, or may be from different patients.
@@ -627,6 +627,7 @@ ggplot(merged_sce_df,
   geom_bar(position = "fill") + 
   # Use a CVD-friendly color scheme
   scale_fill_brewer(palette = "Dark2", na.value = "grey80") +
+  # nicer theme
   theme_bw() 
 ```
 We see that Tumor cell types are by far the most prevalent across all samples, and normal tissue cell types are not very common.
