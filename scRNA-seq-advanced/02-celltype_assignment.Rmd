@@ -138,7 +138,7 @@ Note that this PCA matrix and the UMAP built from it were derived from the gene 
 While we have the ADT data, it is _not_ being used for this stage of the analysis.
 
 
-```{r}
+```{r cluster cells}
 # perform clustering
 nn_clusters <- bluster::clusterRows(
   # PCA input
@@ -371,7 +371,7 @@ In fact, the `SingleCellExperiment` object is derived from a `SummarizedExperime
 
 What information do we have for the samples?
 
-```{r explore}
+```{r explore reference sample data}
 colData(monaco_ref)
 ```
 
@@ -388,7 +388,7 @@ Using the cell ontology can allow for more complex representations of the relati
 Another component we would like to explore is how many of each of these cell types we have in the data set. 
 A bit of quick `dplyr` wrangling can give us the answer.
 
-```{r}
+```{r count cell types}
 colData(monaco_ref) |> 
   as.data.frame() |>
   dplyr::count(label.main, label.fine)
@@ -416,7 +416,7 @@ If there are multiple cell types with high scores, an optional fine-tuning step 
 ### Running `SingleR`
 
 For our first run, we will do the marker gene selection (training) and classification in a single step, using the convenience function `SingleR::SingleR()`.
-For this we need only supply three main arguments: Our `sce` object, a reference matrix (here in `SummarizedExperiment` format), and the labels for each of the samples in the reference that we want to use.
+For this we need only supply three main arguments: Our SCE object, a reference matrix (here in `SummarizedExperiment` format), and the labels for each of the samples in the reference that we want to use.
 
 Because this function is doing many repetitive calculations (lots of correlations!), we can speed it up by including the `BPPARAM` argument.
 This is a common argument in `Bioconductor` packages where `BP` stands for the `BiocParallel` package, which provides multiprocessing capabilities to many Bioconductor functions. 
@@ -494,8 +494,8 @@ This step would happen automatically with the `SingleR::SingleR()` function, but
 ```{r train finemodel, live=TRUE}
 # build fine model
 singler_finemodel <- SingleR::trainSingleR(
-  monaco_ref,
-  labels = monaco_ref$label.fine,
+  monaco_ref, # reference dataset
+  labels = monaco_ref$label.fine, # labels for training dataset
   # use DE to select genes (default)
   genes = "de", 
   # only use genes in the sce object
@@ -510,7 +510,9 @@ Now we can perform the classification step, using our SCE object and the `Single
 ```{r classify fine, live=TRUE}
 # classify with fine model
 singler_result_fine <- SingleR::classifySingleR(
+  # our SCE object
   sce,
+  # the trained model object
   singler_finemodel,
   # perform fine tuning (default)
   fine.tune = TRUE,
@@ -593,7 +595,7 @@ collapsed_labels <- singler_result_fine$pruned.labels |>
 
 Now that we have that set up, we can plot using our collapsed and ordered cell type labels.
 
-```{r}
+```{r plot collapsed, live=TRUE}
 sce$celltype_collapsed <- collapsed_labels
 scater::plotUMAP(sce, 
                  colour_by = "celltype_collapsed")
@@ -606,7 +608,7 @@ Let's look at how the cell type assignments we obtained using `SingleR` compare 
 
 To do this, we will again use the `table()` function, but now with two vectors as input, to build a contingency table of the cell types and clusters that each cell was classified with. 
 
-```{r}
+```{r type cluster table}
 # create a table of clusters & cell type counts
 type_cluster_tab <- table(sce$celltype_fine, sce$nn_cluster, useNA = "ifany")
 
@@ -639,7 +641,7 @@ type_cluster_tab[1:5, 1:5]
 Now we can plot these results as a heatmap, using the `pheatmap` package. 
 There is a lot of customization we could do here, but `pheatmap` (pretty heatmap) has good defaults, so we won't spend too much time on it for now.
 
-```{r}
+```{r cluster heatmap, live=TRUE}
 # plot with pheatmap
 pheatmap::pheatmap(type_cluster_tab)
 ```
@@ -673,10 +675,11 @@ You can see that the resulting matrix still has the same number of rows we have 
 Now we can apply the same `SingleR` model to these results, using the new matrix as input along with the previously trained model.
 As there are only 20 clusters to classify, this will be very quick, and we don't need to parallelize it!
 
-```{r singler cluster, live = TRUE}
+```{r singler cluster, live=TRUE}
+# run SingleR classification with previously trained model
 singler_cluster <- SingleR::classifySingleR(
-  cluster_mat, 
-  singler_finemodel
+  cluster_mat, # cluster expression matrix
+  singler_finemodel # pre-trained model
 )
 
 # view results
@@ -694,7 +697,7 @@ sce$celltype_cluster <- singler_cluster[sce$nn_cluster, "pruned.labels"]
 
 Now we can plot these cluster-based cell type assignments using the now familiar `plotUMAP()` function
 
-```{r}
+```{r plot cluster celltypes, live=TRUE}
 scater::plotUMAP(sce, colour_by = "celltype_cluster")
 ```
 
