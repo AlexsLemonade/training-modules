@@ -427,9 +427,9 @@ These represent the original dimension reductions that were performed on _each i
 
 Why can't we use the sample-specific PCA and UMAP matrices? 
 Part of these calculations themselves involves scaling the raw data to center the mean.
-When this is performed on each sample individually, all samples are separately centered, which leads to the data "overlapping" in space.
-The mapping function from the original data to the reduced dimensions will also be separately calculated, so the new coordinates won't have consistent meanings across samples.
-To see this, let's look at the UMAP for individual samples:
+When samples are separately centered but plotting together, you will see samples "overlapping" in space, but this placement is an artifact of the individual centering.
+In addition, the mathematical relationship between the original expression data and reduced dimension version of that data will differ across samples, meaning we can't interpret them all together.
+To see how this looks, let's look at the UMAP when calculated from individual samples:
 
 ```{r individual UMAPs}
 # UMAPs scaled separately when calculated from individual samples:
@@ -447,7 +447,7 @@ scater::plotReducedDim(merged_sce,
 ```
 
 
-As we see in this UMAP, all samples are centered at zero and all overlapping!
+As we see in this UMAP, all samples are centered at zero and all overlapping.
 This visual artifact can give the _incorrect impression_ that data is integrated - to be clear, this data is NOT integrated!
 
 For input to integration, we'll want the reduced dimension calculations to consider normalized gene expression values from all samples simultaneously.
@@ -601,7 +601,7 @@ merged_sce <- scater::runUMAP(
 
 First, let's plot the integrated UMAP highlighting the different batches.
 A well-integrated dataset will show batch mixing, but a poorly-integrated dataset will show more separation among batches, similar to the uncorrected UMAP.
-Note that this is a more qualitative way to assess the success of integration, but there are formal metrics one can use to assess batch mixing.
+Note that this is a more qualitative way to assess the success of integration, but there are formal metrics one can use to assess batch mixing, which you can read more about in [this chapter of _Orchestrating Single Cell Analyses](http://bioconductor.org/books/3.16/OSCA.multisample/correction-diagnostics.html).
 
 ```{r fastmnn umap batches}
 scater::plotReducedDim(merged_sce,
