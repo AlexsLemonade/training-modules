@@ -49,13 +49,13 @@ library(DESeq2)
 
 We will start by reading in a `SingleCellExperiment` (SCE) object that contains both the uncorrected (merged but not integrated) and corrected (integrated) gene expression data for all 10 samples.
 
-Prior to integration all 10 samples went through the same filtering, normalization, and dimensionality reduction.
+Prior to integration, all 10 samples went through the same filtering, normalization, and dimensionality reduction.
 These 10 samples were then merged into one `SingleCellExperiment` object following the same steps outlined in `03-dataset_integration.Rmd`.
 The merged object was then integrated with `fastMNN` to obtain a corrected gene expression assay and corrected reduced dimensionality results.
 The final SCE object was stored in `data/rms/integrated/rms_all_sce.rds`.
 
 We also have provided a metadata file, `data/rms/annotations/rms_sample_metadata.tsv`, that contains information from each sample, such as diagnosis, sex, age, etc.
-In this file each row corresponds to a sample found in the integrated SCE object.
+Each row in this file corresponds to a sample found in the integrated SCE object.
 
 To begin, let's set up our directories and files:
 
@@ -137,6 +137,7 @@ If it's not there, we need to add it in.
 head(colData(integrated_sce))
 ```
 
+Uh oh, it looks like the RMS subtype is not found in the SCE object.
 Fortunately we also have the sample metadata table that we read in earlier, which contains information about each of the samples present in the dataset.
 
 
@@ -146,7 +147,7 @@ head(sample_metadata)
 ```
 
 Looking at this sample table, we see a column named `subdiagnosis` which accounts for the RMS subtype, ARMS or ERMS.
-We also see other columns that contain information about each specific sample and may contribute to differences seen across the samples.
+We also see other columns that contain information about each specific sample.
 
 We can incorporate the information in this sample metadata table into the `colData` of the integrated SCE object.
 This will allow us to match each of the samples in the SCE object with the RMS subtype and also allow us to use any of the columns in the sample metadata for plotting.
@@ -159,7 +160,8 @@ coldata_df <- colData(integrated_sce) %>%
   # merge with sample metadata 
   dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) %>%
   # create a new columns
-  dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"), # combination of barcode and sample
+  # combination of barcode and sample
+  dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"),
                 # simplify subdiagnosis for easier plotting and DE later
                 diagnosis_group = forcats::fct_recode(
                   subdiagnosis,
@@ -256,8 +258,8 @@ ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
   # facet by diagnosis group 
-  # only show non-NA values on x-axis
   facet_grid(cols = vars(diagnosis_group), 
+             # only show non-NA values on x-axis
              scales = "free_x",
              space = "free_x")
 ```
