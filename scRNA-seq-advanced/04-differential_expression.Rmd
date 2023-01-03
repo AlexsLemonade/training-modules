@@ -21,15 +21,15 @@ This notebook will demonstrate how to:
 Just like bulk RNA-seq, it is likely that one of the goals when performing single-cell RNA-seq will be to compare the gene expression of multiple samples to each other.
 Unlike bulk RNA-seq analysis, single-cell RNA-seq analysis allows us to identify and annotate cell types or subpopulations of cells present in each of our samples.
 This means that we can account for differences in cell type composition across samples and specifically focus on cell types or populations of interest when performing differential expression (DE) analysis.
-In this notebook, we will work with multiple samples to identify differentially expressed genes across cell types of interest using the [`DESeq2`](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) package. 
+In this notebook, we will work with multiple samples to identify differentially expressed genes across cell types of interest using the [`DESeq2`](https://bioconductor.org/packages/3.16/bioc/html/DESeq2.html) package. 
 
 We will continue working with samples from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), an investigation of pediatric solid tumors led by the Dyer and Chen labs at St. Jude Children's Research Hospital.
 This particular dataset contains 10 different samples that have been integrated using `fastMNN`, following the same procedure we outlined in `03-dataset_integration.Rmd`.
 These 10 samples represent two different types of rhabdomyosarcoma (RMS): embryonal rhabdomyosarcoma (ERMS) and alveolar rhabdomyosarcoma (ARMS).
 These two subtypes are distinguished by the presence of the `PAX3/PAX7-FOXO1` fusion gene, which is present only in ARMS patients.
-Additionally, cells found in ARMS tumors tend to have an increased mutational burden and cells are in a more differentiated state in comparison to ERMS tumor cells ([Shern _et al._ 2014](https://doi.org/10.1158/2159-8290.CD-13-0639); [Stewart _et al._ 2018](https://doi.org/10.1016/j.ccell.2018.07.012)).
+Additionally, cells found in ARMS tumors tend to have an increased mutational burden with cells in a more differentiated state compared to ERMS tumor cells ([Shern _et al._ 2014](https://doi.org/10.1158/2159-8290.CD-13-0639); [Stewart _et al._ 2018](https://doi.org/10.1016/j.ccell.2018.07.012)).
 RMS tumors, regardless of subtype, are made up of cells typically associated with development of skeletal muscle: mesoderm, myoblasts, and myocytes ([Sebire and Malone 2003](https://doi.org/10.1136/jcp.56.6.412)).
-In [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003), they tested the hypothesis that cell types have distinct gene expression patterns in ARMS vs. ERMS samples.
+[Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003) tested the hypothesis that cell types have distinct gene expression patterns in ARMS vs. ERMS samples.
 Here we will look at a subset of the samples they sequenced and identify differentially expressed genes in tumor cells between ARMS and ERMS samples.
 
 ## Set Up
@@ -48,13 +48,13 @@ library(DESeq2)
 
 We will start by reading in a `SingleCellExperiment` (SCE) object that contains both the uncorrected (merged but not integrated) and corrected (integrated) gene expression data for all 10 samples.
 
-Prior to integration all 10 samples went through the same filtering, normalization, and dimensionality reduction.
+Prior to integration, all 10 samples went through the same filtering, normalization, and dimensionality reduction.
 These 10 samples were then merged into one `SingleCellExperiment` object following the same steps outlined in `03-dataset_integration.Rmd`.
 The merged object was then integrated with `fastMNN` to obtain a corrected gene expression assay and corrected reduced dimensionality results.
 The final SCE object was stored in `data/rms/integrated/rms_all_sce.rds`.
 
 We also have provided a metadata file, `data/rms/annotations/rms_sample_metadata.tsv`, that contains information from each sample, such as diagnosis, sex, age, etc.
-In this file each row corresponds to a sample found in the integrated SCE object.
+Each row in this file corresponds to a sample found in the integrated SCE object.
 
 To begin, let's set up our directories and files:
 
@@ -124,8 +124,8 @@ You should also see `fastmnn_PCA` and `fastmnn_UMAP` reduced dimensions, which c
 
 Just like in the integration notebook, this dataset also contains the cell type annotations found in the `celltype_fine` and `celltype_broad` columns of the `colData`.
 These cell types were originally assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003).
-We will use these cell type assignments to set up the DE analysis below, but they are not required.
-It's important to note that DE analysis can be applied to any subpopulation of interest that is shared across samples and does not need to be explicitly defined by a cell type.
+We will use these cell type assignments to set up the DE analysis below, but they are not required for DE analysis itself.
+It's important to note that DE analysis can be applied to any subpopulation of interest that is shared across samples besides just cell types.
 
 Because we are going to be doing DE analysis between ARMS and ERMS samples, let's start by labeling cells in the integrated dataset based on their RMS subtype.
 To do this we will need to be sure that the subtype is present in the `colData` of the integrated SCE object.
@@ -136,6 +136,7 @@ If it's not there, we need to add it in.
 head(colData(integrated_sce))
 ```
 
+Uh oh, it looks like the RMS subtype is not found in the SCE object.
 Fortunately we also have the sample metadata table that we read in earlier, which contains information about each of the samples present in the dataset.
 
 
@@ -145,7 +146,7 @@ head(sample_metadata)
 ```
 
 Looking at this sample table, we see a column named `subdiagnosis` which accounts for the RMS subtype, ARMS or ERMS.
-We also see other columns that contain information about each specific sample and may contribute to differences seen across the samples.
+We also see other columns that contain information about each specific sample.
 
 We can incorporate the information in this sample metadata table into the `colData` of the integrated SCE object.
 This will allow us to match each of the samples in the SCE object with the RMS subtype and also allow us to use any of the columns in the sample metadata for plotting.
@@ -158,7 +159,8 @@ coldata_df <- colData(integrated_sce) |>
   # merge with sample metadata 
   dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) |>
   # create a new columns
-  dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"), # combination of barcode and sample
+  # combination of barcode and sample
+  dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"),
                 # simplify subdiagnosis for easier plotting and DE later
                 diagnosis_group = forcats::fct_recode(
                   subdiagnosis,
@@ -234,9 +236,9 @@ scater::plotReducedDim(integrated_sce,
   facet_grid(cols = vars(diagnosis_group))
 ```
 
-As expected, we see that the visual clusters of cell types are being separated, most likely due to different RMS subtypes.
+As expected, we see that cell types are separated, most likely due to different RMS subtypes.
 
-We can also use a stacked barplot to look at the distribution of cell types across each sample.
+We can also use a stacked barplot to look at the distribution of cell types across each sample, which will require a bit of wrangling first.
 
 ```{r celltype barplot}
 # filter coldata data.frame to only include tumor cells
@@ -254,9 +256,9 @@ ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
     ) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
-  # split by diagnosis group 
-  # only show non-NA values on x-axis
+  # facet by diagnosis group 
   facet_grid(cols = vars(diagnosis_group), 
+             # only show non-NA values on x-axis
              scales = "free_x",
              space = "free_x")
 ```
@@ -264,8 +266,8 @@ ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
 Similar to the UMAP, this plot shows that ARMS and ERMS share a lot of the same cell types.
 
 We also see that only 6 of these libraries have tumor cells that have been further classified into mesoderm, myoblast, and myocyte. 
-3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified, and the remaining library appears to not have been assigned any cell types and is not present in our plot, as they are all labeled with `NA`.
-We will continue our analysis only using the 6 libraries with fully classified cell types, removing the other 3 before we proceed with differential expression.
+3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified, and the remaining library is not even present in our plot because it was not assigned any cell types (all are `NA`).
+We will continue our analysis only using the 6 libraries with fully classified cell types, removing the other 4 before we proceed with differential expression.
 
 The reason we want to pare down our list of samples to consider is that we want to ensure that the cell types (or subpopulations) that we are interested in are present in all samples included in our DE analysis. 
 We want to remove any samples that do not contain our cell population(s) of interest as they have no counts to contribute to the DE analysis.
