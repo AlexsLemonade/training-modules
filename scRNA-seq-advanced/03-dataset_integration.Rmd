@@ -279,6 +279,7 @@ The next step in ensuring SCE compatibility is to make sure they all contain the
 Here, those gene ids are unique Ensembl gene ids.
 
 We can use some `purrr` magic to quickly find the set of shared genes among our samples:
+
 ```{r shared genes}
 shared_genes <- sce_list %>%
   # get rownames (genes) for each SCE in sce_list
@@ -298,6 +299,7 @@ We can quickly confirm that this is true by looking at the number of rows across
 sce_list %>%
   purrr::map(nrow)
 ```
+
 So, for our data, we will not have to subset to shared genes since they are already shared!
  
 #### Ensuring matching columns in `colData`
@@ -390,6 +392,7 @@ merged_sce
 We now have a single SCE object that contains all cells from all samples we'd like to integrate.
 
 Let's take a peek at some of the innards of this new SCE object:
+
 ```{r explore merged_sce}
 # What are the unique values in the `sample` column?
 unique( colData(merged_sce)$sample )
@@ -420,7 +423,8 @@ These represent the original dimension reductions that were performed on _each i
 
 Why can't we use the sample-specific PCA and UMAP matrices? 
 Part of these calculations themselves involves scaling the raw data to center the mean.
-When this is performed on each sample individually, all samples are separately centered, which leads to the data "overlapping" in space while also influencing coordinates overall.
+When this is performed on each sample individually, all samples are separately centered, which leads to the data "overlapping" in space.
+The mapping function from the original data to the reduced dimensions will also be separately calculated, so the new coordinates won't have consistent meanings across samples.
 To see this, let's look at the UMAP for individual samples:
 
 ```{r individual UMAPs}
@@ -464,7 +468,8 @@ hv_genes <- scran::getTopHVGs(gene_variance,
 
 
 To calculate the PCA matrix itself, we'll use an approach from the `batchelor` package, which is the R package that contains the `fastMNN` method.
-The [`batchelor::multiBatchPCA()`](https://rdrr.io/bioc/batchelor/man/multiBatchPCA.html) function calculates a batch-weighted PCA matrix, namely by ensuring that batches, which may have very different numbers of cells, contribute equally to the overall scaling.
+The [`batchelor::multiBatchPCA()`](https://rdrr.io/bioc/batchelor/man/multiBatchPCA.html) function calculates a batch-weighted PCA matrix.
+This weighting ensures that all batches, which may have very different numbers of cells, contribute equally to the overall scaling.
 
 ```{r merged_pca}
 # Use batchelor to calculate PCA for merged_sce
@@ -501,7 +506,7 @@ Now that we have the PCA matrix, we can proceed to calculate UMAP to visualize t
 We'll calculate UMAP as "usual", but in this case we'll specify two additional arguments:
 
 - `dimred = "merged_PCA"`, which specifies which existing reduced dimension should be used for the calculation.
-We want to use the batch-weighted PCA, which is called `"merged_PCA"`.
+We want to use the batch-weighted PCA, which we named above as `"merged_PCA"`.
 - `name = "merged_UMAP"`, which names the final UMAP that this function calculates.
 This argument will prevent us from overwriting the existing UMAP which is already named "UMAP" and instead create a separate `"merged_UMAP"`.
 
@@ -635,6 +640,7 @@ ggplot(merged_sce_df,
   # nicer theme
   theme_bw() 
 ```
+
 We see that Tumor cell types are by far the most prevalent across all samples, and normal tissue cell types are not very common.
 We see also that `SCPCL000481` has a larger `Tumor_Myocyte` population, while all other samples have larger `Tumor_Mesoderm` populations. 
 This difference _may_ explain why we observe that `SCPCL000481` is somewhat more separated from the other samples in the `fastMNN` UMAP.
@@ -759,7 +765,7 @@ How do you think this `harmony` UMAP compares to that from `fastMNN` integration
 
 Let's see how this UMAP looks colored by cell type, and faceted for visibility:
 
-```{r harmony umap celltypes fine}
+```{r harmony umap celltypes broad}
 scater::plotReducedDim(merged_sce,
                        dimred = "harmony_UMAP",
                        colour_by = "celltype_broad",
