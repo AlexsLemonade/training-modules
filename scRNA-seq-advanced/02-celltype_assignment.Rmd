@@ -310,9 +310,9 @@ Note that while we applied this technique to assign cell types using the ADT dat
 
 However, what we did here was very ad-hoc and quite manual!
 We didn't calculate any statistics, and we had to look at every tag we were interested in to pick thresholds.
-A different data set might have different background levels, which would require different thresholds. 
+A different dataset might have different background levels, which would require different thresholds. 
 
-While this technique might be good for some simple experiments, and can be useful for manual curation, it might not translate well to more complex data sets with multiple samples.
+While this technique might be good for some simple experiments, and can be useful for manual curation, it might not translate well to more complex datasets with multiple samples.
 We also looked at each marker separately, which might not be the most efficient or robust method of analysis.
 
 For a more principled approach that allows identification of cell types by looking at the expression of sets of genes that are known to characterize each cell type, you might look at the [`AUCell` package](https://bioconductor.org/packages/release/bioc/html/AUCell.html).
@@ -324,7 +324,7 @@ For more on that method, the OSCA section [Assigning cell labels from gene sets]
 
 An alternative approach to using known marker genes for classification is to instead classify cells by way of comparison to a reference dataset.
 To do this, we will find a well-curated gene expression dataset that contains samples with known cell types.
-We can then train a model based on this data set and look at each of the cells in our new data set to determine which (if any) of the known cell types has the most similar expression pattern.
+We can then train a model based on this dataset and look at each of the cells in our new dataset to determine which (if any) of the known cell types has the most similar expression pattern.
 The details of how such a model may be constructed and trained will vary by method, but this overall approach is widely applied. 
 
 For this section, we will focus on the `SingleR` package and its methods, which are described in detail in  [_The SingleR Book_](https://bioconductor.org/books/3.16/SingleRBook/).
@@ -339,7 +339,7 @@ For `SingleR` that reference data can be from bulk RNA sequencing or from other 
 `SingleR` is also fairly robust to the method used for gene expression quantification, which means that we can use either RNA-seq datasets or microarrays, if those are more readily available. 
 
 One convenient source of cell reference data is the `celldex` package, which is what we will use here.
-This package includes functions to download a variety of well-annotated reference data sets in a common format.  
+This package includes functions to download a variety of well-annotated reference datasets in a common format.  
 For more information on the datasets available, you will want to refer to [the `celldex` summary vignette](https://bioconductor.org/packages/3.16/data/experiment/vignettes/celldex/inst/doc/userguide.html).
 
 We will start by using a reference dataset of sorted immune cells from [GSE107011 (Monaco _et al._ 2019)](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE107011).
@@ -380,12 +380,12 @@ There are three main columns for the sample data:
 - `label.main` is a more general cell type assignment.  
 
 - `label.fine` is a fine-level cell type with more specific labels.
-The exact level of granularity of these `main` and `fine` designations (and indeed the label names themselves) will vary among data sets, so it is important to look at the reference to see whether it is suitable for your application.
+The exact level of granularity of these `main` and `fine` designations (and indeed the label names themselves) will vary among datasets, so it is important to look at the reference to see whether it is suitable for your application.
 
 - `label.ont` is a standardized [Cell Ontology](https://www.ebi.ac.uk/ols/ontologies/cl) identifier. 
 Using the cell ontology can allow for more complex representations of the relationships among different cell types, but investigating that is beyond the scope of this workshop. 
 
-Another component we would like to explore is how many of each of these cell types we have in the data set. 
+Another component we would like to explore is how many of each of these cell types we have in the dataset. 
 A bit of quick `dplyr` wrangling can give us the answer.
 
 ```{r count cell types}
@@ -399,9 +399,9 @@ Most cell types have 4 replicates, which is more replicates than we often find.
 
 ### What does `SingleR` do?
 
-As mentioned earlier, `SingleR` builds a model from a set of training data, and then uses that model to classify cells (or groups of cells) in new data sets.
+As mentioned earlier, `SingleR` builds a model from a set of training data, and then uses that model to classify cells (or groups of cells) in new datasets.
 
-`SingleR` works by first identifying a set of marker genes that can be used to differentiate among the cell types in the reference data set. 
+`SingleR` works by first identifying a set of marker genes that can be used to differentiate among the cell types in the reference dataset. 
 It does this by performing pairwise comparisons among all of the cell types, and retaining the top set of genes differentiating each pair.
 The idea is that this set of genes will be the most informative for differentiating cell types.
 
@@ -426,7 +426,7 @@ In this case, we will use the argument `BiocParallel::MulticoreParam(4)` to spec
 # calculate SingleR results in one step
 singler_result <- SingleR::SingleR(
   sce, # our query SCE
-  ref = monaco_ref, # reference data set
+  ref = monaco_ref, # reference dataset
   labels = monaco_ref$label.main, # reference labels to use
   BPPARAM = BiocParallel::MulticoreParam(4) # multiprocessing
 )
@@ -456,7 +456,7 @@ scater::plotUMAP(sce, colour_by = "celltype_main")
 Annoyingly, the `NA` and `T cells` labels are quite close in color, and the `scater` and `SingleR` packages don't agree on color choices, but this isn't a bad start!
 We seem to have a pretty good set of assignments, with most of the cell type assignments falling into groupings consistent with what we see in the UMAP plot.
 
-We can thank the fact that this is a PBMC sample and that we have a good reference data set for these cell types for the cleanliness of this plot.
+We can thank the fact that this is a PBMC sample and that we have a good reference dataset for these cell types for the cleanliness of this plot.
 Quite often with other kinds of samples (especially cancer cells!) things will be much less clean!
 
 We can also look to see how the cell type assignments are distributed using the base R function `table()`
@@ -468,7 +468,7 @@ table(singler_result$pruned.labels, useNA = "ifany")
 
 ### Exploring finer labels
 
-In the previous cell typing, we used the `label.main` column, but we also had `label.fine`, so let's use that to explore the data set in a bit more detail. 
+In the previous cell typing, we used the `label.main` column, but we also had `label.fine`, so let's use that to explore the dataset in a bit more detail. 
 
 We will also take this time to dive a bit deeper into the steps that `SingleR` performed. 
 As mentioned, the first step is training the model, during which we identify the genes that will be used for the correlation analysis later.
@@ -484,7 +484,7 @@ If we want to get really fancy, we could even provide a specific list of genes t
 We should note here that the reference dataset for `SingleR` does not need to be from a compendium like `celldex`!
 If you have any well-classified dataset that you want to use as a reference, you can, as long as you can create a gene by sample expression matrix and a vector of cell types for each sample. 
 You will want to ensure that the cell types you expect to see in your sample are present in the reference dataset, and data should be normalized, but otherwise the method can be quite flexible. 
-You can even use a previously-annotated SingleCellExperiment as a reference for a new data set.
+You can even use a previously-annotated SingleCellExperiment as a reference for a new dataset.
 For more details about custom references, see  the [OSCA chapter on cell type annotation](http://bioconductor.org/books/3.13/OSCA.basic/cell-type-annotation.html#using-custom-references)
 
 We do want to be sure that the genes selected for the model will be among those present in our SCE object, so we will use the `restrict` argument with a vector of the genes in our SCE.
@@ -715,7 +715,7 @@ We won't go into that depth here, but we can apply similar ideas.
 To begin, we will perform some fine-scale clustering, using a simpler clustering algorithm: K-means clustering.
 We will use the same `bluster` package, clustering based on the PCA results we have from earlier, but this algorithm allows us to specify the number of clusters we want to end up with.
 We have about 8000 cells, so let's cluster those into groups of approximately 80 cells, which works out to 100 clusters.
-While this is almost certainly more clusters than are "real" in this data set, our goal here is not to find differences among clusters, just to get homogeneous groups of cells.
+While this is almost certainly more clusters than are "real" in this dataset, our goal here is not to find differences among clusters, just to get homogeneous groups of cells.
 
 ```{r kmeans cluster}
 # perform k-means clustering
