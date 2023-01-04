@@ -315,7 +315,7 @@ Throughout the notebook we have been working with an integrated dataset that con
 However, we do not want to use corrected gene expression values for differential expression; we want to use the original raw counts that are present in the `counts` assay of the `SingleCellExperiment` object. 
 It is advised to only use the corrected values for any analyses being performed at the cell level, e.g. dimensionality reduction.
 In contrast, it is not advised to use corrected values for any analyses that are gene-based, such as differential expression or marker gene detection, because within-batch and between-batch gene expression differences are no longer preserved.
-The reason for this is two-fold - many of the DE models will expect uncorrected counts because they will account for between sample variation, and we want to ensure we are preserving variation that is present so as not to artificially inflate differences between populations.
+The reason for this is two-fold – many of the DE models will expect uncorrected counts because they will account for between-sample variation within the model, and we want to ensure we are preserving variation that is present so as not to artificially inflate differences between populations.
 See the [OSCA chapter on Using the corrected values](https://bioconductor.org/books/3.16/OSCA.multisample/using-corrected-values.html#using-corrected-values) for more insight.
 
 As a reminder, the uncorrected gene expression data, found in the `counts` and `logcounts` assays, correspond to data that has been merged (the first step we walked through prior to integration) into the same SCE but not yet integrated.
@@ -345,7 +345,7 @@ counts_mtx <- matrix(
   ncol = 4,
   dimnames = list(c("geneA", "geneB", "geneC"),
                   c("A-cell1", "A-cell2", "B-cell1", "B-cell2"))
-  )
+)
 counts_mtx
 ```
 
@@ -359,6 +359,7 @@ groups <- c("A", "A", "B", "B")
 # sum counts across cells (columns) by group label
 pseudobulked_counts <- DelayedArray::colsum(counts_mtx, 
                                             groups)
+pseudobulked_counts  
 ```
 
 Looking at this output you should see that the original 4 columns have been condensed to only 2 columns, 1 column to represent all cells from group `A` and 1 column to represent all cells from group `B`.
@@ -381,13 +382,13 @@ pb_groups <- colData(rms_sce)[, c("celltype_broad", "sample")]
 # create a new SCE object that contains 
 # the pseudo-bulked counts across the provided groups 
 pb_sce <- scuttle::aggregateAcrossCells(rms_sce, 
-                                                  id = pb_groups)
+                                        id = pb_groups)
 
 # column names aren't automatically added to the pseudo-bulked sce, 
 # so let's add them in 
 colnames(pb_sce) <- glue::glue(
   "{pb_sce$celltype_broad}_{pb_sce$sample}"
-  )
+)
 
 pb_sce
 ```
@@ -457,7 +458,7 @@ After filtering for our cell type of interest we should have a dataset with 6 co
 
 ### Perform differential expression with DESeq2
 
-Now we will use the `DESeq2` package to perform DE analysis on our pseudo-bulked SCE object.
+Now we will use the `DESeq2` package to perform differential expression (DE) analysis on our pseudo-bulked SCE object.
 From this point, we can proceed in the same way we would if we had a bulk RNA-seq dataset with 6 samples.
 We will start with the unnormalized raw counts in the `counts` assay of the pseudo-bulked SCE and do the following with `DESeq2`:
 
@@ -470,7 +471,8 @@ You can also refer to our [materials from our previous workshops covering bulk R
 
 #### Create the `DESeq2` object
 
-To create the `DESeq2` object we will need the unnormalized counts matrix, the metadata associated with the samples, and a design formula. 
+To create the `DESeq2` object we will need the unnormalized counts matrix, the metadata associated with the samples, and a design formula.
+The first two items are already stored in our SCE object, so we can create a DESeq2 object directly from that object using the `DESeqDataSet()` function.
 The design formula is used to indicate which columns of the metadata need to be considered in the DE comparison.
 For our experiment we are comparing gene expression between different RMS subtypes.
 The subtype information is stored in the `diagnosis_group` column of the `colData` in the pseudo-bulked SCE.
@@ -485,7 +487,7 @@ deseq_object <- DESeq2::DESeqDataSet(tumor_myoblast_sce,
 If you look at the pseudo-bulked SCE object you should have only seen one assay, the `counts` assay.
 This is because `DESeq2` expects raw counts.
 When we run `DESeq2` on our dataset, raw counts will first be normalized using size factors to account for differences in total sample counts.
-Therefore we don't have to do any normalization on our own - we'll let `DESeq2` do all the work for us.
+Therefore we don't have to do any normalization on our own – we'll let `DESeq2` do all the work for us.
 
 However, before we dive into DE analysis, we can do some initial exploration and visualization of our data to see if our samples separate by our known factor of interest, RMS subtype.
 In particular, we can use principal component analysis (PCA) of our pseudo-bulked dataset to visualize any variation between samples.
@@ -524,7 +526,7 @@ deseq_object <- DESeq2::DESeq(deseq_object, fitType = "local")
 We can evaluate how well the model fit our data by looking at the dispersion estimates.
 We expect to see the dispersion estimates decrease as means are increasing and follow the line of best fit. 
 
-```{r plot dipsersion}
+```{r plot dispersion}
 plotDispEsts(deseq_object)
 ```
 
