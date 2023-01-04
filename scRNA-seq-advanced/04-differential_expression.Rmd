@@ -334,7 +334,7 @@ Pseudo-bulking is implemented prior to differential expression analysis on singl
 - Collapses gene expression counts by sample, so that samples, rather than cells, represent replicates.
 - Masks variance within a sample to emphasize variance across samples.
 This can be both good and bad! 
-Genes that are homogeneous across a sample are more likely to be identified as differentially expressed, while genes with high intra-sample heterogeneity will have a weaker signal.
+Masking intra-sample variation means you might miss identifying genes that have high intra-sample heterogeneity.
 
 Before we apply pseudo-bulking to our dataset, let's look at a simple example of how pseudo-bulking works. 
 
@@ -632,7 +632,7 @@ We can create UMAP plots as we did previously, but instead of labeling each cell
 We will also use some of the `ggplot2` skills we picked up earlier, like `facet_grid()` to plot cells from different RMS subtypes separately.
 This can help us validate the `DESeq2` results so that we can visualize gene expression changes across our cell type of interest on a single-cell level. 
 
-```{r}
+```{r expression umap}
 # filter to just myoblast cells and remove any NA's before plotting
 myoblast_combined_sce <- rms_sce[, which(rms_sce$celltype_broad == "Tumor_Myoblast")]
 
@@ -649,7 +649,7 @@ scater::plotReducedDim(myoblast_combined_sce,
 In the above plot we only plotted the tumor myoblast cells that we used in our DE analysis. 
 However, we might be interested to see the expression of genes that are differentially expressed in other cell types present in our samples.
 
-```{r}
+```{r celltype comparison}
 # let's compare gene expression across some other cell types
 # look at all tumor cells and pick one normal cell type
 celltypes <- c("Tumor_Myoblast", 
@@ -666,7 +666,7 @@ We will use the `scater::plotExpression()` function to create a violin plot with
 We can continue using `facet_grid()` to show separate panels for each cell type.
 Because we want to show multiple genes here, we are going to add an additional option to `facet_grid()` to include multiple rows in our plot grid, one for each gene of interest.
 
-```{r}
+```{r multi-gene plot}
 # pick a couple genes to look at 
 genes_to_plot <- c("ENSG00000196090", #PTPRT
                    "ENSG00000148935") #GAS2
@@ -695,13 +695,13 @@ Go ahead and explore some genes on your own!
 Feel free to plot any of the genes that are identified as significant, found in the DE results table, or your favorite gene.
 Remember, you need to use the Ensembl gene identifier to refer to each gene.
 
-```{r}
+```{r explore}
 # now do some exploration of other genes on your own! 
 ```
 
 ## Session Info 
 
-```{r}
+```{r session info}
 sessionInfo()
 ```
 
