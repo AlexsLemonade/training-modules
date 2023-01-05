@@ -28,7 +28,7 @@ The particular libraries we'll integrate come from two rhabdomyosarcoma (RMS) pa
 Each library is from a separate biological sample.
 
 We'll be integrating these samples with two different tools, [`fastMNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) ([Haghverdi _et al._ (2018)](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ (2019)](https://doi.org/10.1038/s41592-019-0619-0)). 
-Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed at the cell-level. 
+Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed at the cell level. 
 `fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about from this [vignette by Lun (2019)](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
 
@@ -103,7 +103,7 @@ purrr::map(<input vector or list>,
 
 Let's see a very simple example in action by quickly taking the square root of a vector of values:
 
-```{r map_example, life = TRUE}
+```{r map_example, live = TRUE}
 
 # Define a vector of squares
 squares <- c(4, 9, 16)
@@ -226,7 +226,7 @@ Overall we'll want to take care of these items:
 
 1. We should be able to trace sample-specific information back to the originating sample, including...
     - Cell-level information: Which sample is each cell from? 
-    - Library-specific feature statistics, e.g. gene-level statistics for a given library found in `rowData`.
+    - Library-specific feature statistics, e.g., gene-level statistics for a given library found in `rowData`.
     Which sample is a given feature statistic from?
 2. SCE objects should contain the same genes: Each SCE object should have the same row names.
 3. SCE cell metadata columns should match: The `colData` for each SCE object should have the same column names.
@@ -329,7 +329,7 @@ We can use similar syntax here to what we used to look at all the `rowData` colu
 
 ```{r compare_coldata, live = TRUE}
 purrr::map(sce_list,
-           ~colnames(colData(.)))
+           \(x) colnames(colData(x)) )
 ```
 
 It looks like the column names are all already matching among SCEs, so there's no specific preparation we'll need to do there.
@@ -493,7 +493,7 @@ gene_variance <- scran::modelGeneVar(merged_sce,
                                      # specify the grouping column:
                                      block = merged_sce$sample)
 
-# Cet the top `num_genes` high-variance genes to use for dimension reduction
+# Get the top `num_genes` high-variance genes to use for dimension reduction
 hv_genes <- scran::getTopHVGs(gene_variance,
                               n = num_genes)
 ```
@@ -587,6 +587,7 @@ Let's run it and save the result to a variable called `integrated_sce`.
 
 
 ```{r run_fastmnn, live = TRUE}
+# integrate with fastMNN
 integrated_sce <- batchelor::fastMNN(
   # the merged SCE object
   merged_sce,
