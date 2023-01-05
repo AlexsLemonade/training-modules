@@ -113,7 +113,7 @@ sqrt(squares[1])
 sqrt(squares[2])
 sqrt(squares[3])
 
-# The `map()` function always returns a list
+# The `purrr:map()` function always returns a list
 purrr::map(squares, # vector to map over
            sqrt)    # function to apply to each item in `squares`
 ```
@@ -126,7 +126,7 @@ We'll note that, in this case, it's possible to simply run `sqrt()` directly on 
 sqrt(squares)
 ```
 
-More involved scenarios, as we'll see shortly, will necessitate the use of `map()`, in particular when the input is a list itself.
+More involved scenarios, as we'll see shortly, will necessitate the use of `purrr::map()`, in particular when the input is a list itself.
 
 
 One other new coding strategy we'll learn in this notebook is using the [`glue`](https://glue.tidyverse.org/) package to combine strings.
@@ -177,7 +177,7 @@ sce_paths
 ```
 
 We can now read these files in and create a list of four SCE objects.
-Since `readr::read_rds()` can only operate on one input at a time (unlike `sqrt()` which can operate across a vector), we'll need to use `purrr::map()` to run in simultaneously on all input file paths.
+Since `readr::read_rds()` can only operate on one input at a time (unlike `sqrt()` which can operate across a vector), we'll need to use `purrr::map()` to run it on all input file paths in one command.
 
 ```{r read sce paths, live = TRUE}
 # Use purrr::map() to read all files into a list at once
@@ -254,7 +254,7 @@ Second, it would literally cause an error in R, which does not allow duplicate c
 One way to ensure that cell ids remain unique even after merging is to actually modify them by _prepending_ the relevant sample name. 
 For example, consider these barcodes for the `SCPCL000479` sample:
 
-```{r barcodes, live = TRUE}
+```{r barcodes}
 # Look at the column names for the `SCPCL000479` sample, for example
 colnames(sce_list$SCPCL000479) |>
   # Only print out the first 6 for convenience
@@ -267,7 +267,7 @@ These ids will be updated `SCPCL000479-GGGACCTCAAGCGGAT`, `SCPCL000479-CACAGATAG
 
 The `rowData` table in SCE objects will often contain both "general" and "library-specific" information, for example:
 
-```{r rowdata, live = TRUE}
+```{r rowdata}
 rowData(sce_list$SCPCL000479) |>
   head()
 ```
@@ -281,7 +281,7 @@ For example, rather than being called `mean`, this column will be named `SCPCL00
 
 All our SCE objects have the same `rowData` columns (as we can see in the next chunk), so we'll perform this renaming across all SCEs.
 
-```{r compare rowdata}
+```{r compare rowdata, live = TRUE}
 # Use `purrr::map()` to quickly extract rowData column names for all SCEs
 purrr::map(sce_list,
            \(x) colnames(rowData(x)))
@@ -325,7 +325,7 @@ So, for our data, we will not have to subset to shared genes since they are alre
 Finally, we'll need to have the same column names across all SCE `colData` tables, so let's look at all those column names.
 We can use similar syntax here to what we used to look at all the `rowData` column names.
 
-```{r compare coldata, live = TRUE}
+```{r compare coldata}
 purrr::map(sce_list,
            \(x) colnames(colData(x)) )
 ```
@@ -347,7 +347,7 @@ We'll then use our new `purrr::map()` programming skills to run this function ov
 This will give us a new list of formatted SCEs that we can proceed to merge.
 It's important to remember that the `format_sce()` function written below is not a function for general use - it's been precisely written to match the processing we need to do for _these_ SCEs, and different SCEs in the wild will require different types of processing.
 
-```{r format_sce function, live = TRUE}
+```{r format_sce function}
 format_sce <- function(sce, sample_name) {
   # Input arguments:
   ## sce: An SCE object to format
@@ -377,11 +377,11 @@ format_sce <- function(sce, sample_name) {
 }
 ```
 
-To run this function, we'll use the `purrr::map2()` function, a relative of `purrr::map()` that allows you to simultaneously loop over _two_ input lists/vectors.
+To run this function, we'll use the `purrr::map2()` function, a relative of `purrr::map()` that allows you to loop over _two_ input lists/vectors.
 In our case, we want to run `format_sce()` over paired `sce_list` items and `sce_list` names.
 
 ```{r format sces for merge, live = TRUE}
-# We can use `purrr::map2()` to loop over two list/vector arguments simultaneously
+# We can use `purrr::map2()` to loop over two list/vector arguments
 sce_list_formatted <- purrr::map2(
   # Each "iteration" will march down the first two 
   #  arguments `sce_list` and `names(sce_list)` in order
