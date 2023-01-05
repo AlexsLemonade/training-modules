@@ -51,7 +51,7 @@ set.seed(12345)
 
 
 We have already prepared count data for the four samples we'll be integrating (i.e., filtered cells, normalized counts, and calculated PCA & UMAP).
-These SCE objects, stored as RDS files, are available in the `data/rms/processed/` directory and are named according to their `ScPCA` library IDs:
+These SCE objects, stored as RDS files, are available in the `data/rms/processed/` directory and are named according to their `ScPCA` library ids :
 
 - `SCPCL000479.rds` (Patient A)
 - `SCPCL000480.rds` (Patient A)
@@ -84,7 +84,7 @@ dir(input_dir)
 ```
 
 We want to read in just four of these files, as listed previously.
-To read in these files, we could use `readr::read_rds()` (or the base R `readRDS()`) function four times, once for each of the files. 
+To read in these files, we could use `readr::read_rds()` function (or the base R `readRDS()`) four times, once for each of the files. 
 We could also use a `for` loop, which is the approach that many programming languages would lean toward.
 A different and more modular coding approach to reading in these files (and more!) is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for operating on lists.
 You can read more about these functions and their power and utility in R in [Chapter 21 of _R for Data Science_](https://r4ds.had.co.nz/iteration.html#for-loops-vs.-functionals).
@@ -243,15 +243,15 @@ How will we be able to tell which sample a given cell came from?
 
 The best way to do this is simply to add a `colData` column with the sample information, so that we can know which sample each row came from.
 
-In addition, we want to pay some attention to the SCE object's column names (the cell IDs), which must remain unique after merging since duplicate IDs will cause an R error.
+In addition, we want to pay some attention to the SCE object's column names (the cell ids), which must remain unique after merging since duplicate ids will cause an R error.
 In this case, the SCE column names are barcodes (which is usually but not always the case in SCE objects), which are only guaranteed to be unique _within_ a sample but may be repeated across samples.
 So, after merging, it's technically possible that multiple cells will have the same barcode.
 This would be a problem for two reasons: 
-First, the cell ID would not be able to point us back to cell's originating sample.
+First, the cell id would not be able to point us back to cell's originating sample.
 Second, it would literally cause an error in R, which does not allow duplicate column names.
 
 
-One way to ensure that cell IDs remain unique even after merging is to actually modify them by _prepending_ the relevant sample name. 
+One way to ensure that cell ids remain unique even after merging is to actually modify them by _prepending_ the relevant sample name. 
 For example, consider these barcodes for the `SCPCL000479` sample:
 
 ```{r barcodes, live = TRUE}
@@ -261,7 +261,7 @@ colnames(sce_list$SCPCL000479) |>
   head()
 ```
 
-These IDs will be updated `SCPCL000479-GGGACCTCAAGCGGAT`, `SCPCL000479-CACAGATAGTGAGTGC`, and so on, thereby ensuring fully unique IDs for all cells across all samples.
+These ids will be updated `SCPCL000479-GGGACCTCAAGCGGAT`, `SCPCL000479-CACAGATAGTGAGTGC`, and so on, thereby ensuring fully unique ids for all cells across all samples.
 
 #### Preserving sample information at the gene level
 
@@ -272,10 +272,10 @@ rowData(sce_list$SCPCL000479) |>
   head()
 ```
 
-Here, the rownames are Ensembl gene IDs, and columns are `gene_symbol`, `mean`, and `detected`. 
+Here, the rownames are Ensembl gene ids, and columns are `gene_symbol`, `mean`, and `detected`. 
 The `gene_symbol` column is general information about all genes, not specific to any library or experiment, but `mean` and `detected` are library-specific gene statistics. 
 So, `gene_symbol` does not need to be traced back to its originating sample, but `mean` and `detected` do.
-To this end, we can take a similar approach to what we'll do for cell IDs: 
+To this end, we can take a similar approach to what we'll do for cell ids: 
 We can change the sample-specific `rowData` column names by prepending the sample name.
 For example, rather than being called `mean`, this column will be named `SCPCL000478-mean` for the `SCPCL000478` sample.
 
@@ -291,7 +291,7 @@ purrr::map(sce_list,
 #### Ensuring that only shared genes are used
 
 The next step in ensuring SCE compatibility is to make sure they all contain the same genes, which are stored as the SCE object's row names (these names are also found the `rowData` slot's row names). 
-Here, those gene IDs are unique Ensembl gene IDs.
+Here, those gene ids are unique Ensembl gene ids .
 
 We can use some `purrr` magic to quickly find the set of shared genes among our samples:
 
@@ -360,8 +360,8 @@ format_sce <- function(sce, sample_name) {
   sce$sample <- sample_name
   
   
-  ###### Ensure cell IDs will be unique ######
-  # Update the SCE object column names (cell IDs) by prepending `sample_name`
+  ###### Ensure cell ids will be unique ######
+  # Update the SCE object column names (cell ids) by prepending `sample_name`
  colnames(sce) <- glue::glue("{sample_name}-{colnames(sce)}")
         
   
@@ -421,7 +421,7 @@ Let's take a peek at some of the innards of this new SCE object:
 # What are the unique values in the `sample` column?
 unique( colData(merged_sce)$sample )
 
-# What are the new cell IDs (column names)?
+# What are the new cell ids (column names)?
 head( colnames(merged_sce) )
 
 # What does rowData look like?
@@ -586,7 +586,7 @@ integrated_sce <- batchelor::fastMNN(
   merged_sce,
   # vector indicating the batches
   batch = merged_sce$sample, 
-  # Optionally, we can specify genes to use as the previously-ID'd
+  # Optionally, we can provide the previously-identified
   #  high variance genes across samples in the merged_sce
   subset.row = hv_genes
 )
