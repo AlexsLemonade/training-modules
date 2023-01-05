@@ -312,14 +312,13 @@ For this example we will focus on identifying DE genes in these `Tumor_Myoblast`
 Now we are ready to start preparing for our DE analysis, where we will compare the gene expression of tumor myoblast cells between ARMS and ERMS samples.
 
 Throughout the notebook we have been working with an integrated dataset that contains corrected gene expression data (`fastmnn_corrected` assay) and a corrected UMAP.
-However, we do not want to use corrected gene expression values for differential expression; we want to use the original raw counts that are present in the `counts` assay of the `SingleCellExperiment` object. 
+As a reminder, the uncorrected gene expression data, found in the `counts` and `logcounts` assays, correspond to data that has been merged (the first step we walked through prior to integration) into the same SCE but not yet integrated.
+However, we do not want to use corrected gene expression values for differential expression; `DESeq2` expects the original raw counts as input so we will be using data found in the `counts` assay of the `SingleCellExperiment` object. 
+
 It is advised to only use the corrected values for any analyses being performed at the cell level, e.g. dimensionality reduction.
 In contrast, it is not advised to use corrected values for any analyses that are gene-based, such as differential expression or marker gene detection, because within-batch and between-batch gene expression differences are no longer preserved.
 The reason for this is two-fold – many of the DE models will expect uncorrected counts because they will account for between-sample variation within the model, and we want to ensure we are preserving variation that is present so as not to artificially inflate differences between populations.
 See the [OSCA chapter on Using the corrected values](https://bioconductor.org/books/3.16/OSCA.multisample/using-corrected-values.html#using-corrected-values) for more insight.
-
-As a reminder, the uncorrected gene expression data, found in the `counts` and `logcounts` assays, correspond to data that has been merged (the first step we walked through prior to integration) into the same SCE but not yet integrated.
-`DESeq2` expects raw counts as input so we will be using data found in the `counts` assay.
 
 ### Pseudo-bulking 
 
@@ -334,9 +333,10 @@ Pseudo-bulking is implemented prior to differential expression analysis on singl
 - Collapses gene expression counts by sample, so that samples, rather than cells, represent replicates.
 - Masks variance within a sample to emphasize variance across samples.
 This can be both good and bad! 
-Masking intra-sample variation means you might fail to identify genes that have high intra-sample heterogeneity.
+Masking intra-sample variation means you might not identify genes where average expression doesn't change between samples but the degree of cell-to-cell variation does.
 
-Before we apply pseudo-bulking to our dataset, let's look at a simple example of how pseudo-bulking works. 
+Before we apply pseudo-bulking to our dataset, let's look at a simple example of how pseudo-bulking works.
+We'll start by creating a fake matrix of counts.
 
 ```{r create matrix}
 # create an example counts matrix
@@ -357,9 +357,9 @@ To do this we will use the `DelayedArray::colsum()` function, which allows us to
 groups <- c("A", "A", "B", "B")
 
 # sum counts across cells (columns) by group label
-pseudobulked_counts <- DelayedArray::colsum(counts_mtx, 
+pb_counts <- DelayedArray::colsum(counts_mtx, 
                                             groups)
-pseudobulked_counts  
+pb_counts  
 ```
 
 Looking at this output, you should see that the original 4 columns have been condensed to only 2 columns: 1 column to represent all cells from group `A`, and 1 column to represent all cells from group `B`.
@@ -449,6 +449,7 @@ The last step we want to do to prepare our dataset for DE is to subset the pseud
 As mentioned previously, we are specifically interested in the `Tumor_Myoblast` cell type.
 
 ```{r filter celltype}
+# logical vector indicating if cells are tumor myoblast or not
 myoblast_cells <- filter_pb_sce$celltype_broad == "Tumor_Myoblast"
 
 # create a new sce with only the tumor myoblasts
@@ -555,7 +556,12 @@ DESeq2::resultsNames(deseq_object)
 
 ```{r shrinkage}
 # appyly logFC shrinkage using the default model
-shrink_results <- DESeq2::lfcShrink(deseq_object, res = deseq_results, coef = 2, type = "apeglm")
+shrink_results <- DESeq2::lfcShrink(
+  deseq_object, 
+  res = deseq_results, 
+  coef = 2,
+  type = "apeglm"
+)
 head(shrink_results)
 ```
 
@@ -564,13 +570,14 @@ Although some of us may have all of the identifiers memorized by heart, it can b
 Before we save the results as a file, we will grab the gene symbols from the `rowData` of our original SCE object and add them as a new column.
 
 ```{r add gene symbol}
-# convert shrunken results to a tibble and add Ensembl id as a column
 deseq_results <- shrink_results |>
+  # directly add Ensembl id as a column, converting results into a data frame
   tibble::as_tibble(rownames = "ensembl_id")
 
 # convert rowdata to data frame 
 sce_rowdata_df <- rowData(tumor_myoblast_sce) |>
-  # create a column with rownames stored as ensembl id to use for joining with deseq results
+  # create a column with rownames stored as ensembl id
+  # use for joining with deseq results
   tibble::as_tibble(rownames = "ensembl_id")
 
 # combine deseq results with rowdata by ensembl id 
@@ -666,6 +673,8 @@ Next we will look at a few DE genes that we identified, one up regulated gene an
 We will use the `scater::plotExpression()` function to create a violin plot with RMS subtype on the x-axis and gene expression on the y-axis.
 We can continue using `facet_grid()` to show separate panels for each cell type.
 Because we want to show multiple genes here, we are going to add an additional option to `facet_grid()` to include multiple rows in our plot grid, one for each gene of interest.
+One neat trick of the `scater::plotExpression()` function is that it actually creates a `Feature` column which corresponds to the features (in this case genes) being used in plotting.
+We can then directly reference that `Feature` column when plotting, instead of using the `other_fields` option we used previously.
 
 ```{r multi-gene plot}
 # pick a couple genes to look at 
@@ -680,8 +689,10 @@ scater::plotExpression(tumor_sce,
                        colour_by = "diagnosis_group",
                        other_fields = "celltype_broad",
                        point_size = 0.1) +
-  facet_grid(cols = vars(celltype_broad), # each celltype is its own column
-             rows = vars(Feature)) + # each feature is its own row
+  # each celltype is its own column
+  facet_grid(cols = vars(celltype_broad),
+             # each feature (gene) is its own row
+             rows = vars(Feature)) + 
   # change the font size of the facet labels
   theme(strip.text = element_text(size = 7)) + 
   guides(colour = guide_legend(
