@@ -17,6 +17,7 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     less \
     libboost-all-dev \
     libbz2-dev \
+    libfftw3-dev \
     libglpk-dev \
     liblzma-dev \
     libmagick++-dev \
