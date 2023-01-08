@@ -58,4 +58,22 @@ To download the files, change directories to the `setup/PBMC_TotalSeqB` director
 snakemake -j2 
 ```
 
-This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/PBMC_TotalSeqB`
+This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/PBMC-TotalSeqB`
+
+## Rhabdomyosarcoma (RMS)
+
+These data are from [`SCPCP000005`](https://scpca.alexslemonade.org/projects/SCPCP000005)
+
+### Pancreas
+
+This data for these samples comes from the `scRNAseq` RNA package, specifically the [Muraro _et al._ (2016)](https://doi.org/10.1016/j.cels.2016.09.002) paper.
+
+The included script splits the dataset by donor, then performs filtering, normalization and dimension reduction as would usually be performed with a raw dataset.
+
+To produce the files, change directories to the `setup/pancreas` directory and run:
+
+```sh
+snakemake -j2 
+```
+
+This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/pancreas`
