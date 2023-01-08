@@ -8,7 +8,9 @@ rule target:
   input:
     expand(os.path.join(outdir, "processed/{library}.rds"),
            library = config["libraries"]),
-    os.path.join(outdir, "integrated/rms_all_sce.rds")
+    #os.path.join(outdir, "integrated/rms_all_sce.rds"),
+    os.path.join(outdir, "integrated/exercises/rms_all_sce.rds")
+
 
 
 rule prepare_library:
@@ -27,16 +29,33 @@ rule prepare_library:
         --celltypes_file "{input.celltype_tsv}" \
         >& {log}
     """
+  
 
 
-rule integrate:
+#rule integrate_instruction:
+#  input:
+#    expand(os.path.join(outdir, "processed/{library}.rds"),
+#           library = config["de_instruction_libraries"])
+#  output:
+#    os.path.join(outdir, "integrated/rms_all_sce.rds")
+#  log:
+#    "logs/integration-instruction.log"
+#  shell:
+#    """
+#      Rscript integrate_rms.R \
+#        --input_file_list "{input}" \
+#        --integrated_sce_file "{output}" \
+#        >& {log}
+#    """
+    
+rule integrate_exercises:
   input:
     expand(os.path.join(outdir, "processed/{library}.rds"),
-           library = config["libraries"])
+           library = config["de_exercise_libraries"])
   output:
-    os.path.join(outdir, "integrated/rms_all_sce.rds")
+    os.path.join(outdir, "integrated/exercises/rms_all_sce.rds")
   log:
-    "logs/integration.log"
+    "logs/integration-exercises.log"
   shell:
     """
       Rscript integrate_rms.R \
