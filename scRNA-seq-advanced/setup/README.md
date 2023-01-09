@@ -66,7 +66,7 @@ These data are from [`SCPCP000005`](https://scpca.alexslemonade.org/projects/SCP
 
 ### Pancreas
 
-This data for these samples comes from the `scRNAseq` RNA package, specifically the [Muraro _et al._ (2016)](https://doi.org/10.1016/j.cels.2016.09.002) paper.
+The data for these samples comes from the `scRNAseq` RNA package, specifically the [Muraro _et al._ (2016)](https://doi.org/10.1016/j.cels.2016.09.002) paper.
 
 The included script splits the dataset by donor, then performs filtering, normalization and dimension reduction as would usually be performed with a raw dataset.
 
