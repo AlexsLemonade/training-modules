@@ -66,9 +66,9 @@ These data are from [`SCPCP000005`](https://scpca.alexslemonade.org/projects/SCP
 Files were downloaded directly from the ScPCA portal, and the `_filtered.rds` files were used as input to the Snakefile in the `rms` directory.
 These files can be found in `/shared/data/training-modules/scRNA-seq-advanced/data/rms/raw`.
 
-The included Snakefile applies uniform filtering, normalization, and dimension reduction to each input SCE object, followed by integration of all objects using `fastMNN`.
+The included scripts apply uniform filtering, normalization, and dimension reduction to each input SCE object, followed by integration of all objects using `fastMNN`.
 The list of libraries included can be found in the `setup/rms/config.yaml`.
-All libraries listed were included in pre-processing prior to integration, and all libraries except `SCPCL000482` are included in the integrated dataset that is output from the Snakefile.
+All libraries listed were included in pre-processing prior to integration, and all libraries except `SCPCL000482` are included in the integrated dataset.
 
 To produce the files, change directories to the `setup/rms` directory and run:
 
