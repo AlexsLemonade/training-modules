@@ -41,6 +41,7 @@ sync_dirs=(
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
   scRNA-seq-advanced/data/rms/processed
   scRNA-seq-advanced/data/rms/integrated
+  scRNA-seq-advanced/data/pancreas/processed
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
