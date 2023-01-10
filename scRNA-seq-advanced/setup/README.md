@@ -63,7 +63,7 @@ This will place the downloaded files in `/shared/data/training-modules/scRNA-seq
 ## Rhabdomyosarcoma (RMS)
 
 These data are from [`SCPCP000005`](https://scpca.alexslemonade.org/projects/SCPCP000005).
-Files were downloaded directly from the ScPCA portal, and the `_filtered.rds` files were used as input to the Snakefile in the `rms` directory.
+Files were downloaded directly from the `ScPCA` portal, and the `_filtered.rds` files were used as input to the Snakefile in the `rms` directory.
 These files can be found in `/shared/data/training-modules/scRNA-seq-advanced/data/rms/raw`.
 
 The included scripts apply uniform filtering, normalization, and dimension reduction to each input SCE object, followed by integration of all objects using `fastMNN`.
