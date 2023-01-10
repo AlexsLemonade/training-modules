@@ -115,11 +115,11 @@ For this exercise we will not be using the `fastmnn_corrected` data (more on why
 
 
 ```{r print reducedDim names, live=TRUE}
-# look at the names of the dimension reduction present in the SCE object
+# look at the names of the dimension reductions present in the SCE object
 reducedDimNames(integrated_sce)
 ```
 
-In the `reducedDim` slots you should see `PCA` and `UMAP` which both correspond to the pre-integrated dimension reduction results.
+In the `reducedDim` slots you should see `PCA` and `UMAP`, which were both calculated from the combined data _before_ integration.
 You should also see `fastmnn_PCA` and `fastmnn_UMAP` reduced dimensions, which correspond to the integrated results.
 
 Just like in the integration notebook, this dataset also contains the cell type annotations found in the `celltype_fine` and `celltype_broad` columns of the `colData`.
@@ -158,7 +158,7 @@ coldata_df <- colData(integrated_sce) |>
   # merge with sample metadata 
   dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) |>
   # create new columns
-  # cell_id is combination of barcode and sample
+  # cell_id is a combination of barcode and sample
   dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"),
                 # simplify subdiagnosis for easier plotting and DE later
                 diagnosis_group = forcats::fct_recode(
@@ -193,7 +193,7 @@ scater::plotReducedDim(integrated_sce,
                        point_alpha = 0.2) 
 ```
 
-Interestingly, it looks like samples from the ARMS and ERMS subtypes tend to "cluster" with samples of the same subtype rather than "cluster" all together. 
+Interestingly, it looks like samples from the ARMS and ERMS subtypes tend to group with samples of the same subtype rather than all together. 
 
 In the integration notebook we also looked at the distribution of cell types after integration.
 In that notebook we discussed that cells of the same cell type are expected to integrate with other cells of the same type.
@@ -329,7 +329,7 @@ Pseudo-bulking creates a new counts matrix that contains the sum of the counts f
 If we were to keep each cell's counts separate, they would be treated as replicates, leading to inflated statistics. 
 By pseudo-bulking first, we will now have one count for each gene for each sample and we can take advantage of well-established methods for differential expression with bulk RNA-seq.
 
-Pseudo-bulking is implemented prior to differential expression analysis on single-cell data for the following reasons: 
+Pseudo-bulking is implemented prior to differential expression analysis on single-cell data because it: 
 
 - Produces larger and less sparse counts, which allows us to use standard normalization and differential expression methods used by bulk RNA-seq. 
 - Collapses gene expression counts by sample, so that samples, rather than cells, represent replicates.
@@ -421,7 +421,7 @@ We can set a threshold for the number of cells required to continue with our ana
 Here we will use 10, but the threshold you use for your dataset can vary depending on the composition of cell types.
 
 ```{r filter pseudobulk, live=TRUE}
-# remove any groups with less than 10 cells
+# remove any groups with fewer than 10 cells
 filter_pb_sce <- pb_sce[, pb_sce$ncells >= 10]
 ```
 
@@ -601,7 +601,7 @@ readr::write_tsv(deseq_results, deseq_output_file)
 The last thing that we will do is take a look at how many genes are significant.
 Here we will want to use the adjusted p-value, found in the `padj` column of the results, as this accounts for multiple test correction.
 
-```{r significant results}
+```{r significant results, live=TRUE}
 # first look at the significant results 
 deseq_results_sig <- deseq_results |>
   # filter based on adjusted pvalue
