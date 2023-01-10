@@ -51,6 +51,9 @@ sce_list <- purrr::map(
 # name list with sample ids 
 names(sce_list) <- sample_ids
 
+# remove SCPCL000482
+sce_list <- sce_list[which(names(sce_list) != "SCPCL000482")]
+
 
 # Make output directory if it doesn't exist
 output_dir <- dirname(opt$integrated_sce_file)
