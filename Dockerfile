@@ -71,6 +71,7 @@ RUN tar xzf salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
 # Use renv for R packages
 ENV RENV_VERSION 0.16.0
 ENV RENV_CONFIG_CACHE_ENABLED FALSE
+RUN R -e "install.packages('remotes')"
 RUN R -e "remotes::install_version('renv', version = '${RENV_VERSION}')"
 
 WORKDIR /usr/local/renv
