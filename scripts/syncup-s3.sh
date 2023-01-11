@@ -60,10 +60,17 @@ sync_files=(
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
   scRNA-seq/analysis/mouse-liver/markers/cluster07_markers.tsv
-  scRNA-seq-advanced/data/glioblastoma/normalized/glioblastoma_normalized_sce.rds
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv
 )
+
+output_files=(
+  scRNA-seq-advanced/data/glioblastoma/normalized/glioblastoma_normalized_sce.rds
+  scRNA-seq-advanced/data/rms/integrated/rms_subset_sce.rds
+)
+
+# combine into one list of files
+sync_files+=(${output_files[@]})
 
 for loc in ${sync_dirs[@]}
 do
