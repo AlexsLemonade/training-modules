@@ -36,9 +36,12 @@ To start, we will load some of the libraries we will need later, and set a rando
 
 ```{r setup}
 # Load libraries
-library(ggplot2) # plotting functions
-library(SingleCellExperiment) # our main class for storing Single Cell data
 
+# Plotting functions
+library(ggplot2) 
+
+# The main class we will use for Single Cell data
+library(SingleCellExperiment) 
 
 # Setting the seed for reproducibility
 set.seed(12345)
@@ -92,7 +95,8 @@ if (!dir.exists(normalized_dir)) {
 }
 
 # output RDS file for normalized data
-output_sce_file <- file.path(normalized_dir, "glioblastoma_normalized_sce.rds")
+output_sce_file <- file.path(normalized_dir,
+                             "glioblastoma_normalized_sce.rds")
 ```
 
 
@@ -124,7 +128,7 @@ One of our first steps will be to filter out barcodes that were never seen, or t
 In addition to the main `counts` matrix, listed as an `assay` in the SCE summary above, the SCE object can contain a number of other tables and matrices, each stored in a "slot" with a particular format. 
 The overall structure of the object can be seen in the figure below, which comes from an [OSCA Introduction chapter](http://bioconductor.org/books/3.16/OSCA.intro/the-singlecellexperiment-class.html).
 
-![structure of a SingleCellExperiment object](diagrams/SingleCellExperiment.png)
+![Structure of a SingleCellExperiment object](diagrams/SingleCellExperiment.png)
 
 We have just mentioned the main `assay` slot, which contains full matrices of data (such as transcript counts) with each row a feature and each column a cell. 
 There are also a couple of tables for metadata, and a slot to store reduced-dimension representations (e.g., PCA and/or UMAP) of the expression data.
@@ -323,7 +327,8 @@ We stick with that default, but for clarity, we will also include it in our code
 
 ```{r miQC plotFiltering}
 # look at miQC filtering
-miQC::plotFiltering(filtered_sce, miqc_model, posterior_cutoff = 0.75) + 
+miQC::plotFiltering(filtered_sce, miqc_model, 
+                    posterior_cutoff = 0.75) + 
   theme_bw()
 ```
 
@@ -333,7 +338,8 @@ The cutoff point can vary for different numbers of unique genes within a sample,
 At this point, we can perform the actual filtering using the `filterCells()` function, giving us a further filtered SCE object.
 
 ```{r miQC filtercells, live=TRUE}
-qcfiltered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
+qcfiltered_sce <- miQC::filterCells(filtered_sce, 
+                                    model = miqc_model)
 ```
 
 ### One more filter: unique gene count
@@ -365,7 +371,8 @@ Finally, we apply the scaling factor to the expression values for each cell and 
 qclust <- scran::quickCluster(qcfiltered_sce)
 
 # use clusters to compute scaling factors and add to SCE object
-qcfiltered_sce <- scran::computeSumFactors(qcfiltered_sce, clusters = qclust)
+qcfiltered_sce <- scran::computeSumFactors(qcfiltered_sce, 
+                                           clusters = qclust)
 
 # perform normalization using scaling factors
 # and save as a new SCE object
