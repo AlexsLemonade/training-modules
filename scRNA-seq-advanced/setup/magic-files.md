@@ -10,13 +10,13 @@ Some of these files will also be copied to S3 by the `sync-s3.sh` script for use
 
 Files are listed below by the notebook that produces them:
 
-- 01-read_filter_normalize_scRNA.Rmd
+- `01-read_filter_normalize_scRNA.Rmd`
   - `data/glioblastoma/normalized/glioblastoma_normalized_sce.rds`
-- 02-celltype_assignment.Rmd 
+- `02-celltype_assignment.Rmd`
   - `analysis/PBMC-TotalSeqB/PBMC_TotalSeqB_cellinfo.tsv`
-- 03-dataset_integration.Rmd 
+- `03-dataset_integration.Rmd` 
   - `data/rms/integrated/rms_integrated_subset.rds`
-- 04-differential_expression.Rmd
+- `04-differential_expression.Rmd`
   - `analysis/rms/deseq/rms_myoblast_deseq_results.tsv`
   - `data/rms/integrated/rms_subset_sce.rds`
   
