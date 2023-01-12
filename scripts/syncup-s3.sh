@@ -67,6 +67,7 @@ sync_files=(
 output_files=(
   scRNA-seq-advanced/data/glioblastoma/normalized/glioblastoma_normalized_sce.rds
   scRNA-seq-advanced/data/rms/integrated/rms_subset_sce.rds
+  scRNA-seq-advanced/analysis/rms/deseq/rms_myoblast_deseq_results.tsv
 )
 
 # combine into one list of files
