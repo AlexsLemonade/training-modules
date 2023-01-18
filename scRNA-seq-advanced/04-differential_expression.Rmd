@@ -34,7 +34,7 @@ Here we will look at a subset of the samples they sequenced and identify differe
 
 ## Set Up
 
-```{r setup}
+```{r setup, message=FALSE}
 # set seed for reproducibility
 set.seed(2022)
 
@@ -63,11 +63,15 @@ To begin, let's set up our directories and files:
 # data directory for RMS data
 data_dir <- file.path("data", "rms")
 
-# integrated file containing all samples to use for DE analysis
-integrated_sce_file <- file.path(data_dir, "integrated", "rms_all_sce.rds")
+# integrated file containing samples to use for DE analysis
+integrated_sce_file <- file.path(data_dir, 
+                                 "integrated", 
+                                 "rms_all_sce.rds")
 
-# sample metadata with information needed to set up DE analysis
-sample_metadata_file <- file.path(data_dir, "annotations", "rms_sample_metadata.tsv")
+# sample metadata to set up DE analysis
+sample_metadata_file <- file.path(data_dir, 
+                                  "annotations", 
+                                  "rms_sample_metadata.tsv")
 
 # directory to store output
 deseq_dir <- file.path("analysis", "rms", "deseq")
@@ -76,10 +80,13 @@ if(!dir.exists(deseq_dir)){
 }
 
 # results file to output from DE analysis
-deseq_output_file <- file.path(deseq_dir, "rms_myoblast_deseq_results.tsv")
+deseq_output_file <- file.path(deseq_dir, 
+                               "rms_myoblast_deseq_results.tsv")
 
 # output integrated sce object
-output_sce_file <- file.path(data_dir, "integrated", "rms_subset_sce.rds")
+output_sce_file <- file.path(data_dir, 
+                             "integrated", 
+                             "rms_subset_sce.rds")
 ```
 
 We can go ahead and read in the SCE object and the metadata file.
@@ -118,7 +125,7 @@ For this exercise we will not be using the `fastmnn_corrected` data (more on why
 
 
 ```{r print reducedDim names, live=TRUE}
-# look at the names of the dimension reductions present in the SCE object
+# look at the names of the dimension reductions
 reducedDimNames(integrated_sce)
 ```
 
@@ -136,7 +143,8 @@ If it's not there, we need to add it in.
 
 ```{r coldata head, live=TRUE}
 # look at the head of the coldata
-head(colData(integrated_sce))
+head(colData(integrated_sce)) |>
+  as.data.frame()
 ```
 
 Uh oh, it looks like the RMS subtype is not found in the SCE object.
@@ -154,7 +162,7 @@ We can incorporate the information in this sample metadata table into the `colDa
 This will allow us to match each of the samples in the SCE object with the RMS subtype and also allow us to use any of the columns in the sample metadata for plotting.
 
 ```{r modify coldata}
-# add the sample metadata to the colData from the integrated SCE object
+# add sample metadata to colData from the integrated SCE object
 coldata_df <- colData(integrated_sce) |>
   # convert from DataFrame to data.frame
   as.data.frame() |>
@@ -163,7 +171,7 @@ coldata_df <- colData(integrated_sce) |>
   # create new columns
   # cell_id is a combination of barcode and sample
   dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"),
-                # simplify subdiagnosis for easier plotting and DE later
+                # simplify subdiagnosis
                 diagnosis_group = forcats::fct_recode(
                   subdiagnosis,
                   "ARMS" = "Alveolar rhabdomyosarcoma",
@@ -179,7 +187,8 @@ Now when we look at the `colData` of the SCE object we should see new columns, i
 
 ```{r print new coldata, live=TRUE}
 # take a look at the new modified colData
-head(colData(integrated_sce))
+head(colData(integrated_sce)) |>
+  as.data.frame()
 ```
 
 We can now use that column to label any UMAP plots (or other plot types) that we make.
@@ -199,7 +208,7 @@ scater::plotReducedDim(integrated_sce,
 Interestingly, it looks like samples from the ARMS and ERMS subtypes tend to group with samples of the same subtype rather than all together. 
 
 In the integration notebook we also looked at the distribution of cell types after integration.
-In that notebook we discussed that cells of the same cell type are expected to integrate with other cells of the same type.
+In that notebook, we discussed that cells of the same cell type are expected to integrate with other cells of the same type.
 Is that the case with this dataset?
 
 A word of caution when evaluating the cell type results for this dataset: The cell types for this dataset were assigned in a two stage process as described in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003).
@@ -236,9 +245,9 @@ scater::plotReducedDim(integrated_sce,
                        colour_by = "celltype_broad",
                        point_size= 0.5, 
                        point_alpha = 0.4,
-                       # tell scater that we want to use diagnosis_group for plotting
+                       # tell scater to use diagnosis_group for plotting
                        other_fields = "diagnosis_group") +
-  # include each diagnosis group as a separate plot in its own column
+  # include each diagnosis group as its own column
   facet_grid(cols = vars(diagnosis_group))
 ```
 
@@ -413,7 +422,8 @@ Let's take a look at what the `colData` looks like in the pseudo-bulked SCE obje
 
 ```{r pseudobulk colData, live=TRUE}
 # note the new column with number of cells per group 
-head(colData(pb_sce))
+head(colData(pb_sce)) |>
+  as.data.frame()
 ```
 
 You should see that columns such as `sum`, `detected`, `subsets_mito_sum`, and other columns that typically contain per cell QC statistics now contain `NA` rather than numeric values. 
@@ -492,9 +502,8 @@ For our experiment we are comparing gene expression between different RMS subtyp
 The subtype information is stored in the `diagnosis_group` column of the `colData` in the pseudo-bulked SCE.
 
 ```{r deseq object, live=TRUE}
-# set up the deseq object 
+# set up the deseq object, group by diagnosis
 deseq_object <- DESeq2::DESeqDataSet(tumor_myoblast_sce,
-                                     # formula for grouping samples 
                                      design = ~ diagnosis_group)
 ```
 
@@ -516,7 +525,9 @@ As a reminder, this is NOT required for running `DESeq2` analysis; we are just u
 deseq_object <- DESeq2::estimateSizeFactors(deseq_object)
 
 # normalize and log transform to use for visualization
-normalized_object <- DESeq2::rlog(deseq_object, blind = TRUE, fitType = 'local')
+normalized_object <- DESeq2::rlog(deseq_object, 
+                                  blind = TRUE, 
+                                  fitType = 'local')
 normalized_object
 ```
 
@@ -635,8 +646,8 @@ EnhancedVolcano::EnhancedVolcano(deseq_results,
                 x = 'log2FoldChange', # fold change statistic to plot
                 y = 'pvalue', # significance values
                 lab = deseq_results$gene_symbol, # labels for points
-                pCutoff = 1e-05, # The p value cutoff we will use (default)
-                FCcutoff = 1, # The fold change cutoff (default)
+                pCutoff = 1e-05, # p value cutoff (default)
+                FCcutoff = 1, # fold change cutoff (default)
                 title = NULL, # no title
                 subtitle = NULL, # or subtitle
                 caption = NULL, # or caption
