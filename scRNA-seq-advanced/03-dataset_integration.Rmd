@@ -1,7 +1,7 @@
 ---
 title: "Integrating scRNA-Seq datasets"
 author: "Data Lab for ALSF"
-date: 2022
+date: 2023
 output:
   html_notebook: 
     toc: true
@@ -362,7 +362,7 @@ format_sce <- function(sce, sample_name) {
   
   ###### Ensure cell ids will be unique ######
   # Update the SCE object column names (cell ids) by prepending `sample_name`
- colnames(sce) <- glue::glue("{sample_name}-{colnames(sce)}")
+  colnames(sce) <- glue::glue("{sample_name}-{colnames(sce)}")
         
   
   ###### Ensure gene-level statistics can be identified in `rowData` ######
@@ -628,7 +628,7 @@ merged_sce <- scater::runUMAP(
 
 First, let's plot the integrated UMAP highlighting the different batches.
 A well-integrated dataset will show batch mixing, but a poorly-integrated dataset will show more separation among batches, similar to the uncorrected UMAP.
-Note that this is a more qualitative way to assess the success of integration, but there are formal metrics one can use to assess batch mixing, which you can read more about in [this chapter of _Orchestrating Single Cell Analyses](http://bioconductor.org/books/3.16/OSCA.multisample/correction-diagnostics.html).
+Note that this is a more qualitative way to assess the success of integration, but there are formal metrics one can use to assess batch mixing, which you can read more about in [this chapter of OSCA](http://bioconductor.org/books/3.16/OSCA.multisample/correction-diagnostics.html).
 
 ```{r plot fastmnn umap batches}
 scater::plotReducedDim(merged_sce,
@@ -723,6 +723,8 @@ So, let's perform integration with a method that can use this information - [`ha
 
 To begin setting up for `harmony` integration, we need to add explicit patient information into our merged SCE.
 We'll create a new column `patient` whose value is either "A" or "B" depending on the given sample name, using the [`dplyr::case_when()`](https://dplyr.tidyverse.org/reference/case_when.html) function.
+We provide this function with a set of logical expressions and each assigned value is designated by `~`.
+The expressions are evaluated in order, stopping at the _first_ one that evaluates as `TRUE` and returning the associated value.
 
 ```{r add patient info, live = TRUE}
 # Create patient column with values "A" or "B" for the two patients
