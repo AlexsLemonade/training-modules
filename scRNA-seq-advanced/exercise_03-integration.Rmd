@@ -1,0 +1,398 @@
+---
+title: "Single Cell Exercise: Integrating single cell data"
+output:   
+  html_notebook: 
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Introduction
+
+In this exercise notebook, we will practice integrating multiple scRNA-seq experiments. 
+
+The data we will be using comes from a set of experiments by [Muraro _et al._ (2016)](https://doi.org/10.1016/j.cels.2016.09.002) examining the human pancreas.
+The data came from a number of different donors, and we have prepared a separate SingleCellExperiment (SCE) object for data from each donor.
+
+Unlike much of the data we have worked with, this experiment did not use the 10X protocol, but rather a protocol called `CEL-Seq2` ([Hashimshony _et al._ 2016](https://doi.org/10.1186/s13059-016-0938-8)).
+In this protocol, cells are first sorted into individual wells, where transcripts are reverse-transcribed using a poly-T primer and tagged with a well/cell-specific barcode. 
+These cDNA sequences are then pooled and amplified through _in vitro_ transcription, then reverse transcribed again with random primers to create cDNA for sequencing.
+Since the initial step of this protocol works by capturing poly-A RNA, this is, like the 10X data, a tag-based system that will not result in full-length transcripts.
+
+
+
+## Set up packages and paths
+
+As usual, we will begin by loading some of packages that we will be using frequently.
+
+Use the chunk below to load the `SingleCellExperiment` and `ggplot2` packages.
+
+```{r setup, solution = TRUE}
+# Load packages
+
+```
+
+Next, we want to be sure that our results here are reproducible, so set a random number seed in the next chunk:
+
+```{r set seed, solution = TRUE}
+# Set a seed
+
+```
+
+All the files that we will need are in the `data/pancreas/processed` subdirectory, so we will create a variable named `input_dir` to hold that path:
+
+```{r input}
+input_dir <- file.path("data", "pancreas", "processed")
+```
+
+At the end of this notebook, we will save our results as a new SCE object, and we don't want it to get mixed up with those input files, so we will create another variable named `output_dir` to store the output path (suggested path: `data/pancreas/integrated`)
+Make sure that directory actually exists, and create it if it doesn't!
+
+```{r output, solution = TRUE}
+# Define a directory to save the integrated SCE object
+
+# Create output directory if it doesn't exist
+
+```
+
+
+## Read in files
+
+With those paths defined, we can now read in the data. 
+But first, let's look to see what the data files are by listing the contents of the input directory:
+
+```{r input_dir contents}
+dir(input_dir)
+```
+
+Each of these files contains an SCE, and the files are labeled by donor (with an `_sce.rds` suffix). 
+We'll want to keep track of that, so we'll start by creating a variable named `donors` which contains just the donor ids.
+
+```{r donor ids}
+donors <- c("D28", "D29", "D30", "D31")
+```
+
+We'll want to transform this vector of ids into a vector of paths for the files we want to read in.
+We can do this using a combination of the `file.path()` function that we have been using and either `glue::glue()` or `paste0()`. 
+
+Note that all of these functions are vectorized, so when we give them an input that is a vector like `donors`, they will produce a vector of the same length.
+
+Use the chunk below to make a `paths` vector that contains the paths that we will need.
+
+```{r sce paths, solution = TRUE}
+# create `paths` vector of input files
+
+```
+
+
+For convenience later, we will want to make that vector of paths into a "named" vector, where each position is labeled with the donor id that the path refers to.  
+We can do that with the `names()` function as shown below:
+
+```{r sce path names}
+# Set `paths` vector names
+names(paths) <- donors
+# Look at the result
+paths
+```
+
+With that `paths` vector all set, we can now use `purrr::map()` to read in all of the input files, storing each object as elements of a list. 
+The individual elements will retain the names we set in the vector, which will be very convenient for keeping track of everything!
+Store the list of SCE objects in a variable named `sce_list`.
+
+```{r read to sce_list, solution = TRUE}
+# Read SCE files with purrr
+
+```
+
+If everything has gone to plan, you should now be able to access an individual element of the list with a `$` and donor id, as shown below:
+
+```{r view sce}
+sce_list$D28
+```
+
+You might notice  that the cells (`colnames`) in this dataset are not labeled by barcode sequence, but instead by a combination of plate and well numbers from the original cell sorting.
+
+In the next chunk, have a look at what kinds of metadata we have for each cell and gene in one of the SCE objects.
+(We can assure you that in this case all of the objects have the same format, but you might want to check whether you believe us!)
+Recall that each cell is a column and each gene is a row in the SCE object.
+
+```{r view metadata, solution = TRUE}
+# View cell data
+
+# View gene data
+
+```
+
+## Merging SCE objects
+
+Now that we have all of our SCE objects in a list, and we have looked at them to know what kinds of data and metadata they contain, we can start to merge them into a single object.
+You may have noticed that we don't have any of the gene-specific statistics (such as mean expression across cells) in the `rowData` table that we had with the RMS data. 
+That should make the merging quite a bit simpler!
+
+
+In the chunk below, write a function named `format_sce` to perform the required reformatting of the sce object. 
+The function should take two arguments:
+
+1. an SCE object
+2. a donor id
+
+The function should perform two actions:
+
+- Add donor ids as a column of the SCE's colData table (recall that you can add directly to this table with the `$` shortcut)
+- Modify the SCE's column names such that they contain both the original column name and the donor id to prevent having more than one column name with the same id after merging.
+
+The function should then return the modified sce object.
+
+```{r format function, solution = TRUE}
+# a function to reformat an SCE object with donor ids
+
+  # store the donor id in a new colData column
+
+  # Update the SCE object column names by prepending donor_id
+
+  # Return the formatted SCE object
+
+```
+
+You may want to test your function on a single element of `sce_list` to make sure it is doing what you expect.
+
+```{r function test}
+# test the function (not saving the result)
+format_sce(sce_list$D28, "D28")
+```
+
+If that works, producing the output we expect, we can now apply the function to all of the SCE objects in our list using `purrr`.
+In the instruction notebook, you may recall that we did this with `purrr::map2()`, giving it a list of the SCEs and a vector of sample ids to go through, passing each pair to a function.
+But `purrr` has another trick up its sleeve for when we have a named list, as we do here!
+If we want to use those names in our internal function, we can automagically have them passed in as the second argument by using  `purrr::imap()` (the `i` stands for "index" here) without having to formally write it out.
+To use it, we will therefore only need two arguments for `purrr::imap()` – our `sce_list` and the `format_sce` function we just defined.
+
+Give it a try in the chunk below, saving the result as a new list named `sce_list_formatted`.
+
+```{r format SCEs with imap, solution = TRUE}
+# apply formating function to `sce_list` 
+#  to create `sce_list_formatted`
+
+```
+
+With all of our reformatting done, we can now merge the SCEs from our reformatted list into a single SCE object using `do.call()` and the `cbind` function.
+Save the result to a new object named `merged_sce`, and don't forget to have a look at the result!
+
+```{r merge sces}
+# Merge SCE objects 
+merged_sce <- do.call(cbind, sce_list_formatted)
+
+# Let's have a look!
+merged_sce
+```
+
+
+## Recalculating reduced dimensions
+
+Merging the SCE objects also combined the reduced dimension matrices (PCA & UMAP) associated with each experiment (to one per reduced dimension type).
+However, the transformations that were applied to create those matrices from the input expression values are different for each experiment, so the values shouldn't really be compared across experiments.
+To generate reduced dimension matrices that can be compared, we will recalculate the PCA and UMAP dimensions from the combined data set.
+
+The first step is to identify a set of high variance genes to use as the basis for the PCA.
+In the chunk below, use the `scran::modelGeneVar()` and `scran::getTopHVGs()` functions to identify a set of genes with high biological variance. 
+When creating the model with `scran::modelGeneVar()`, you will want to be sure to use the `block` argument to allow the model to account for the fact that there may be technical variation associated with the experimental design (the different donors, in this case).
+Store the high variance genes in a vector named `hv_genes`.
+
+```{r get hvgs, solution = TRUE}
+
+# model biological variance in expression
+
+  # account for experimental variation
+
+# save the high-variance genes
+
+```
+
+With a set of high variance genes identified, we can now calculate a new PCA matrix.
+Use the `batchelor::multiBatchPCA()` function to perform this calculation with weighting by batch (donor).
+You will want to use the `subset.row` argument to restrict the PCA calculation to the high-variance genes that were identified above, and `preserve.single = TRUE` to save all of the results into a single matrix.
+
+Save the resulting object to a variable named `merged_pca`.
+
+```{r batch pca, solution = TRUE}
+# calculate PCA from batched data
+
+```
+
+We will now save the PCA matrix back into our `merged_sce` object. 
+While we could make a new `reducedDim` slot for these data, there isn't much reason to keep the old PCA matrix around.
+As discussed above, the different transformations from each donor mean that the results are not really comparable across the full set of experiments.
+So, we will save the `merged_pca` result into the base `"PCA"` slot, which will overwrite the previous `"PCA"` matrix.
+Recall that the output of `multiBatchPCA()` is a list, so we need to save just the first (and hopefully only) element of that list to the `reducedDim` PCA slot.
+
+
+```{r save pca}
+# save multibatchPCA result to PCA slot
+reducedDim(merged_sce, "PCA") <- merged_pca[[1]]
+```
+
+Now that the PCA is saved into our `merged_sce` object, we will use the hopefully familiar `scater::runUMAP()` function to calculate the UMAP dimensions and store them in the SCE object.
+As our PCA is stored in the `"PCA"` `reducedDim` slot, we will similarly store the new UMAP in the default `"UMAP"` slot.
+
+```{r create UMAP, solution = TRUE}
+# calculate UMAP from PCA
+
+```
+
+Now we can use `scater::plotReducedDim()` or `scater::plotUMAP()` to visualize our merged but uncorrected results.
+Use the chunk below to create a UMAP plot of the merged data, colored (`colour`ed) by donor.
+
+```{r plot uncorrected UMAP, solution = TRUE}
+# Plot UMAP colored by donor
+
+```
+
+What do you think of this result?
+Does the plot suggest a strong effect of the donor on the overall expression patterns?
+
+This dataset, conveniently, already has cell type labels, which you might have noticed while looking at the `colData` earlier, stored in the `label` column. 
+Use the chunk below to plot the UMAP again, this time colored by cell type. 
+
+```{r plot labels, solution = TRUE}
+# plot colored by cell types
+
+```
+
+
+What kinds of structure do you infer from these two plots? 
+Are there per-donor effects?
+Does it seem that the cell types are well-mixed across the different donors?
+
+## Integrating with `fastMNN`
+
+Now let's see what happens with this dataset when we apply mutual nearest neighbor (MNN) integration.
+Use the `batchelor::fastMNN()` function to do this in the chunk below, saving the result as a new SCE object.
+Restrict the analysis to the highly variable genes we used for the PCA analysis above, using the same `subset.row` argument that we used before.
+
+
+```{r fastmnn integration, solution = TRUE}
+# perform fastMNN analysis by donor
+
+```
+
+The integrated PCA matrix will be stored in the `"corrected"` `reducedDim` slot of your new SCE object.
+We'd rather have it stored in our `merged_sce` alongside all of the original data, so use the next chunk to save it into a `reducedDim` slot named `"fastMNN_PCA"`.
+
+```{r store fastMNN PCA, solution = TRUE}
+# store integrated PCA in `merged_sce` object
+
+```
+
+Once you have stored the corrected PCA matrix as described, you should be able to run the chunk below to calculated a corresponding UMAP matrix, which will be stored as `"fastMNN_UMAP"`.
+
+```{r calculate UMAP}
+# calculate UMAP from fastMNN results
+merged_sce <- scater::runUMAP(
+  merged_sce,
+  dimred = "fastMNN_PCA", 
+  name = "fastMNN_UMAP"
+)
+```
+
+The hard work is done; now it is time to see how it all looks!
+
+In the chunk below, plot the `fastMNN_UMAP` colored by cell type (`label`).
+
+```{r fastMNN UMAP by cell type, solution = TRUE}
+# UMAP plot colored by cell type label
+
+```
+
+How does this plot compare to the previous (unintegrated) UMAP?
+
+As we evaluate this, we also want to look at the UMAP plot colored by donor.
+Ideally, we would see that the donors are all mixed within each "blob" of cells.
+
+
+```{r fastMNN UMAP by donor, solution = TRUE}
+# UMAP plot colored by donor
+
+```
+
+It looks like there is probably some good overlap there, but now we have a different problem.
+The points are plotted in order by donor, so it is very hard to see what is going on with the donors that are plotted first!
+
+Let's do better!
+One remedy for this is to shuffle the columns in the SCE object – this won’t affect the data, but it will affect the order in which points are plotted, which _can sometimes_ result in easier viewing.
+
+```{r reorder SCE cells}
+# create a random order for the cells
+col_order <- sample(ncol(merged_sce))
+# apply the reordering
+shuffled_sce <- merged_sce[, col_order]   
+```
+
+Now we can plot that `shuffled_sce` just as we did before, and see how it looks.
+Use the chunk below to do that!
+
+```{r plot shuffled SCE object, solution = TRUE}
+# shuffled UMAP plot colored by donor
+
+```
+
+That should be a bit better, but it still may be hard to really see all of the individual points.
+
+Alternatively, we can facet our plot by donor. 
+To do this, use the `other_fields` argument with `plotReducedDim()` to add `donor` to the plot data.
+Then use the `ggplot2` function `facet_wrap()` to split the points into separate panels by donor.
+
+```{r plot faceted by donor, solution = TRUE}
+# faceted UMAP plot
+
+```
+
+Are you satisfied with this integration result?
+Do the different cell types seem to be more uniformly mixed across donors?
+Are there any areas of particular concern that you might want to explore more?
+
+### Integration metrics
+
+The evaluation we have done so far of the integration quality has been quite qualitative.
+We've looked at some UMAPs and expressed whether the "vibes" were right.
+It might be nice to be a bit more quantitative, especially if we were going to be comparing different integration methods. 
+The challenge with being quantitative is that we have to pick something to measure, and have some confidence that what we are measuring accurately reflects the properties we are seeking to optimize.
+
+Generally speaking, our goal with integration is to remove technical variation while preserving biological information. 
+In the case of purely technical replicates, where we have the same cells measured multiple times, we could try to make each cell line up exactly with its replicates, and this would be easy to measure.
+But of course we don't have those!
+Every cell is its own biological sample, so the best we can hope for is that cells of the same type from replicate samples have similar corrected expression values (or reduced dimensions we calculate from those).
+But even that is a better scenario than what we usually have - the samples we would like to integrate are often from different tissue samples and/or different individuals. 
+What is our quantitative expectation for how well individual cells should align in this case?
+
+There are no easy answers here, which ends up meaning that there are many directions one could go to assess integration quality.
+
+One common pattern is to calculate a metric that quantifies some aspect of clustering before and after integration.
+By looking at how the metric changes after integration, we can determine whether the integration has had desired effects or not.
+For example, did we reduce the extent of clustering by sample (technical variation) while preserving clustering by cell type (biological variation)?
+
+A few methods are discussed in the friendly OSCA Book chapter on [Correction Diagnostics](http://bioconductor.org/books/3.16/OSCA.multisample/correction-diagnostics.html).
+One approach is to measure whether clusters after integration have consistent proportions of cells from each integrated sample.
+Another is to test whether the clustering pattern found in individual samples is preserved after integration (to check for over-correction).
+
+One way to quantify changes in clustering is to use a measure like [adjusted Rand index (ARI)](http://bioconductor.org/books/3.16/OSCA.advanced/clustering-redux.html#adjusted-rand-index).
+This measure varies between 0 and 1, and describes how consistent cluster assignments are between two different methods.
+If we apply this to compare clusters _within a sample_ before and after integration, we would expect to see good agreement, resulting in high ARI scores.
+By contrast, if we compare clustering _across samples_, we might expect to see that the clusters before integration are driven by between-sample variation (hopefully technical effects), whereas after integration the clusters are more determined by variation among cell types.
+This change would result in lower ARI scores.
+
+If you really want to dive deeply into metrics for integration and the performance of different integration methods, a good place to start is an integration benchmarking paper by [Luecken _et al._ (2022)](https://doi.org/10.1038/s41592-021-01336-8).
+In this extensive evaluation of 12 different integration methods, the authors employed a variety of different clustering metrics.
+By comparing these metrics before and after integration, they attempted to measure the performance of the various integration methods with respect to their ability to remove batch effects while preserving biological information.
+
+One important result from the Luecken _et al._ study was that the different integration methods perform quite differently depending on the precise set of samples, with some more aggressively removing batch effects than others.
+It is also important to note that many of the datasets used for benchmarking integration do not include cancer cells, which may result in very different expectations for clustering and integration.
+One study that did examine cancer samples found that `fastMNN` seemed to do a good job of reducing technical variation while preserving expected biological signals ([Richards _et al._ 2021](https://doi.org/10.1101/2021.08.04.453579)).
+Ultimately, the best integration method and the best metrics to use will depend both on the samples you are exploring and the questions you are seeking to ask from the integrated data!
+
+
+## Session Info
+
+```{r sessioninfo}
+sessionInfo()
+```
