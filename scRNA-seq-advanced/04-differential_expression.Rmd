@@ -1,7 +1,7 @@
 ---
-title: "Differential expression analysis for single-cell RNA-seq"
+title: "Differential expression analysis for scRNA-seq data"
 author: "Data Lab for ALSF"
-date: "2022"
+date: 2023
 output:
   html_notebook:
     toc: yes
@@ -12,14 +12,14 @@ output:
 
 This notebook will demonstrate how to:
 
-- Use pseudo-bulking to prepare single-cell RNA-sequencing libraries for differential expression
+- Use pseudo-bulking to prepare scRNA-seq libraries for differential expression
 - Perform differential expression with the `DESeq2` package
 - Use `ggplot2` and `EnhancedVolcano` to visualize gene expression changes across cell types and samples
 
 ---
 
-Just like bulk RNA-seq, it is likely that one of the goals when performing single-cell RNA-seq will be to compare the gene expression of multiple samples to each other.
-Unlike bulk RNA-seq analysis, single-cell RNA-seq analysis allows us to identify and annotate cell types or subpopulations of cells present in each of our samples.
+Just like bulk RNA-seq, it is likely that one of the goals when performing scRNA-seq will be to compare the gene expression of multiple samples to each other.
+Unlike bulk RNA-seq analysis, scRNA-seq analysis allows us to identify and annotate cell types or subpopulations of cells present in each of our samples.
 This means that we can account for differences in cell type composition across samples and specifically focus on cell types or populations of interest when performing differential expression (DE) analysis.
 In this notebook, we will work with multiple samples to identify differentially expressed genes across cell types of interest using the [`DESeq2`](https://bioconductor.org/packages/3.16/bioc/html/DESeq2.html) package. 
 
@@ -224,8 +224,7 @@ Some samples could not be further classified, so all of their tumor cells are de
 The samples which could be further classified have a mix of `Tumor_Mesoderm`, `Tumor_Myoblast`, and `Tumor_Myocyte`.
 
 ```{r celltype UMAP}
-# UMAP of all libraries
-# separating by diagnosis group and labeling cell type
+# UMAP of all samples labeled by cell type
 scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
                        # color each point by cell type
@@ -244,7 +243,8 @@ We will take advantage of the `facet_grid()` function from `ggplot2` to look at 
 In the below plot we will color our cells by cell type while also using `facet_grid()` so that cells from different subdiagnoses will be in their own plot panel.
 
 ```{r celltype subdiagnosis UMAP, live=TRUE}
-# UMAP of all samples, separating by diagnosis group and labeling cell type
+# UMAP of all samples
+# separating by diagnosis group and labeling cell type
 scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
                        # color each point by cell type
@@ -353,7 +353,7 @@ See the [OSCA chapter on Using the corrected values](https://bioconductor.org/bo
 ### Pseudo-bulking 
 
 Before we can compare the gene expression profiles of myoblasts in ARMS vs. ERMS samples, we will need to "pseudo-bulk" the gene counts. 
-Pseudo-bulking creates a new counts matrix that contains the sum of the counts from all cells with a given label (e.g., cell type) for each sample ([Tung _et al._, 2017](https://doi.org/10.1038/srep39921)). 
+Pseudo-bulking creates a new counts matrix that contains the sum of the counts from all cells with a given label (e.g., cell type) for each sample ([Tung _et al._ 2017](https://doi.org/10.1038/srep39921)). 
 If we were to keep each cell's counts separate, they would be treated as replicates, leading to inflated statistics. 
 By pseudo-bulking first, we will now have one count for each gene for each sample and we can take advantage of well-established methods for differential expression with bulk RNA-seq.
 
