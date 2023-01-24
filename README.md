@@ -23,21 +23,23 @@ the concepts underlying each module.
 - [RNA-seq](https://drive.google.com/a/ccdatalab.org/file/d/1A9gNDIuD_c3ppF2k6vY3b0VgSKZjchzp/view?usp=sharing)
 - [scRNA-seq](https://drive.google.com/a/ccdatalab.org/file/d/186niFprBKICNsF53WpIhKbiIMLawu-ms/view?usp=sharing)
 - [machine-learning](https://drive.google.com/a/ccdatalab.org/file/d/1tmX8sFDmnPpkRdkWQm-v3vtdGr6YWy-j/view?usp=sharing)
+- Advanced scRNA-seq topics:
+  - [Differential expression](https://drive.google.com/file/d/1nT1AxEYTMyizXvlrpZCrk8HfdJH8hcWN/view?usp=sharing)
 
 
 ### Cheatsheets:
 
-Cheatsheets for each module are named and linked below.  
-Each cheatsheet consists of functions that are used in its corresponding module, along with links to documentation on the usage of these functions. 
+Cheatsheets for each module are named and linked below.
+Each cheatsheet consists of functions that are used in its corresponding module, along with links to documentation on the usage of these functions.
 
 These cheatsheets can also be found in the folder named [module-cheatsheets](https://github.com/AlexsLemonade/training-modules/tree/master/module-cheatsheets).
 
 - [intro-to-R-tidyverse-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.md)
 - [RNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/RNA-seq-cheatsheet.md)
 - [scRNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-cheatsheet.md)
-- [pathway-analysis-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/pathway-analysis-cheatsheet.md) 
-- [machine-learning-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/machine-learning-cheatsheet.md)  
+- [pathway-analysis-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/pathway-analysis-cheatsheet.md)
+- [machine-learning-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/machine-learning-cheatsheet.md)
 
-  
 
-            
+
+
