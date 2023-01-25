@@ -23,11 +23,11 @@ This notebook will demonstrate how to:
 In this notebook, we'll perform integration on scRNA-seq datasets from the [Single-cell Pediatric Cancer Atlas (`ScPCA`)](https://scpca.alexslemonade.org/), a database of uniformly-processed pediatric scRNA-seq data built and maintained by the Data Lab.
 This database currently hosts projects from ten different ALSF-funded labs who have generated single-cell pediatric cancer transcriptomic data with the ultimate goal of making this data easily accessible to investigators (like you!).
 
-Specifically, we'll have a look at four samples from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005; [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003)), an investigation of pediatric solid tumors led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Children's Research Hospital.
+Specifically, we'll have a look at four samples from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005) ([Patel _et al._ 2022](https://doi.org/10.1016/j.devcel.2022.04.003)), an investigation of pediatric solid tumors led by the [Dyer](https://www.stjude.org/research/labs/dyer-lab.html) and [Chen](https://www.stjude.org/research/labs/chen-lab-taosheng.html) labs at St. Jude Children's Research Hospital.
 The particular libraries we'll integrate come from two rhabdomyosarcoma (RMS) patients, with two samples from each of two patients, all sequenced with 10Xv3 technology.
 Each library is from a separate biological sample.
 
-We'll be integrating these samples with two different tools, [`fastMNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) ([Haghverdi _et al._ (2018)](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ (2019)](https://doi.org/10.1038/s41592-019-0619-0)). 
+We'll be integrating these samples with two different tools, [`fastMNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) ([Haghverdi _et al._ 2018](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ 2019](https://doi.org/10.1038/s41592-019-0619-0)). 
 Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed at the cell level. 
 `fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about from this [vignette by Lun (2019)](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
@@ -295,7 +295,7 @@ Here, those gene ids are unique Ensembl gene ids.
 
 We can use some `purrr` magic to quickly find the set of shared genes among our samples:
 
-```{r shared genes, live = TRUE}
+```{r shared genes}
 # Define vector of shared genes
 shared_genes <- sce_list |>
   # get rownames (genes) for each SCE in sce_list
@@ -345,7 +345,7 @@ Based on our exploration, here is a schematic of how one of the SCE objects will
 We'll write a _custom function_ (seen in the chunk below) tailored to our wrangling steps that prepares a single SCE object for merging.
 We'll then use our new `purrr::map()` programming skills to run this function over the `sce_list`.
 This will give us a new list of formatted SCEs that we can proceed to merge.
-It's important to remember that the `format_sce()` function written below is not a function for general use – it's been precisely written to match the processing we need to do for _these_ SCEs, and different SCEs in the wild will require different types of processing.
+It's important to remember that the `format_sce()` function written below is not a function for general use – it's been precisely written to match the processing we need to do for _these_ SCEs, and different SCEs you work with will require different types of processing.
 
 ```{r format_sce function}
 format_sce <- function(sce, sample_name) {
@@ -452,17 +452,13 @@ In addition, the mathematical relationship between the original expression data 
 To see how this looks, let's look at the UMAP when calculated from individual samples:
 
 ```{r plot individual UMAPs, live = TRUE}
-# UMAPs scaled separately when calculated from individual samples:
+# Plot UMAP calculated from individual samples with separate scaling
 scater::plotReducedDim(merged_sce,
                        dimred = "UMAP",
-                       # Color points based on the `sample` variable we added during merging
                        colour_by = "sample",
-                       # Include some point styling to help us see the points
                        point_size = 0.5,
                        point_alpha = 0.2) +
-  # Modify the legend key so its points are larger and easier to see
   guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
-  # Add a plot title
   ggtitle("UMAP calculated on each sample separately")
 ```
 
@@ -496,15 +492,13 @@ The [`batchelor::multiBatchPCA()`](https://rdrr.io/bioc/batchelor/man/multiBatch
 This weighting ensures that all batches, which may have very different numbers of cells, contribute equally to the overall scaling.
 
 ```{r make merged_pca, live = TRUE}
-# Use batchelor to calculate PCA for merged_sce
+# Use batchelor to calculate PCA for merged_sce, considering only
+#  the high-variance genes
+# We'll need to include the argument `preserve.single = TRUE` to get
+#  a single matrix with all samples and not separate matries for each sample
 merged_pca <- batchelor::multiBatchPCA(merged_sce,
-                                       # Consider only the high-variance genes
                                        subset.row = hv_genes,
-                                       # Batch-level information
                                        batch = merged_sce$sample,
-                                       # This argument ensures that the returned object 
-                                       #  is a single matrix that contains all samples, 
-                                       #  instead of a separate matrix for each sample
                                        preserve.single = TRUE)
 ```
 
@@ -539,7 +533,6 @@ This argument will prevent us from overwriting the existing UMAP which is alread
 ```{r calculate merged umap, live = TRUE}
 # add merged_UMAP from merged_PCA
 merged_sce <- scater::runUMAP(merged_sce,
-                              # Specify which reduced dimension to calculate UMAP from
                               dimred = "merged_PCA",
                               name = "merged_UMAP")
 ```
@@ -580,14 +573,10 @@ Let's run it and save the result to a variable called `integrated_sce`.
 
 
 ```{r run fastmnn, live = TRUE}
-# integrate with fastMNN
+# integrate with fastMNN, again specifying only our high-variance genes
 integrated_sce <- batchelor::fastMNN(
-  # the merged SCE object
   merged_sce,
-  # vector indicating the batches
   batch = merged_sce$sample, 
-  # Optionally, we can provide the previously-identified
-  #  high variance genes across samples in the merged_sce
   subset.row = hv_genes
 )
 ```
@@ -619,9 +608,7 @@ Finally, we'll calculate UMAP from these corrected PCA matrix for visualization.
 # Calculate UMAP
 merged_sce <- scater::runUMAP(
   merged_sce, 
-  # create UMAP from this PCA matrix:
   dimred = "fastmnn_PCA", 
-  # name the UMAP:
   name = "fastmnn_UMAP"
 )
 ```
@@ -729,9 +716,7 @@ The expressions are evaluated in order, stopping at the _first_ one that evaluat
 ```{r add patient info, live = TRUE}
 # Create patient column with values "A" or "B" for the two patients
 merged_sce$patient <- dplyr::case_when(
-  # Assign a value of "A" if the sample is one of these
   merged_sce$sample %in% c("SCPCL000479", "SCPCL000480") ~ "A", 
-  # Assign a value of "B" if the sample is instead one of these 
   merged_sce$sample %in% c("SCPCL000481", "SCPCL000482") ~ "B", 
 )
 ```
@@ -755,15 +740,12 @@ To do this, we provide two arguments:
 Let's go!
 
 ```{r run harmony, live = TRUE}
-# integrate with harmony
+# integrate with harmony, setting the argument `do_pca = FALSE`
+#  since we are providing a PCA matrix directly
 harmony_pca <- harmony::HarmonyMatrix(
-  # Provide the uncorrected PCA matrix:
   data_mat = reducedDim(merged_sce, "merged_PCA"),
-  # Set do_pca = FALSE since we are providing a PCA matrix directly
   do_pca = FALSE,
-  # Provide colData as metadata
   meta_data = colData(merged_sce),
-  # Specify which covariate variables in to use
   vars_use = c("sample", "patient")
 )
 ```
@@ -831,6 +813,7 @@ Since this object is very large (over 1 GB!), we'll export it to a file with som
 This will take a couple minutes to save while compression is performed.
 
 ```{r save integration, live = TRUE}
+# Export to RDS file with "gz" compression
 readr::write_rds(merged_sce, 
                  integrated_sce_file,
                  compress = "gz")
