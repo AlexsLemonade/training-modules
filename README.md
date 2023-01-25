@@ -18,12 +18,15 @@ workshop.
 
 The accompanying slides for each module are linked below and briefly introduce the concepts underlying each module.
 
-- [intro-to-R-tidyverse](https://drive.google.com/a/ccdatalab.org/file/d/11GXEddKwUBan1Z-NF_UM2HecckpODLKM/view?usp=sharing)
-- [RNA-seq](https://drive.google.com/a/ccdatalab.org/file/d/1A9gNDIuD_c3ppF2k6vY3b0VgSKZjchzp/view?usp=sharing)
-- [scRNA-seq](https://drive.google.com/a/ccdatalab.org/file/d/186niFprBKICNsF53WpIhKbiIMLawu-ms/view?usp=sharing)
-- [machine-learning](https://drive.google.com/a/ccdatalab.org/file/d/1tmX8sFDmnPpkRdkWQm-v3vtdGr6YWy-j/view?usp=sharing)
+- [Intro to R tidyverse](https://docs.google.com/presentation/d/1VwKLleg5RG4Ck_SWRgQhLOWmoguB9k5uhhmz1cdtea0/edit?usp=sharing)
+- [RNA-seq](https://docs.google.com/presentation/d/1WRDOHXFgJT5GikYIIzwmbzGLTIoclh-XhwtnMLFnmBc/edit?usp=sharing)
+- [scRNA-seq](https://docs.google.com/presentation/d/1EGijSWUxcfjLpDU9QULYLHxsHMHlI6KPtR1Cs4QWy7A/edit?usp=sharing)
+- [Machine learning](https://docs.google.com/presentation/d/1o90uBTlQMx8qu3Jbhqe-ch-ykvLb3_vpi0O-6lBggRg/edit?usp=sharing)
 - Advanced scRNA-seq
-  - [Differential expression](https://drive.google.com/file/d/1nT1AxEYTMyizXvlrpZCrk8HfdJH8hcWN/view?usp=sharing)
+  - [Intro to scRNA-seq](https://docs.google.com/presentation/d/1qjmx_C0P5feswxXvn6ezCRE5OObtB9iftQvI3ceUAa0/edit?usp=sharing)
+  - [Cell type annotation](https://docs.google.com/presentation/d/16ivLdwm17jqHZKOnRGVjigIMAZtr9Xpc5kjspn9mIhQ/edit?usp=sharing)
+  - [Integration](https://docs.google.com/presentation/d/1l1Nmj_OADnfZ6J8DaIj7ncetCo_cbLvOI-2xtpW_FrI/edit?usp=sharing)
+  - [Differential expression](https://docs.google.com/presentation/d/1TFfq1NV9vYkzZqtifVPRHXUhPeYSQgv0KkLH5qy4yMA/edit?usp=sharing)
 
 
 ### Cheatsheets:
@@ -33,12 +36,8 @@ Each cheatsheet consists of functions that are used in its corresponding module,
 
 These cheatsheets can also be found in the folder named [module-cheatsheets](https://github.com/AlexsLemonade/training-modules/tree/master/module-cheatsheets).
 
-- [intro-to-R-tidyverse-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.md)
-- [RNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/RNA-seq-cheatsheet.md)
-- [scRNA-seq-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-cheatsheet.md)
-- [pathway-analysis-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/pathway-analysis-cheatsheet.md)
-- [machine-learning-cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/machine-learning-cheatsheet.md)
-
-
-
-
+- [Intro to R tidyverse cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.md)
+- [RNA seq cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/RNA-seq-cheatsheet.md)
+- [scRNA-seq cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-cheatsheet.md)
+- [Pathway analysis cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/pathway-analysis-cheatsheet.md)
+- [Machine learning cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/machine-learning-cheatsheet.md)
