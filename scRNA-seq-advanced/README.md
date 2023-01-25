@@ -7,10 +7,15 @@ It covers cell-type identification, integration of multiple single-cell RNA-seq 
 
 The notebooks that comprise this module are:
 
-* TBD
-* `03-dataset_integration.Rmd`
+* [Introduction and review of processing scRNA-seq data](./01-read_filter_normalize_scRNA.Rmd)
+* [Cell type annotation](./02-celltype_assignment.Rmd)
+* [Integration of multiple scRNA-seq libraries](./03-dataset_integration.Rmd)
+* [Differential expression analysis](./04-differential_expression.Rmd)
 
 
 Additional exercise notebooks:
 
-* TBD
+* [Working with CITE-seq data](./exercise_01-citeseq.Rmd)
+* [Cell type annotation](./exercise_02-celltype.Rmd)
+* [Integration of multiple scRNA-seq libraries](./exercise_03-integration.Rmd)
+* [Differential expression analysis](./exercise_04-diffexp.Rmd)
