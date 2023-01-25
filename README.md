@@ -18,7 +18,7 @@ workshop.
 
 The accompanying slides for each module are linked below and briefly introduce the concepts underlying each module.
 
-- [Intro to R tidyverse](https://docs.google.com/presentation/d/1VwKLleg5RG4Ck_SWRgQhLOWmoguB9k5uhhmz1cdtea0/edit?usp=sharing)
+- [Intro to RStudio](https://docs.google.com/presentation/d/1VwKLleg5RG4Ck_SWRgQhLOWmoguB9k5uhhmz1cdtea0/edit?usp=sharing)
 - [RNA-seq](https://docs.google.com/presentation/d/1WRDOHXFgJT5GikYIIzwmbzGLTIoclh-XhwtnMLFnmBc/edit?usp=sharing)
 - [scRNA-seq](https://docs.google.com/presentation/d/1EGijSWUxcfjLpDU9QULYLHxsHMHlI6KPtR1Cs4QWy7A/edit?usp=sharing)
 - [Machine learning](https://docs.google.com/presentation/d/1o90uBTlQMx8qu3Jbhqe-ch-ykvLb3_vpi0O-6lBggRg/edit?usp=sharing)
