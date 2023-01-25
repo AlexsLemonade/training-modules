@@ -15,7 +15,7 @@ The notebooks that comprise this module are:
 
 Additional exercise notebooks:
 
-* [Working with CITE-seq data](./exercise_01-citeseq.Rmd)
-* [Cell type annotation](./exercise_02-celltype.Rmd)
-* [Integration of multiple scRNA-seq libraries](./exercise_03-integration.Rmd)
-* [Differential expression analysis](./exercise_04-diffexp.Rmd)
+* [Working with CITE-seq data](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_01-citeseq.Rmd)
+* [Cell type annotation](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_02-celltype.Rmd)
+* [Integration of multiple scRNA-seq libraries](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_03-integration.Rmd)
+* [Differential expression analysis](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_04-diffexp.Rmd)
