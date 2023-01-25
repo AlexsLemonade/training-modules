@@ -7,10 +7,10 @@ It covers cell-type identification, integration of multiple single-cell RNA-seq 
 
 The notebooks that comprise this module are:
 
-* [Introduction and review of processing scRNA-seq data](./01-read_filter_normalize_scRNA.Rmd)
-* [Cell type annotation](./02-celltype_assignment.Rmd)
-* [Integration of multiple scRNA-seq libraries](./03-dataset_integration.Rmd)
-* [Differential expression analysis](./04-differential_expression.Rmd)
+* [Introduction and review of processing scRNA-seq data](https://alexslemonade.github.io/training-modules/scRNA-seq-advanced/01-read_filter_normalize_scRNA.nb.html)
+* [Cell type annotation](https://alexslemonade.github.io/training-modules/scRNA-seq-advanced/02-celltype_assignment.nb.html)
+* [Integration of multiple scRNA-seq libraries](https://alexslemonade.github.io/training-modules/scRNA-seq-advanced/03-dataset_integration.nb.html)
+* [Differential expression analysis](https://alexslemonade.github.io/training-modules/scRNA-seq-advanced/04-differential_expression.nb.html)
 
 
 Additional exercise notebooks:
