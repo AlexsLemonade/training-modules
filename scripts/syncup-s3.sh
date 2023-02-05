@@ -41,6 +41,7 @@ sync_dirs=(
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
   scRNA-seq-advanced/data/rms/processed
   scRNA-seq-advanced/data/rms/integrated
+  scRNA-seq-advanced/data/pancreas/processed
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
@@ -62,6 +63,15 @@ sync_files=(
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv
 )
+
+output_files=(
+  scRNA-seq-advanced/data/glioblastoma/normalized/glioblastoma_normalized_sce.rds
+  scRNA-seq-advanced/data/rms/integrated/rms_subset_sce.rds
+  scRNA-seq-advanced/analysis/rms/deseq/rms_myoblast_deseq_results.tsv
+)
+
+# combine into one list of files
+sync_files+=(${output_files[@]})
 
 for loc in ${sync_dirs[@]}
 do

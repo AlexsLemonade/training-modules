@@ -1,7 +1,7 @@
 ---
-title: "Assigning Cell Types"
+title: "Assigning cell types from scRNA-seq data"
 author: Data Lab for ALSF
-date: 2022
+date: 2023
 output:
   html_notebook: 
     toc: true
@@ -23,7 +23,7 @@ In this notebook, we will attempt to assign cell types to each of the cells in a
 
 Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/3.16/OSCA/). 
 
-The data we will use for this notebook is derived from a [10x Genomics dataset of human peripheral blood mononuclear cells (PBMCs)](https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p.)
+The data we will use for this notebook is derived from a [10x Genomics dataset of human peripheral blood mononuclear cells (PBMCs)](https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p).
 These data include both single cell RNA-seq counts and quantification of antibody-derived tags (ADTs) performed by sequencing short DNA barcodes attached to specific antibodies. 
 This type of ADT sequencing with single cells is commonly known as CITE-seq, after the protocol developed by [Stoeckius _et al._ (2017)](https://doi.org/10.1038/nmeth.4380).  
 The antibodies used here are the [The TotalSeq™-B Human TBNK Cocktail](https://www.biolegend.com/en-us/products/totalseq-b-human-tbnk-cocktail-19043), a set of antibodies designed to react with immune cell surface markers.
@@ -34,14 +34,14 @@ For details about how to perform these tasks with data that has been processed w
 
 The processed gene expression and ADT data were saved into a combined `SingleCellExperiment` (SCE) object, and we will start with that object for our exploration here.
 
-## Set Up
+## Set up
 
 To start, we will load some of the libraries we will need later, and set a random number seed for reproducibility.
 
 ```{r setup}
 # Load libraries
 library(ggplot2) # plotting functions
-library(SingleCellExperiment) # our main class for storing Single Cell data
+library(SingleCellExperiment) # Bioconductor single-cell data class
 
 
 # Setting the seed for reproducibility
@@ -49,7 +49,7 @@ set.seed(12345)
 ```
 
 
-### Input and output
+### Directories and files
 
 As mentioned, our input file here is a single normalized and processed SCE object, stored as an `rds` file. 
 That should be all we need to read in!
@@ -59,13 +59,17 @@ We aren't planning any significant modifications of the underlying data, so we w
 
 ```{r filepaths, live=TRUE}
 # directory for the input data
-data_dir <- file.path("data", "PBMC-TotalSeqB", "normalized")
+data_dir <- file.path("data", 
+                      "PBMC-TotalSeqB", 
+                      "normalized")
 
 # the input file itself
-sce_file <- file.path(data_dir, "PBMC_TotalSeqB_normalized_sce.rds")
+sce_file <- file.path(data_dir, 
+                      "PBMC_TotalSeqB_normalized_sce.rds")
 
 # A directory to store outputs
-analysis_dir <- file.path("analysis", "PBMC-TotalSeqB")
+analysis_dir <- file.path("analysis", 
+                          "PBMC-TotalSeqB")
 
 # check whether the output directory exists 
 if (!dir.exists(analysis_dir)){
@@ -73,7 +77,8 @@ if (!dir.exists(analysis_dir)){
 }
 
 # output table path
-cellinfo_file <- file.path(analysis_dir, "PBMC_TotalSeqB_cellinfo.tsv")
+cellinfo_file <- file.path(analysis_dir, 
+                           "PBMC_TotalSeqB_cellinfo.tsv")
 ```
 
 
@@ -118,7 +123,6 @@ Just as we did with the full SCE, we can use `rowData()` to view the table conta
 We'll add the `altExp()` function to point it to the embedded object we are interested in. 
 Since there is only one `altExp`, we don't need the second (name) argument (`"ADT"`) that we used above; the default behavior of `altExp()` is to just give us the first `altExp`, and that is the one (and only) that we need.
 
-
 ```{r adt rows, live=TRUE}
 # What proteins were assayed?
 adt_tags <- rowData(altExp(sce))
@@ -136,7 +140,6 @@ While dimension reduction was performed on this data, we have not yet performed 
 Let's assign some clusters to our cells, using graph-based clustering and default parameters, taking as input the PCA matrix that was previously calculated.
 Note that this PCA matrix and the UMAP built from it were derived from the gene expression data, so the clustering is going to reflect the gene expression data only.
 While we have the ADT data, it is _not_ being used for this stage of the analysis.
-
 
 ```{r cluster cells, live=TRUE}
 # perform clustering
@@ -178,7 +181,7 @@ We can again use the `plotUMAP()` function to color cells by `CD3` ADT levels.
 Note that this function can plot data from the `colData` table (as we used it above when plotting clusters), in the main gene expression matrix (as we used it in the previous notebook), *AND* in `altExp` tables and matrices!
 So to color by the ADT levels (as normalized in the `logcounts` matrix) we only need to provide the tag name that we want to plot in the `colour_by` argument.
 
-```{r plot CD3, live = TRUE}
+```{r plot CD3, live=TRUE}
 # plot CD3 expression
 scater::plotUMAP(sce, colour_by = "CD3")
 ```
@@ -319,7 +322,6 @@ For a more principled approach that allows identification of cell types by looki
 For more on that method, the OSCA section [Assigning cell labels from gene sets](http://bioconductor.org/books/3.16/OSCA.basic/cell-type-annotation.html#assigning-cell-labels-from-gene-sets) is a very good reference.
 
 
-
 ## Cell type annotation with `SingleR`
 
 An alternative approach to using known marker genes for classification is to instead classify cells by comparing them to a reference expression dataset.
@@ -349,16 +351,17 @@ The `celldex` functions also have a convenient option to convert gene symbols to
 
 ```{r get monaco}
 # Bioconductor "Hub" packages provide the option to cache
-# downloads, but the interactive prompt can be annoying
-# when working with notebooks.
+#   downloads, but the interactive prompt can be annoying
+#   when working with notebooks.
 # These options disable the prompt by giving permission 
-# to create the cache automatically
+#   to create the cache automatically
 ExperimentHub::setExperimentHubOption("ASK", FALSE)
 AnnotationHub::setAnnotationHubOption("ASK", FALSE)
 
 # Get Monaco 2019 data from celldex with Ensembl ids.
 monaco_ref <- celldex::MonacoImmuneData(ensembl = TRUE)
 ```
+
 What is this `monaco_ref` object?
 
 ```{r explore ref, live = TRUE}
@@ -443,8 +446,6 @@ SingleR::plotScoreHeatmap(singler_result)
 We can also pull out individual components of the results object for plotting in the context of our input SCE object.
 Here we will save the pruned labels (where low-quality assignments have been given an `NA` label), storing them back in our SCE object (specifically to a new column of the `colData` table).
 
-
-
 ```{r save celltypes, live=TRUE}
 sce$celltype_main <- singler_result$pruned.labels
 ```
@@ -511,10 +512,8 @@ Now we can perform the classification step, using our SCE object and the `Single
 ```{r classify fine, live=TRUE}
 # classify with fine model
 singler_result_fine <- SingleR::classifySingleR(
-  # our SCE object
-  sce,
-  # the trained model object
-  singler_finemodel,
+  sce, # our SCE object
+  singler_finemodel, # the trained model object
   # perform fine tuning (default)
   fine.tune = TRUE,
   # parallel processing
@@ -767,7 +766,7 @@ colData(sce) |>
 ```
 
 
-## Session Info
+## Print session info
 
 ```{r session info}
 sessionInfo()

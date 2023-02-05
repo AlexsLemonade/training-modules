@@ -1,7 +1,7 @@
 ---
 title: "Reading, filtering, and normalizing scRNA-seq data"
 author: Data Lab for ALSF
-date: 2022
+date: 2023
 output:
   html_notebook: 
     toc: true
@@ -36,9 +36,12 @@ To start, we will load some of the libraries we will need later, and set a rando
 
 ```{r setup}
 # Load libraries
-library(ggplot2) # plotting functions
-library(SingleCellExperiment) # our main class for storing Single Cell data
 
+# Plotting functions
+library(ggplot2) 
+
+# The main class we will use for Single Cell data
+library(SingleCellExperiment) 
 
 # Setting the seed for reproducibility
 set.seed(12345)
@@ -92,7 +95,8 @@ if (!dir.exists(normalized_dir)) {
 }
 
 # output RDS file for normalized data
-output_sce_file <- file.path(normalized_dir, "glioblastoma_normalized_sce.rds")
+output_sce_file <- file.path(normalized_dir,
+                             "glioblastoma_normalized_sce.rds")
 ```
 
 
@@ -124,7 +128,7 @@ One of our first steps will be to filter out barcodes that were never seen, or t
 In addition to the main `counts` matrix, listed as an `assay` in the SCE summary above, the SCE object can contain a number of other tables and matrices, each stored in a "slot" with a particular format. 
 The overall structure of the object can be seen in the figure below, which comes from an [OSCA Introduction chapter](http://bioconductor.org/books/3.16/OSCA.intro/the-singlecellexperiment-class.html).
 
-![structure of a SingleCellExperiment object](diagrams/SingleCellExperiment.png)
+![Structure of a SingleCellExperiment object](diagrams/SingleCellExperiment.png)
 
 We have just mentioned the main `assay` slot, which contains full matrices of data (such as transcript counts) with each row a feature and each column a cell. 
 There are also a couple of tables for metadata, and a slot to store reduced-dimension representations (e.g., PCA and/or UMAP) of the expression data.
@@ -227,7 +231,7 @@ How many cells do we have now?
 filtered_sce
 ```
 
-## Additional Quality control
+## Additional quality control
 
 In addition to filtering out empty droplets, we also will want to filter out cells that may have been damaged during library preparation.
 These will often be characterized by a high proportion of mitochondrial transcripts and a smaller overall number of unique transcripts. 
@@ -323,7 +327,8 @@ We stick with that default, but for clarity, we will also include it in our code
 
 ```{r miQC plotFiltering}
 # look at miQC filtering
-miQC::plotFiltering(filtered_sce, miqc_model, posterior_cutoff = 0.75) + 
+miQC::plotFiltering(filtered_sce, miqc_model, 
+                    posterior_cutoff = 0.75) + 
   theme_bw()
 ```
 
@@ -333,7 +338,9 @@ The cutoff point can vary for different numbers of unique genes within a sample,
 At this point, we can perform the actual filtering using the `filterCells()` function, giving us a further filtered SCE object.
 
 ```{r miQC filtercells, live=TRUE}
-qcfiltered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
+# perform miQC filtering
+qcfiltered_sce <- miQC::filterCells(filtered_sce, 
+                                    model = miqc_model)
 ```
 
 ### One more filter: unique gene count
@@ -348,7 +355,7 @@ qcfiltered_sce <- qcfiltered_sce[, which(qcfiltered_sce$detected >= 200)]
 ```
 
 
-## Normalization and Dimension Reduction
+## Normalization and dimension reduction
 
 Now that we have done our filtering, we can start analyzing the expression counts for the remaining cells. 
 
@@ -365,7 +372,8 @@ Finally, we apply the scaling factor to the expression values for each cell and 
 qclust <- scran::quickCluster(qcfiltered_sce)
 
 # use clusters to compute scaling factors and add to SCE object
-qcfiltered_sce <- scran::computeSumFactors(qcfiltered_sce, clusters = qclust)
+qcfiltered_sce <- scran::computeSumFactors(qcfiltered_sce, 
+                                           clusters = qclust)
 
 # perform normalization using scaling factors
 # and save as a new SCE object
@@ -381,12 +389,12 @@ Let's take a look:
 normalized_sce
 ```
 
-## Dimension Reduction
+## Dimension reduction
 
 Now that we have normalized expression values, we would like to produce some reduced-dimension representations of the data.
 These will allow us to perform some downstream calculations more quickly, reduce some of the noise in the data, and allow us to visualize overall relationships among cells more easily (though with many caveats!).
 
-### Selecting Highly Variable Genes
+### Selecting highly variable genes
 
 While we could calculate the reduced dimensions using all of the genes that we have assayed, in practice most of the genes will have very little variation in expression, so doing so will not provide much additional signal.
 Reducing the number of genes we include will also speed up some of the calculations.
@@ -424,11 +432,11 @@ The default number of components is 50, which we will stick with, but let's ente
 
 ```{r runPCA, live=TRUE}
 # calculate and save PCA results
-normalized_sce <- scater::runPCA(normalized_sce,
-                                 # how many components to keep
-                                 ncomponents = 50,
-                                 # use only the variable genes we chose
-                                 subset_row = hv_genes)
+normalized_sce <- scater::runPCA(
+  normalized_sce,
+  ncomponents = 50, # how many components to keep
+  subset_row = hv_genes # use only the variable genes we chose
+)
 ```
 
 These reduced-dimension results will be stored in a `reducedDim` slot in the SCE object.
@@ -502,6 +510,7 @@ In particular, the names/numbers of the clusters can be quite inconsistent betwe
 
 
 ```{r clustering, live=TRUE}
+# perform graph-based clustering
 nn_clusters <- bluster::clusterRows(
   pca_matrix, 
   bluster::NNGraphParam(
@@ -553,7 +562,7 @@ readr::write_rds(normalized_sce, file = output_sce_file, compress = "gz")
 ```
 
 
-## Session Info
+## Print session info
 
 As is our habit at the Data Lab, we will save information about the computing environment, the packages we have used in this notebook, and their versions using the `sessionInfo()` command.
 

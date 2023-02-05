@@ -58,4 +58,37 @@ To download the files, change directories to the `setup/PBMC_TotalSeqB` director
 snakemake -j2 
 ```
 
-This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/PBMC_TotalSeqB`
+This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/PBMC-TotalSeqB`
+
+## Rhabdomyosarcoma (RMS)
+
+These data are from [`SCPCP000005`](https://scpca.alexslemonade.org/projects/SCPCP000005).
+Files were downloaded directly from the `ScPCA` portal, and the `_filtered.rds` files were used as input to the Snakefile in the `rms` directory.
+These files can be found in `/shared/data/training-modules/scRNA-seq-advanced/data/rms/raw`.
+
+The included scripts apply uniform filtering, normalization, and dimension reduction to each input SCE object, followed by integration of all objects using `fastMNN`.
+The list of libraries included can be found in the `setup/rms/config.yaml`.
+All libraries listed were included in pre-processing prior to integration, and all libraries except `SCPCL000482` are included in the integrated dataset.
+
+To produce the files, change directories to the `setup/rms` directory and run:
+
+```sh
+snakemake -c4
+```
+
+All individual SCE objects that have been processed can be found in `/shared/data/training-modules/scRNA-seq-advanced/data/rms/processed`.
+The integrated SCE object will be saved to `/shared/data/training-modules/scRNA-seq-advanced/data/rms/integrated/rms_all_sce.rds`.
+
+### Pancreas
+
+The data for these samples comes from the `scRNAseq` RNA package, specifically the [Muraro _et al._ (2016)](https://doi.org/10.1016/j.cels.2016.09.002) paper.
+
+The included script splits the dataset by donor, then performs filtering, normalization and dimension reduction as would usually be performed with a raw dataset.
+
+To produce the files, change directories to the `setup/pancreas` directory and run:
+
+```sh
+snakemake -j2 
+```
+
+This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/pancreas`
