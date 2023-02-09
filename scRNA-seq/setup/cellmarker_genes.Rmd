@@ -2,8 +2,8 @@
 title: "CellMarker Genes for Over-Representation Analysis"
 author: Jaclyn Taroni for the CCDL
 date: 2021-06
-output: 
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -41,28 +41,28 @@ mm_output <- file.path(output_dir, "CellMarker_cleaned_mouse_markers.tsv")
 ```{r}
 # Only to be used in this context! Avoid repeating code for both organisms
 clean_marker_genes <- function(cell_marker_url) {
-  
-  cell_markers <- read_tsv(cell_marker_url) %>% 
+
+  cell_markers <- read_tsv(cell_marker_url) |>
     # Remove undefined tissue types
-    filter(tissueType != "Undefined") %>%
+    filter(tissueType != "Undefined") |>
     # For the gene set "name" we're going to create a single column that has
     # all of this information
-    unite("CellMarker", tissueType, cancerType, cellName, sep = ", ") %>% 
+    unite("CellMarker", tissueType, cancerType, cellName, sep = ", ") |>
     # Composite gene set name + gene symbols, which are comma separated
     select(CellMarker, geneSymbol)
-  
+
   # Remove brackets from ambiguously mapped genes
-  cell_markers <- cell_markers %>%
-    mutate(gene_symbol = str_remove_all(geneSymbol, "[\\[\\]]")) %>%
-    drop_na(gene_symbol) %>%
+  cell_markers <- cell_markers |>
+    mutate(gene_symbol = str_remove_all(geneSymbol, "[\\[\\]]")) |>
+    drop_na(gene_symbol) |>
     select(-geneSymbol)
-  
+
   # Tidy format required for clusterProfiler functions
-  cell_markers_df <- cell_markers %>% 
-    separate_rows(gene_symbol, sep = ", ") %>%
-    rename(cell_marker = CellMarker) %>%
+  cell_markers_df <- cell_markers |>
+    separate_rows(gene_symbol, sep = ", ") |>
+    rename(cell_marker = CellMarker) |>
     filter(gene_symbol != "NA")
-  
+
 }
 ```
 

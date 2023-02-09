@@ -2,14 +2,14 @@
 title: "Prepare mouse liver marker genes"
 author: Jaclyn Taroni for the CCDL
 date: 2021-06
-output: 
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 ---
 
 We are going to identify clusters and marker genes in mouse liver data.
-We'll obtain these data from the Human Cell Atlas. 
+We'll obtain these data from the Human Cell Atlas.
 The data originally comes from [Ramachandran *et al.* 2019](https://doi.org/10.1038/s41586-019-1631-3).
 
 ([Here's the HCA project itself!](https://data.humancellatlas.org/explore/projects/c41dffbf-ad83-447c-a0e1-13e689d9b258))
@@ -37,12 +37,6 @@ Based on this file name, we can anticipate that this includes cells from healthy
 
 ## Set up
 
-#### Libraries
-
-```{r}
-library(SingleCellExperiment)
-library(magrittr)
-```
 
 #### Directories
 
@@ -71,7 +65,7 @@ loom_file <- file.path(loom_dir, "healthy_cirrhotic_mouse_liver.loom")
 
 # Output
 # SCE with dim red results, cluster assignment, etc.
-normalized_file <- file.path(norm_dir, 
+normalized_file <- file.path(norm_dir,
                              "healthy_cirrhotic_mouse_liver_normalized.rds")
 
 # UMAP plot we'll include in the exercise
@@ -115,7 +109,7 @@ filtered_sce <- sce[, sce$emptydrops_FDR <= 0.01]
 Then on the basis of % mitochondrial molecules.
 
 ```{r}
-filtered_sce <- filtered_sce[, filtered_sce$pct_mitochondrial_molecules < 10] 
+filtered_sce <- filtered_sce[, filtered_sce$pct_mitochondrial_molecules < 10]
 ```
 
 We will get a few negative size factors if we don't remove cells with few expressed features.
@@ -152,8 +146,8 @@ set.seed(2021)
 # Cluster similar cells
 qclust <- scran::quickCluster(filtered_sce)
 
-# Compute sum factors for each cell cluster grouping.  
-filtered_sce <- scran::computeSumFactors(filtered_sce, 
+# Compute sum factors for each cell cluster grouping.
+filtered_sce <- scran::computeSumFactors(filtered_sce,
                                          clusters = qclust,
                                          # Setting this to FALSE allows us to
                                          # do our own diagnostics if we get
@@ -170,7 +164,7 @@ any(filtered_sce$sizeFactor < 0)
 Great, let's normalize and transform our data.
 
 ```{r}
-# Normalize and log transform. 
+# Normalize and log transform.
 normalized_sce <- scater::logNormCounts(filtered_sce)
 ```
 
@@ -223,8 +217,8 @@ Cluster the cells in PCA space, using graph-based clustering.
 ```{r}
 # Run the clustering algorithm
 nnclusters <- bluster::clusterRows(
-  pca_mat, 
-  bluster::NNGraphParam(k = 10, 
+  pca_mat,
+  bluster::NNGraphParam(k = 10,
                         cluster.fun = "louvain")
 )
 # Store cluster results in the SCE object
@@ -237,16 +231,16 @@ We'll use UMAP for visualization here.
 
 ```{r}
 # Run UMAP
-normalized_sce <- scater::runUMAP(normalized_sce, 
+normalized_sce <- scater::runUMAP(normalized_sce,
                                   dimred = "PCA")
 ```
 
 And now for viz...
 
 ```{r}
-scater::plotReducedDim(normalized_sce, 
-                       "UMAP", 
-                       colour_by = "nncluster", 
+scater::plotReducedDim(normalized_sce,
+                       "UMAP",
+                       colour_by = "nncluster",
                        text_by = "nncluster")
 ```
 
@@ -269,8 +263,8 @@ Our main goal for this notebook is to obtain tables of marker genes for the exer
 We'll use `pval.type = "all"` to mirror what we cover during instruction.
 
 ```{r}
-markers <- scran::findMarkers(normalized_sce, 
-                              groups = normalized_sce$nncluster, 
+markers <- scran::findMarkers(normalized_sce,
+                              groups = normalized_sce$nncluster,
                               pval.type = "all")
 ```
 
@@ -284,7 +278,7 @@ Jchain has a small FDR value and negative summary log fold change; let's take a 
 
 ```{r}
 # Plot UMAP results colored by expression
-scater::plotReducedDim(normalized_sce, "UMAP", 
+scater::plotReducedDim(normalized_sce, "UMAP",
                        colour_by = "Jchain")
 ```
 
@@ -297,8 +291,8 @@ Saa3 has a positive summary log fold change, let's take a look at the plot.
 
 ```{r}
 # Plot UMAP results colored by expression
-scater::plotReducedDim(normalized_sce, 
-                       "UMAP", 
+scater::plotReducedDim(normalized_sce,
+                       "UMAP",
                        colour_by = "Saa3")
 ```
 Though we see some individual samples with high expression values for Saa3 in cluster 2, it looks like it is most consistently highly expressed in cluster 7 and the cluster 2 comparison does not result in the largest p-value.
@@ -310,9 +304,9 @@ Now we're ready to write each table of marker genes, sorted by FDR, to file.
 purrr::iwalk(
   as.list(markers), # convert markers to a 'regular' list for purrr
   # purrr function: .x is the list element, .y is the element name (number here)
-  ~ as.data.frame(.x) %>% # first convert to a data frame
-    tibble::rownames_to_column("gene") %>% # make genes a column
-    dplyr::arrange(FDR) %>% # sort to be sure small FDR genes are first
+  ~ as.data.frame(.x) |> # first convert to a data frame
+    tibble::rownames_to_column("gene") |> # make genes a column
+    dplyr::arrange(FDR) |> # sort to be sure small FDR genes are first
     readr::write_tsv( # write each data frame to a file
       file.path(markers_dir, # construct the output path
                 sprintf("cluster%02d_markers.tsv", as.integer(.y)) # format cluster numbers in file names with leading zeros
