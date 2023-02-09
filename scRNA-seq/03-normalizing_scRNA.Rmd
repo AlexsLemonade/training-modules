@@ -3,7 +3,7 @@ title: "Normalizing scRNA-seq data"
 author: CCDL for ALSF
 date: 2021
 output:
-  html_notebook: 
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -17,24 +17,21 @@ This notebook will demonstrate how to:
 
 ---
 
-In this notebook, we'll perform normalization of scRNA-seq count data that we have already done quality-control analyses of. 
-    
-For this tutorial, we will be using a pair of single-cell analysis specific 
-R packages: `scater` and `scran` to work with our data. 
+In this notebook, we'll perform normalization of scRNA-seq count data that we have already done quality-control analyses of.
+
+For this tutorial, we will be using a pair of single-cell analysis specific
+R packages: `scater` and `scran` to work with our data.
 This tutorial is in part based on the [scran
 tutorial](https://bioconductor.org/packages/devel/bioc/vignettes/scran/inst/doc/scran.html).
 ![](diagrams/tag-based_4.png)
-  
-## Set Up 
+
+## Set Up
 
 Load the libraries we will be using, and set the random number generation seed value for reproducibility.
 
 ```{r setup}
 # Set seed for reproducibility
 set.seed(1234)
-
-# Magrittr for the pipe %>%
-library(magrittr)
 
 # GGPlot2 for the plots
 library(ggplot2)
@@ -82,20 +79,20 @@ Nonetheless, adding it here will be useful for visualizing the results of our no
 ```{r sample_info}
 # get the column (cell) metadata (this includes earlier QC stats!)
 # and convert to a data frame
-cell_info <- data.frame(colData(bladder_sce)) %>%
+cell_info <- data.frame(colData(bladder_sce)) |>
   # convert the row names of this data frame to a separate column
   tibble::rownames_to_column("barcode")
 
-cell_metadata <- sc_metadata %>%
+cell_metadata <- sc_metadata |>
   # filter to just the sample we are working with
-  dplyr::filter(channel == "10X_P4_3") %>%
+  dplyr::filter(channel == "10X_P4_3") |>
   # extract the 16 nt cell barcodes from the `cell` column
-  dplyr::mutate(barcode = stringr::str_sub(cell, start= -16)) %>%
+  dplyr::mutate(barcode = stringr::str_sub(cell, start= -16)) |>
   # choose only the columns we want to add
   dplyr::select(c("barcode", "cell_ontology_class", "free_annotation"))
 
 # Join the tables together, using `left_join()` to preserve all rows in cell_info
-cell_info <- cell_info %>%
+cell_info <- cell_info |>
   dplyr::left_join(cell_metadata)
 ```
 
@@ -107,7 +104,7 @@ all.equal(cell_info$barcode, colnames(bladder_sce))
 
 Now we can add that data back to the `SingleCellExperiment` object.
 To keep with the format of that object, we have to convert our table to a `DataFrame` object in order for this to work.
-Just to keep things confusing, a `DataFrame` is not the same as a `data.frame` that we have been using throughout. 
+Just to keep things confusing, a `DataFrame` is not the same as a `data.frame` that we have been using throughout.
 We also need to be sure to include the `row.names` argument to keep those properly attached.
 
 Note that this will replace all of the previous column (cell) metadata, which is part of the reason that we pulled out all previous column data content first.
@@ -118,59 +115,59 @@ colData(bladder_sce) <- DataFrame(cell_info, row.names = cell_info$barcode)
 ```
 
 
-## Normalization of count data 
+## Normalization of count data
 
-In whatever data we are working with, we are always looking to maximize biological variance and minimize technical variance. 
-A primary source of technical variation we are concerned with is the variation in library sizes among our samples. 
-While different cells may have different total transcript counts, it seems more likely that the primary source of variation that we see is due to library construction, amplification, and sequencing. 
+In whatever data we are working with, we are always looking to maximize biological variance and minimize technical variance.
+A primary source of technical variation we are concerned with is the variation in library sizes among our samples.
+While different cells may have different total transcript counts, it seems more likely that the primary source of variation that we see is due to library construction, amplification, and sequencing.
 
 This is where normalization methods usually come into the workflow.
 The distribution of the counts that we saw in the previous notebook, and in particular the fact that the count data is noisy with many zero counts, makes normalization particularly tricky.
 To handle this noise, we normalize cells in groups with other cells like them; a method introduced in [Lun *et al.* (2016)](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
 
-Briefly, we first cluster the cells to find groups of similar cells, then compute normalization factors based on the sums of expression in those groups. 
-The group normalization is then applied back to the individual cells within the group to create a normalized count matrix. 
-In this case, we will also log-transform the normalized counts to get a less skewed distribution of expression measures. 
+Briefly, we first cluster the cells to find groups of similar cells, then compute normalization factors based on the sums of expression in those groups.
+The group normalization is then applied back to the individual cells within the group to create a normalized count matrix.
+In this case, we will also log-transform the normalized counts to get a less skewed distribution of expression measures.
 Note that because of the zero counts, the `logNormCounts()` function will add a pseudocount of 1 to each value before computing the log.
 
 ```{r sce_normalize}
-# Step 1) Group cells with other like cells by clustering.  
+# Step 1) Group cells with other like cells by clustering.
 qclust <- scran::quickCluster(bladder_sce)
 
-# Step 2) Compute sum factors for each cell cluster grouping.  
+# Step 2) Compute sum factors for each cell cluster grouping.
 bladder_sce <- scran::computeSumFactors(bladder_sce, clusters = qclust)
 
-# Step 3) Normalize using these pooled sum factors and log transform. 
+# Step 3) Normalize using these pooled sum factors and log transform.
 bladder_sce <- scater::logNormCounts(bladder_sce)
 ```
 
 ### Compare normalized data to count data
 
 One way to determine whether our normalization yields biologically relevant results is to plot it and see if similarly labeled samples and cells end up together.
-Because plotting expression for thousands genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis (PCA). 
+Because plotting expression for thousands genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis (PCA).
 
 We will also make the same plot with our *unnormalized* data, to visualize the effect of normalization on our sample.
 
-Before plotting the unnormalized data, we will log transform the raw counts to make their scaling more comparable to the normalized data. 
+Before plotting the unnormalized data, we will log transform the raw counts to make their scaling more comparable to the normalized data.
 To do this we will use the `log1p()` function, which is specifically designed for the case where we want to add 1 to all of our values before taking the log, as we do here.
 (We could do something like `log(counts + 1)`, but this is both more efficient and more accurate.)
 
 
 ```{r pca}
 # Use PCA for dimension reduction of cells' scran normalized data
-norm_pca <- scater::calculatePCA(bladder_sce) 
+norm_pca <- scater::calculatePCA(bladder_sce)
 
 # PCA on the raw counts, log transformed
-log_pca <- counts(bladder_sce) %>% # get the raw counts
-  log1p() %>% # log transform to make these more comparable to the normalized values
+log_pca <- counts(bladder_sce) |> # get the raw counts
+  log1p() |> # log transform to make these more comparable to the normalized values
   scater::calculatePCA() # calculate PCA scores
 
 ```
 
-Note that we are using `scater::calculatePCA()` two different ways here: once on the full `gbm_sce` object, and once on just the `counts` matrix. 
+Note that we are using `scater::calculatePCA()` two different ways here: once on the full `gbm_sce` object, and once on just the `counts` matrix.
 When we use `calculatePCA()` on the object, it automatically uses the log normalized matrix from inside the object.
 
-Next we will arrange the PCA scores for plotting, adding a column with the cell-type data so we can color each point of the plot. 
+Next we will arrange the PCA scores for plotting, adding a column with the cell-type data so we can color each point of the plot.
 
 ```{r pca_df}
 # Set up the PCA scores for plotting
@@ -187,24 +184,24 @@ Now we will plot the unnormalized PCA scores with their cell labels:
 ```{r pca_plot}
 # Now plot counts pca
 ggplot(log_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
-  geom_point() + 
+  geom_point() +
   labs(title = "Log counts (unnormalized) PCA scores",
-       color = "Cell Type") + 
+       color = "Cell Type") +
   scale_color_brewer(palette = "Dark2", na.value = "grey70") + # add a visually distinct color palette
   theme_bw()
 ```
 
-We've plotted the unnormalized data for you. 
-Knowing that we want the same graph, but different data, use the above template to plot the normalized data. 
+We've plotted the unnormalized data for you.
+Knowing that we want the same graph, but different data, use the above template to plot the normalized data.
 Feel free to customize the plot with a different theme or color scheme!
 
 Let's plot the `norm_pca_scores` data:
 
 ```{r norm_pca_plot, live = TRUE}
 ggplot(norm_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
-  geom_point() + 
-  labs(title = "Normalized log counts PCA scores", 
-       color = "Cell Type") + 
+  geom_point() +
+  labs(title = "Normalized log counts PCA scores",
+       color = "Cell Type") +
   scale_color_brewer(palette = "Dark2", na.value = "grey70") + # add a visually distinct color palette
   theme_bw()
 ```
@@ -215,23 +212,23 @@ Do you see an effect from the normalization in the comparison between these plot
 ## Save the normalized data to tsv file
 
 In case we wanted to return to this data later, let's save the normalized data
-to a tsv file. 
-In order to do this we need to extract our normalized counts from `bladder_sce`. 
+to a tsv file.
+In order to do this we need to extract our normalized counts from `bladder_sce`.
 Refer back to the `SingleCellExperiment` figure above to determine why we are using this `logcounts()` function.
 
-Recall that `readr::write_tsv` requires a data frame so we need to convert the `logcounts` matrix to a data frame. 
+Recall that `readr::write_tsv` requires a data frame so we need to convert the `logcounts` matrix to a data frame.
 We will actually have to do this in two steps: first by making the sparse matrix to a standard R matrix, then converting that to a data frame.
 
 ```{r save_tsv}
 # Save this gene matrix to a tsv file
-logcounts(bladder_sce) %>% 
-  as.matrix() %>%
-  as.data.frame() %>%
+logcounts(bladder_sce) |>
+  as.matrix() |>
+  as.data.frame() |>
   readr::write_tsv(file.path(norm_dir, "scran_norm_gene_matrix.tsv"))
 ```
 
-We may want to return to our normalized `bladder_sce` object in the future, so we will 
-also save our data in an RDS file so that we can re-load it into our R 
+We may want to return to our normalized `bladder_sce` object in the future, so we will
+also save our data in an RDS file so that we can re-load it into our R
 environment as a `SingleCellExperiment` object.
 
 ```{r save_rds}
