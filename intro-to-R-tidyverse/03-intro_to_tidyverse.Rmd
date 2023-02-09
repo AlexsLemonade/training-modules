@@ -17,7 +17,7 @@ This notebook will demonstrate how to:
 
 - Use functions from the tidyverse to read and write data frames
 - Implement and use tidyverse functions to wrangle data (i.e. filter, mutate, arrange, join)
-- Use `magrittr` pipes (`%>%`) to combine multiple operations
+- Use R pipes (`|>`) to combine multiple operations
 - Use the `apply()` function to apply functions across rows or columns of a matrix
 
 ---
@@ -178,10 +178,12 @@ Use this chunk to explore what `gene_df` looks like.
 
 What information is contained in `gene_df`?
 
-## `magrittr` pipes
+## `R` pipes
 
-One nifty feature of the tidyverse is pipes: `%>%`
-These handy things, which come from the `magrittr` package, allow you to funnel the result of one expression to the next, making your code a little more streamlined.
+One nifty feature that was added to `R` in version 4.1 is the pipe: `|>`.
+Pipes were originally introduced in the `magrittr` package, where they look like this `%>%`.
+The feature became very popular in the tidyverse, partly due to `magrittr`'ss inclusion in the `dplyr` package and its use there.
+Pipes are very handy things that allow you to funnel the result of one expression to the next, making your code more streamlined and fluently expressing the flow of data through a series of operations.
 
 
 For example, the output from this:
@@ -193,7 +195,7 @@ filter(stats_df, contrast == "male_female")
 ...is the same as the output from this:
 
 ```{r filter-pipe}
-stats_df %>% filter(contrast == "male_female")
+stats_df |> filter(contrast == "male_female")
 ```
 
 This can make your code cleaner and easier to follow a series of related commands.
@@ -215,13 +217,13 @@ It's annoying and makes it harder for people to read.
 
 ```{r steps-pipe, live = TRUE}
 # Example of the same modifications as above but with pipes!
-stats_pipe  <- stats_df %>%
-               arrange(t_statistic) %>%
-               filter(avg_expression > 50) %>%
+stats_pipe  <- stats_df |>
+               arrange(t_statistic) |>
+               filter(avg_expression > 50) |>
                select(contrast, log_fold_change, p_value)
 ```
 
-What the `%>%` (pipe) is doing here is feeding the result of the expression on its left into the first argument of the next function (to its right, or on the next line here).
+What the `|>` (pipe) is doing here is feeding the result of the expression on its left into the first argument of the next function (to its right, or on the next line here).
 We can then skip that first argument (the data in these cases), and move right on to the part we care about at that step: what we are arranging, filtering, or selecting in this case.
 The key insight that makes the pipe work here is to recognize that each of these functions (`arrange`, `filter`, and `select`) are fundamental `dplyr` (a tidyverse package) functions which work as "data in, data out."
 In other words, these functions operate on data frames, and return data frames; you give them a data frame, and they give you back a data frame.
@@ -237,9 +239,9 @@ all.equal(stats_nopipe, stats_pipe)
 
 Now that hopefully you are convinced that the tidyverse can help you make your code neater and easier to use and read, let's go through some of the popular tidyverse functions and so we can create pipelines like this.
 
-_Note:_ We are using the `magrittr` package and the pipe that comes with it, `%>%`, throughout this course.
+_Note:_ We are using the `magrittr` package and the pipe that comes with it, `|>`, throughout this course.
 After seeing the wide adoption of this pipe, R core team decided this was such a useful feature that they incorporated a version of it in the native R language from version `4.1` up.
-This "native" pipe is `|>`, and can be used just about anywhere you might have used `%>%` (though there are some [subtle differences](https://www.jumpingrivers.com/blog/new-features-r410-pipe-anonymous-functions/#the-native-pipe)).
+This "native" pipe is `|>`, and can be used just about anywhere you might have used `|>` (though there are some [subtle differences](https://www.jumpingrivers.com/blog/new-features-r410-pipe-anonymous-functions/#the-native-pipe)).
 We will stick with the `magrittr` version for its broader compatibility, but feel free to try the new one!
 
 ## Common tidyverse functions
@@ -249,7 +251,7 @@ In order to do this, we would use the function `filter()` as well as a logic sta
 
 ```{r filter-gene}
 # Here let's filter stats_df to only keep the gene_symbol "SNCA"
-stats_df %>%
+stats_df |>
   filter(gene_symbol == "SNCA")
 ```
 
@@ -257,7 +259,7 @@ We can use `filter()` similarly for numeric statements.
 
 ```{r filter-numeric, live = TRUE}
 # Here let's filter the data to rows with average expression values above 50
-stats_df %>%
+stats_df |>
   filter(avg_expression > 50)
 ```
 
@@ -265,7 +267,7 @@ We can apply multiple filters at once, which will require all of them to be sati
 
 ```{r filter-2, live = TRUE}
 # filter to highly expressed genes with contrast "male_female"
-stats_df %>%
+stats_df |>
   filter(contrast == "male_female",
          avg_expression > 50)
 ```
@@ -283,7 +285,7 @@ stats_df$gene_symbol %in% genes_of_interest
 
 ```{r filter-in, live = TRUE}
 # filter to keep only genes of interest
-stats_df %>%
+stats_df |>
   filter(gene_symbol %in% c("SNCA", "CDKN1A"))
 ```
 
@@ -295,9 +297,9 @@ Let's also save this as a new data frame called `stats_filtered_df`.
 ```{r filter-select, live = TRUE}
 # filter to highly expressed "male_female"
 # and select gene_symbol, log_fold_change and t_statistic
-stats_filtered_df <- stats_df %>%
+stats_filtered_df <- stats_df |>
   filter(contrast == "male_female",
-         avg_expression > 50) %>%
+         avg_expression > 50) |>
   select(log_fold_change, t_statistic)
 ```
 
@@ -305,7 +307,7 @@ Let's say we wanted to arrange this dataset so that the genes are arranged by th
 In order to do this, we would use the function `arrange()` as well as the column we would like to sort by (in this case `p_value`).
 
 ```{r arrange}
-stats_df %>%
+stats_df |>
   arrange(p_value)
 ```
 
@@ -315,7 +317,7 @@ We can use the same function, but instead use the `desc()` function and now we a
 
 ```{r arrange-desc}
 # arrange descending by avg_expression
-stats_df %>%
+stats_df |>
   arrange(desc(avg_expression))
 ```
 
@@ -323,7 +325,7 @@ What if we would like to create a new column of values?
 For that we use `mutate()` function.
 
 ```{r mutate}
-stats_df %>%
+stats_df |>
   mutate(log10_p_value = -log10(p_value))
 ```
 
@@ -332,7 +334,7 @@ The `summarize` function allows us to calculate summary statistics for a column.
 Here we will use summarize to calculate two summary statistics of log-fold change across all genes: mean (function `mean()`) and standard deviation (function `sd()`).
 
 ```{r summarize}
-stats_df %>%
+stats_df |>
   summarize(mean(log_fold_change),
             sd(log_fold_change))
 ```
@@ -342,8 +344,8 @@ Conveniently named, there's a function called `group_by()` that seamlessly allow
 Also note that `group_by()` allows us to group by multiple variables at a time if you want to.
 
 ```{r summarize-groups, live = TRUE}
-stats_summary_df <- stats_df %>%
-      group_by(contrast) %>%
+stats_summary_df <- stats_df |>
+      group_by(contrast) |>
       summarize(mean(log_fold_change),
                 sd(log_fold_change))
 ```
@@ -457,7 +459,7 @@ We need to use the `by` argument to designate what column(s) should be used as a
 In this case we want to match the gene information between the two, so we will specify that we want to compare values in the `ensembl_id` column from `stats_df` to the `Gene` column from `gene_df`.
 
 ```{r inner-join}
-stats_df %>%
+stats_df |>
   # Join based on their shared column
   # Called ensembl_id in stats_df and called Gene in gene_df
   inner_join(gene_df, by = c('ensembl_id' = 'Gene'))
