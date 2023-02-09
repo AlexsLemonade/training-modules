@@ -1,6 +1,6 @@
 ---
 title: "Transform OpenPBTA data"
-output: 
+output:
   html_notebook:
     toc: true
     toc_float: true
@@ -15,9 +15,6 @@ Here, we'll transform the OpenPBTA stranded RNA-seq data for use in the machine 
 ### Library
 
 ```{r}
-# Pipes
-library(magrittr)
-
 # For transformation
 library(DESeq2)
 ```
@@ -26,12 +23,12 @@ library(DESeq2)
 
 ```{r}
 # Set up the directories - we'll be processing OpenPBTA data, which we'll
-# stick in a separate output directory 
+# stick in a separate output directory
 openpbta_dir <- file.path("..", "data", "open-pbta")
 input_dir <- file.path(openpbta_dir, "download")
 output_dir <- file.path(openpbta_dir, "processed")
 
-# Create the output directory if it doesn't exist yet 
+# Create the output directory if it doesn't exist yet
 if (!dir.exists(output_dir)) {
   dir.create(output_dir, recursive = TRUE)
 }
@@ -41,12 +38,12 @@ if (!dir.exists(output_dir)) {
 
 ```{r}
 # This file contains all the clinical information like disease labels
-histologies_file <- file.path(input_dir, 
+histologies_file <- file.path(input_dir,
                               "pbta-histologies.tsv")
 
 # RSEM expected counts
 stranded_counts_file <- file.path(
-  input_dir, 
+  input_dir,
   "pbta-gene-counts-rsem-expected_count.stranded.rds"
 )
 ```
@@ -56,7 +53,7 @@ stranded_counts_file <- file.path(
 ```{r}
 # We're going to write out a histologies file that only includes data for the
 # stranded RNA-seq samples
-filtered_histologies_file <- file.path(output_dir, 
+filtered_histologies_file <- file.path(output_dir,
                                       "pbta-histologies-stranded-rnaseq.tsv")
 # VST transformed values (big file, so we will compress it)
 rnaseq_transformed_file <- file.path(output_dir, "pbta-vst-stranded.tsv.gz")
@@ -68,11 +65,11 @@ rnaseq_transformed_file <- file.path(output_dir, "pbta-vst-stranded.tsv.gz")
 
 ```{r}
 histologies_df <- readr::read_tsv(histologies_file,
-                                  guess_max = 10000) %>%
+                                  guess_max = 10000) |>
   # We'll only be looking at the stranded RNA-seq dataset, so filter out
   # all other samples (e.g., WGS)
   dplyr::filter(experimental_strategy == "RNA-Seq",
-                RNA_library == "stranded") %>%
+                RNA_library == "stranded") |>
   # Remove columns that are all NA (typically pertain only to the DNA data)
   purrr::discard(~ all(is.na(.)))
 
@@ -92,11 +89,11 @@ The sample identifiers used in the counts matrix are called `Kids_First_Biospeci
 We'll sometimes refer to them as biospecimen IDs or BSIDs for short!
 
 ```{r}
-stranded_count_mat <- stranded_count_mat %>%
+stranded_count_mat <- stranded_count_mat |>
   # We want to retain the Ensembl gene identifiers as the first column
-  dplyr::select(gene_id, histologies_df$Kids_First_Biospecimen_ID) %>%
+  dplyr::select(gene_id, histologies_df$Kids_First_Biospecimen_ID) |>
   # Make the gene identifier column the rownames and make this into a matrix
-  tibble::column_to_rownames("gene_id") %>%
+  tibble::column_to_rownames("gene_id") |>
   as.matrix()
 
 # This is the output of RSEM - some values will not be integers, rounding this
@@ -106,7 +103,7 @@ stranded_count_mat <- round(stranded_count_mat)
 
 ```{r}
 # In the same order?
-identical(colnames(stranded_count_mat), 
+identical(colnames(stranded_count_mat),
           histologies_df$Kids_First_Biospecimen_ID)
 ```
 
@@ -132,7 +129,7 @@ Variance stabilizing transformation and write to file.
 vst_data <- vst(ddset, blind = TRUE)
 
 # Now create a data frame where the gene identifiers are in the first column
-vst_df <- data.frame(assay(vst_data)) %>%
+vst_df <- data.frame(assay(vst_data)) |>
   tibble::rownames_to_column("gene_id")
 
 # Write to TSV!
