@@ -1,7 +1,6 @@
 ## ----setup---------------------------------------------------------------------------------
 # Load libraries
 library(optparse)
-library(magrittr)
 library(SingleCellExperiment)
 
 
@@ -26,12 +25,12 @@ options <- list(
 opts <- parse_args(OptionParser(option_list = options))
 
 # Read SCE
-raw_sce <- DropletUtils::read10xCounts(opts$raw_matrix_dir) 
+raw_sce <- DropletUtils::read10xCounts(opts$raw_matrix_dir)
 
 # Split out the ADT into an altExp
-raw_sce <- splitAltExps(raw_sce, 
+raw_sce <- splitAltExps(raw_sce,
                         # "Gene Expression" or "Antibody Capture"
-                        f = rowData(raw_sce)$Type, 
+                        f = rowData(raw_sce)$Type,
                         # The Type which should be the main experiment
                         ref = "Gene Expression")
 
@@ -41,7 +40,7 @@ altExpNames(raw_sce) <- "ADT"
 
 # run emptyDropsCellRanger
 droplet_df <- DropletUtils::emptyDropsCellRanger(
-  counts(raw_sce), 
+  counts(raw_sce),
   BPPARAM = BiocParallel::MulticoreParam(4)
 )
 
@@ -50,8 +49,8 @@ filtered_sce <- raw_sce[, cells_to_retain]
 
 
 # read in mitochondrial gene files
-mito_genes <- readr::read_tsv(opts$mito_file) %>%
-  dplyr::filter(gene_id %in% rownames(filtered_sce)) %>%
+mito_genes <- readr::read_tsv(opts$mito_file) |>
+  dplyr::filter(gene_id %in% rownames(filtered_sce)) |>
   dplyr::pull(gene_id)
 
 
@@ -61,8 +60,8 @@ filtered_sce <- scuttle::addPerCellQC(filtered_sce,
 
 message("filtering with miQC")
 
-# calculate miQC model and filter 
-miqc_model <- miQC::mixtureModel(filtered_sce) 
+# calculate miQC model and filter
+miqc_model <- miQC::mixtureModel(filtered_sce)
 filtered_sce <- miQC::filterCells(filtered_sce, model = miqc_model)
 message("filtering on ADTs")
 # generate ambient model from empty droplets
@@ -88,11 +87,11 @@ normalized_sce <- scuttle::logNormCounts(filtered_sce)
 # Normalize ADT
 message("Normalizing ADT counts")
 adt_sf <- scuttle::medianSizeFactors(
-  altExp(normalized_sce), 
+  altExp(normalized_sce),
   reference = adt_ambient )
 
 altExp(normalized_sce) <- scater::logNormCounts(
-  altExp(normalized_sce), 
+  altExp(normalized_sce),
   size.factors = adt_sf
 )
 
@@ -107,8 +106,8 @@ hv_genes <- scran::getTopHVGs(gene_variance,
 
 # add PCA & UMAP
 message("running dimensionality reduction")
-normalized_sce <- normalized_sce %>% 
-  scater::runPCA(subset_row = hv_genes) %>% 
+normalized_sce <- normalized_sce |>
+  scater::runPCA(subset_row = hv_genes) |>
   scater::runUMAP(dimred = "PCA")
 
 

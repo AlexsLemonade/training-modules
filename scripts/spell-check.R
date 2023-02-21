@@ -3,8 +3,6 @@
 # Run spell check and save results
 # Adapted from: https://github.com/AlexsLemonade/refinebio-examples/blob/33cdeff66d57f9fe8ee4fcb5156aea4ac2dce07f/scripts/spell-check.R
 
-library(magrittr)
-
 # Find .git root directory
 root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
 
@@ -21,7 +19,7 @@ files <- list.files(pattern = '\\.(Rmd|md)$', recursive = TRUE, full.names = TRU
 # remove files in renv library
 files <- grep('^./renv/', files, invert = TRUE, value = TRUE)
 
-# Remove the LICENSE from the spell check 
+# Remove the LICENSE from the spell check
 files <- grep('LICENSE.md', files, invert = TRUE, value = TRUE)
 
 # Remove all live versions so we're not spell checking twice
@@ -30,9 +28,9 @@ files <- grep('-live.Rmd', files, invert = TRUE, value = TRUE)
 
 
 # Run spell check
-spelling_errors <- spelling::spell_check_files(files, ignore = dictionary) %>%
-  data.frame() %>%
-  tidyr::unnest(cols = found) %>%
+spelling_errors <- spelling::spell_check_files(files, ignore = dictionary) |>
+  data.frame() |>
+  tidyr::unnest(cols = found) |>
   tidyr::separate(found, into = c("file", "lines"), sep = ":")
 
 # Print out how many spell check errors

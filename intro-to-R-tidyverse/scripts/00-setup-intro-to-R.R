@@ -4,9 +4,6 @@
 
 # 2020
 
-# Magrittr pipe
-`%>%` <- dplyr::`%>%`
-
 # Establish base dir
 root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
 
@@ -30,30 +27,30 @@ if (!("org.Hs.eg.db" %in% installed.packages())) {
 
 # Read in the dataset
 gene_df <- readr::read_tsv(file.path(data_dir,
-                                     "GSE44971.tsv")) %>%
+                                     "GSE44971.tsv")) |>
   tibble::column_to_rownames("Gene")
 
 # Read in metadata
 metadata <- readr::read_tsv(file.path(data_dir,
-                                      "metadata_GSE44971.tsv")) %>%
-  dplyr::select(sample_id = refinebio_accession_code, 
+                                      "metadata_GSE44971.tsv")) |>
+  dplyr::select(sample_id = refinebio_accession_code,
                 -which(apply(is.na(.), 2, all)),
-                sex = refinebio_sex, 
-                tissue, 
-                brain_location = "brain location", 
-                title) %>%
+                sex = refinebio_sex,
+                tissue,
+                brain_location = "brain location",
+                title) |>
   dplyr::mutate(
     # Clean up character names
     tissue = gsub(" ", "_", tolower(tissue))
-    ) 
+    )
 
 # Write to a TSV file
-readr::write_tsv(metadata, 
+readr::write_tsv(metadata,
                  file.path(data_dir, "cleaned_metadata_GSE44971.tsv"))
 
 ## Put samples' data and metadata in the same order
 # Make the data in the order of the metadata
-gene_df <- gene_df %>%
+gene_df <- gene_df |>
   dplyr::select(metadata$sample_id)
 
 ############# Set up combined sex and tissue variable for model
@@ -93,7 +90,7 @@ male_female <- limma::topTable(fit2,
                                number = Inf, # We can tell limma how many results we want back.
                                              # we want them all, so we said `Inf``
                                sort = "none" # We don't want the data sorted, but default is to sort
-                               ) %>%
+                               ) |>
   tibble::rownames_to_column("ensembl_id") # We want the ensembl_id to be its own column
                                            # for each of these tables, its easier for storage
 
@@ -101,14 +98,14 @@ male_female <- limma::topTable(fit2,
 astrocytoma_normal <- limma::topTable(fit2,
                                       coef = "astrocytoma_normal",
                                       number = Inf,
-                                      sort = "none") %>%
+                                      sort = "none") |>
   tibble::rownames_to_column("ensembl_id")
 
 # Extract test results for the interaction of sex and tissue
 interaction <- limma::topTable(fit2,
                                coef = "interaction",
                                number = Inf,
-                               sort = "none") %>%
+                               sort = "none") |>
   tibble::rownames_to_column("ensembl_id")
 
 # Bind together the 3 results tables for each contrast into one big table
@@ -122,14 +119,14 @@ stats_df <- dplyr::bind_rows(
 )
 
 # Neaten up this data.frame in preparation for saving to a TSV file
-stats_df <- stats_df %>%
+stats_df <- stats_df |>
   # Map ensembl IDs to their associated gene symbols by default we are only
   # taking the first mapped value. Can change this with the multiVals argument.
   dplyr::mutate("gene_symbol" = AnnotationDbi::mapIds(
     org.Hs.eg.db::org.Hs.eg.db,
     keys = ensembl_id,
     column = "SYMBOL",
-    keytype = "ENSEMBL")) %>%
+    keytype = "ENSEMBL")) |>
   # Clean up column names and reorder
   dplyr::select(
     ensembl_id,
@@ -138,10 +135,10 @@ stats_df <- stats_df %>%
     log_fold_change = logFC,
     avg_expression = AveExpr, # We want our column names to be consistent format
     t_statistic = t, # There is a function called `t` so for disambiguation purposes, we will name this t_statistic
-    p_value = P.Value, 
-    adj_p_value = adj.P.Val, 
-    ) %>% 
-  # Add filter 
-  dplyr::filter(avg_expression > 5) %>% 
+    p_value = P.Value,
+    adj_p_value = adj.P.Val,
+    ) |>
+  # Add filter
+  dplyr::filter(avg_expression > 5) |>
   # Write this to TSV
   readr::write_tsv(file.path(data_dir, "gene_results_GSE44971.tsv"))
