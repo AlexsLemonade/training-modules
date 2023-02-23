@@ -3,7 +3,7 @@ title: "Clustering cells and finding marker genes scRNA-seq data"
 author: CCDL for ALSF
 date: 2021
 output:
-  html_notebook: 
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -26,11 +26,9 @@ This notebook will demonstrate how to:
 library(ggplot2)
 library(scater)
 library(scran)
+
 # clustering tools
 library(bluster)
-
-# Magrittr pipe
-library(magrittr)
 
 # Setting the seed for reproducibility
 set.seed(12345)
@@ -59,7 +57,7 @@ hodgkins_sce <- readr::read_rds(normalized_rds)
 
 ## Assigning cell clusters
 
-When we performed dimensionality reduction on our single cell data, we could see visually that the cells tended cluster together into groups. 
+When we performed dimensionality reduction on our single cell data, we could see visually that the cells tended cluster together into groups.
 To the extent that such clustering is a real biological phenomenon, representing cells with similar patterns of gene expression, we might like to identify distinct groups that we can name and assign a label to.
 Ultimately, we would hope that these labels correspond to previously identified (or newly identified!) cell types, and that we can use that information to provide more insight into the results of our experiment.
 
@@ -77,23 +75,23 @@ It turns out that is a pretty hard problem to solve exactly, but we can do prett
 1. We start by picking random center locations (how we do this can vary)
 2. Then, we assign cells to clusters by finding which center is closest to each cell.
 3. Next we find the centers of these new clusters
-4. Go back to step 2 with these new centers, repeating until the cluster assignments stop changing. 
+4. Go back to step 2 with these new centers, repeating until the cluster assignments stop changing.
 
-You might wonder: How many clusters should we use? 
-That is a hard question! 
-There are some heuristics we can use for deciding the "correct" number of clusters, but we will not be exploring those right now. 
+You might wonder: How many clusters should we use?
+That is a hard question!
+There are some heuristics we can use for deciding the "correct" number of clusters, but we will not be exploring those right now.
 
 For an intuitive visualization of the general k-means method, you might find [this StatQuest video](https://www.youtube.com/watch?v=4b5d3muPQmA) useful, and for more discussion of the method in a single-cell context, the [Orchestrating Single-Cell Analysis book section on k-means](https://bioconductor.org/books/3.14/OSCA.basic/clustering.html#vector-quantization-with-k-means) is a good reference.
 
-We are going to use the function `clusterRows()` from the  Bioconductor `bluster` package for our clustering. 
+We are going to use the function `clusterRows()` from the  Bioconductor `bluster` package for our clustering.
 This function takes a matrix where each sample (cell in our case) is a row and each column is a feature.
-The matrix of counts (or normalized counts) by cells in our `SingleCellExperiment` object is the wrong orientation, so at a minimum we would have to transpose that matrix before proceeding. 
+The matrix of counts (or normalized counts) by cells in our `SingleCellExperiment` object is the wrong orientation, so at a minimum we would have to transpose that matrix before proceeding.
 
 However, clustering algorithms like k-means can be a bit slow with as many features as the number of genes that we have in our data set, so we would rather not use the raw data.
-There is also a potential concern that noise in the raw data might disrupt the clustering algorithm, so it would be best to use some kind of dimensionality reduction algorithm first. 
+There is also a potential concern that noise in the raw data might disrupt the clustering algorithm, so it would be best to use some kind of dimensionality reduction algorithm first.
 We still want to maintain a good number of dimensions, so our old friend PCA is a good (and very standard) choice.
 
-Thankfully, we already computed *and stored* a matrix with reduced dimensions with the `runPCA()` function. 
+Thankfully, we already computed *and stored* a matrix with reduced dimensions with the `runPCA()` function.
 We will extract that from the `SingleCellExperiment` object with the `reducedDim()` function, which conveniently returns a matrix with the cells as rows, so we can use that directly!
 
 The other argument we need for `clusterRows()` will tell it which clustering algorithm to use, and any additional parameters associated with that algorithm.
@@ -111,7 +109,7 @@ hodgkins_pca <- reducedDim(hodgkins_sce, "PCA")
 kclusters <- clusterRows(hodgkins_pca, KmeansParam(centers = k))
 ```
 
-The `clusterRows()` function returned a vector of cluster assignments as integers, but the numerical values have no inherent meaning. 
+The `clusterRows()` function returned a vector of cluster assignments as integers, but the numerical values have no inherent meaning.
 For plotting we will want to convert those to a factor, so R is not tempted to treat them as a continuous variable.
 
 We can also store them back into the column (cell) information table of the original object for convenient storage and later use.
@@ -133,24 +131,24 @@ plotReducedDim(hodgkins_sce, "UMAP", colour_by = "kcluster")
 - Do those clusters line up with what you might have expected if you were doing this by eye?
 - If we repeat this, do we get the same cluster assignments?
 - What happens if we change the number of clusters?
-- What do the results look like if you plot with the `PCA` or `TSNE` coordinates? 
+- What do the results look like if you plot with the `PCA` or `TSNE` coordinates?
 
 You will have time to explore questions like these in the exercise notebooks.
-One thing worth noting right away though is that cluster numbers here and in the future are assigned arbitrarily.  
+One thing worth noting right away though is that cluster numbers here and in the future are assigned arbitrarily.
 Even if we got exactly the same logical clusters across runs (unlikely!), we wouldn't expect the label numbers to be the same or stable.
 
 ### Graph-based clustering
 
-Another common type of clustering method for single cell data is graph-based clustering. 
+Another common type of clustering method for single cell data is graph-based clustering.
 This algorithm follows the following general steps:
 
 1. Identifying a set of nearest neighbors for each cell that have similar expression profiles to that cell.
 2. Connect each cell to its neighbors in a network graph, weighting the connections by how similar the connected cells are.
-3. Break the network up by identifying clusters of cells that are more connected to each other than they are to cells outside the clusters. 
+3. Break the network up by identifying clusters of cells that are more connected to each other than they are to cells outside the clusters.
 
 There is a lot of hidden detail in those three steps!
 
-To apply this clustering algorithm, we will use the same `bluster::clusterRows()` function as before, but we will change the second argument from `KmeansParam()` to `NNGraphParam()` to tell it that we want to use a nearest-neighbor graph-based method. 
+To apply this clustering algorithm, we will use the same `bluster::clusterRows()` function as before, but we will change the second argument from `KmeansParam()` to `NNGraphParam()` to tell it that we want to use a nearest-neighbor graph-based method.
 We can then supply additional parameters to `NNGraphParam()` to adjust the details of the algorithm.
 Here we will use `k` to specify the number of neighbors to use when building the graph and `cluster.fun` to specify the algorithm for identifying the clusters within the graph.
 
@@ -164,30 +162,30 @@ In the example below, we will use the default values for these two arguments.
 ```{r nnclust, live = TRUE}
 # run the clustering algorithm
 nnclusters <- clusterRows(
-  hodgkins_pca, 
-  NNGraphParam(k = 10, 
+  hodgkins_pca,
+  NNGraphParam(k = 10,
                cluster.fun = "walktrap")
   )
 # store cluster results in the SCE object
 hodgkins_sce$nncluster <- factor(nnclusters)
 ```
 
-Now we can plot the results of our graph-based clustering. 
-This time we will also use the `text_by` argument to include the cluster ids directly on the plot. 
+Now we can plot the results of our graph-based clustering.
+This time we will also use the `text_by` argument to include the cluster ids directly on the plot.
 
 ```{r plot_nnclust, live = TRUE}
-plotReducedDim(hodgkins_sce, 
-               "UMAP", 
-               colour_by = "nncluster", 
+plotReducedDim(hodgkins_sce,
+               "UMAP",
+               colour_by = "nncluster",
                text_by = "nncluster")
 ```
 
 - How do these results compare to the k-means clustering result?
 - How sensitive is this to the parameters we choose?
-- How do the numbers of clusters change with different parameters? 
+- How do the numbers of clusters change with different parameters?
 
 Again, you will have time to explore these more in the exercise notebook, and of course with your own data!
-Sadly, there are not always good answers to which set of inferred clusters is best! 
+Sadly, there are not always good answers to which set of inferred clusters is best!
 Which method and parameters you use may depend on the kind of question you are trying to answer.
 
 For more detailed information about the methods presented here, including some ways to assess the "quality" of the clustering, I encourage you to explore at the relevant chapter of the [Orchestrating Single-Cell Analysis book](https://bioconductor.org/books/3.14/OSCA.basic/clustering.html#clustering-graph).
@@ -196,28 +194,28 @@ A recent review by [Kislev *et al.* (2019)](https://doi.org/10.1038/s41576-018-0
 ## Identifying marker genes
 
 Assigning clusters is nice for visualization, but we would also like to be able to move toward a biological interpretation of the clusters and identifying the cell types in each cluster.
-To that end, we can identify marker genes that are differentially expressed among clusters. 
+To that end, we can identify marker genes that are differentially expressed among clusters.
 
-It is worth noting here that the statistical calculations here are more than a bit circular: we identified clusters first based on gene expression, then we are using those same clusters to find differences in gene expression. 
-The result is that even if there were no *true* clusters, we would always find marker genes! 
+It is worth noting here that the statistical calculations here are more than a bit circular: we identified clusters first based on gene expression, then we are using those same clusters to find differences in gene expression.
+The result is that even if there were no *true* clusters, we would always find marker genes!
 For a much more technical exploration of this circularity (and a method to correct for it), see a preprint by [Gao et al. (2020)](https://arxiv.org/abs/2012.02936).
 In light of this, it is better to think about marker gene identification as an aid in interpreting the clustering results (and possibly extending insights to new data sets), rather than results that should be interpreted on their own, and we should be extremely wary of justifying cluster assignments solely based on these results!
 With that caveat, let's proceed.
 
 To identify marker genes, we will use the `scran::findMarkers()` function, which will rank genes by their differential expression by calculating pairwise statistics among clusters.
-We have a few options for how to determine the gene rankings and marker gene list for each cluster. 
-At one end could include genes that are differentially expressed in *any* pairwise comparison against our focal cluster, or at the other we could only include genes that are differentially expressed in *all* comparisons with that cluster. 
+We have a few options for how to determine the gene rankings and marker gene list for each cluster.
+At one end could include genes that are differentially expressed in *any* pairwise comparison against our focal cluster, or at the other we could only include genes that are differentially expressed in *all* comparisons with that cluster.
 We could also do something in between, including genes that differentiate the focal cluster from *some* fraction of the other clusters.
-For now, we will use the `findMarkers()` function to rank the genes in each cluster by their combined scores against *all* other clusters, using the `pval.type` argument. 
+For now, we will use the `findMarkers()` function to rank the genes in each cluster by their combined scores against *all* other clusters, using the `pval.type` argument.
 
 `findMarkers()` will return a list (technically a list-like object) of tables, one for each cell type, with statistics for each gene showing how well it differentiates that cell type against other types.
 
 
 ```{r find_markers, live = TRUE}
-# use `findMarkers()` to calculate how well each gene  
+# use `findMarkers()` to calculate how well each gene
 #  differentiates each cluster from *all* other clusters
-markers <- scran::findMarkers(hodgkins_sce, 
-                              groups = hodgkins_sce$nncluster, 
+markers <- scran::findMarkers(hodgkins_sce,
+                              groups = hodgkins_sce$nncluster,
                               pval.type = "all")
 ```
 
@@ -226,19 +224,19 @@ We will start with the first cluster, which we will select from the list using t
 We also doing a bit of transformation here to pull the gene name into a column of its own.
 
 ```{r marker_table}
-markers[[1]] %>%
-  as.data.frame() %>% # convert to a data frame
+markers[[1]] |>
+  as.data.frame() |> # convert to a data frame
   tibble::rownames_to_column("gene") # make gene a column
 ```
 
 You can see that this table includes values for all genes, so we would like to make a shorter list.
 
-Because we tend to like [tidy data](https://r4ds.had.co.nz/tidy-data.html), here we use a `tidyverse` function from the [`purrr` package](https://purrr.tidyverse.org) to apply the same operations as above to every element of the `markers` list. 
+Because we tend to like [tidy data](https://r4ds.had.co.nz/tidy-data.html), here we use a `tidyverse` function from the [`purrr` package](https://purrr.tidyverse.org) to apply the same operations as above to every element of the `markers` list.
 We will introduce `purrr` briefly here, but if you want more information and background, we recommend the [`purrr` cheatsheet (PDF)](https://github.com/rstudio/cheatsheets/raw/master/purrr.pdf) and Jenny Bryan's great [`purrr` tutorial](https://jennybc.github.io/purrr-tutorial/index.html) you might want to look at.
 
 
-The main functions in `purrr` are the `map()` functions, which take as their main arguments a **list** and a **function** to apply to each element of the list. 
-The main function is `purrr::map()`; if you are familiar with the base R `lapply()` function, it is very similar, but with some different defaults. 
+The main functions in `purrr` are the `map()` functions, which take as their main arguments a **list** and a **function** to apply to each element of the list.
+The main function is `purrr::map()`; if you are familiar with the base R `lapply()` function, it is very similar, but with some different defaults.
 We will use it to get the top rows from each table by applying the `head()` function to each element of the list.
 The results are returned as a new list.
 
@@ -261,17 +259,17 @@ purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
            ~ rownames(head(.x))) # our custom function.
 ```
 
-Another variant is `purrr::imap()`, which allows us to use the names of the list elements in our function. 
+Another variant is `purrr::imap()`, which allows us to use the names of the list elements in our function.
 (Try `names(markers)` to see the names for the list we are working with now.)
 We will use that here to name output files where we will print each of the marker tables, one for each cell type.
 We are again defining a custom function within the call to `purrr:imap()` using the `~` syntax, but this time we can use `.x` for the list elements and `.y` for their names.
 Because we don't know the identities of the clusters we identified, these are just the cluster numbers for now.
 
 Making file names from numbers can be a a bit fraught, as we really want them to sort in numerical order, but many systems will sort by alphabetical order.
-Unfortunately, that would tend to sort 10-19 before 2, 20-29 before 3, etc. 
+Unfortunately, that would tend to sort 10-19 before 2, 20-29 before 3, etc.
 To solve this, we are using the `sprintf()` function, which allows us to specify the format of a printed string.
 In this case, we are using the formatting syntax of `%02d` to tell it that we will want to insert (`%`) a number (`d`), with two digits and leading zeros.
-To see what this does a bit more concretely, let's look at a simple example: 
+To see what this does a bit more concretely, let's look at a simple example:
 
 ```{r sprintf}
 sprintf("%02d", 1:10)
@@ -284,9 +282,9 @@ In addition to writing the tables out, we are saving the data frames we created 
 marker_df_list <- purrr::imap(
   as.list(markers), # convert markers to a 'regular' list for purrr
   # purrr function: .x is the list element, .y is the element name (number here)
-  ~ as.data.frame(.x) %>% # first convert to a data frame
-    tibble::rownames_to_column("gene") %>% # make genes a column
-    dplyr::arrange(FDR) %>% # sort to be sure small FDR genes are first
+  ~ as.data.frame(.x) |> # first convert to a data frame
+    tibble::rownames_to_column("gene") |> # make genes a column
+    dplyr::arrange(FDR) |> # sort to be sure small FDR genes are first
     readr::write_tsv( # write each data frame to a file
       file.path(marker_dir, # construct the output path
                 sprintf("cluster%02d_markers.tsv", as.integer(.y)) # format cluster numbers in file names with leading zeros
@@ -302,13 +300,13 @@ One thing we can do with this list of marker genes is to see how they look acros
 The `scater::plotReducedDim()` function makes this easy!
 We have earlier colored points by some cell statistic, like the number of expressed genes, but it is just as easy to color by the expression of a single gene by using the gene identifier as the `colour_by` argument.
 
-The first step is to get the gene information for the genes we might be interested in. 
+The first step is to get the gene information for the genes we might be interested in.
 
 ```{r marker_info, live = TRUE}
 # get gene ids for top 10 cluster 1 markers
-gene_ids <- marker_df_list[[1]] %>%
-  head(n = 10) %>%
-  dplyr::pull(gene) 
+gene_ids <- marker_df_list[[1]] |>
+  head(n = 10) |>
+  dplyr::pull(gene)
 
 # look at the gene info for these
 gene_info <- rowData(hodgkins_sce)[gene_ids, ]
@@ -324,8 +322,8 @@ gene_id <- gene_info$ID[1]
 symbol <- gene_info$Symbol[1]
 
 # Plot UMAP results colored by expression
-plotReducedDim(hodgkins_sce, "UMAP", 
-               colour_by = gene_id) + 
+plotReducedDim(hodgkins_sce, "UMAP",
+               colour_by = gene_id) +
   # label the guide with the gene symbol
   guides(color = guide_colourbar(title = symbol))
 ```
@@ -335,20 +333,20 @@ Hopefully that expression pattern aligns at least in part with your expectations
 
 ## Next steps
 
-So far we have identified clusters of cells (if you believe them), and found some genes that are associated with each cluster. 
+So far we have identified clusters of cells (if you believe them), and found some genes that are associated with each cluster.
 What you might want to know at this point is what *cell types* comprise each cluster.
 Setting aside the thorny question of "what is a cell type?", this is still a challenging problem!
 
 One approach would be to look at the marker genes that we have defined, and explore whether they correspond to known pathways or biological processes from KEGG or Gene Ontology.
 We will explore part of this approach in a later notebook.
 
-In some situations, you might have a well-annotated data set with single cell expression data from cells of each type that you are interested in. 
+In some situations, you might have a well-annotated data set with single cell expression data from cells of each type that you are interested in.
 You could then compute some measure of similarity between the gene expression in your cells and the annotated cells, and then assign identity based on those measures.
 Here we will again refer you to the [Orchestrating Single-Cell Analysis  book chapter on cell annotation](https://bioconductor.org/books/3.14/OSCA.basic/cell-type-annotation.html) for some detailed explanations of potential next steps.
 It is a really good book!
 
 There are also some online tools that perform similar analyses for defined sets of annotated reference cells.
-One is [Azimuth](https://azimuth.hubmapconsortium.org/), part of the [NIH Human Biomolecular Atlas Project](https://commonfund.nih.gov/hubmap). 
+One is [Azimuth](https://azimuth.hubmapconsortium.org/), part of the [NIH Human Biomolecular Atlas Project](https://commonfund.nih.gov/hubmap).
 While online tools like can be challenging from a reproducibility point of view, one nice feature of Azimuth is that it will allow you to download the `R` analysis code that it applied.
 This code uses the [`Seurat` package](https://satijalab.org/seurat/), with initial steps similar to the ones we have used here, though with function names and parameters specific to that package.
 

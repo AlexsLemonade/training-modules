@@ -2,8 +2,8 @@
 title: "Combining alevin runs"
 author: Joshua Shapiro for the CCDL
 date: 2020-07
-output: 
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -16,13 +16,11 @@ It should be run after the `snakemake` workflow (run in this directory) has comp
 
 ## Setup
 ```{r setup}
-# Libraries for single cell 
+# Libraries for single cell
 library(tximport)
 library(scran)
 library(scater)
 
-# pipe
-library(magrittr)
 # plots
 library(ggplot2)
 ```
@@ -35,19 +33,19 @@ These are the sample ids from *Tabula Muris* that we have processed and will be 
 ```{r}
 # sample IDs (skipping `10X_P4_2`,  as it is known bad)
 samples <- c("10X_P4_0" ,
-             "10X_P4_1" , 
-             "10X_P4_3" , 
+             "10X_P4_1" ,
+             "10X_P4_3" ,
              "10X_P4_4" ,
-             "10X_P4_5" , 
-             "10X_P4_6" , 
+             "10X_P4_5" ,
+             "10X_P4_6" ,
              "10X_P4_7" ,
              "10X_P7_0" ,
              "10X_P7_2" ,
              "10X_P7_3" ,
-             "10X_P7_11", 
+             "10X_P7_11",
              "10X_P7_12",
              "10X_P7_13",
-             "10X_P7_14", 
+             "10X_P7_14",
              "10X_P7_15")
 ```
 
@@ -62,7 +60,7 @@ names(alevin_files) <- samples
 
 tm_metafile <- file.path(data_dir, "TM_droplet_metadata.csv")
 
-mito_file <- file.path("..", "..", "data", "tabula-muris", 
+mito_file <- file.path("..", "..", "data", "tabula-muris",
                        "mm_mitochondrial_genes.tsv")
 
 
@@ -78,31 +76,31 @@ outfile <- file.path(outdir, "TM_normalized.rds")
 
 Import the alevin results and convert them to `SingleCellExperiments`.
 ```{r import_sce}
-tm_sces <- alevin_files %>%
-  purrr::map(tximport::tximport, type = "alevin") %>%
+tm_sces <- alevin_files |>
+  purrr::map(tximport::tximport, type = "alevin") |>
   purrr::map(~ SingleCellExperiment::SingleCellExperiment(list(counts = .x$counts)))
 ```
 
-Get the tissue types and mouse info for each sample. 
+Get the tissue types and mouse info for each sample.
 We are getting these from the `TM_droplet_metadata.csv` data file, which also has data for individual cells, but we will discard most of that.
 The `channel` column is what we are calling the `sample_id`.
 
 ```{r}
-tm_metadata <- readr::read_csv(tm_metafile, guess_max = 10000) %>%
-  dplyr::select(sample_id = channel, mouse.id, tissue, mouse.sex) %>%
+tm_metadata <- readr::read_csv(tm_metafile, guess_max = 10000) |>
+  dplyr::select(sample_id = channel, mouse.id, tissue, mouse.sex) |>
   dplyr::distinct()
 ```
 
 Add sample info to each single cell experiment object.
-Here we are also making sure we have a unique `cell` id that matches the format of `TM_droplet_metadata.csv` 
+Here we are also making sure we have a unique `cell` id that matches the format of `TM_droplet_metadata.csv`
 
 ```{r update_col}
 add_sample_meta <- function(sce, sample_id, meta_table){
-  barcodes <- colnames(sce) 
+  barcodes <- colnames(sce)
   cell_ids <- paste0(sample_id, "_",  barcodes)
-  meta_df <- tibble::tibble(cell = cell_ids, 
-                            sample_id = sample_id, 
-                            barcode = barcodes) %>%
+  meta_df <- tibble::tibble(cell = cell_ids,
+                            sample_id = sample_id,
+                            barcode = barcodes) |>
     dplyr::left_join(meta_table, by = "sample_id")
   colData(sce) <- DataFrame(meta_df, row.names = meta_df$cell)
   return(sce)
@@ -112,7 +110,7 @@ tm_sces <- purrr::imap(tm_sces, add_sample_meta, tm_metadata)
 ```
 
 
-## Quality Control 
+## Quality Control
 
 ### Per-cell QC
 
@@ -120,35 +118,35 @@ Get the list of mitochondrial genes and calculate QC metrics for each cell using
 
 ```{r applyQC}
 # Get vector of mitochondrial genes.
-mito_genes <- readr::read_tsv(mito_file) %>%
-  dplyr::filter(gene_id %in% rownames(tm_sces[[1]])) %>%
+mito_genes <- readr::read_tsv(mito_file) |>
+  dplyr::filter(gene_id %in% rownames(tm_sces[[1]])) |>
   dplyr::pull(gene_id)
 
 # Per Cell QC
-tm_sces <- tm_sces %>%
+tm_sces <- tm_sces |>
   purrr::map(scater::addPerCellQC, subsets = list(mito = mito_genes))
 ```
 
 Extract the QC data from the Single Cell Experiment objects as a data frame for plotting.
 
 ```{r}
-qc_df <- tm_sces %>%
+qc_df <- tm_sces |>
   purrr::map_df(~ as.data.frame(colData(.x)))
 ```
 
 #### Scatter plot of each sample
 ```{r}
-ggplot(qc_df, aes(x = total, y = detected, color = subsets_mito_percent)) + 
+ggplot(qc_df, aes(x = total, y = detected, color = subsets_mito_percent)) +
   geom_point(alpha = 0.2) +
   scale_color_viridis_c() +
-  facet_wrap(~ sample_id) 
+  facet_wrap(vars(sample_id))
 ```
 
 #### Density plots of mitochondrial percentages
 ```{r}
-ggplot(qc_df, aes(x = subsets_mito_percent, color = tissue, fill = tissue)) + 
-  geom_density() + 
-  facet_wrap(~ sample_id, scales = "free_y") 
+ggplot(qc_df, aes(x = subsets_mito_percent, color = tissue, fill = tissue)) +
+  geom_density() +
+  facet_wrap(vars(sample_id), scales = "free_y")
 ```
 
 ### Filter cells based on QC measures
@@ -161,14 +159,14 @@ This may not be ideal, but for now lets set the following cutoffs:
 
 ```{r}
 filter_sce <- function(sce, detect_threshold, mito_threshold) {
-  qc_pass <- ((sce$detected > detect_threshold) 
+  qc_pass <- ((sce$detected > detect_threshold)
               & (sce$subsets_mito_percent < mito_threshold))
   sce_filtered <- sce[, qc_pass]
   return(sce_filtered)
 }
 
-tm_filtered <- tm_sces %>%
-  purrr::map(filter_sce, detect_threshold = 1000, mito_threshold = 25) 
+tm_filtered <- tm_sces |>
+  purrr::map(filter_sce, detect_threshold = 1000, mito_threshold = 25)
 ```
 
 
@@ -193,9 +191,9 @@ Doing the Feature QC at this point is required because low abundance/uncommon ge
 tm_combined <- addPerFeatureQC(tm_combined)
 ```
 
-Feature filtering criteria: 
+Feature filtering criteria:
 - Genes found in at least 20 cells
-- mean count of at least 0.01 
+- mean count of at least 0.01
 
 ```{r}
 detected <- rowData(tm_combined)$detected > 20
@@ -208,17 +206,17 @@ tm_combined <- tm_combined[detected & expressed, ]
 
 ## Normalization
 
-We are normalizing with `scran::computeSumFactors()` which implements the strategy of [Lun 
+We are normalizing with `scran::computeSumFactors()` which implements the strategy of [Lun
 *et al.* (2016)](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7).
 
 ```{r normalize}
 # Cluster similar cells
 qclust <- scran::quickCluster(tm_combined)
 
-# Step 2) Compute sum factors for each cell cluster grouping.  
+# Step 2) Compute sum factors for each cell cluster grouping.
 tm_combined <- scran::computeSumFactors(tm_combined, clusters = qclust)
 
-# Step 3) Normalize using these pooled sum factors and log transform. 
+# Step 3) Normalize using these pooled sum factors and log transform.
 tm_combined <- scater::logNormCounts(tm_combined)
 ```
 

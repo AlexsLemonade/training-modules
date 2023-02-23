@@ -15,12 +15,12 @@
 # -d data/fastqc_reports \
 # -t fastqc_report.csv
 # -f fastqc_filtered.csv
-# 
+#
 library(optparse)
 library(fastqcr)
 
 # Get options using optparse
-option_list <- list( 
+option_list <- list(
   make_option(opt_str = c("-d", "--dir"), type = "character",
               help = "Directory containing the fastqc reports"),
   make_option(opt_str = c("-t", "--table"), type = "character",
@@ -32,8 +32,6 @@ option_list <- list(
 # Parse options
 opt <- parse_args(OptionParser(option_list = option_list))
 
-# Magrittr pipe
-`%>%` <- dplyr::`%>%`
 
 # Aggregate the reports
 qc <- fastqcr::qc_aggregate(qc.dir = opt$dir)
@@ -42,9 +40,9 @@ qc <- fastqcr::qc_aggregate(qc.dir = opt$dir)
 readr::write_csv(qc_stats(qc), path = opt$table)
 
 # Filter out samples that have failed the quality tests
-qc_filtered <- data.frame(qc) %>%
-  dplyr::select(sample, module, status) %>%    
-  dplyr::filter(status %in% "PASS") %>%
+qc_filtered <- data.frame(qc) |>
+  dplyr::select(sample, module, status) |>
+  dplyr::filter(status %in% "PASS") |>
   dplyr::arrange(sample)
 
 # Write filtered results to a csv file

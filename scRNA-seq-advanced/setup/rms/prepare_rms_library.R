@@ -7,7 +7,6 @@
 # Load libraries
 suppressPackageStartupMessages({
   library(optparse)
-  library(magrittr)
   library(SingleCellExperiment)
 })
 
@@ -44,8 +43,8 @@ raw_sce <- readr::read_rds(opts$input_sce_file)
 library_name <- stringr::str_extract(opts$input_sce_file, "SCPCL\\d+")
 
 # Read celltypes TSV and create new columns for "broad" and "fine" cell types
-celltypes_df <- readr::read_tsv(opts$celltypes_file) %>%
-  dplyr::mutate(celltype_broad = stringr::str_remove(celltype, "-[ABCD]$")) %>%
+celltypes_df <- readr::read_tsv(opts$celltypes_file) |>
+  dplyr::mutate(celltype_broad = stringr::str_remove(celltype, "-[ABCD]$")) |>
   # We'll also rename `celltype` to `celltype_fine`
   dplyr::rename(celltype_fine = celltype)
 
@@ -73,8 +72,8 @@ hvg_list <- scran::getTopHVGs(gene_variance,
                               n = 2000)
 
 # Add PCA and UMAP into the SCE
-norm_sce <- norm_sce %>%
-  scater::runPCA(subset_row = hvg_list) %>%
+norm_sce <- norm_sce |>
+  scater::runPCA(subset_row = hvg_list) |>
   scater::runUMAP(dimred = "PCA")
 
 
@@ -85,16 +84,16 @@ norm_sce <- norm_sce %>%
 colData(norm_sce)$barcode <- colnames(norm_sce)
 
 # filter to cells in this library
-celltypes_df <- celltypes_df %>%
-  dplyr::filter(library == library_name) %>%
+celltypes_df <- celltypes_df |>
+  dplyr::filter(library == library_name) |>
   dplyr::select(-library)
 
 # join coldata to celltype
-celltype_coldata <-  colData(norm_sce) %>%
-  as.data.frame() %>%
+celltype_coldata <-  colData(norm_sce) |>
+  as.data.frame() |>
   # Use a left_join since there may be more cells in the SCE than there are in
   #  the celltypes
-  dplyr::left_join(celltypes_df, by = "barcode") %>%
+  dplyr::left_join(celltypes_df, by = "barcode") |>
   #convert back to a DataFrame with row names
   S4Vectors::DataFrame(row.names = .$barcode)
 

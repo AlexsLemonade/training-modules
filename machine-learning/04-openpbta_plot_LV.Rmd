@@ -1,6 +1,6 @@
 ---
 title: "OpenPBTA: Explore a PLIER latent variable"
-output: 
+output:
   html_notebook:
     toc: true
     toc_float: true
@@ -17,7 +17,7 @@ So we'll cover how to do that, too.
 
 ## First, a note on tidy data
 
-In order to use `ggplot2`, we'll need the data in "long" or "tidy" format. 
+In order to use `ggplot2`, we'll need the data in "long" or "tidy" format.
 `PLIER` outputs what we want to plot in what we call "wide" format.
 
 Read more about tidy data [here](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html).
@@ -34,7 +34,7 @@ Let's look at a toy example.
 
 ```{r create_toy_wide}
 set.seed(12345)
-toy_df <- data.frame( 
+toy_df <- data.frame(
   cbind(c("GENEA", "GENEB", "GENEC"),
         matrix(rnorm(30), ncol = 10))
 )
@@ -51,13 +51,13 @@ Let's get it into "long" format.
 
 ```{r make_toy_long}
 toy_long_df <- tidyr::pivot_longer(toy_df,
-                                   # The data is in every column except the one 
+                                   # The data is in every column except the one
                                    # named "Gene"
-                                   cols = -Gene, 
-                                   # What will we call the column of the old df 
+                                   cols = -Gene,
+                                   # What will we call the column of the old df
                                    # column names?
                                    names_to = "Sample",
-                                   # What will we call the column of values 
+                                   # What will we call the column of values
                                    # from the old df?
                                    values_to = "Expression")
 
@@ -129,7 +129,7 @@ We can use the FDR values in the summary data frame to filter to only the latent
 
 ```{r filter_fdr, live = TRUE}
 # Filter to LV-pathway relationships with FDR < 0.05
-sig_summary_df <- plier_results$summary %>%
+sig_summary_df <- plier_results$summary |>
   dplyr::filter(FDR < 0.05)
 sig_summary_df
 ```
@@ -146,7 +146,7 @@ b_matrix <- plier_results$B
 sig_b_matrix <- b_matrix[sig_index, ]
 
 # Create a data frame and add a column with LV identifiers
-sig_b_wide <- data.frame(sig_b_matrix) %>%
+sig_b_wide <- data.frame(sig_b_matrix) |>
   tibble::rownames_to_column(var = "LV")
 ```
 
@@ -176,14 +176,14 @@ Right now the `LV` column has values that contain two pieces of information: the
 Now let's add relevant metadata to the data frame so we can use that for plotting.
 
 ```{r add_metadata_b}
-# Create a data frame that only has the biospecimen identifiers and the 
+# Create a data frame that only has the biospecimen identifiers and the
 # molecular subtype labels
-subtype_df <- histologies_df %>%
+subtype_df <- histologies_df |>
   select(Kids_First_Biospecimen_ID,
          molecular_subtype)
 
 # Add the subtype labels to the LV estimates
-sig_b_df <- inner_join(x = sig_b_df, 
+sig_b_df <- inner_join(x = sig_b_df,
                        y = subtype_df,
                        by = "Kids_First_Biospecimen_ID")
 ```
@@ -197,8 +197,8 @@ We'll plot LV57; this is the latent variable that we looked at the loadings for 
 # gene sets
 lv_to_plot <- "57,SVM Macrophages M2"
 # For plotting, subset only to the rows corresponding to this latent variable
-lv_plot_df <- sig_b_df %>%
-  filter(LV == lv_to_plot) 
+lv_plot_df <- sig_b_df |>
+  filter(LV == lv_to_plot)
 ```
 
 ### Boxplot and customization
@@ -208,9 +208,9 @@ Let's start by making a simple boxplot.
 ```{r lv_boxplot, live = TRUE}
 # Make a boxplot where samples are grouped by molecular subtype
 ggplot(lv_plot_df,
-       aes(x = molecular_subtype, 
-           y = LV_estimate, 
-           group = molecular_subtype, 
+       aes(x = molecular_subtype,
+           y = LV_estimate,
+           group = molecular_subtype,
            colour = molecular_subtype)) +
   geom_boxplot()
 ```
@@ -220,9 +220,9 @@ It can often be helpful to visualize individual samples.
 ```{r lv_jitter, live = TRUE}
 # Add individual points with geom_jitter()
 ggplot(lv_plot_df,
-       aes(x = molecular_subtype, 
-           y = LV_estimate, 
-           group = molecular_subtype, 
+       aes(x = molecular_subtype,
+           y = LV_estimate,
+           group = molecular_subtype,
            colour = molecular_subtype)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter()
@@ -233,9 +233,9 @@ We're able to globally adjust the aesthetics of the jitter points.
 ```{r improve_jitter, live = TRUE}
 # Improve the aesthetics of the points
 ggplot(lv_plot_df,
-       aes(x = molecular_subtype, 
-           y = LV_estimate, 
-           group = molecular_subtype, 
+       aes(x = molecular_subtype,
+           y = LV_estimate,
+           group = molecular_subtype,
            colour = molecular_subtype)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.5)
@@ -246,9 +246,9 @@ Add a built-in `ggplot2` theme.
 ```{r theme_bw, live = TRUE}
 # Use @jaclyn-taroni's favorite theme :)
 ggplot(lv_plot_df,
-       aes(x = molecular_subtype, 
-           y = LV_estimate, 
-           group = molecular_subtype, 
+       aes(x = molecular_subtype,
+           y = LV_estimate,
+           group = molecular_subtype,
            colour = molecular_subtype)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.5) +
@@ -260,9 +260,9 @@ Use the same color palette we used in the UMAP plot earlier in the module.
 ```{r okabe_ito, live = TRUE}
 # Add "Okabe-Ito" color scheme
 ggplot(lv_plot_df,
-       aes(x = molecular_subtype, 
-           y = LV_estimate, 
-           group = molecular_subtype, 
+       aes(x = molecular_subtype,
+           y = LV_estimate,
+           group = molecular_subtype,
            colour = molecular_subtype)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.5) +
@@ -275,9 +275,9 @@ Add a title to the plot.
 ```{r add_title, live = TRUE}
 # Use labs() to add a title
 ggplot(lv_plot_df,
-       aes(x = molecular_subtype, 
-           y = LV_estimate, 
-           group = molecular_subtype, 
+       aes(x = molecular_subtype,
+           y = LV_estimate,
+           group = molecular_subtype,
            colour = molecular_subtype)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.5) +
@@ -291,9 +291,9 @@ Center the title and make it bigger and in bold.
 ```{r center_title, live = TRUE}
 # Use theme() to improve the way the title looks
 ggplot(lv_plot_df,
-       aes(x = molecular_subtype, 
-           y = LV_estimate, 
-           group = molecular_subtype, 
+       aes(x = molecular_subtype,
+           y = LV_estimate,
+           group = molecular_subtype,
            colour = molecular_subtype)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.5) +
@@ -320,9 +320,9 @@ We might suggest starting with the x- and y-axis labels.
 
 R is great for analyzing genomic data and for publication ready visualizations, but as language for statistical computing, it's also great for statistical analysis!
 
-Let's start by performing a pairwise Wilcoxon rank sum test. 
+Let's start by performing a pairwise Wilcoxon rank sum test.
 This is also sometimes called a Mann-Whitney U test.
-It is a non-parametric test of the null hypothesis that two groups are from the same population or that the medians of the two groups are identical. 
+It is a non-parametric test of the null hypothesis that two groups are from the same population or that the medians of the two groups are identical.
 _Pairwise_ means we will test all pairs of groups.
 
 We can put that information onto the plot with the `ggsignif` package.
@@ -340,9 +340,9 @@ And now we're ready to add the adjusted p-values to the plot with `ggsignif::geo
 ```{r geom_signif}
 # Add the adjusted p-values
 ggplot(lv_plot_df,
-       aes(x = molecular_subtype, 
-           y = LV_estimate, 
-           group = molecular_subtype, 
+       aes(x = molecular_subtype,
+           y = LV_estimate,
+           group = molecular_subtype,
            colour = molecular_subtype)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.5) +
