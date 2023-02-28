@@ -24,6 +24,7 @@ This notebook will demonstrate how to:
 In this notebook, we will review basic processing for single-cell RNA-seq data, starting with the output from Cell Ranger, and proceeding through filtering, quality control, normalization, and dimension reduction. We will perform these tasks using tools from the [Bioconductor project](https://bioconductor.org), in particular [`SingleCellExperiment` objects](https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html) and functions that work with those objects.
 Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_ (OSCA)](http://bioconductor.org/books/3.16/OSCA/).
 
+![Single-cell roadmap overview](diagrams/roadmap_single_overview.png)
 
 The data we will use for this notebook is derived from a human glioblastoma specimen. 
 The sample was processed by 10X Genomics using a 3' RNA kit (v3.1), sequenced, and quantified with Cell Ranger 6.0. 
@@ -102,6 +103,8 @@ output_sce_file <- file.path(normalized_dir,
 
 ## Reading Cell Ranger data
 
+![Single-cell roadmap preprocessing](diagrams/roadmap_single_preprocess.png)
+
 Whether the 10X Cell Ranger data is in Matrix Exchange format or in an HDF5 file, we can use the `read10xCounts()` function from the `DropletUtils` package to read the data into R and create a `SingleCellExperiment` object.
 
 If you used something other than Cell Ranger to process the raw data, you would need to use a different function to read it in and create the `SingleCellExperiment` object.
@@ -164,6 +167,9 @@ These will be unique within a sample.
 
 As we proceed to calculate per-cell statistics, we will be adding new data to this table.
 
+## Quality control and filtering
+
+![Single-cell roadmap preprocessing](diagrams/roadmap_single_qc_norm.png)
 
 ### Filtering empty droplets
 
@@ -231,7 +237,7 @@ How many cells do we have now?
 filtered_sce
 ```
 
-## Additional quality control
+### Additional quality control
 
 In addition to filtering out empty droplets, we also will want to filter out cells that may have been damaged during library preparation.
 These will often be characterized by a high proportion of mitochondrial transcripts and a smaller overall number of unique transcripts. 
@@ -343,7 +349,7 @@ qcfiltered_sce <- miQC::filterCells(filtered_sce,
                                     model = miqc_model)
 ```
 
-### One more filter: unique gene count
+#### One more filter: unique gene count
 
 While the miQC filtering is pretty good, you may have noticed that it still left some cells that had very low numbers of unique genes.
 While these cells may not be compromised, the information from them is also not likely to be useful, so we will filter those as well. 
@@ -355,7 +361,7 @@ qcfiltered_sce <- qcfiltered_sce[, which(qcfiltered_sce$detected >= 200)]
 ```
 
 
-## Normalization and dimension reduction
+## Normalization 
 
 Now that we have done our filtering, we can start analyzing the expression counts for the remaining cells. 
 
@@ -390,6 +396,8 @@ normalized_sce
 ```
 
 ## Dimension reduction
+
+![Single-cell roadmap preprocessing](diagrams/roadmap_single_dimension_reduction.png)
 
 Now that we have normalized expression values, we would like to produce some reduced-dimension representations of the data.
 These will allow us to perform some downstream calculations more quickly, reduce some of the noise in the data, and allow us to visualize overall relationships among cells more easily (though with many caveats!).
