@@ -127,8 +127,7 @@ Since there is only one `altExp`, we don't need the second (name) argument (`"AD
 
 ```{r adt rows, live=TRUE}
 # What proteins were assayed?
-adt_tags <- rowData(altExp(sce))
-adt_tags
+rowData(altExp(sce))
 ```
 
 You can see here the names and symbols of the tags used, along with the designation that all have an "Antibody Capture" type (as opposed to "Gene Expression" for the RNA data).
@@ -279,7 +278,8 @@ ggplot(adt_df_long, aes(x = logcount, fill = ADT)) +
 ```
 
 These look pretty good!
-There seem to be different baseline levels for each of the different tags, but each has a pretty clear bimodal distribution.
+Each of these markers has a bimodal distribution: A lower peak consisting of cells that do not express the protein but which still have a background level of antibody binding, and an upper peak of cells that do express the protein of interest.
+The background level does vary by antibody marker, so we will need a different threshold value for each one.
 
 We can now use the values from these plots to construct a set of rules to classify the T cells. 
 We will do this using the "wide" data frame from earlier. 
@@ -288,6 +288,7 @@ The thresholds we are using here were identified just "by eye", so this is not a
 Here we are assigning only three cell types; cells that do not fit any of these criteria will be set as `NA`.
 
 ```{r threshold celltypes}
+# add cell type column by thresholding
 adt_df <- adt_df |>
   dplyr::mutate(
     celltype = dplyr::case_when(
@@ -296,6 +297,8 @@ adt_df <- adt_df |>
       CD3 > 6.7 ~ "T-cell"
     )
   )
+
+adt_df
 ```
 
 Now we will want to add the cell types we have assigned back to our original SCE object.
@@ -320,7 +323,7 @@ A different dataset might have different background levels, which would require 
 While this technique might be good for some simple experiments, and can be useful for manual curation, it might not translate well to more complex datasets with multiple samples.
 We also looked at each marker separately, which might not be the most efficient or robust method of analysis.
 
-For a more principled approach that allows identification of cell types by looking at the expression of sets of genes that are known to characterize each cell type, you might look at the [`AUCell` package](https://bioconductor.org/packages/release/bioc/html/AUCell.html).
+For a more principled approach that allows identification of cell types by looking at the expression of sets of genes that are known to characterize each cell type, you might look at the [`AUCell` package](https://bioconductor.org/packages/3.16/bioc/html/AUCell.html).
 For more on that method, the OSCA section [Assigning cell labels from gene sets](http://bioconductor.org/books/3.16/OSCA.basic/cell-type-annotation.html#assigning-cell-labels-from-gene-sets) is a very good reference.
 
 
@@ -390,7 +393,7 @@ The exact level of granularity of these `main` and `fine` designations (and inde
 - `label.ont` is a standardized [Cell Ontology](https://www.ebi.ac.uk/ols/ontologies/cl) identifier. 
 Using the cell ontology can allow for more complex representations of the relationships among different cell types, but investigating that is beyond the scope of this workshop. 
 
-Another component we would like to explore is how many of each of these cell types we have in the dataset. 
+Another component we would like to explore is how many of each of these cell types we have in the reference dataset. 
 A bit of quick `dplyr` wrangling can give us the answer.
 
 ```{r count cell types}
@@ -488,7 +491,7 @@ If we want to get really fancy, we could even provide a specific list of genes t
 We should note here that the reference dataset for `SingleR` does not need to be from a compendium like `celldex`!
 If you have any well-classified dataset that you want to use as a reference, you can, as long as you can create a gene by sample expression matrix and a vector of cell types for each sample. 
 You will want to ensure that the cell types you expect to see in your sample are present in the reference dataset, and data should be normalized, but otherwise the method can be quite flexible. 
-You can even use a previously-annotated SingleCellExperiment as a reference for a new dataset.
+You can even use a previously-annotated `SingleCellExperiment` as a reference for a new dataset.
 For more details about custom references, see the [OSCA chapter on cell type annotation](http://bioconductor.org/books/3.13/OSCA.basic/cell-type-annotation.html#using-custom-references)
 
 We do want to be sure that the genes selected for the model will be among those present in our SCE object, so we will use the `restrict` argument with a vector of the genes in our SCE.
@@ -624,6 +627,7 @@ However, these raw counts are not quite what we'll want for visualization.
 Since the total number of cells differs across clusters, we'd like to convert these counts into the _proportions_ of each cell type in each cluster.
 
 We'll do this by going through the table column by column and dividing each value by the sum for that cluster.
+This will give us normalized values where the values in each column now sum to 1.
 To do that, we will use the `apply` function, which allows us to operate on a matrix row by row or column by column, applying a function to each "slice".
 Since the function we want to apply is very short, we will use R's new (as of  version 4.1) anonymous function shorthand: 
 `\(x) ...` can be used to define a function that that takes as input values `x` (where the `...` is where you would put the expression to calculate).
@@ -709,7 +713,7 @@ You may recall that clustering algorithms are quite sensitive to parameter choic
 
 ### MetaCell approaches
 
-As a middle ground between the potentially messy single-cell cell type assignment and the almost-certainly overconfident cluster-based assignment above, we can take approach inspired by [Baran _et al._ (2019)](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1812-2) using something they called _metacells_. 
+As a middle ground between the potentially messy single-cell cell type assignment and the almost-certainly overconfident cluster-based assignment above, we can take approach inspired by [Baran _et al._ (2019)](https://doi.org/10.1186/s13059-019-1812-2) using something they called _metacells_. 
 The idea is that we can perform fine-scaled clustering to identify groups of very similar cells, then sum the counts within those clusters as "metacells" to use for further analysis. 
 The original paper includes a number of optimizations to make sure that the metacell clusters have desirable properties for downstream analysis.
 We won't go into that depth here, but we can apply similar ideas.
