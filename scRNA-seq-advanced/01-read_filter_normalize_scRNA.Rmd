@@ -63,7 +63,9 @@ This directory usually contains three files:
 This will usually also include a bit of metadata about the features, including gene symbols (if the features are genes) and the type of data they represent (e.g., gene expression or antibody capture).
 - `matrix.mtx.gz`, The counts themselves, stored in a sparse ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html).
 
-Cell Ranger will also export these data in a single `HDF5` format file with a `.h5` extension, but we have found that using the separate matrix files as input seems to work more efficiently in R, so we prefer to start with those files.  
+Cell Ranger will also export these data in a single `HDF5` format file with a `.h5` extension, which can also be imported with the same commands we will use below.
+However, we have found that processing large `.h5` files is often _much_ less efficient in R, so so we prefer to start with the matrix files when possible.
+In particular, we would not recommend working with `.h5` files for raw data; the filtering steps we will use below can sometimes take hours when using those files as input.
 
 We will also need a table of mitochondrial genes, which we have stored in the `data/reference` directory. 
 
@@ -106,6 +108,7 @@ output_sce_file <- file.path(normalized_dir,
 ![Single-cell roadmap preprocessing](diagrams/roadmap_single_preprocess.png)
 
 Whether the 10X Cell Ranger data is in Matrix Exchange format or in an HDF5 file, we can use the `read10xCounts()` function from the `DropletUtils` package to read the data into R and create a `SingleCellExperiment` object.
+(Though again, we do not recommend using the HDF5 file if you can avoid it, _especially_ for raw data.)
 
 If you used something other than Cell Ranger to process the raw data, you would need to use a different function to read it in and create the `SingleCellExperiment` object.
 Some of these functions for other common data formats are discussed in [Chapter 3 of OSCA] (http://bioconductor.org/books/3.16/OSCA.intro/getting-scrna-seq-datasets.html#reading-counts-into-r).
