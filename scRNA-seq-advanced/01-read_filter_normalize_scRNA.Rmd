@@ -24,7 +24,7 @@ This notebook will demonstrate how to:
 In this notebook, we will review basic processing for single-cell RNA-seq data, starting with the output from Cell Ranger, and proceeding through filtering, quality control, normalization, and dimension reduction. We will perform these tasks using tools from the [Bioconductor project](https://bioconductor.org), in particular [`SingleCellExperiment` objects](https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html) and functions that work with those objects.
 Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_ (OSCA)](http://bioconductor.org/books/3.16/OSCA/).
 
-![Single-cell roadmap overview](diagrams/roadmap_single_overview.png)
+![Single-cell roadmap: Overview](diagrams/roadmap_single_overview.png)
 
 The data we will use for this notebook is derived from a human glioblastoma specimen. 
 The sample was processed by 10X Genomics using a 3' RNA kit (v3.1), sequenced, and quantified with Cell Ranger 6.0. 
@@ -64,10 +64,10 @@ This will usually also include a bit of metadata about the features, including g
 - `matrix.mtx.gz`, The counts themselves, stored in a sparse ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html).
 
 Cell Ranger will also export these data in a single `HDF5` format file with a `.h5` extension, which can also be imported with the same commands we will use below.
-However, we have found that processing large `.h5` files is often _much_ less efficient in R, so so we prefer to start with the matrix files when possible.
+However, we have found that processing large `.h5` files is often _much_ less efficient in R, so we prefer to start with the matrix files when possible.
 In particular, we would not recommend working with `.h5` files for raw data; the filtering steps we will use below can sometimes take hours when using those files as input.
 
-We will also need a table of mitochondrial genes, which we have stored in the `data/reference` directory. 
+We will also need a table of mitochondrial genes, which we have stored in the `data/reference/` directory. 
 
 Finally, we will set up the our output directory, creating it if it does not yet exist, and define the name for the files we will save after all of our initial processing is complete.
 
@@ -105,10 +105,10 @@ output_sce_file <- file.path(normalized_dir,
 
 ## Reading Cell Ranger data
 
-![Single-cell roadmap preprocessing](diagrams/roadmap_single_preprocess.png)
+![Single-cell roadmap: Preprocess and Import](diagrams/roadmap_single_preprocess.png)
 
 Whether the 10X Cell Ranger data is in Matrix Exchange format or in an HDF5 file, we can use the `read10xCounts()` function from the `DropletUtils` package to read the data into R and create a `SingleCellExperiment` object.
-(Though again, we do not recommend using the HDF5 file if you can avoid it, _especially_ for raw data.)
+(Though again, we do not recommend using the `.h5` file if you can avoid it, _especially_ for raw (unfiltered) data.)
 
 If you used something other than Cell Ranger to process the raw data, you would need to use a different function to read it in and create the `SingleCellExperiment` object.
 Some of these functions for other common data formats are discussed in [Chapter 3 of OSCA] (http://bioconductor.org/books/3.16/OSCA.intro/getting-scrna-seq-datasets.html#reading-counts-into-r).
@@ -172,7 +172,7 @@ As we proceed to calculate per-cell statistics, we will be adding new data to th
 
 ## Quality control and filtering
 
-![Single-cell roadmap QC, filtering, and normalization](diagrams/roadmap_single_qc_norm.png)
+![Single-cell roadmap: QC, Filter, and Normalize](diagrams/roadmap_single_qc_norm.png)
 
 ### Filtering empty droplets
 
@@ -401,7 +401,7 @@ normalized_sce
 
 ## Dimension reduction
 
-![Single-cell roadmap dimension reduction](diagrams/roadmap_single_dimension_reduction.png)
+![Single-cell roadmap: Dimension reduction](diagrams/roadmap_single_dimension_reduction.png)
 
 Now that we have normalized expression values, we would like to produce some reduced-dimension representations of the data.
 These will allow us to perform some downstream calculations more quickly, reduce some of the noise in the data, and allow us to visualize overall relationships among cells more easily (though with many caveats!).
