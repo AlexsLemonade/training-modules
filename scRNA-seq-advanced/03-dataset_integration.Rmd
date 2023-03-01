@@ -35,6 +35,10 @@ Integration corrects for batch effects that arise from different library prepara
 Regardless of which integration tool is used, the `SingleCellExperiment` (SCE) objects first need to be reformatted and merged into a single (uncorrected!) SCE object that contains all cells from all samples.
 This merged SCE can then be used for integration to obtain a formally batch-corrected SCE object.
 
+![Single-cell roadmap: Integrate](diagrams/roadmap_multi_integrate.png)
+
+
+
 ## Set up
 
 ```{r setup}
@@ -89,13 +93,13 @@ We could also use a `for` loop, which is the approach that many programming lang
 A different and more modular coding approach to reading in these files (and more!) is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for operating on lists.
 You can read more about these functions and their power and utility in R in [Chapter 21 of _R for Data Science_](https://r4ds.had.co.nz/iteration.html#for-loops-vs.-functionals).
 
-Of particular interest is the [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) family of functions, which can be used to run a given function on each element of a list in one call.
+Of particular interest is the [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) family of functions, which can be used to run a given function on each element of a list (or vector) in one call.
 The general syntax for `purrr::map()` and friends is:
 
 ```
 # Syntax for using the map function:
-purrr::map(input list, 
-           function to apply to each item in the input list, 
+purrr::map(input list or vector, 
+           function to apply to each item in the input, 
            any additional arguments to the function can go here, 
            and also here if there are even more arguments, and so on)
 ```
@@ -159,7 +163,7 @@ sample_names <- c("SCPCL000479",
                   "SCPCL000481",
                   "SCPCL000482")
 
-# Now, convert these to file paths matching `<input_dir>`/`<sample_name>`.rds
+# Now, convert these to file paths: <input_dir>/<sample_name>.rds
 sce_paths <- file.path(input_dir, 
                        glue::glue("{sample_names}.rds")
 )
@@ -171,7 +175,10 @@ sce_paths
 ```
 
 We can now read these files in and create a list of four SCE objects.
-Since `readr::read_rds()` can only operate on one input at a time (unlike `sqrt()` which can operate across a vector), we'll need to use `purrr::map()` to run it on all input file paths in one command.
+Since `readr::read_rds()` can only operate on one input at a time, we'll need to use `purrr::map()` to run it on all input file paths in one command.
+Although `sce_paths` is a vector (not a list), it will still work as input to `purrr:map()`.
+But, the output from this code will be a list, since that's what `purrr::map()` always returns.
+(We could convert `sce_paths` to a list first with `as.list(sce_paths)`, but for this example, the code will work just the same!)
 
 ```{r read sce paths, live = TRUE}
 # Use purrr::map() to read all files into a list at once
@@ -210,6 +217,9 @@ If we have annotations, they are a helpful "bonus" for assessing the integration
 
 
 ## Prepare the SCE list for integration
+
+![Single-cell roadmap: Merge](diagrams/roadmap_multi_merge.png)
+
 
 Now that we have a list of processed SCE objects, we need to merge the objects into one overall SCE object for input to integration.
 A word of caution before we begin: **This merged SCE object is NOT an integrated SCE!** 
