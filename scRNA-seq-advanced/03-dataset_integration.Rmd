@@ -89,45 +89,39 @@ We could also use a `for` loop, which is the approach that many programming lang
 A different and more modular coding approach to reading in these files (and more!) is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for operating on lists.
 You can read more about these functions and their power and utility in R in [Chapter 21 of _R for Data Science_](https://r4ds.had.co.nz/iteration.html#for-loops-vs.-functionals).
 
-Of particular interest is the [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) family of functions, which can be used to run a given function on each element of a list or vector in one call.
+Of particular interest is the [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) family of functions, which can be used to run a given function on each element of a list in one call.
 The general syntax for `purrr::map()` and friends is:
 
 ```
 # Syntax for using the map function:
-purrr::map(<input vector or list>, 
-           <function to apply to each item in the input>, 
-           <any additional arguments to the function can go here>, 
-           <and also here if there are even more arguments, and so on>)
+purrr::map(input list, 
+           function to apply to each item in the input list, 
+           any additional arguments to the function can go here, 
+           and also here if there are even more arguments, and so on)
 ```
 
-
-Let's see a very simple example in action by quickly taking the square root of a vector of values:
-
-```{r map example, live = TRUE}
-
-# Define a vector of squares
-squares <- c(4, 9, 16)
-
-# get the square root of each number without purrr
-sqrt(squares[1])
-sqrt(squares[2])
-sqrt(squares[3])
-
-# The `purrr::map()` function always returns a list
-purrr::map(squares, # vector to map over
-           sqrt)    # function to apply to each item in `squares`
-```
 
 The output from running `purr::map()` is always a list (but note that there are other `purrr::map()` relatives which return other object types, as you can read about in [the `purrr::map()` documentation](https://purrr.tidyverse.org/reference/index.html)).
+If this concept sounds a little familiar to you, that's because it probably is!
+In fact, this is conceptually the same as base R's `lapply` function, and the `purrr::map()` family of functions provide more robust and reliable alternatives to the base R `apply` functions.
 
-We'll note that, in this case, it's possible to simply run `sqrt()` directly on the `squares` vector itself since this function is already vectorized, but not all functions behave this way.
+Let's see a very simple example of `purrr::map()` in action, inspired by cancer groups the Data Lab has analyzed through the [OpenPBTA](https://github.com/AlexsLemonade/OpenPBTA-analysis/) project:
 
-```{r quick squares}
-sqrt(squares)
+```{r map example}
+# Define a list of cancer histologies
+histologies <- list(
+  "low-grade gliomas"  = c("SEGA", "PA", "GNG", "PXA"), 
+  "high-grade gliomas" = c("DMG", "DIPG"),
+  "embryonal tumors"   = c("MB", "ATRT", "ETMR")
+ )
+
+# The overall length of the list is 3
+length(histologies)
+
+# How can we run `length()` on each item of the list?
+# We can use our new friend purrr::map():
+purrr::map(histologies, length)
 ```
-
-More involved scenarios, as we'll see shortly, will necessitate the use of `purrr::map()`, in particular when the input is a list itself.
-
 
 One other new coding strategy we'll learn in this notebook is using the [`glue`](https://glue.tidyverse.org/) package to combine strings.
 This package offers a convenient function `glue::glue()` that can be used instead of the base R `paste()` function.
