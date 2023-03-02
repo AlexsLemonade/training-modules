@@ -30,9 +30,8 @@ Read the `scater` package documentation [**here**](https://rdrr.io/bioc/scater/)
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
 | `scater`| [`plotReducedDim()`](https://rdrr.io/bioc/scater/man/plotReducedDim.html)| Plot reduced dimensions | Plot a given reduced dimension slot from a `SingleCellExperiment` object by its name |
-| `scater`| [`plotPCA()`](https://rdrr.io/bioc/scater/man/plot_reddim.html)| Plot PCA | Plot the "PCA"-named reduced dimension slot from a `SingleCellExperiment` object |
 | `scater`| [`plotUMAP()`](https://rdrr.io/bioc/scater/man/plot_reddim.html)| Plot UMAP | Plot the "UMAP"-named reduced dimension slot from a `SingleCellExperiment` object |
-| `scater`| [`plotExpression()`](https://rdrr.io/bioc/scater/man/plotExpression.html)| Plot expression | Plot expression values for all cells in a `SingleCellExperiment` object, using the "logcounts" assay by default|
+| `scater`| [`plotExpression()`](https://rdrr.io/bioc/scater/man/plotExpression.html)| Plot expression | Plot expression values for all cells in a `SingleCellExperiment` object, using the `logcounts` assay by default|
 
 
 ### `miQC`
@@ -97,14 +96,14 @@ Read the full documentation for tidyverse packages here:
 | `tibble`| [`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html) | As tibble | Convert an object to a tibble |
 | `stringr`| [`str_detect()`](https://stringr.tidyverse.org/reference/str_detect.html) | String detect | Returns `TRUE`/`FALSE` if a string contains a given substring|
 | `stringr`| [`str_starts()`](https://stringr.tidyverse.org/reference/str_starts.html) | String starts | Returns `TRUE`/`FALSE` if a string starts with a given substring|
-| `purrr`| [`map()`](https://purrr.tidyverse.org/reference/map.html)| Map | Apply a function across each element of list; return a list |
-| `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| iMap |  Apply a function across each element of list and its index/names; return a list |
-| `purrr`| [`map2()`](https://purrr.tidyverse.org/reference/map2.html)| Map2 |  Apply a function across each element of two lists at a time; return a list |
-| `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by appyling a given function |
+| `purrr`| [`map()`](https://purrr.tidyverse.org/reference/map.html)| map | Apply a function across each element of list; return a list |
+| `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| imap |  Apply a function across each element of list and its index/names; return a list |
+| `purrr`| [`map2()`](https://purrr.tidyverse.org/reference/map2.html)| map2 |  Apply a function across each element of two lists at a time; return a list |
+| `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by applying a given function |
 | `ggplot2` | [`geom_bar()`](https://ggplot2.tidyverse.org/reference/geom_bar.html) | Barplot  | Creates a barplot of counts for a given categorical variable when added as a layer to a `ggplot()` object |
 | `ggplot2` | [`scale_fill_brewer()`](https://ggplot2.tidyverse.org/reference/scale_brewer.html) | Add brewer fill scale  | Apply a Brewer "fill" color palette to a categorical variable in a `ggplot()` object |
 | `ggplot2` | [`guides()`](https://ggplot2.tidyverse.org/reference/guides.html) | Guides | Function to customize legend ("guide") appearance |
-| `ggplot2` | [`facet_grid()`](https://ggplot2.tidyverse.org/reference/facet_grid.html) | Facet grid | Plot indidivual panels using specified variables to subset the data across rows and/or columns of a grid |
+| `ggplot2` | [`facet_grid()`](https://ggplot2.tidyverse.org/reference/facet_grid.html) | Facet grid | Plot individual panels using specified variables to subset the data across rows and/or columns of a grid |
 | `ggplot2` | [`vars()`](https://ggplot2.tidyverse.org/reference/vars.html) | Vars | Helper function to specify variables to `facet_grid()` or `facet_wrap()`|
 | `ggplot2` | [`theme_bw()`](https://ggplot2.tidyverse.org/reference/ggtheme.html) | Black and white theme | Display `ggplot` with gridlines but a white background |
 | `ggplot2` | [`theme()`](https://ggplot2.tidyverse.org/reference/theme.html) | Theme | Customize elements of a `ggplot` plot theme |
