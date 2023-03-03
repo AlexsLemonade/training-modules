@@ -50,8 +50,8 @@ Read the `harmony` [package documentation(https://rdrr.io/github/immunogenomics/
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
 | `batchelor`| [`MultiBatchPCA()`](https://rdrr.io/bioc/batchelor/man/multiBatchPCA.html)| Multi-batch PCA | Perform PCA across multiple gene expression matrices, weighted by batch size |
-| `batchelor`| [`fastMNN()`](https://rdrr.io/bioc/batchelor/man/fastMNN.html)| Fast mutual nearest neighbors correction | Perform integration with mutual nearest neighbors using the `fastMNN` algorithm |
-| `harmony`| [`HarmonyMatrix()`](https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html)| Main Harmony interface | Perform integration with `harmony` |
+| `batchelor`| [`fastMNN()`](https://rdrr.io/bioc/batchelor/man/fastMNN.html)| Fast mutual nearest neighbors correction | Perform integration on an SCE object with mutual nearest neighbors using the `fastMNN` algorithm, returning an SCE object with batch-corrected principal components |
+| `harmony`| [`HarmonyMatrix()`](https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html)| Perform integration with `harmony` on a matrix | Perform integration with `harmony` on either a matrix of principle components or gene expression, returning a matrix of batch-corrected principal components  |
 
 
 ### `pheatmap` and `EnhancedVolcano`
