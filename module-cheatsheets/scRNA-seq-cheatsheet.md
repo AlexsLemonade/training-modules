@@ -58,7 +58,7 @@ Read the `SingleCellExperiment` package documentation (and e-book) [**here**](ht
 | `scater`| [`calculateUMAP()`](https://rdrr.io/bioc/scater/man/runUMAP.html)| Calculate UMAP| Calculates uniform manifold approximate projection on a `SingleCellExperiment` object, returning a UMAP matrix |
 | `scater`| [`runUMAP()`](https://rdrr.io/bioc/scater/man/runUMAP.html)| Run UMAP | Calculates uniform manifold approximate projection on a `SingleCellExperiment` object, returning an SCE object with a UMAP reduced dimension |
 | `scater`| [`calculateTSNE()`](https://rdrr.io/bioc/scater/man/runTSNE.html)| Calculate t-SNE | Calculates t-stochastic neighbor embedding on a `SingleCellExperiment` object, returning an SCE object with a TSNE reduced dimension |
-| `scater`| [`runTSNE()`](https://rdrr.io/bioc/scater/man/runTSNE.html)| Calculate UMAP | Calculates t-stochastic neighbor embeddingn on a `SingleCellExperiment` object, returning a t-SNE matrix  |
+| `scater`| [`runTSNE()`](https://rdrr.io/bioc/scater/man/runTSNE.html)| Calculate UMAP | Calculates t-stochastic neighbor embedding on a `SingleCellExperiment` object, returning a t-SNE matrix  |
 | `scater`| [`plotReducedDim()`](https://rdrr.io/bioc/scater/man/plotReducedDim.html)| Plot reduced dimensions | Plot a given reduced dimension slot from a `SingleCellExperiment` object by its name |
 | `scater`| [`plotPCA()`](https://rdrr.io/bioc/scater/man/plot_reddim.html)| Plot PCA | Plot the "PCA"-named reduced dimension slot from a `SingleCellExperiment` object |
 | `scater`| [`plotUMAP()`](https://rdrr.io/bioc/scater/man/plot_reddim.html)| Plot UMAP | Plot the "UMAP"-named reduced dimension slot from a `SingleCellExperiment` object |
