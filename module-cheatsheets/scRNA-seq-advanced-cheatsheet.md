@@ -57,7 +57,7 @@ Read the `harmony` [package documentation(https://rdrr.io/github/immunogenomics/
 ### `pheatmap` and `EnhancedVolcano`
 Read the `pheatmap` [package documentation](https://rdrr.io/cran/pheatmap/).
 
-Read the `EnhancedVolcano` [package documentation](https://rdrr.io/bioc/EnhancedVolcano/), and a vignette on its usage [**here**](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
+Read the `EnhancedVolcano` [package documentation](https://rdrr.io/bioc/EnhancedVolcano/), and [vignette on its usage](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
@@ -65,16 +65,48 @@ Read the `EnhancedVolcano` [package documentation](https://rdrr.io/bioc/Enhanced
 | `EnhancedVolcano`| [`EnhancedVolcano()`](https://rdrr.io/bioc/EnhancedVolcano/man/EnhancedVolcano.html)| Enhanced volcano | Plot a volcano plot to visualize differential expression analysis results |
 
 
-### Tidyverse functions
 
-Read the full documentation for tidyverse packages here:
+### `tidyverse` functions
+
+
+
+#### `purrr` functions
+
+Read the `purrr` [package documentation](https://purrr.tidyverse.org/), and a [vignette on its usage](https://purrr.tidyverse.org/articles/base.html).
+
+| Library/Package| Piece of Code| What it's called| What it does |
+|----------------|--------------|-----------------|--------------|
+| `purrr`| [`map()`](https://purrr.tidyverse.org/reference/map.html)| map | Apply a function across each element of list; return a list |
+| `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| imap |  Apply a function across each element of list and its index/names; return a list |
+| `purrr`| [`map2()`](https://purrr.tidyverse.org/reference/map2.html)| map2 |  Apply a function across each element of two lists at a time; return a list |
+| `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by applying a given function |
+
+
+#### `ggplot2` functions
+
+Read the `ggplot2` [package documentation](https://ggplot2.tidyverse.org/) and an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html).
+
+| Library/Package| Piece of Code| What it's called| What it does |
+|----------------|--------------|-----------------|--------------|
+| `ggplot2` | [`geom_bar()`](https://ggplot2.tidyverse.org/reference/geom_bar.html) | Barplot  | Creates a barplot of counts for a given categorical variable when added as a layer to a `ggplot()` object |
+| `ggplot2` | [`scale_fill_brewer()`](https://ggplot2.tidyverse.org/reference/scale_brewer.html) | Add brewer fill scale  | Apply a Brewer "fill" color palette to a categorical variable in a `ggplot()` object |
+| `ggplot2` | [`guides()`](https://ggplot2.tidyverse.org/reference/guides.html) | Guides | Function to customize legend ("guide") appearance |
+| `ggplot2` | [`facet_grid()`](https://ggplot2.tidyverse.org/reference/facet_grid.html) | Facet grid | Plot individual panels using specified variables to subset the data across rows and/or columns of a grid |
+| `ggplot2` | [`vars()`](https://ggplot2.tidyverse.org/reference/vars.html) | Vars | Helper function to specify variables to `facet_grid()` or `facet_wrap()`|
+| `ggplot2` | [`theme_bw()`](https://ggplot2.tidyverse.org/reference/ggtheme.html) | Black and white theme | Display `ggplot` with gridlines but a white background |
+| `ggplot2` | [`theme()`](https://ggplot2.tidyverse.org/reference/theme.html) | Theme | Customize elements of a `ggplot` plot theme |
+| `ggplot2` | [`element_text()`](https://ggplot2.tidyverse.org/reference/element.html) | Element text | Customize textual elements of a `ggplot` theme |
+
+
+
+#### `dplyr`, `tidyr`,`stringr`, and `tibble` functions
+
+Read the full documentation for these `tidyverse` packages at the following links:
 
 - [`dplyr` documentation](https://dplyr.tidyverse.org/)
 - [`tidyr` documentation](https://tidyr.tidyverse.org/)
-- [`tibble` documentation](https://tibble.tidyverse.org/)
 - [`stringr` documentation](https://stringr.tidyverse.org/)
-- [`purrr` documentation](https://purrr.tidyverse.org/)
-- [`ggplot2` documentation](https://ggplot2.tidyverse.org/)
+- [`tibble` documentation](https://tibble.tidyverse.org/)
 
 <br>
 
@@ -89,19 +121,6 @@ Read the full documentation for tidyverse packages here:
 | `tibble`| [`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html) | As tibble | Convert an object to a tibble |
 | `stringr`| [`str_detect()`](https://stringr.tidyverse.org/reference/str_detect.html) | String detect | Returns `TRUE`/`FALSE` if a string contains a given substring|
 | `stringr`| [`str_starts()`](https://stringr.tidyverse.org/reference/str_starts.html) | String starts | Returns `TRUE`/`FALSE` if a string starts with a given substring|
-| `purrr`| [`map()`](https://purrr.tidyverse.org/reference/map.html)| map | Apply a function across each element of list; return a list |
-| `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| imap |  Apply a function across each element of list and its index/names; return a list |
-| `purrr`| [`map2()`](https://purrr.tidyverse.org/reference/map2.html)| map2 |  Apply a function across each element of two lists at a time; return a list |
-| `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by applying a given function |
-| `ggplot2` | [`geom_bar()`](https://ggplot2.tidyverse.org/reference/geom_bar.html) | Barplot  | Creates a barplot of counts for a given categorical variable when added as a layer to a `ggplot()` object |
-| `ggplot2` | [`scale_fill_brewer()`](https://ggplot2.tidyverse.org/reference/scale_brewer.html) | Add brewer fill scale  | Apply a Brewer "fill" color palette to a categorical variable in a `ggplot()` object |
-| `ggplot2` | [`guides()`](https://ggplot2.tidyverse.org/reference/guides.html) | Guides | Function to customize legend ("guide") appearance |
-| `ggplot2` | [`facet_grid()`](https://ggplot2.tidyverse.org/reference/facet_grid.html) | Facet grid | Plot individual panels using specified variables to subset the data across rows and/or columns of a grid |
-| `ggplot2` | [`vars()`](https://ggplot2.tidyverse.org/reference/vars.html) | Vars | Helper function to specify variables to `facet_grid()` or `facet_wrap()`|
-| `ggplot2` | [`theme_bw()`](https://ggplot2.tidyverse.org/reference/ggtheme.html) | Black and white theme | Display `ggplot` with gridlines but a white background |
-| `ggplot2` | [`theme()`](https://ggplot2.tidyverse.org/reference/theme.html) | Theme | Customize elements of a `ggplot` plot theme |
-| `ggplot2` | [`element_text()`](https://ggplot2.tidyverse.org/reference/element.html) | Element text | Customize textual elements of a `ggplot` theme |
-
 
 
 
