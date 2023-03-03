@@ -12,7 +12,7 @@ If you have a different version of R or other R packages, the documentation may 
 <div style="page-break-after: always;"></div>
 
 ### Base `R`
-Read the Base `R` documentation [**here**](https://rdrr.io/r/).
+Read the Base `R` [documentation](https://rdrr.io/r/).
 
 | Library/Package                    | Piece of code        | What it's called                | What it does                                                                                                      |
 |------------------------------------|----------------------|---------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
@@ -55,12 +55,10 @@ Read the Base `R` documentation [**here**](https://rdrr.io/r/).
 <div style="page-break-after: always;"></div>
 
 ### `tidyverse`
-Read the `tidyverse` package documentation [**here**](https://tidyverse.tidyverse.org/). <br>
-Read the philosophy behind the `tidyverse` [**here**](https://tidyverse.tidyverse.org/articles/manifesto.html).
+Read the `tidyverse` [package documentation](https://tidyverse.tidyverse.org/), as well as the [philosophy behind the `tidyverse`](https://tidyverse.tidyverse.org/articles/manifesto.html).
 
 #### `dplyr`
-Read the `dplyr` package documentation [**here**](https://dplyr.tidyverse.org/).  <br>
-A vignette on the usage of the `dplyr` package can be found [**here**](https://dplyr.tidyverse.org/articles/dplyr.html).
+Read the `dplyr` [package documentation](https://dplyr.tidyverse.org/), and a [vignette on its usage](https://dplyr.tidyverse.org/articles/dplyr.html).
 
 | Library/Package                                 | Piece of code                        | What it's called                       | What it does                                                                                                                                                                                      |
 |-------------------------------------------------|--------------------------------------|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -77,8 +75,7 @@ A vignette on the usage of the `dplyr` package can be found [**here**](https://d
 <div style="page-break-after: always;"></div>
 
 #### `ggplot2`
-Read the `ggplot2` package documentation [**here**](https://ggplot2.tidyverse.org/), as well as an overall reference for `ggplot2` functions [**here**](https://ggplot2.tidyverse.org/reference/index.html). <br>
-A vignette on the usage of the `ggplot2` aesthetics can be found [**here**](https://ggplot2.tidyverse.org/articles/ggplot2-specs.html).
+Read the `ggplot2` [package documentation](https://ggplot2.tidyverse.org/), an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html), and a [vignette on the usage of the `ggplot2` aesthetics](https://ggplot2.tidyverse.org/articles/ggplot2-specs.html).
 Additional vignettes are available from the "Articles" dropdown menu on this webpage.
 
 | Library/Package                      | Piece of code                                   | What it's called       | What it does                                                                                                                                                                                      |
@@ -100,9 +97,9 @@ Additional vignettes are available from the "Articles" dropdown menu on this web
 
 
 #### `readr`, `tibble` and `tidyr`
-Read the `readr` package documentation [**here**](https://readr.tidyverse.org/) and the package vignette [**here**](https://readr.tidyverse.org/articles/readr.html). <br>
-Read the `tibble` package documentation [**here**](https://tibble.tidyverse.org/) and the package vignette [**here**](https://tibble.tidyverse.org/articles/tibble.html). <br>
-Read the `tidyr` package documentation [**here**](https://tidyr.tidyverse.org/) and the package vignette [**here**](https://tidyr.tidyverse.org/articles/tidy-data.html).
+Read the `readr` [package documentation](https://readr.tidyverse.org/) and a [vignette on its usage](https://readr.tidyverse.org/articles/readr.html). <br>
+Read the `tibble` [package documentation](https://tibble.tidyverse.org/) and a [vignette on its usage](https://tibble.tidyverse.org/articles/tibble.html). <br>
+Read the `tidyr` [package documentation](https://tidyr.tidyverse.org/) and a [vignette on its usage](https://tidyr.tidyverse.org/articles/tidy-data.html).
 
 | Library/Package                      | Piece of code                                   | What it's called       | What it does                                                                                                                                                                                      |
 |--------------------------------------|-----------------------------------------------------|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
