@@ -43,7 +43,7 @@ Read the `SingleCellExperiment` [package documentation (and e-book)](https://bio
 | `SingleCellExperiment`| [`assayNames()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)  | Assay names  | Returns a vector of the names of all assays in a `SingleCellExperiment` object|
 | `SingleCellExperiment`| [`logcounts()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#4_Convenient_access_to_named_assays)| Log counts| Extracts and stores log-transformed single-cell experiment count data as an assay of the `SingleCellExperiment` object|
 | `SingleCellExperiment`| [`counts()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#4_Convenient_access_to_named_assays)| Counts| Extracts and stores raw single-cell experiment count data as an assay of the `SingleCellExperiment` object|
-| `SingleCellExperiment`| [`reducedDim()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#3_Adding_low-dimensional_representations)| Reduced dim| Extracts or stores a given reduced dimension from a `SingleCellExperiment` object|
+| `SingleCellExperiment`| [`reducedDim()`](https://rdrr.io/bioc/ExperimentSubset/man/reducedDim.html)| Reduced dim| Extracts or stores a given reduced dimension from a `SingleCellExperiment` object|
 | `SingleCellExperiment`| [`reducedDimNames()`](https://rdrr.io/bioc/ExperimentSubset/man/reducedDimNames.html)| Reduced dim names| Returns a vector of the names of all reduced dimensions in a `SingleCellExperiment` object|
 | `scran` | [`quickCluster()`](https://rdrr.io/bioc/scran/man/quickCluster.html) | Quick Clustering     | Groups similar cells into clusters which are stored in the `SingleCellExperiment` object and are used for the calculation of size factors by `scran::computeSumFactors`|
 | `scran` | [`computeSumFactors()`](https://rdrr.io/bioc/scran/man/computeSumFactors.html)  | Compute Sum Factors| Returns a numeric vector of computed sum factors for each cell cluster stored in the `SingleCellExperiment` object. The cluster-based size factors are deconvolved into cell-based size factors that are stored in the `SingleCellExperiment` object and used by the `scran::normalize` function for the normalization of each cell's gene expression profile|
@@ -78,7 +78,7 @@ Read the `purrr` [package documentation](https://purrr.tidyverse.org/).
 
 ### `stringr`
 
-Read the `stringr`  [package documentation](https://stringr.tidyverse.org/).
+Read the `stringr` [package documentation](https://stringr.tidyverse.org/).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
