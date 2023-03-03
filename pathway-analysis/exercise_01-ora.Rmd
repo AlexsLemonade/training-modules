@@ -1,6 +1,6 @@
 ---
 title: "Exercise: Over-representation analysis of medulloblastoma PDX results"
-output: 
+output:
   html_notebook:
     toc: true
     toc_float: true
@@ -18,7 +18,7 @@ Here's an excerpt of [the experiment description](https://www.ncbi.nlm.nih.gov/b
 
 > RNA-seq data of Group 3 and 4 medulloblastoma with digoxin treatment.
 
-Group 3 and Group 4 are subgroups of medulloblastoma. 
+Group 3 and Group 4 are subgroups of medulloblastoma.
 You can read more about these subgroups of medulloblastoma in [Menyhárt *et al.* (2019)](https://doi.org/10.1186/s13045-019-0712-y).
 
 [Digoxin](https://en.wikipedia.org/wiki/Digoxin) is a treatment for various cardiovascular diseases.
@@ -31,16 +31,16 @@ We've performed the differential gene expression analysis steps for you (you can
 
 **Some things to note:**
 
-* For the treatment comparison, `none` was the reference. 
+* For the treatment comparison, `none` was the reference.
   Genes with higher expression in `digoxin` will have positive fold change values.
 * The design formula when we set up the `DESeqDataSet` was `~ Group + treatment`.
   The differential gene expression results for `treatment` in our example should be the differences between digoxin vs. none, controlling for differences due to molecular subtype (`Group`).
-  
+
 ## Set up
 
 ### Libraries
 
-Load in `magrittr`, `clusterProfiler`, `msigdbr`, and, `org.Hs.eg.db`.
+Load in `clusterProfiler`, `msigdbr`, and, `org.Hs.eg.db`.
 
 ```{r libraries, solution = TRUE}
 
@@ -73,7 +73,7 @@ head(hs_msigdb_df)
 
 Take a look at the collections here: https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
 The `gs_cat` and `gs_subcat` columns of `hs_msigdb_df` contain the collection information.
-Once you've decided on what collection you want to use for your pathway analysis, use the next chunk to filter `hs_msigdb_df` and assign to a new data frame called `gene_set_df`. 
+Once you've decided on what collection you want to use for your pathway analysis, use the next chunk to filter `hs_msigdb_df` and assign to a new data frame called `gene_set_df`.
 (Hint: We haven't loaded in the `dplyr` package.)
 
 _Just a heads up, the solved version will use KEGG gene sets, but that doesn't mean you need to!_
@@ -92,8 +92,8 @@ Use the next chunk to read in the DGE results and assign it to `dge_results_df`.
 ```
 
 > What gene identifiers are used in the DGE results?
-  What gene identifiers are available in `gene_set_df`? 
-  
+  What gene identifiers are available in `gene_set_df`?
+
 To answer the first question, we can look at the `Gene` column that contains the gene identifiers.
 The column name `Gene` doesn't tell us what kind of identifier we have!
 When your instructors encounter an unfamiliar identifier, they often copy and paste one into Dr. Google.
@@ -147,7 +147,7 @@ We want to remove any `NA` values (`!is.na()`) from the vector of genes and also
 significant_digoxin_genes <- unique(significant_digoxin_genes[!is.na(significant_digoxin_genes)])
 ```
 
-In the next chunk, we generate the background set for our ORA. 
+In the next chunk, we generate the background set for our ORA.
 We are testing a list of _differentially expressed genes_, but not every gene in our list will be able to be **detected** by DGE.
 For example, DESeq2 includes a step called independent filtering, where genes with low mean normalized counts will have adjusted p-values that are set to `NA` ([docs](https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#independent-filtering-of-results)).
 So to get our background set, we'll filter to remove genes (rows) that have no `NA` values associated with them with `tidyr::drop_na()`.
@@ -155,9 +155,9 @@ So to get our background set, we'll filter to remove genes (rows) that have no `
 
 ```{r background_set}
 detected_genes <- unique(  # Only unique gene identifiers
-  dge_results_df %>%
+  dge_results_df |>
     # Remove any rows with NA
-    tidyr::drop_na() %>%
+    tidyr::drop_na() |>
     # Return a vector of Entrez IDs
     dplyr::pull(entrez_id)
 )
