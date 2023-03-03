@@ -1,31 +1,39 @@
 ---
 title: "Single Cell Exercise: Reading and Processing CITE-Seq Data"
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
-editor_options: 
+editor_options:
   chunk_output_type: inline
 ---
 
 
 
-In this exercise notebook, we will be looking at a 10X dataset of [PBMCs (peripheral blood mononuclear cells)](https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p). 
+In this exercise notebook, we will be looking at a 10X dataset of [PBMCs (peripheral blood mononuclear cells)](https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p).
 This data was generated using a multiomics approach: both RNA and surface proteins were quantified at the single-cell level using _CITE-Seq_ ("cellular indexing of transcriptomics and epitopes by sequencing"; [Stoeckius _et al. (2017)](https://doi.org/10.1038/nmeth.4380)).
 Along with RNA counts, surface proteins are quantified as antibody-derived tags (ADTs), which are short DNA barcodes attached to specific antibodies that bind surface proteins of interest.
-The antibodies used in this PBMC dataset are from [The TotalSeq™-B Human TBNK Cocktail](https://www.biolegend.com/en-us/products/totalseq-b-human-tbnk-cocktail-19043), which bind to immune cell surface markers.
 
-Therefore, in this dataset, there are two sets of features to consider: RNA-level information (here, features are genes) and protein-level information (here, features are ADTs), and they require different forms of processing for both biological and technical reasons. 
-
+Therefore, in this dataset, there are two sets of features to consider: RNA-level information (here, features are genes) and protein-level information (here, features are ADTs), and they require different forms of processing for both biological and technical reasons.
 These exercises will give you both the opportunity to practice processing scRNA-seq transcriptomic data (filtering, normalization, and dimension reduction) as well as to learn new skills like filtering and normalization of ADTs from CITE-seq data.
+
+Having these two complementary sets of features provides a more complete picture of cell biology, and extra information provided by ADTs can help fill in gaps we'd have from only RNA sequencing.
+For example, RNA levels are not always precisely correlated with protein expression, and ADTs can help reveal highly-expressed surface proteins that may have low RNA levels.
+ADTs can also be used to target and identify protein isoforms, which can be challenging to identify from short-read single cell sequencing alone.
+Furthermore, analyses such as cell type annotation can benefit from ADT data, as surface proteins can be used to distinguish among certain cell types (e.g., CD4+ T-cells, by definition, express CD4 on the cell surface).
+
+Therefore, it's important that researchers use an antibody panel that is expected to bind to surface proteins of the cell types being sequenced.
+For the PBMC dataset we'll be exploring here, researchers used the [TotalSeq™-B Human TBNK Cocktail](https://www.biolegend.com/en-us/products/totalseq-b-human-tbnk-cocktail-19043), which was designed to bind immune cell surface markers.
+This choice makes sense, as PBMCs are immune cells!
+
 
 ---
 
-In this exercise notebook you will, 
+In this exercise notebook you will,
 
 - Part A: Read in and prepare the CITE-Seq data
-- Part B: Filter and normalize RNA data 
-- Part C: Filter and normalize ADT data 
+- Part B: Filter and normalize RNA data
+- Part C: Filter and normalize ADT data
 - Part D: Perform dimension reduction and visualization
 
 Much of the antibody-derived tag processing performed here was directly inspired by the [OSCA _Integrating with protein abundance_ chapter](http://bioconductor.org/books/3.16/OSCA.advanced/integrating-with-protein-abundance.html).
@@ -40,15 +48,15 @@ First, we'll set up for analysis by loading libraries and defining relevant dire
 
 ```{r setup}
 # Load library for working with SCE objects
-library(SingleCellExperiment) 
+library(SingleCellExperiment)
 ```
 
 Using the function `file.path()`, define the following variables in the next chunk:
 
 1. A variable `pbmc_dir` that holds the path to the Cell Ranger data, found in `data/PBMC-TotalSeqB/raw_feature_bc_matrix/`.
-2. A variable `mito_file` that holds the path to a mitochondrial genes reference file that will be used during filtering. 
+2. A variable `mito_file` that holds the path to a mitochondrial genes reference file that will be used during filtering.
 We have seen this file already during instruction; see if you can figure out this path yourself!
-3. A variable `output_dir` that holds the directory where we will ultimately store the processed SCE object. 
+3. A variable `output_dir` that holds the directory where we will ultimately store the processed SCE object.
 This directory should be `data/PBMC-TotalSeqB/citeseq/` (but remember to define it with `file.path()`!)
 4. A variable `output_sce` that holds the path to the output file itself: `pbmc_filtered_sce.rds`.
 Use the `output_dir` variable as part of this code.
@@ -117,25 +125,25 @@ counts(raw_sce)
 While this may seem convenient, the expected distributions for RNA expression data and ADT data can be quite different for both biological and technical reasons.
 So, for many processing steps like filtering and normalization, RNA and ADT counts need to be considered separately, which will be tricky to do if they are all in the same place!
 
-SCE objects in fact are able to hold [multiple related experiment objects](https://rdrr.io/bioc/SingleCellExperiment/man/altExps.html) in their `altExp` ("alternative experiment") slots. 
+SCE objects in fact are able to hold [multiple related experiment objects](https://rdrr.io/bioc/SingleCellExperiment/man/altExps.html) in their `altExp` ("alternative experiment") slots.
 These `altExp` objects are themselves SCE objects, where each `altExp` object contains the same cells as does the main SCE object that encloses them.
 
-Therefore, we'll begin processing this SCE by separating out the RNA from ADT information: 
+Therefore, we'll begin processing this SCE by separating out the RNA from ADT information:
 We want to keep RNA (Type "Gene Expression") information in the main experiment, and we want to move the ADT (Type "Antibody Capture") information into a new alternative experiment.
 We can use the `SingleCellExperiment` function [`splitAltExps()`](https://rdrr.io/bioc/SingleCellExperiment/man/splitAltExps.html) for this task.
 This function takes three arguments:
 
 - The SCE object to modify
-- A character vector indicating each row's feature type. 
+- A character vector indicating each row's feature type.
 We've already seen this information recorded in the `Type` column in the `rowData` table.
-- A string indicating which value in that character vector represents the main experiment. 
+- A string indicating which value in that character vector represents the main experiment.
 We'll want to keep RNA as the main experiment, so this value should be "Gene Expression".
 
 ```{r split altexp}
 # Split out the ADT measures into an alternative experiment
 split_sce <- splitAltExps(
   raw_sce,                # the SCE object
-  rowData(raw_sce)$Type,  # which feature type is each row? 
+  rowData(raw_sce)$Type,  # which feature type is each row?
   ref = "Gene Expression" # which feature type should stay in the main experiment?
 )
 
@@ -147,7 +155,7 @@ We see some important differences in this output.
 In particular, the `rownames` in the main experiment (which has the `mainExpName` "Gene Expression", derived from the `Type` variable) now appears to only contain Ensembl gene identifiers.
 Indeed, ADTs have been moved into the alternative experiment (named "Antibody Capture"), so this makes sense.
 
-Let's look specifically at the alternative experiment, using the `altExp()` function. 
+Let's look specifically at the alternative experiment, using the `altExp()` function.
 This function requires one argument, the SCE object (but if there were more than one alternative experiment, we'd have to provide the name of the alternative experiment with `altExp(<sce object>, "name of alternative experiment of interest")` to pull up the one we want).
 
 ```{r altexp}
@@ -158,7 +166,7 @@ altExp(split_sce)
 Based on this output (hint: have a look at the dimensions), how many antibodies do you think were used in this experiment?
 Check this by looking at the `rowData` slot of this alternative experiment.
 
-Hint: Normally we'd say `rowData(<sce object>)` to look at the main experiment, but here we want to look at the `rowData()` of alternative experiment (`altExp(<sce object>)`). 
+Hint: Normally we'd say `rowData(<sce object>)` to look at the main experiment, but here we want to look at the `rowData()` of alternative experiment (`altExp(<sce object>)`).
 
 ```{r altexp rowdata, solution = TRUE}
 # Look at the alternative experiment's rowData
@@ -214,7 +222,7 @@ So, even though we will do two separate stages of filtering, all cells will be f
 
 Let's begin by filtering out empty droplets from RNA counts, keeping only cells with an `FDR <= 0.01`. Save the resulting SCE to a variable named `filtered_sce` for subsequent use.
 
-Tip! You can include the argument `BPPARAM = BiocParallel::MulticoreParam(4)` in your `DropletUtils` function to make the code run faster. 
+Tip! You can include the argument `BPPARAM = BiocParallel::MulticoreParam(4)` in your `DropletUtils` function to make the code run faster.
 This argument will parallelize the code to take advantage of _4_ cores for faster computation.
 
 ```{r filter empty droplets, solution = TRUE}
@@ -236,7 +244,7 @@ Check this for both the main and alternative experiments to prove to yourself th
 
 ```
 
-Now that we have filtered out empty droplets, we will need to remove low-quality cells. 
+Now that we have filtered out empty droplets, we will need to remove low-quality cells.
 As we have seen for single-cell RNA data, these are generally cells with high proportions of mitochondrial transcripts, which often indicate that the cell is damaged or dead.
 We'll use `miQC` to filter the `filtered_sce` object, so we'll first need to calculate some mitochondrial gene-level statistics, which means we need to know our mitochondrial genes.
 
@@ -244,7 +252,7 @@ First, create a vector of mitochondrial genes.
 To do this, read in the mitochondrial gene TSV (whose path was previously defined as `mito_file`), and filter it down to only contain genes that are present in our SCE, and extract the gene IDs into a vector called `mito_genes`.
 
 ```{r read filter mito, solution = TRUE}
-# Read TSV mitochondrial genes, filter to only relevant genes, and extract 
+# Read TSV mitochondrial genes, filter to only relevant genes, and extract
 
 ```
 
@@ -258,10 +266,10 @@ What columns does it have before QC statistics are added?
 
 ```
 
-Now, calculate and add in the statistics. 
+Now, calculate and add in the statistics.
 
 ```{r mito qc, solution = TRUE}
-# Add QC statistics for mitochondrial genes into the filtered_sce 
+# Add QC statistics for mitochondrial genes into the filtered_sce
 
 ```
 
@@ -340,7 +348,7 @@ Next, we'll normalize the RNA counts as we have seen using these steps:
 
 - First, perform a rough clustering of the data using `scran::quickCluster()`.
 - Second, use these clusters to calculate scaling factors which are added to your SCE object.
-- Third, perform normalization using these new scaling factors, saving the final result to `normalized_sce`. 
+- Third, perform normalization using these new scaling factors, saving the final result to `normalized_sce`.
 
 We'll use this SCE object moving forward in the next sections when filtering on and normalizing ADT counts.
 
@@ -380,7 +388,7 @@ Therefore, we want to remove droplets that either have too low or too high ambie
 Since droplets were hopefully already removed when we filtered with `DropletUtils::emptyDropsCellRanger()`, we'll actually be filtering cells here, but the concept is the same.
 
 The function [`DropletUtils::cleanTagCounts()`](https://rdrr.io/github/MarioniLab/DropletUtils/man/cleanTagCounts.html) performs this type of filtering by comparing ADT counts across cells to a baseline ambient profile.
-It then identifies cells that have too few or too many counts for potential removal. 
+It then identifies cells that have too few or too many counts for potential removal.
 
 `DropletUtils::cleanTagCounts()` can either calculate this baseline ambient profile for you, or you can calculate it separately and provide it to the function.
 In this case, we'll calculate the baseline separately because we'll need it again later (foreshadowing!) when we normalize ADT counts, and there's no need to perform this calculation twice.
@@ -395,7 +403,7 @@ This function returns a vector of the relative concentration of each ADT in the 
 # Calculate the ambient profile from the ADT counts using default settings
 # Note that the argument here is the ADT counts matrix
 ambient_profile_bimodal <- DropletUtils::ambientProfileBimodal(
-  counts(altExp(normalized_sce)) 
+  counts(altExp(normalized_sce))
 )
 
 # Print the profile to see what was calculated
@@ -403,7 +411,7 @@ ambient_profile_bimodal
 ```
 
 Before proceeding, have a quick look at the expected ambient levels of each ADT.
-The value for `IgG1` should look pretty different from the rest! 
+The value for `IgG1` should look pretty different from the rest!
 Given that it is a negative control, think about whether this value is expected or not.
 
 As an alternative to assuming a bimodal distribution with `DropletUtils::ambientProfileBimodal()`, we could instead estimate an ambient profile from our _unfiltered_ ADT data in `split_sce` (recall this variable created earlier has separate RNA and ADT experiments but had not yet been filtered in any way).
@@ -418,7 +426,7 @@ ambient_profile_empty <- DropletUtils::ambientProfileEmpty( counts(altExp(split_
 ambient_profile_empty
 ```
 
-How does this profile compare to the profile generated from the RNA-filtered cells? 
+How does this profile compare to the profile generated from the RNA-filtered cells?
 
 Next, use the function `DropletUtils::cleanTagCounts()` to calculate a data frame of quality control statistics for filtering, and save it to the variable `adt_qc_df`.
 Provide two arguments to this function: First the ADT counts for the RNA-filtered SCE object, and then the _named_ argument `ambient = ambient_profile_bimodal` to use the bimodal ambient profile we created during calculations.
@@ -439,7 +447,7 @@ Here, we see a couple different variables that we _could_ filter on (note that t
 - `high.ambient` tells us if the ambient concentration is "too high"
 - `discard` provides a convenient suggestion for which cells should be discarded
 
-Use this data frame to only keep cells (in the whole SCE!) for which `discard` is `FALSE`, using an analogous strategy to that used to filter on `droplet_df` during RNA filtering. 
+Use this data frame to only keep cells (in the whole SCE!) for which `discard` is `FALSE`, using an analogous strategy to that used to filter on `droplet_df` during RNA filtering.
 You should end up updating your `normalized_sce` variable.
 
 Hint: To check if something is `FALSE`, you'll need to use the `!` operator.
@@ -511,7 +519,7 @@ Filtering is now complete!
 Have a look at the final `normalized_sce` object SCE to see how many cells made it past all of our filtering.
 
 ```{r filtering complete, solution = TRUE}
-# print normalized_sce 
+# print normalized_sce
 
 ```
 
@@ -533,7 +541,7 @@ Let's begin by calculating the size factors:
 ```{r calculate adt size factors}
 # Calculate median size factors for ADT normalization with two arguments:
 #  1. The SCE object (here, the altExp) to calculate size factors on
-#  2. The ambient profile to use in calculations 
+#  2. The ambient profile to use in calculations
 # The function returns an updated SCE object with the size factors
 #  that we will store back in the altExp
 altExp(normalized_sce) <- scuttle::computeMedianFactors(
@@ -541,7 +549,7 @@ altExp(normalized_sce) <- scuttle::computeMedianFactors(
   reference = ambient_profile_bimodal
 )
 
-# Print the first 6 values of the result, which was stored in the sizeFactor 
+# Print the first 6 values of the result, which was stored in the sizeFactor
 #  column of the altExp
 head( altExp(normalized_sce)$sizeFactor )
 ```
@@ -567,7 +575,7 @@ Remember, you're working with the alternative experiment here!
 
 
 
-Finally, our SCE object is processed! 
+Finally, our SCE object is processed!
 We have fully filtered it and normalized both RNA and ADT counts.
 Use the next chunk to explore the final `normalized_sce` object.
 You should now be able to see a `logcounts` assay in your alternative experiment, representing the normalized ADT counts.
@@ -636,12 +644,12 @@ Let's take a moment to recall the marker names in our data by looking at the row
 
 ```
 
-To start, let's color by `IgG1`, the negative control antibody. 
+To start, let's color by `IgG1`, the negative control antibody.
 We expect that no cells have any `IgG1` expression, since we filtered out those cells earlier!
 
 ```{r plot umap igg1}
 # Plot the UMAP colored by IgG1 expression
-scater::plotUMAP(normalized_sce, 
+scater::plotUMAP(normalized_sce,
                  colour_by = "IgG1")
 ```
 Indeed, this is a very boring plot – all cells have the same expression of 0!

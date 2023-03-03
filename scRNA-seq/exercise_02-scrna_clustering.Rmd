@@ -1,10 +1,10 @@
 ---
 title: "Single Cell Exercise: Clustering cells"
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
-editor_options: 
+editor_options:
   chunk_output_type: inline
 ---
 
@@ -15,12 +15,12 @@ In that notebook, we used the [*Tabula Muris* project](https://www.nature.com/ar
 
 We filtered and normalized the data to produce the aforementioned output file.
 
-In this exercise we will be following some of the steps for the downstream analysis of tag-based scRNA-seq data as we did in the `04-dimension_reduction_scRNA.Rmd` and `05-clustering_markers_scRNA.Rmd` instruction notebooks. 
+In this exercise we will be following some of the steps for the downstream analysis of tag-based scRNA-seq data as we did in the `04-dimension_reduction_scRNA.Rmd` and `05-clustering_markers_scRNA.Rmd` instruction notebooks.
 
 **Relative workflow for tag-based data**
 ![](diagrams/tag-based_3.png)
 
-## Setup 
+## Setup
 
 First, load the libraries we need and set the file path to the output plots directory.
 
@@ -32,9 +32,6 @@ library(scran)
 
 # clustering tools
 library(bluster)
-
-# Load the pipe
-library(magrittr)
 
 # File path to plots directory
 plots_dir <- "plots"
@@ -58,11 +55,11 @@ Set the file path to the RDS file containing a normalized `SingleCellExperiment`
 Hint: it should be named `mammary_gland_norm_sce.rds`, and may be a few levels deep in a subdirectory of the `data` directory
 
 ```{r sce_file, solution = TRUE}
-# store the path in a variable named `sce_file` 
+# store the path in a variable named `sce_file`
 
 ```
 
-Import the `SingleCellExperiment` object using `readr`'s function for reading RDS files. 
+Import the `SingleCellExperiment` object using `readr`'s function for reading RDS files.
 Remember that you can use `::` to call any functions from packages that you haven't imported.
 
 ```{r readrds, solution = TRUE}
@@ -87,7 +84,7 @@ If there are not already dimensionality reduction results stored with the `norma
 
 To do this, use the `runPCA()` function from `scater`, which performs the PCA calculations and returns a new object with the results stored in the `reducedDim` slot.
 Specify the number of genes to use for the PCA calculation using the function's `ntop` argument.
-Recall that this will pick the genes with the greatest variance. 
+Recall that this will pick the genes with the greatest variance.
 The default is 500 genes, but you will probably want to use more!
 
 ```{r runPCA, solution = TRUE}
@@ -123,9 +120,9 @@ By default, `ggsave()` will save the last plot that you made, so we will only ne
 
 ### UMAP
 
-**UMAP** (Uniform Manifold Approximation and Projection) is a machine learning technique designed to provide more detail in highly dimensional data than a typical principal components analysis. 
-While PCA assumes that the variation we care about has a particular distribution (normal, broadly speaking), UMAP allows more complicated distributions that it learns from the data. 
-The underlying mathematics are beyond me, but if you are more ambitious than I am, you can look at the paper by [McInnes, Healy, & Melville (2018)](https://arxiv.org/abs/1802.03426). 
+**UMAP** (Uniform Manifold Approximation and Projection) is a machine learning technique designed to provide more detail in highly dimensional data than a typical principal components analysis.
+While PCA assumes that the variation we care about has a particular distribution (normal, broadly speaking), UMAP allows more complicated distributions that it learns from the data.
+The underlying mathematics are beyond me, but if you are more ambitious than I am, you can look at the paper by [McInnes, Healy, & Melville (2018)](https://arxiv.org/abs/1802.03426).
 The main advantage of this change in underlying assumptions is that UMAP can do a better job separating clusters, especially when some of those clusters may be more similar to each other than others.
 
 Like `runPCA()`, `scater::runUMAP()` returns a matrix of results, with one row for each sample, and a column for each of the UMAP dimensions returned, and stores these results in a SingleCellExperiment object.
@@ -137,7 +134,7 @@ Run `scater::runUMAP()` in the chunk below, specifying that we should use the st
 
 ```
 
-Now using the same `plotReducedDim()` function as above, plot the UMAP results. 
+Now using the same `plotReducedDim()` function as above, plot the UMAP results.
 Also try adding some color (colour) with the `colour_by` argument, using the number of genes detected in each cell to assign a hue.
 
 ```{r plot_umap, solution = TRUE}
@@ -147,7 +144,7 @@ Also try adding some color (colour) with the `colour_by` argument, using the num
 
 ## Cell clustering
 
-When we performed dimensionality reduction on our data above, we could see visually that the cells tended cluster together into groups. 
+When we performed dimensionality reduction on our data above, we could see visually that the cells tended cluster together into groups.
 Let's try identifying distinct groups of cells with similar patterns of gene expression that we can assign labels to.
 
 As noted in the `05-clustering_markers_scRNA.Rmd` instruction notebook, there are a number of methods to identify clusters and assign cells to those in multidimensional data like the single cell data we have.
@@ -159,21 +156,21 @@ Note that there are other algorithms that we will not discuss, but can be explor
 
 - `KmeansParam()` will apply the k-means clustering algorithm (see also `?kmeans`).
 Some of the more important parameters are:
-  - `centers`: the number of clusters to be assigned 
+  - `centers`: the number of clusters to be assigned
   - `nstart`: Since the final k-means clusters may depend on the random clusters chosen at the start, we might want to repeat the procedure a number of times and choose the best output. This argument tells how many times to repeat the clustering (the default is 1).
 
 - `NNGraphParam()` will apply community detection algorithms on a nearest-neighbor (NN) graph.
 Some of the more important parameters are:
   - `k`: the number of neighbors for each cell to use when constructing the graph
-  - `type`: how the neighbor graph is weighted. 
+  - `type`: how the neighbor graph is weighted.
   The options are `rank` (default), `number` and `jaccard`, with the last of those being the default in `Seurat`.
   For more details see `?makeSNNGraph`
-  - `cluster.fun`: Which cluster detection algorithm to use. 
+  - `cluster.fun`: Which cluster detection algorithm to use.
   The options are many, but common choices are `walktrap` (default) and `louvain` (used by `Seurat`).
 
 Take some time below to explore the k-means and graph-based clustering algorithms and parameters!
 You might also note how the results can change from one run to the next with no changes in parameters.
-Do different clustering algorithms tend to agree with what you "see" in the dimensionality reduction plots? 
+Do different clustering algorithms tend to agree with what you "see" in the dimensionality reduction plots?
 Is that dependent on which set of dimensions you use?
 
 ### k-means clustering
@@ -181,13 +178,13 @@ Is that dependent on which set of dimensions you use?
 First, try exploring the k-means clustering method.
 Remember that the `k` here refers to the number of clusters that we will create, and must be chosen before we start.
 
-You might wonder: How many clusters should we use? 
+You might wonder: How many clusters should we use?
 That is a hard question and for now the answer is up to you!
 
 However, for an intuitive visualization of the general k-means method, you might find [this StatQuest video](https://www.youtube.com/watch?v=4b5d3muPQmA) useful.
 For more discussion of the method in a single-cell context, including some tips on choosing `k`, the [Orchestrating Single-Cell Analysis book chapter on k-means](https://bioconductor.org/books/3.14/OSCA.basic/clustering.html#vector-quantization-with-k-means) is a good reference.
 
-We already computed *and stored* a matrix with reduced dimensions with the `runPCA()` function above. 
+We already computed *and stored* a matrix with reduced dimensions with the `runPCA()` function above.
 We will extract that from the `SingleCellExperiment` object with the `reducedDim()` function, which returns a matrix with the cells as rows that we can directly supply to the `clusterRows()` function.
 
 When implementing `clusterRows()` below, you can use `KmeansParam()` to specify that we want k-means clustering, with the `centers` parameter to set how many clusters we will assign (`k`).
@@ -201,7 +198,7 @@ When implementing `clusterRows()` below, you can use `KmeansParam()` to specify 
 
 ```
 
-The `clusterRows()` function returned a vector of cluster assignments as integers, but the numerical values have no inherent meaning. 
+The `clusterRows()` function returned a vector of cluster assignments as integers, but the numerical values have no inherent meaning.
 For plotting, convert those integers into factors, so R is not tempted to treat them as a continuous variable.
 
 Store the new factor values back into the cell information table of the original `normalized_sce` object for convenient storage and later use.
@@ -214,7 +211,7 @@ For example, if you used two clusters, you might use  `normalized_sce$kcluster_2
 
 ```
 
-Now use the `scater` function `plotReducedDim()` as we have in the `05-clustering_markers_scRNA.Rmd` instruction notebook, to plot the results and see how the clustering looks. 
+Now use the `scater` function `plotReducedDim()` as we have in the `05-clustering_markers_scRNA.Rmd` instruction notebook, to plot the results and see how the clustering looks.
 
 Start by using the UMAP coordinates for the plot and don't forget to color the points by our clustering results!
 As a shortcut, you can also use the function `plotUMAP()`.
@@ -268,7 +265,7 @@ In the example below, you may use the default values or specify your own for the
 
 ```
 
-Now you can plot the results of our graph-based `UMAP` clustering using `plotReducedDim()`. 
+Now you can plot the results of our graph-based `UMAP` clustering using `plotReducedDim()`.
 This time, use the `text_by` argument to include the cluster ids directly on the plot.
 
 ```{r plot_nnclust, solution = TRUE}
@@ -282,7 +279,7 @@ How sensitive is this to the parameters we choose?
 How do the numbers of clusters change with different parameters?
 
 Use the chunk below to try a different set of parameters, and make more chunks to explore more.
-Play around with the clustering and plotting dimensions as much as you like! 
+Play around with the clustering and plotting dimensions as much as you like!
 
 ```{r explore_nclust, solution = TRUE}
 # perform neighbor clustering with different parameters
