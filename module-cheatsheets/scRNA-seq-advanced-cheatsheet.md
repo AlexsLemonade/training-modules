@@ -14,16 +14,9 @@ If you have a different version of R or other R packages, the documentation may 
 
 <div style="page-break-after: always;"></div>
 
-### `Seurat` and `SCE` object conversion
-
-#### Converting from `Seurat` to `SCE`
-
-#### Converting from `SCE` to `Seurat`
-
-
 ### `scater`
 
-Read the `scater` package documentation [**here**](https://rdrr.io/bioc/scater/), and a vignette on its usage [**here**](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
+Read the `scater` [package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
 
 <br>
 
@@ -36,7 +29,7 @@ Read the `scater` package documentation [**here**](https://rdrr.io/bioc/scater/)
 
 ### `miQC`
 
-Read the `miQC` package documentation [**here**](https://rdrr.io/github/greenelab/miQC/), and a vignette on its usage [**here**](https://www.bioconductor.org/packages/release/bioc/vignettes/miQC/inst/doc/miQC.html).
+Read the `miQC` [package documentation](https://rdrr.io/github/greenelab/miQC/), and a [vignette on its usage](https://www.bioconductor.org/packages/release/bioc/vignettes/miQC/inst/doc/miQC.html).
 
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
@@ -50,9 +43,9 @@ Read the `miQC` package documentation [**here**](https://rdrr.io/github/greenela
 
 ### `batchelor` and `harmony`
 
-Read the `batchelor` package documentation [**here**](https://rdrr.io/cran/batchelor/), and a vignette on its usage [**here**](https://rdrr.io/bioc/batchelor/f/vignettes/correction.Rmd).
+Read the `batchelor` [package documentation](https://rdrr.io/cran/batchelor/), and a [vignette on its usage](https://rdrr.io/bioc/batchelor/f/vignettes/correction.Rmd).
 
-Read the `harmony` package documentation [**here**](https://rdrr.io/github/immunogenomics/harmony/man/harmony.html), and a vignette on its usage [**here**](https://cran.r-project.org/web//packages/harmony/vignettes/quickstart.html).
+Read the `harmony` [package documentation(https://rdrr.io/github/immunogenomics/harmony/man/harmony.html), and a [vignette on its usage](https://cran.r-project.org/web/packages/harmony/vignettes/quickstart.html).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
@@ -62,9 +55,9 @@ Read the `harmony` package documentation [**here**](https://rdrr.io/github/immun
 
 
 ### `pheatmap` and `EnhancedVolcano`
-Read the `pheatmap` package documentation [**here**](https://rdrr.io/cran/pheatmap/).
+Read the `pheatmap` [package documentation](https://rdrr.io/cran/pheatmap/).
 
-Read the `EnhancedVolcano` package documentation [**here**](https://rdrr.io/bioc/EnhancedVolcano/), and a vignette on its usage [**here**](https://bioconductor.org/packages/3.16/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
+Read the `EnhancedVolcano` [package documentation](https://rdrr.io/bioc/EnhancedVolcano/), and a vignette on its usage [**here**](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
@@ -113,3 +106,9 @@ Read the full documentation for tidyverse packages here:
 
 
 
+
+### `Seurat` and `SCE` object conversion
+
+#### Converting from `Seurat` to `SCE`
+
+#### Converting from `SCE` to `Seurat`
