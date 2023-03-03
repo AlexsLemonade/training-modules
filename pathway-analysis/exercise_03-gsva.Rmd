@@ -1,6 +1,6 @@
 ---
 title: "Exercise: Gene Set Variation Analysis of medulloblastoma results"
-output: 
+output:
   html_notebook:
     toc: true
     toc_float: true
@@ -22,7 +22,7 @@ You can insert new chunks (`Cmd + Option + I` on Mac, `Ctrl + Alt + I` on Window
 
 ### Libraries
 
-Load in `magrittr`, `SummarizedExperiment`, `GSVA`, `ComplexHeatmap`, `msigdbr`, and, `org.Hs.eg.db`.
+Load in `SummarizedExperiment`, `GSVA`, `ComplexHeatmap`, `msigdbr`, and, `org.Hs.eg.db`.
 
 ```{r libraries, solution = TRUE}
 
@@ -66,7 +66,7 @@ head(hs_msigdb_df)
 
 Take a look at the collections here: https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
 The `gs_cat` and `gs_subcat` columns of `hs_msigdb_df` contain the collection information.
-Once you've decided on what collection you want to use for your pathway analysis, use the next chunk to filter `hs_msigdb_df` and assign to a new data frame called `gene_set_df`. 
+Once you've decided on what collection you want to use for your pathway analysis, use the next chunk to filter `hs_msigdb_df` and assign to a new data frame called `gene_set_df`.
 (Hint: We haven't loaded in the `dplyr` package.)
 
 _Just a heads up, the solved version will use Hallmark gene sets, but that doesn't mean you need to!_
@@ -89,7 +89,7 @@ rnaseq_exp <- readr::read_rds(rnaseq_file)
 Extract the metadata as a data frame.
 
 ```{r metadata}
-sample_info <- colData(rnaseq_exp) %>% as.data.frame()
+sample_info <- colData(rnaseq_exp) |> as.data.frame()
 ```
 
 
@@ -104,13 +104,13 @@ For more on alternative normalization methods, the Harvard Chan Bioinformatics C
 TPM is stored in the `SummarizedExperiment` object under the assay name "abundance", so we will extract that to a matrix.
 
 ```{r extract_tpm, soulution = TRUE}
-# use the assay() function to extract the 
+# use the assay() function to extract the
 rnaseq_tpm <- assay(rnaseq_exp, "abundance")
 ```
 
-We will want to take the log of these TPM values for our analysis, but there is a problem. 
-Some TPM values are 0, and we can't take the log of 0. 
-A common practice is to add 1 to all TPM values and then take the log, but this can introduce a very large bias since many TPM values are much less than 1. 
+We will want to take the log of these TPM values for our analysis, but there is a problem.
+Some TPM values are 0, and we can't take the log of 0.
+A common practice is to add 1 to all TPM values and then take the log, but this can introduce a very large bias since many TPM values are much less than 1.
 Instead we will add the minimum TPM value from our matrix to all values, then take the log.
 
 In the block below, find the minimum TPM value _that isn't zero_ and save it to `min_tpm`, then print it out.
@@ -133,24 +133,24 @@ rnaseq_logtpm <- log(rnaseq_tpm + min_tpm)
 For some of the next steps, it will be easier if we have a data frame, so lets convert the log(TPM) matrix and pull the gene names into their own column.
 
 ```{r}
-rnaseq_df <- rnaseq_logtpm %>%
-  as.data.frame() %>%
+rnaseq_df <- rnaseq_logtpm |>
+  as.data.frame() |>
   tibble::rownames_to_column(var = "gene_id")
 ```
 
-For GSVA, we'll use Entrez IDs, so we will now convert the IDs we had 
+For GSVA, we'll use Entrez IDs, so we will now convert the IDs we had
 
 ```{r convert_rnaseq}
-rnaseq_df <- rnaseq_df %>%
-  dplyr::mutate(entrez_id = mapIds(org.Hs.eg.db, 
-                                   keys = rnaseq_df$gene_id, 
-                                   column = "ENTREZID", 
-                                   keytype = "ENSEMBL", 
+rnaseq_df <- rnaseq_df |>
+  dplyr::mutate(entrez_id = mapIds(org.Hs.eg.db,
+                                   keys = rnaseq_df$gene_id,
+                                   column = "ENTREZID",
+                                   keytype = "ENSEMBL",
                                    multiVals = "first")
-  ) %>%
+  ) |>
   # Remove genes that do not have Entrez IDs
-  dplyr::filter(!is.na(entrez_id)) %>%
-  # This step puts the Entrez IDs as the first column and selects all the 
+  dplyr::filter(!is.na(entrez_id)) |>
+  # This step puts the Entrez IDs as the first column and selects all the
   # columns that contain expression values
   dplyr::select(entrez_id, tidyselect::starts_with("SRR"))
 ```
@@ -159,7 +159,7 @@ GSVA takes a matrix where the gene identifiers are rownames _and_ we can't have 
 So we need to check if there are duplicate Entrez IDs.
 
 ```{r check_duplicated_entrez}
-# duplicated() returns TRUE if something is a duplicate value of something 
+# duplicated() returns TRUE if something is a duplicate value of something
 # earlier in a vector and sum() will count how many times TRUE appears
 sum(duplicated(rnaseq_df$entrez_id))
 ```
@@ -174,19 +174,19 @@ In this case, for a given Entrez ID we'll pick the row that has the maximum aver
 # Mean transformed value across the entire cohort
 rnaseq_df$mean_value <- rowMeans(rnaseq_df[, -1])
 
-# Because the next step includes sampling, we need to set a seed for 
+# Because the next step includes sampling, we need to set a seed for
 # reproducibility
 set.seed(2021)
 
 # Now the collapse step
-collapsed_rnaseq_df <- rnaseq_df %>%
+collapsed_rnaseq_df <- rnaseq_df |>
   # For each set of rows that correspond to the same Entrez ID
-  dplyr::group_by(entrez_id) %>%
+  dplyr::group_by(entrez_id) |>
   # Select the single row with the highest value in the mean_value column
-  dplyr::top_n(1, mean_value) %>%
+  dplyr::top_n(1, mean_value) |>
   # In the case of ties, where the mean values are the same, randomly pick one
   # row
-  dplyr::sample_n(1) %>%
+  dplyr::sample_n(1) |>
   # Drop the column that contains the mean
   dplyr::select(-mean_value)
 
@@ -211,7 +211,7 @@ We can use `gene_set_df` to get a list with `split()`, which divides data into g
 gene_set_list <- split(gene_set_df$entrez_gene, gene_set_df$gs_name)
 ```
 
-You may want to look at `gene_set_list` in the Environment pane or with `View()` to see the result of this step. 
+You may want to look at `gene_set_list` in the Environment pane or with `View()` to see the result of this step.
 
 Now that we've done all that prep, use this next chunk to perform GSVA!
 
@@ -223,7 +223,7 @@ Now that we've done all that prep, use this next chunk to perform GSVA!
 
 Now we are ready to do something with those GSVA results!
 
-We could use them for a differential expression-like analysis to identify pathways that are perturbed differently across conditions. 
+We could use them for a differential expression-like analysis to identify pathways that are perturbed differently across conditions.
 But we'll save that for another time!
 If you are interested to look at an example notebook that performs that kind of analysis, we have one on our [refine.bio examples site](https://alexslemonade.github.io/refinebio-examples/02-microarray/pathway-analysis_microarray_03_gsva.html#44_Find_differentially_expressed_pathways).
 
@@ -234,7 +234,7 @@ We will start with `Treatment`, `Group` and `Mouse`.
 Note that the row names of this data frame are already the sample ids from our GSVA matrix, so we should be all set on that front.
 
 ```{r extract_annotation}
-annotation_df <- sample_info %>%
+annotation_df <- sample_info |>
   dplyr::select(Treatment, Group, Mouse)
 ```
 
@@ -242,10 +242,10 @@ Now we can use that `annotation_df` data frame to build up our annotation object
 Use the chunk below create a `HeatmapAnnotation` object and assign colors of your choice to each of the columns of the data frame.
 (If you don't assign colors, you get whatever random colors `ComplexHeatmap` decides to use. Quite literally, it won't be pretty.)
 
-The `HeatmapAnnotation()` function that you will use takes two main arguments (there are many more, but these will get most of what we need for now): 
+The `HeatmapAnnotation()` function that you will use takes two main arguments (there are many more, but these will get most of what we need for now):
 
 - `df`, which takes the annotation data frame we created above
-- `col`, which takes a list where each list element has the same name as one of the columns, and contains a _named_ vector where each of the vector elements is named with a possible value for that column, and contains the corresponding color that you want to use. 
+- `col`, which takes a list where each list element has the same name as one of the columns, and contains a _named_ vector where each of the vector elements is named with a possible value for that column, and contains the corresponding color that you want to use.
 
 For an example you may want to refer back to the [`RNA-seq/06-openpbta_heatmap.Rmd` notebook](https://github.com/AlexsLemonade/training-modules/blob/master/RNA-seq/06-openpbta_heatmap.Rmd).
 
@@ -256,7 +256,7 @@ It may be helpful to use the `unique()` function to find out what the possible v
 ```
 
 One additional thing you might want to play around with is the colors for the heatmap itself.
-For detail on this, and the `circlize::colorRamp2()` function `ComplexHeatmap` recommends using to set colors, see the [`ComplexHeatmap` manual](https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html#colors). 
+For detail on this, and the `circlize::colorRamp2()` function `ComplexHeatmap` recommends using to set colors, see the [`ComplexHeatmap` manual](https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html#colors).
 We are providing one example below for inspiration.
 You might notice that we are _not_ using the green/red color scheme that used to be common for heatmap plots as that is not friendly to those with color vision deficiencies.
 
@@ -266,9 +266,9 @@ heatmap_cols <- circlize::colorRamp2(
   # Here we're using the `hcl.colors() function to generate anchor colors
   # See `hcl.pals()` for available palette names
   # This one comes from https://colorbrewer2.org/#type=diverging&scheme=RdYlBu&n=5
-  hcl.colors(5, palette = "RdYlBu"), 
-  # set the values these anchor colors correspond to 
-  # make sure these cover the range of variation you want to display 
+  hcl.colors(5, palette = "RdYlBu"),
+  # set the values these anchor colors correspond to
+  # make sure these cover the range of variation you want to display
   breaks = c(0.5, 0.25, 0, -0.25, -0.5)
 )
 
@@ -279,12 +279,12 @@ heatmap_cols(c(0.2, 0.01, 1))
 
 ### Drawing the plot
 
-Once you have your heatmap annotation prepared, you are ready to create a heatmap with the `Heatmap()` function from `ComplexHeatmap`. 
+Once you have your heatmap annotation prepared, you are ready to create a heatmap with the `Heatmap()` function from `ComplexHeatmap`.
 
 You may want to play around with the clustering methods and distance measures, or just explore the copious customization options that `ComplexHeatmap` provides.
 
 One question that always comes up is how to adjust the font size for labels to prevent overlapping text.
-To adjust row labels you need to add the argument `row_names_gp = gpar(fontsize = XX)` where XX is the font size you want to use (default is 12). 
+To adjust row labels you need to add the argument `row_names_gp = gpar(fontsize = XX)` where XX is the font size you want to use (default is 12).
 For the column labels you would instead set the `column_names_gp` argument.
 
 
@@ -293,7 +293,7 @@ For the column labels you would instead set the `column_names_gp` argument.
 ```
 ### Saving the plot
 
-To save the plot, recall that we will have to open a graphics device, draw the plot (again), and then close the device. 
+To save the plot, recall that we will have to open a graphics device, draw the plot (again), and then close the device.
 Way back at the top we set up the file name for a PNG file to save to in the `heatmap_file` variable, so we will use that again here.
 
 Note that you may need to again adjust parameters like font size to get the output to look just how you want it to be.
@@ -312,10 +312,10 @@ Note that you may need to again adjust parameters like font size to get the outp
 ### Final notes
 
 This is where I tell you that we did something not so great.
-You probably noticed that the data clustered very neatly by mouse. 
-If this data set actually had multiple samples from each mouse, that would be great, and very encouraging. 
-But it turns out that the replicates in this sample are not biological replicates, but _technical_ replicates. 
-The samples are the same; the sequencing library preparation is the same; the only difference among samples from the same mouse is that the libraries were sequenced multiple runs, and those were reported separately. 
+You probably noticed that the data clustered very neatly by mouse.
+If this data set actually had multiple samples from each mouse, that would be great, and very encouraging.
+But it turns out that the replicates in this sample are not biological replicates, but _technical_ replicates.
+The samples are the same; the sequencing library preparation is the same; the only difference among samples from the same mouse is that the libraries were sequenced multiple runs, and those were reported separately.
 
 For a proper analysis, we really should have collapsed the data from these replicates into a single sample for each mouse before running our analysis.
 (There's a `DESeq2` function called [`collapseReplicates()`](https://rdrr.io/bioc/DESeq2/man/collapseReplicates.html).)

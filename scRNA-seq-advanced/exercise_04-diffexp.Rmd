@@ -1,15 +1,28 @@
 ---
 title: "Single Cell Exercise: Differential Expression Analysis"
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
-editor_options: 
+editor_options:
   chunk_output_type: inline
 ---
 
+
 For these exercises, you will be performing differential expression analysis on the same set of rhabdomyosarcoma (RMS) samples we saw in the differential expression instruction notebook.
 This time, however, you'll be testing a separate population of cells, the tumor mesoderm cells, for differentially expressed genes between alveolar RMS (ARMS) and embryonal RMS (ERMS) samples.
+
+
+Before beginning, let's take a moment to consider the context for this data.
+[Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003) employed scRNA-seq and snRNA-seq to explore the transcriptomic landscape of RMS, with a particular interest in identifying aspects of RMS' developmental program that can be exploited by therapeutics.
+One key result from this study was that ERMS featured a clear developmental hierarchy that ARMS lacked, suggesting there may be different contributors to treatment resistance between subtypes.
+Although development for all RMS samples mirrored normal myogenesis (shown below) with cell types of all stages, ARMS samples had significantly fewer tumor mesoderm cells compared to ERMS samples.
+Given this difference in abundance, could there also be differences in gene expression in this cell population?
+We'll be exploring that question in this notebook!
+
+
+![Figure 1B from Patel _et al._ (2022)](diagrams/patel_2022_fig1B.png)
+
 
 In this exercise notebook you will:
 
@@ -46,7 +59,7 @@ In the next chunk, we'll set up some file paths, including the path to our RMS d
 # data directory for input RMS data
 data_dir <- file.path("data", "rms")
 
-# file containing just the samples to use for DE analysis, 
+# file containing just the samples to use for DE analysis,
 #  as created during instruction
 rms_sce_file <- file.path(data_dir, "integrated",  "rms_subset_sce.rds")
 
@@ -91,16 +104,16 @@ This column will end up conflicting with some of `DESeq2`'s operations, so we wa
 
 ```{r remove sizeFactors column}
 # Set column value to `NULL` in order to remove it
-rms_sce$sizeFactor <- NULL 
+rms_sce$sizeFactor <- NULL
 ```
 
-As we saw during instruction, this SCE contains three ERMS and three ARMS samples. 
+As we saw during instruction, this SCE contains three ERMS and three ARMS samples.
 Let's remind ourselves of the distribution of cell types before proceeding.
 To focus on the tumor cell types (as we will be doing for the rest of the notebook!), we'll also subset the `rms_sce` object to just tumor cells.
 
 ```{r filter tumor sce}
 tumor_cells <- rms_sce$celltype_broad |>
-  # Find which cell types start with "Tumor_" 
+  # Find which cell types start with "Tumor_"
   stringr::str_starts("Tumor_") |>
   # Pipe into `which()` to ensure that `NA` values are properly handled
   which()
@@ -115,37 +128,36 @@ Let's now plot the distribution of the remaining tumor cell types:
 # Create a data frame version of the colData table for plotting
 coldata_df <- colData(rms_sce) |>
   as.data.frame()
-  
+
 # Make a barplot of cell type proportions across samples and diagnoses
-ggplot(coldata_df) + 
-  aes(x = sample, 
+ggplot(coldata_df) +
+  aes(x = sample,
       fill = celltype_broad) +
   geom_bar(color = "black", # Add a thin outline for easier viewing
-           lwd = 0.15) + 
-  facet_wrap(vars(diagnosis_group), 
+           lwd = 0.15) +
+  facet_wrap(vars(diagnosis_group),
              # only put relevant samples in each panel
-             scales = "free_x") + 
+             scales = "free_x") +
   # Specify theme and modify x-axis text size
-  theme_bw() + 
+  theme_bw() +
   theme(axis.text.x = element_text(size = 7))
 ```
 
-We can see that the proportion of `Tumor_Myoblast` is much higher than other cell types, including the `Tumor_Mesoderm` subpopulations we'll be testing here. 
-We also see that there appear to by many more `Tumor_Mesoderm` cells in ERMS samples compared to ARMS samples.
-Overall, these observations suggest that we may have less power to detect differentially expressed genes in `Tumor_Mesoderm` cells compared to `Tumor_Myoblast` cells.
-As we proceed to the pseudo-bulking steps, we will check that we have sufficient sample sizes to perform our analysis.
+We can see that the proportion of `Tumor_Myoblast` is much higher than other cell types, including the `Tumor_Mesoderm` subpopulations we'll be testing here.
+We also see that ERMS samples have more `Tumor_Mesoderm` cells and fewer `Tumor_Myocyte` cells compared to ARMS samples, consistent with Patel _et al._'s findings that ARMS samples tended to have more cell types from later myogenesis developmental stages compared to ERMS.
+As we proceed to the pseudo-bulking steps for the `Tumor_Mesoderm` subpopulation, we will check that we have sufficient sample sizes to perform our analysis.
 
 
 ### Perform pseudo-bulking
 
-To begin differential expression on single-cell data, we need to pseudo-bulk the data to "collapse" groups of interest. 
+To begin differential expression on single-cell data, we need to pseudo-bulk the data to "collapse" groups of interest.
 As during instruction, we want to perform pseudo-bulking across two groupings: `celltype_broad` and `sample`.
 
 To accomplish this, create a variable called `pb_groups`, which will be a `DataFrame` that contains only the `colData` columns of interest for pseudo-bulking.
 
 ```{r create pb_groups, solution = TRUE}
-# first subset the coldata 
-# to only have the columns we care about for pseudo-bulking 
+# first subset the coldata
+# to only have the columns we care about for pseudo-bulking
 
 ```
 
@@ -153,8 +165,8 @@ Next, use this variable to create the pseudo-bulked SCE with the `scuttle::aggre
 In addition, you'll want to ensure column names are properly added back into this new pseudo-bulked object.
 
 ```{r create pb_sce, solution = TRUE}
-# create a new SCE object that contains 
-# the pseudo-bulked counts across the provided groups 
+# create a new SCE object that contains
+# the pseudo-bulked counts across the provided groups
 
 # Add column names formatted as `{celltype}_{sample}` back to `pb_sce`
 
@@ -174,7 +186,7 @@ This information tells us how many cells were collapsed into the grouping.
 To perform our differential expression analysis on `Tumor_Mesoderm` cells, we'd like to see a suitable number of cells present in each group.
 During instruction, we chose a threshold of `ncells >= 10` to include a group in analysis.
 Let's do the same filtering here, and then check to see that we have enough biological replicates to perform analysis.
-Recall, we are starting with three ERMS and three ARMS samples, and we'll need at least three samples from each diagnosis group for our cell type of interest for statistical viability. 
+Recall, we are starting with three ERMS and three ARMS samples, and we'll need at least three samples from each diagnosis group for our cell type of interest for statistical viability.
 
 To this end, let's take two filtering steps in the next chunk, saving the output to a new object called `filter_pb_sce`:
 
@@ -206,7 +218,7 @@ There's just one more small preparation step to take - we need to subset the `pb
 In the chunk below, perform this filtering and save the resulting SCE object to `mesoderm_pb_sce`.
 
 ```{r filter to mesoderm, solution = TRUE}
-# First define a vector indicating whether cells 
+# First define a vector indicating whether cells
 # are tumor mesoderm or not
 
 # Use the vector you created to subset the SCE to only
@@ -239,7 +251,7 @@ Make this plot in the chunk below:
 ```
 
 How does this plot look to you?
-A well-fitted model should show decreasing dispersions as the mean along the x-axis increases. 
+A well-fitted model should show decreasing dispersions as the mean along the x-axis increases.
 Do you see that trend here?
 
 To be able to interpret our results and compare genes, we next need to apply a shrinkage procedure that will correct expression levels to avoid overestimating fold change.
@@ -253,7 +265,7 @@ Make sure to look at your model first to find the position of the result coeffic
 ```{r perform shrinkage, solution = TRUE}
 # Extract results into a data frame
 
-# Before performing the shrinkage procedure, check 
+# Before performing the shrinkage procedure, check
 #  here to find where the result coefficient is
 
 # Perform the shrinkage procedure, saving to `shrink_results`
@@ -287,7 +299,7 @@ In the chunk below, we'll do some wrangling to combine `shrink_results` with the
 ```{r add gene_symbol}
 # Create a data frame from the SCE rowData
 sce_rowdata_df <- rowData(mesoderm_pb_sce) |>
-   # Convert to a data frame and move the rownames 
+   # Convert to a data frame and move the rownames
    #  into a new column called `ensembl_id`
    tibble::as_tibble(rownames = "ensembl_id")
 
@@ -320,7 +332,7 @@ Let's visualize some of our results!
 
 To start, use the `EnhancedVolcano` package to make a volcano plot of the results.
 For this plot, specify that points be labeled with the gene symbol and use the default P-value cutoff of `1e-05`.
-Feel free to apply any additional styles you want (the plot itself is a `ggplot2` object!). 
+Feel free to apply any additional styles you want (the plot itself is a `ggplot2` object!).
 Hint: Make sure to plot the `deseq_mesoderm_results` data frame that contains both significant and not significant results.
 
 ```{r mesoderm volcano plot, solution = TRUE}
@@ -347,7 +359,7 @@ deseq_mesoderm_results_sig |>
 ```
 
 To make our UMAP of mesoderm cells, we also want to filter our original `rms_sce` to contain only `Tumor_Mesoderm` cells.
-(An aside! 
+(An aside!
 You may recall we previously created `mesoderm_pb_sce` that was filtered to tumor mesoderm cells, so why can't we use that object to make a UMAP?
 That object was derived from the _pseudo-bulked_ SCE, so it does not contain individual cells.
 Therefore, we need to go back to the beginning and work with `rms_sce`.)
@@ -371,7 +383,7 @@ First, let's visualize the gene with Ensembl id `ENSG00000148357` that is upregu
 For this plot, color by expression and facet by `diagnosis_group`.
 
 ```{r umap arms gene, solution = TRUE}
-# Plot UMAP showing ENSG00000148357 expression across diagnosis groups 
+# Plot UMAP showing ENSG00000148357 expression across diagnosis groups
 
 ```
 
@@ -381,12 +393,12 @@ Does it seem to reflect the statistical result that ARMS has higher expression, 
 Let's do the same with the gene that is upregulated in ERMS, and again think about whether the plot shows the trends you expected based on the differential expression results!
 
 ```{r mesoderm umap upreg}
-# Plot UMAP showing ENSG00000115762 expression across diagnosis groups 
+# Plot UMAP showing ENSG00000115762 expression across diagnosis groups
 scater::plotReducedDim(mesoderm_sce,
                        dimred = "fastmnn_UMAP",
                        colour_by = "ENSG00000115762",
                        other_fields = "diagnosis_group") +
-  facet_wrap(vars(diagnosis_group)) + 
+  facet_wrap(vars(diagnosis_group)) +
   theme_bw()
 ```
 
@@ -420,7 +432,7 @@ During instruction, we performed differential expression analysis on tumor myobl
 We might wonder how our results for tumor mesoderm cells compare to those for myoblasts.
 Before we compare some of these findings, we need to be aware of a few caveats:
 
-- As mentioned above, if we were really interested in whether ARMS and ERMS samples have different expression _across any group of cell types_, we would have liked to start with a multivariate model. 
+- As mentioned above, if we were really interested in whether ARMS and ERMS samples have different expression _across any group of cell types_, we would have liked to start with a multivariate model.
 By performing separate tests for separate cell types, we risk making comparisons based on "significance," for example concluding "this gene was significant in mesoderm but not myoblast, therefore it's only important in mesoderm cell types."
 Significance as a property in-and-of-itself relies on arbitrary P-value cutoffs, and P-values across different tests and samples are not created equally!
 This means you do not want to rely on these kinds of comparisons to draw conclusions, but they can be useful for exploration, as we will do here.
@@ -447,16 +459,16 @@ Let's wrangle that together:
 ```{r combine test results}
 # select from and rename myoblast results
 myoblast_df <- deseq_myoblast_results |>
-  dplyr::select(ensembl_id, 
-                gene_symbol, 
-                myoblast_padj = padj, 
+  dplyr::select(ensembl_id,
+                gene_symbol,
+                myoblast_padj = padj,
                 myoblast_log2FoldChange = log2FoldChange)
 
 # select & rename mesoderm result
 mesoderm_df <- deseq_mesoderm_results |>
-  dplyr::select(ensembl_id, 
-                gene_symbol, 
-                mesoderm_padj = padj, 
+  dplyr::select(ensembl_id,
+                gene_symbol,
+                mesoderm_padj = padj,
                 mesoderm_log2FoldChange = log2FoldChange)
 
 # Combine myoblast and mesoderm results
@@ -474,7 +486,7 @@ We can also style the points to be colored based on their overall significance, 
   - Only myoblast tumor cells are significant
   - Only mesoderm tumor cells are significant
   - Neither cell type is significant
-  
+
 Coloring points by significance in `ggplot2` will require a bit more wrangling, for which we'll use the function [`dplyr::case_when()`](https://dplyr.tidyverse.org/reference/case_when.html).
 We provide this function with a set of logical expressions and each assigned value is designated by `~`.
 The expressions are evaluated in order, stopping at the _first_ one that evaluates as `TRUE` and returning the associated value.
@@ -491,7 +503,7 @@ deseq_results_all <- deseq_results_all |>
     # Use value "Mesoderm only" if only mesoderm is significant
     mesoderm_padj <= 0.05 ~ "Mesoderm only",
     # Default case: neither comparison is significant
-    #  This will capture all remaining rows not covered by 
+    #  This will capture all remaining rows not covered by
     #  the previous conditions
     TRUE ~ "Neither"
   )) |>
@@ -519,21 +531,21 @@ Now we can make our scatterplot:
 ```{r logfc scatterplot}
 # Plot log2 fold changes against each other
 ggplot(deseq_results_all,
-       aes(x = myoblast_log2FoldChange, 
-           y = mesoderm_log2FoldChange, 
+       aes(x = myoblast_log2FoldChange,
+           y = mesoderm_log2FoldChange,
            color = significance_type)) +
   # Styling to see points
-  geom_point(size = 0.5, 
-             alpha = 0.5) + 
+  geom_point(size = 0.5,
+             alpha = 0.5) +
   # Use the colorblind-friendly viridis color scale
-  scale_color_viridis_d() + 
+  scale_color_viridis_d() +
   # Set plot labels
   labs(
     x = "Myoblast log2 fold change",
-    y = "Mesoderm log2 fold change", 
+    y = "Mesoderm log2 fold change",
     color = "Signficance Type"
   ) +
-  theme_bw() + 
+  theme_bw() +
   # Make legend points larger and easier to see
   guides(color = guide_legend(override.aes = list(size = 2))) +
   # Set equal x and y scales for easier comparison between axes
@@ -548,31 +560,44 @@ What kind of trends do we see here?
 For example, the blue "Mesoderm only" points mostly follow `x = 0`; for these points, the associated myoblast log2-fold changes are all at about 0.
 - Finally, we have the purple "Both" points, which are present in each quadrant farther away from `(0,0)`, deemed significant in both DE tests.
 Most of these points are in the top right and bottom left quadrants, corresponding to conditions where _both_ cell types show significant upregulation or downregulation, respectively.
-However, we do also see some purple points, albeit fewer, in the top left and bottom right quadrants which represent genes where both cell types show significant expression differences but in _different_ directions. 
+However, we do also see some purple points, albeit fewer, in the top left and bottom right quadrants which represent genes where both cell types show significant expression differences but in _different_ directions.
 
-To start exploring, let's pick out a couple genes from the top right and bottom left quadrants of the plot.
-Based on the plot, it looks like we'll find the shared upregulated genes by looking for expression values that are greater than 8 for each gene, and we'll find the shared downregulated genes by looking for expression values that are less than about -10 for myoblasts and -7 for mesoderm cells.
+To start exploring, let's pick out some of the genes with the largest fold-changes from the top right and bottom left quadrants of the plot.
+Based on the plot, it looks like we'll find a set of shared upregulated genes by looking for expression values that are greater than 8 for both cell types, and downregulated genes by looking for expression values less than  -10 for myoblasts and -7 for mesoderm cells.
+
 
 ```{r find quadrant genes}
 # Find genes in top right and bottom left quadrants
 deseq_results_all |>
   dplyr::filter(
     # Find either the highly upregulated genes:
-    (myoblast_log2FoldChange >= 8 & mesoderm_log2FoldChange >= 8) | 
+    (myoblast_log2FoldChange >= 8 & mesoderm_log2FoldChange >= 8) |
      # OR, the highly downregulated genes:
-    (myoblast_log2FoldChange <= -10 & mesoderm_log2FoldChange <=-7) 
+    (myoblast_log2FoldChange <= -10 & mesoderm_log2FoldChange <=-7)
   ) |>
   # arrange on myoblast_log2FoldChange
   dplyr::arrange(myoblast_log2FoldChange)
 ```
 
-Something you'll see in these results are some pretty "different" P-values between cell types (also note that the `NA` gene is a novel `lncRNA` which has no formally assigned gene symbol).
+Something you'll see in these results are some pretty different P-values between cell types (also note that the `NA` genes here are lncRNAs with no formally assigned gene symbol).
 Specifically, the myoblast P-values are all 3-15 orders of magnitude lower than their mesoderm counterparts, which _may_ be a result of the relatively higher sample size for myoblast tests - larger sample sizes lead to more extreme P-values.
 Importantly, we do _not_ want to compare these P-values directly and conclude that a given gene was "more or less significant" in one cell type or another, since P-values cannot be compared across tests (again, for a more robust assessment of differential expression, use a multivariate model that accounts for cell types!).
 
-Let's do some quick visualization of some of these genes! 
-Pick your favorite upregulated and/or downregulated gene from the list above and make some plots that spark joy. 
-You can even feel free to adventure in a slightly different direction - do your own filtering to find genes that are in the _other_ quadrants (both cell types significant but in different directions) and make some plots for them as well!
+To wrap up, feel free to perform some quick visualization of some of these genes!
+
+Alternatively (or in addition!), you can visualize the differential expression of genes that regulate myogenesis, as shown in the figure from Patel _et al._ at the top of this notebook.
+Let's have a quick look at those results:
+
+```{r myogenesis genes}
+# Define vector of myogenesis gene symbols
+myogenesis_symbols <- c("MEOX2", "PAX3", "MYF5", "MSC", "MYOG", "MEF2C")
+
+# Print the DE results for those genes
+deseq_results_all |>
+  dplyr::filter(gene_symbol %in% myogenesis_symbols) |>
+  # sort in order of the `myogenesis_symbols` vector
+  dplyr::arrange(match(gene_symbol, myogenesis_symbols))
+```
 
 You can make plots we've seen like...
 
@@ -581,7 +606,9 @@ You can make plots we've seen like...
 
 
 ```{r diy plots, solution = TRUE}
-# Use this chunk to make your own plots
+# Use this chunk (or add more chunks!) to make your own plots
+
+# vector of gene symbols named by Ensembl id
 
 ```
 

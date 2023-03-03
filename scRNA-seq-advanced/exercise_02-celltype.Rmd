@@ -10,6 +10,16 @@ In this exercise notebook we will work with the glioblastoma dataset in the firs
 As a reminder, the sample was processed by 10X Genomics using a 3' RNA kit (v3.1), sequenced, and quantified with Cell Ranger 6.0. 
 Further details about the sample and processing can be found on the [10X website](https://www.10xgenomics.com/resources/datasets/2-k-sorted-cells-from-human-glioblastoma-multiforme-3-v-3-1-3-1-standard-6-0-0).
 
+Previous bulk RNA-seq and scRNA-seq studies of glioblastoma samples revealed that glioblastoma cells exist in 4 main cellular states that resemble normal neurodevelopment ([Patel _et al._ 2014](https://doi.org/10.1126/science.1254257), [Couturier _et al._ 2020](https://doi.org/10.1038/s41467-020-17186-5), [Neftel _et al._ 2019](https://doi.org/10.1016/j.cell.2019.06.024)). 
+Additionally, these tumors are highly heterogeneous and cells in these different cellular states can all be found within the same tumor, however the frequency of each state is variable across tumors.
+
+From [Neftel _et al._ (2019)](https://doi.org/10.1016/j.cell.2019.06.024): 
+
+> We find that malignant cells in glioblastoma exist in a limited set of cellular states that recapitulate (i) neural progenitor-like (NPC-like), (ii) oligodendrocyte-progenitor-like (OPC-like), (iii) astrocyte-like (AC-like), and (iv) mesenchymal like (MES-like) states.
+
+In addition to malignant cells, scRNA-seq studies of glioblastoma have also captured presence of normal brain cells (e.g., endothelial cells, oligodendrocytes, microglia, neurons).
+Let's see what cell types or cell states we are able to identify in this particular glioblastoma dataset.
+
 We will start with the output that we saved in `01-read_filter_normalize_scRNA.Rmd` that has already undergone filtering, normalization, dimension reduction, and clustering. 
 This exercise notebook will give you the opportunity to practice different approaches to cell type assignment and to compare assignments for a given dataset.
 
@@ -104,10 +114,13 @@ Based on this plot, it looks like we have some clear populations that clustered 
 Now we are ready to annotate the cell types present in our sample!
 
 Before we can use `SingleR`, we will first need to pick a reference dataset. 
-Here we are examining a glioblastoma sample, so we expect it to include cell types typically found in the brain.
 As discussed during instruction, `SingleR` will first identify a set of marker genes that differentiates cell types from each other in the reference dataset.
-However, our sample is a tumor sample, so there are likely to be both malignant and non-malignant cells in this sample.
 
+Here we are examining a glioblastoma sample, so as discussed earlier we expect it to include cell types typically found in the brain (e.g., endothelial cells, oligodendrocytes, microglia, neurons).
+We also expect to cells that may resemble the different states present in glioblastoma, astrocytes, oligoprogenitors, mesenchymal cells, and neural progenitors.
+Ideally we would like to use a reference dataset that contains these cell types, so that we can identify them. 
+
+However, our sample is a tumor sample, so there are likely to be both malignant and non-malignant cells in this sample.
 Malignant cells tend to have distinct gene expression patterns from normal cells, so it is likely that the marker genes that differentiate malignant cells are not the same as those that differentiate normal cells.
 Therefore, using a reference dataset with only normal cell types may pose a challenge for annotating tumor samples, which means `SingleR` may not be as effective at assigning cell types in this context.
 This is why it is very important to consider your reference dataset when performing cell type annotation with tools like `SingleR`.
@@ -136,6 +149,8 @@ For our purposes here, we are interested in the `label.main` annotations.
 
 In looking at this output you should notice that most of the cell types are immune cells, but we also see cell types that would be present in the brain – neurons, astrocytes, and neuroepithelial cells. 
 Given we are using a glioblastoma dataset, we expect these cell types may be present in our dataset.
+However, this doesn't contain the entire set of expected cell types as we mentioned earlier, so we still may miss some cell type assignments or incorrectly assign cells. 
+It's important to think about what type of cells we expect to see when thinking about selecting our references!
 
 In this exercise, we will use the two step process to run `SingleR`.
 First, train the model with the `SingleR::trainSingleR()` function, saving the output to the variable `hpca_model`.
@@ -182,6 +197,7 @@ Then, create a UMAP plot, coloring the cells by the identified cell types now pr
 
 It looks like most of the cells belong to only a few groups and we see a lot of astrocytes, macrophages, and monocytes. 
 We may also have a small cluster of T cells.
+Can you make any conclusions about which of the 4 cell states found in glioblastoma (OPC-like, NPC-like, MES-like, and AC-like) may be dominant in this particular sample? 
 
 This plot is a bit messy though, probably because we have a lot of cell types, some of which may only be present because a few cells were assigned to that cell type.
 Let's look at just the top 5 represented cell types.
@@ -221,7 +237,8 @@ Be sure that you trust the cell type annotations you use as a reference, and tha
 
 Here, we will use a single-cell RNA-seq reference dataset that is available as part of the `scRNAseq` package.
 The full list of datasets available in the package can be found in [this `scRNAseq` vignette](https://bioconductor.org/packages/3.16/data/experiment/vignettes/scRNAseq/inst/doc/scRNAseq.html#available-data-sets).
-The dataset we will use is from a single-cell RNA-seq study of brain tissue from [Darmanis _et al._ 2015](https://doi.org/10.1073/pnas.1507125112).
+The dataset we will use is from a single-cell RNA-seq study of brain tissue from [Darmanis _et al._ (2015)](https://doi.org/10.1073/pnas.1507125112).
+In this study, they were able to identify and label all major cell types present in the brain and further characterize neurons based on their differentiation stage.
 
 Let's start by reading in the dataset, again using the `ensembl=TRUE` option to use the Ensembl ids as the rownames of the SCE object.
 
@@ -245,6 +262,7 @@ Which column contains the cell type annotations for this reference dataset?
 
 Let's take a look at the distribution of cell types that are found in this dataset. 
 How do these compare to the cell types found in the HPCA data?
+Do we expect to find these cell types in our dataset, based on what we know about cell states in glioblastoma tumors? 
 
 ```{r brain cell types}
 # what types of cells are found in this dataset? 
@@ -254,6 +272,7 @@ colData(brain_sce_ref) |>
 ```
 
 This dataset has a higher number of brain cell types compared to the HPCA data, which is expected considering it is brain-specific.
+Specifically, it contains astrocytes, neurons, and OPCs allowing us to identify cells that may be AC-like, NPC-like, or OPC-like, while the HPCA dataset only contained astrocytes and neurons.
 
 The data in the `scRNAseq` package are compiled from publications and large studies, so annotations found in each dataset will be specific to the given study.
 In this study, [Darmanis _et al._ (2015)](https://doi.org/10.1073/pnas.1507125112) labeled neurons according to their differentiation stage as either `fetal_quiescent` and `fetal_replicating`.
@@ -263,6 +282,7 @@ Something else that we might want to do here that we did not have to do with the
 Although this is not always required, `SingleR` expects the reference datasets to be normalized with a `logcounts` assay by default.
 However, the SCE objects available from `scRNAseq` only contain the raw counts, so here we will apply the same normalization that we'd normally apply to an SCE object before building our model.
 We will save the normalized SCE object with the added `logcounts` assay matrix to the same variable, `brain_sce_ref`.
+
 ```{r normalize}
 # Perform rough clustering
 qclust <- scran::quickCluster(brain_sce_ref)
@@ -332,9 +352,12 @@ When adding in the cell types to the SCE object, save them to a column in the `c
 
 Interestingly, in these results, cells that the HPCA reference classified as macrophages and monocytes are now being classified as microglia, which are a special population of macrophages residing in the brain and central nervous system.
 We also see that the cluster of astrocytes appear to be a mix of various cells: astrocytes, endothelial cells, and neurons.
+Does this change our answer to the previous question of which of the 4 glioblastoma cell states are present in our sample? 
+Using the HPCA reference we had seen this sample was comprised mostly of AC-like cells, but when using this reference dataset we also see cells that may be NPC-like. 
+
 In this particular example, we are using a dataset that is more appropriately tailored to our tissue of interest and therefore we obtain cell types that are a better representation of our expected cell types.
 
-Conversely, we do not get to classify here is the presence of any T cells, because they are not found in our brain specific reference.
+Conversely, we will not be able to assess the presence of any T cells here, because those cells are not labeled in our brain-specific reference.
 
 ### Comparing annotations between reference datasets
 
@@ -366,6 +389,8 @@ This will highlight some of the groups with smaller cell numbers and make interp
 ```
 Are there cells assigned to the same cell type in both reference datasets?
 For cells labeled as microglia, which are only present in the brain reference dataset, what cell type are they categorized as when using the HPCA reference?
+
+You also see that cells that were assigned to astrocytes in the HPCA dataset are assigned to various other brain cell types in the brain dataset and appear to be composed of more than just astrocytes.
 
 ### Comparing annotations to cluster assignments
 

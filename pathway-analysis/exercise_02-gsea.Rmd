@@ -1,6 +1,6 @@
 ---
 title: "Exercise: Gene Set Enrichment Analysis of medulloblastoma PDX results"
-output: 
+output:
   html_notebook:
     toc: true
     toc_float: true
@@ -11,7 +11,7 @@ date: 2021
 In this exercise notebook, we will perform Gene Set Enrichment Analysis (GSEA) on differential gene expression analysis results from a PDX model of medulloblastoma.
 This is the same dataset we worked with in `exercise_01-ora.Rmd`, where we describe the experimental setup; you may find it helpful to revisit the ORA notebook as you work through this one.
 
-These data are from from [Huang _et al._ (2018)](https://doi.org/10.1126/scitranslmed.aat0150). 
+These data are from from [Huang _et al._ (2018)](https://doi.org/10.1126/scitranslmed.aat0150).
 We prepared the results you'll be working with in [this notebook](https://github.com/AlexsLemonade/training-modules/blob/master/pathway-analysis/setup/exercises/01-pdx_MB_DGE.Rmd).
 
 We've set this exercise up to run through minimal inspection of GSEA results, but we encourage you to explore!
@@ -26,7 +26,7 @@ set.seed(2022)
 
 ### Libraries
 
-Load in `magrittr`, `clusterProfiler`, `msigdbr`, and, `org.Hs.eg.db`.
+Load in `clusterProfiler`, `msigdbr`, and, `org.Hs.eg.db`.
 
 ```{r libraries, solution = TRUE}
 
@@ -73,7 +73,7 @@ head(hs_msigdb_df)
 
 Take a look at the collections here: https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
 The `gs_cat` and `gs_subcat` columns of `hs_msigdb_df` contain the collection information.
-Once you've decided on what collection you want to use for your pathway analysis, use the next chunk to filter `hs_msigdb_df` for that collection and assign to a new data frame called `gene_set_df`. 
+Once you've decided on what collection you want to use for your pathway analysis, use the next chunk to filter `hs_msigdb_df` for that collection and assign to a new data frame called `gene_set_df`.
 (Hint: We haven't loaded in the `dplyr` package.)
 
 _Just a heads up, the solved version will use Hallmark gene sets, but that doesn't mean you need to!_
@@ -115,15 +115,15 @@ You should also remove rows that contain `NA` values.
 This next chunk will filter out duplicate gene symbols, retaining the instance of the symbol with the highest absolute log2 fold change.
 
 ```{r filter_dge}
-filtered_dge_df <- dge_results_df %>%
+filtered_dge_df <- dge_results_df |>
   # Sort so that the highest absolute values of the log2 fold change are at the
   # top
-  dplyr::arrange(dplyr::desc(abs(log2FoldChange))) %>%
+  dplyr::arrange(dplyr::desc(abs(log2FoldChange))) |>
   # Filter out the duplicated rows using `dplyr::distinct()`
   dplyr::distinct(gene_symbol, .keep_all = TRUE)
 ```
 
-Use the next chunk to prepare the pre-ranked named vector you'll pass to `GSEA()`. 
+Use the next chunk to prepare the pre-ranked named vector you'll pass to `GSEA()`.
 
 ```{r prep_lfc_vector, solution = TRUE}
 
@@ -144,8 +144,8 @@ Use this chunk to run GSEA.
 
 Adding `@result` to the end of the object you saved in the last step will return the statistics we're interested in in a tabular format.
 Use the next chunk to sort the tabular results by the `NES` column.
-Reminder that a very positive NES means that gene set contains many genes near the top of the ranked list. 
-A very negative NES means that gene set contains many genes near the bottom of the ranked list. 
+Reminder that a very positive NES means that gene set contains many genes near the top of the ranked list.
+A very negative NES means that gene set contains many genes near the bottom of the ranked list.
 
 ```{r sort_nes, solution = TRUE, rownames.print = FALSE}
 
@@ -170,7 +170,7 @@ Use the next chunk to save it with `ggplot2::ggsave()`.
 
 Quoting from the results section of [Huang _et al._ (2018)](https://doi.org/10.1126/scitranslmed.aat0150) here:
 
-> Tumor cells harvested from mice undergoing digoxin treatment showed an increase in apoptosis compared to untreated tumors or those that progressed after completion of treatment (Fig. 6A). We subsequently performed deep RNA-seq (GSE115542) on group 3 (ICb-2555MB) and group 4 (ICb-1078MB) tumors harvested before and immediately after completion of digoxin treatment to evaluate changes in gene expression (Fig. 6 and tables S10 and S11). 
+> Tumor cells harvested from mice undergoing digoxin treatment showed an increase in apoptosis compared to untreated tumors or those that progressed after completion of treatment (Fig. 6A). We subsequently performed deep RNA-seq (GSE115542) on group 3 (ICb-2555MB) and group 4 (ICb-1078MB) tumors harvested before and immediately after completion of digoxin treatment to evaluate changes in gene expression (Fig. 6 and tables S10 and S11).
 
 In our DGE results, genes with positive fold changes will be more highly expressed in samples with digoxin.
 Do the GSEA results align with the authors' findings?

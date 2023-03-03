@@ -1,26 +1,32 @@
 ---
 title: "Single Cell Exercise: Integrating single cell data"
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
-editor_options: 
+editor_options:
   chunk_output_type: inline
 ---
 
 ## Introduction
 
-In this exercise notebook, we will practice integrating multiple scRNA-seq experiments. 
+In this exercise notebook, we will practice integrating multiple scRNA-seq experiments.
 
 The data we will be using comes from a set of experiments by [Muraro _et al._ (2016)](https://doi.org/10.1016/j.cels.2016.09.002) examining the human pancreas.
-The data came from a number of different donors, and we have prepared a separate SingleCellExperiment (SCE) object for data from each donor.
+Previous work on pancreatic gene expression had tended focus bulk preparations of whole islets.
+This approach not only obscured the variation among cell types that make up the islets, but also excluded pancreatic cells outside the islets that have important functions in processes like digestion.
 
 Unlike much of the data we have worked with, this experiment did not use the 10X protocol, but rather a protocol called `CEL-Seq2` ([Hashimshony _et al._ 2016](https://doi.org/10.1186/s13059-016-0938-8)).
-In this protocol, cells are first sorted into individual wells, where transcripts are reverse-transcribed using a poly-T primer and tagged with a well/cell-specific barcode. 
+In this protocol, cells are first sorted into individual wells, where transcripts are reverse-transcribed using a poly-T primer and tagged with a well/cell-specific barcode.
 These cDNA sequences are then pooled and amplified through _in vitro_ transcription, then reverse transcribed again with random primers to create cDNA for sequencing.
 Since the initial step of this protocol works by capturing poly-A RNA, this is, like the 10X data, a tag-based system that will not result in full-length transcripts.
+The cell types were labeled by applying a clustering algorithm and then examining the expression of known markers among the clusters.
 
-
+We have prepared separate SingleCellExperiment (SCE) objects with the data from each donor.
+There are four donors in this data set, one female (`D30`) and three male.
+Before we move on to more detailed analysis, we might first want to examine the extent to which the donor affects the overall patterns of gene expression variation.
+For example, if we perform clustering on the merged data, will we see clusters of cells that correspond to donors or cell types?
+If we do see a donor effect, can we mitigate that by applying an integration algorithm?
 
 ## Set up packages and paths
 
@@ -59,14 +65,14 @@ Make sure that directory actually exists, and create it if it doesn't!
 
 ## Read in files
 
-With those paths defined, we can now read in the data. 
+With those paths defined, we can now read in the data.
 But first, let's look to see what the data files are by listing the contents of the input directory:
 
 ```{r input_dir contents}
 dir(input_dir)
 ```
 
-Each of these files contains an SCE, and the files are labeled by donor (with an `_sce.rds` suffix). 
+Each of these files contains an SCE, and the files are labeled by donor (with an `_sce.rds` suffix).
 We'll want to keep track of that, so we'll start by creating a variable named `donors` which contains just the donor ids.
 
 ```{r donor ids}
@@ -74,7 +80,7 @@ donors <- c("D28", "D29", "D30", "D31")
 ```
 
 We'll want to transform this vector of ids into a vector of paths for the files we want to read in.
-We can do this using a combination of the `file.path()` function that we have been using and either `glue::glue()` or `paste0()`. 
+We can do this using a combination of the `file.path()` function that we have been using and either `glue::glue()` or `paste0()`.
 
 Note that all of these functions are vectorized, so when we give them an input that is a vector like `donors`, they will produce a vector of the same length.
 
@@ -85,8 +91,7 @@ Use the chunk below to make a `paths` vector that contains the paths that we wil
 
 ```
 
-
-For convenience later, we will want to make that vector of paths into a "named" vector, where each position is labeled with the donor id that the path refers to.  
+For convenience later, we will want to make that vector of paths into a "named" vector, where each position is labeled with the donor id that the path refers to.
 We can do that with the `names()` function as shown below:
 
 ```{r sce path names}
@@ -96,7 +101,7 @@ names(paths) <- donors
 paths
 ```
 
-With that `paths` vector all set, we can now use `purrr::map()` to read in all of the input files, storing each object as elements of a list. 
+With that `paths` vector all set, we can now use `purrr::map()` to read in all of the input files, storing each object as elements of a list.
 The individual elements will retain the names we set in the vector, which will be very convenient for keeping track of everything!
 Store the list of SCE objects in a variable named `sce_list`.
 
@@ -127,11 +132,11 @@ Recall that each cell is a column and each gene is a row in the SCE object.
 ## Merging SCE objects
 
 Now that we have all of our SCE objects in a list, and we have looked at them to know what kinds of data and metadata they contain, we can start to merge them into a single object.
-You may have noticed that we don't have any of the gene-specific statistics (such as mean expression across cells) in the `rowData` table that we had with the RMS data. 
+You may have noticed that we don't have any of the gene-specific statistics (such as mean expression across cells) in the `rowData` table that we had with the RMS data.
 That should make the merging quite a bit simpler!
 
 
-In the chunk below, write a function named `format_sce` to perform the required reformatting of the SCE object. 
+In the chunk below, write a function named `format_sce` to perform the required reformatting of the SCE object.
 The function should take two arguments:
 
 1. an SCE object
@@ -171,7 +176,7 @@ To use it, we will therefore only need two arguments for `purrr::imap()` – our
 Give it a try in the chunk below, saving the result as a new list named `sce_list_formatted`.
 
 ```{r format SCEs with imap, solution = TRUE}
-# apply formating function to `sce_list` 
+# apply formating function to `sce_list`
 #  to create `sce_list_formatted`
 
 ```
@@ -180,7 +185,7 @@ With all of our reformatting done, we can now merge the SCEs from our reformatte
 Save the result to a new object named `merged_sce`, and don't forget to have a look at the result!
 
 ```{r merge sces}
-# Merge SCE objects 
+# Merge SCE objects
 merged_sce <- do.call(cbind, sce_list_formatted)
 
 # Let's have a look!
@@ -195,7 +200,7 @@ However, the transformations that were applied to create those matrices from the
 To generate reduced dimension matrices that can be compared, we will recalculate the PCA and UMAP dimensions from the combined data set.
 
 The first step is to identify a set of high variance genes to use as the basis for the PCA.
-In the chunk below, use the `scran::modelGeneVar()` and `scran::getTopHVGs()` functions to identify a set of genes with high biological variance. 
+In the chunk below, use the `scran::modelGeneVar()` and `scran::getTopHVGs()` functions to identify a set of genes with high biological variance.
 When creating the model with `scran::modelGeneVar()`, you will want to be sure to use the `block` argument to allow the model to account for the fact that there may be technical variation associated with the experimental design (the different donors, in this case).
 Store the high variance genes in a vector named `hv_genes`.
 
@@ -220,7 +225,7 @@ Save the resulting object to a variable named `merged_pca`.
 
 ```
 
-We will now save the PCA matrix back into our `merged_sce` object. 
+We will now save the PCA matrix back into our `merged_sce` object.
 While we could make a new `reducedDim` slot for these data, there isn't much reason to keep the old PCA matrix around.
 As discussed above, the different transformations from each donor mean that the results are not really comparable across the full set of experiments.
 So, we will save the `merged_pca` result into the base `"PCA"` slot, which will overwrite the previous `"PCA"` matrix.
@@ -248,21 +253,40 @@ Use the chunk below to create a UMAP plot of the merged data, colored (`colour`e
 
 ```
 
-What do you think of this result?
+What do you see in this plot?
 Does the plot suggest a strong effect of the donor on the overall expression patterns?
+You may recall the `D30` is the only female donor.
 
-This dataset, conveniently, already has cell type labels, which you might have noticed while looking at the `colData` earlier, stored in the `label` column. 
-Use the chunk below to plot the UMAP again, this time colored by cell type. 
+This dataset, conveniently, already has cell type labels, which you might have noticed while looking at the `colData` earlier, stored in the `label` column.
+Use the chunk below to plot the UMAP again, this time colored by cell type.
 
 ```{r plot labels, solution = TRUE}
 # plot colored by cell types
 
 ```
 
+### Clustering unintegrated data
 
-What kinds of structure do you infer from these two plots? 
-Are there per-donor effects?
-Does it seem that the cell types are well-mixed across the different donors?
+Before we actually perform integration, let's see what happens when we try to cluster these data without the batch correction that integration will provide.
+We will use the default clustering parameters for graph-based clustering to start (though you should feel free to modify the code below to add your your own tweaks to the clustering algorithm).
+Remember that the clustering results depend only the expression data that was used to generate the PC matrix – the cell labels are not used in the clustering algorithms.
+
+```{r cluster unintegrated}
+merged_sce$cluster_unintegrated <- bluster::clusterRows(
+  reducedDim(merged_sce, "PCA"),
+  bluster::NNGraphParam()
+)
+```
+
+Let's make one more quick UMAP plot to see how this clustering algorithm performed on the unintegrated data:
+
+```{r plot clusters, solution = TRUE}
+# plot colored by clusters
+
+```
+
+What seems to be the basis of the clustering that you see?
+Does it seem to be mainly driven by cell type, donor, or some combination of the two?
 
 ## Integrating with `fastMNN`
 
@@ -290,7 +314,7 @@ Once you have stored the corrected PCA matrix as described, you should be able t
 # calculate UMAP from fastMNN results
 merged_sce <- scater::runUMAP(
   merged_sce,
-  dimred = "fastMNN_PCA", 
+  dimred = "fastMNN_PCA",
   name = "fastMNN_UMAP"
 )
 ```
@@ -325,7 +349,7 @@ One remedy for this is to shuffle the columns in the SCE object – this won’t
 # create a random order for the cells
 col_order <- sample(ncol(merged_sce))
 # apply the reordering
-shuffled_sce <- merged_sce[, col_order]   
+shuffled_sce <- merged_sce[, col_order]
 ```
 
 Now we can plot that `shuffled_sce` just as we did before, and see how it looks.
@@ -336,33 +360,42 @@ Use the chunk below to do that!
 
 ```
 
-That should be a bit better, but it still may be hard to really see all of the individual points.
-
-Alternatively, we can facet our plot by donor. 
-To do this, use the `other_fields` argument with `plotReducedDim()` to add `donor` to the plot data.
-Then use the `ggplot2` function `facet_wrap()` to split the points into separate panels by donor.
-
-```{r plot faceted by donor, solution = TRUE}
-# faceted UMAP plot
-
-```
-
 Are you satisfied with this integration result?
 Do the different cell types seem to be more uniformly mixed across donors?
 Are there any areas of particular concern that you might want to explore more?
 
-### Integration metrics
+### Clustering integrated data
+
+Finally, let's look at what happens to clustering when we use the integrated data.
+In the chunk below use the same clustering parameters that you used for the unintegrated data to cluster again, this time using the `fastMNN_PCA` as the input for the clustering algorithm.
+Then plot these clustering results on the integrated UMAP results to see how they align.
+
+```{r cluster integrated, solution = TRUE}
+# cluster using `fastMNN_PCA`
+
+# plot UMAP colored by integrated clusters
+
+```
+
+How do the clusters inferred from the integrated data compare to what you saw earlier with unintegrated data?
+If the integration was successful, we might expect to see some differences between this plot and the plot of unintegrated clusters:
+
+- Clusters should correspond more closely to cell types
+- Donor effects should be less apparent in the clustering
+Does that seem to be the the case here?
+
+## Integration metrics
 
 The evaluation we have done so far of the integration quality has been quite qualitative.
 We've looked at some UMAPs and expressed whether the "vibes" were right.
-It might be nice to be a bit more quantitative, especially if we were going to be comparing different integration methods. 
+It might be nice to be a bit more quantitative, especially if we were going to be comparing different integration methods.
 The challenge with being quantitative is that we have to pick something to measure, and have some confidence that what we are measuring accurately reflects the properties we are seeking to optimize.
 
-Generally speaking, our goal with integration is to remove technical variation while preserving biological information. 
+Generally speaking, our goal with integration is to remove technical variation while preserving biological information.
 In the case of purely technical replicates, where we have the same cells measured multiple times, we could try to make each cell line up exactly with its replicates, and this would be easy to measure.
 But of course we don't have those!
 Every cell is its own biological sample, so the best we can hope for is that cells of the same type from replicate samples have similar corrected expression values (or reduced dimensions we calculate from those).
-But even that is a better scenario than what we usually have - the samples we would like to integrate are often from different tissue samples and/or different individuals. 
+But even that is a better scenario than what we usually have - the samples we would like to integrate are often from different tissue samples and/or different individuals.
 What is our quantitative expectation for how well individual cells should align in this case?
 
 There are no easy answers here, which ends up meaning that there are many directions one could go to assess integration quality.

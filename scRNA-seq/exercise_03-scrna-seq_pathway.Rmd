@@ -1,7 +1,7 @@
 ---
 title: "Exercise: Pathway analysis of scRNA-seq marker genes"
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -29,19 +29,18 @@ If there's one cluster in this plot that piques your interest, use it to practic
 ```{r libraries}
 library(org.Mm.eg.db)
 library(clusterProfiler)
-library(magrittr)
 ```
 
 ## What cluster looks interesting to you?
 
-Take a look at the UMAP plot above, where samples are colored and labeled by cluster identity. 
+Take a look at the UMAP plot above, where samples are colored and labeled by cluster identity.
 
 Does any cluster look particularly interesting to you?
 
 We've identified marker genes for you (`scran::findMarkers(..., pval.type = "all")`) and saved the results in `analysis/mouse-liver/markers`.
 (You can see how we did that and how we generated that plot [here](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/setup/mouse-liver/prepare_mouse_liver_markers.Rmd)!)
 
-Take a look at the files available in `analysis/mouse-liver/markers`, read in the marker genes for the cluster you're interested in analyzing in the chunk below and assign them to `markers_df`. 
+Take a look at the files available in `analysis/mouse-liver/markers`, read in the marker genes for the cluster you're interested in analyzing in the chunk below and assign them to `markers_df`.
 
 *We'll use cluster 7 in the solved version, but you don't have to!*
 
@@ -63,11 +62,11 @@ The values in the `gene` column are gene symbols.
 
 Our choice of gene sets will be influenced by the experimental design of the data assays, our upstream analytical steps, and what we hope to learn about our data.
 
-We're going to be analyzing marker genes (e.g., genes that distinguish clusters) from an experiment examining hepatic macrophages in the context of liver fibrosis. 
+We're going to be analyzing marker genes (e.g., genes that distinguish clusters) from an experiment examining hepatic macrophages in the context of liver fibrosis.
 
 ### Molecular Signatures Database (MSigDB)
 
-MSigDB contains multiple collections of gene sets that we can access via the `msigdbr` package. 
+MSigDB contains multiple collections of gene sets that we can access via the `msigdbr` package.
 To see what collections are available, we can run the following chunk:
 
 ```{r show_collections}
@@ -87,7 +86,7 @@ You may already be familiar with [KEGG (Kyoto Encyclopedia of Genes and Genomes)
 
 These gene sets often capture things like signaling pathways, which may be of interest here!
 
-##### C5 Sub-collection: Gene Ontology 
+##### C5 Sub-collection: Gene Ontology
 
 During instruction, we used `enrichGO()` to perform ORA with biological process (BP) terms from the Gene Ontology, but we could have used `enricher()` with just the `GO:BP` subcategory gene sets from `msigdbr` just as well.
 
@@ -96,7 +95,7 @@ Some of the BP terms were specific enough to give us an idea about the cell type
 
 In this context, it might be interesting to understand if a particular cluster expresses genes that are indicative of a biological process that is considered pro-fibrotic.
 
-##### C7 
+##### C7
 
 During instruction, we used the C7 immunologic signature gene sets to analyze a dataset that was comprised in part of immune cells with GSEA.
 Because of the experimental design, we might expect that gene sets that tell us about myeloid cell phenotypes could be useful in this context.
@@ -114,7 +113,7 @@ The more gene sets we test, the higher our multiple hypothesis testing burden wi
 
 #### `msigdbr()` supported species
 
-Beyond multiple collections, the `msigdbr()` package also supports multiple organisms. 
+Beyond multiple collections, the `msigdbr()` package also supports multiple organisms.
 (Run the next chunk to see which ones!)
 
 ```{r show_species}
@@ -137,7 +136,7 @@ If there are CellMarker gene sets that distinguish different macrophage phenotyp
 
 ### Obtain your gene sets data frame
 
-Depending on what you think is most interesting, you'll either need to obtain relevant gene sets from `msigdbr` or to read in the TSV of CellMarker data. 
+Depending on what you think is most interesting, you'll either need to obtain relevant gene sets from `msigdbr` or to read in the TSV of CellMarker data.
 (The CellMarker _mouse_ data is available at `gene-sets/CellMarker_cleaned_mouse_markers.tsv`.)
 
 As a reminder, `msigdbr()` will return _lots_ of gene sets; we recommend only working with the collection or subcategory that you are interested in.
@@ -149,7 +148,7 @@ To obtain the KEGG gene sets, for example, you would use the arguments `category
 # Call msigdbr() or read in the TSV to obtain the gene sets you want to use!
 # Make sure you're using mouse gene sets
 
-# Do you need to use `dplyr::filter()` here to subset to specific MSigDB 
+# Do you need to use `dplyr::filter()` here to subset to specific MSigDB
 # collections?
 ```
 
@@ -184,7 +183,7 @@ Use the next chunk to get top ranked genes to use as input to ORA and call that 
 
 ```{r goi_list, solution = TRUE}
 # Get a vector of genes called `genes_of_interest`
-# You'll probably want to filter by summary log fold change, sort by FDR, and 
+# You'll probably want to filter by summary log fold change, sort by FDR, and
 # pick some number of genes
 
 ```
@@ -192,12 +191,12 @@ Use the next chunk to get top ranked genes to use as input to ORA and call that 
 ### Background set
 
 The background set we use for ORA should include all genes that we could reliably measure.
-The marker gene tables we created include all of the genes that passed the pre-normalization filtering in our single cell analysis, so we will want to include all of these genes as our background set. 
+The marker gene tables we created include all of the genes that passed the pre-normalization filtering in our single cell analysis, so we will want to include all of these genes as our background set.
 
 Use the next chunk to get a vector of genes to use as a background set called `background_set`.
 
 ```{r background_set, solution = TRUE}
-# Create a vector of all gene symbols in the marker genes table called 
+# Create a vector of all gene symbols in the marker genes table called
 # `background_set`
 
 ```
@@ -258,7 +257,7 @@ Since there are no duplicate identifiers, we can go ahead and use the next chunk
 We'll note here that summary log fold change values have some _limitations_.
 Summary log fold change is collapsing the effect sizes into a single (summarized!) value.
 When we use `pval.type = "all"` like we did upstream, this value will reflect the fold change value of the pairwise comparison with the largest p-value (e.g., weakest differential expression) ([ref](https://rdrr.io/bioc/scran/man/combineMarkers.html)).
-In practice, these values may reflect the fold change for a gene relative to the cluster that is _most similar_ to the cluster we are analyzing. 
+In practice, these values may reflect the fold change for a gene relative to the cluster that is _most similar_ to the cluster we are analyzing.
 This also means the summary log fold change values are sensitive to the cluster assignments and are likely to change between runs if clustering results are unstable.
 
 ```{r lfc_vector, solution = TRUE}
