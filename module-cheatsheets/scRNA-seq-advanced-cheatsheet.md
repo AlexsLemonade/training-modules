@@ -3,7 +3,7 @@
 #### The tables below consist of valuable functions or commands that will help you through this module.
 ##### Each table represents a different library/tool and its corresponding commands.
 
-##### You may also be interested in the [Introduction to R and Tidyverse cheatsheet](intro-to-R-tidyverse-cheatsheet.pdf) and the [Introduction to Single-Cell RNA sequencing cheatsheet](scRNA-seq-cheatsheet.pdf).
+##### You may also be interested in the following additional cheatsheets:[Introduction to R and Tidyverse cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.pdf) and the [Introduction to Single-Cell RNA sequencing cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-cheatsheet.pdf).
 
 > Please note that these tables are not intended to tell you all the information you need to know about each command.
 >
@@ -45,7 +45,7 @@ Read the `miQC` [package documentation](https://rdrr.io/github/greenelab/miQC/),
 
 Read the `batchelor` [package documentation](https://rdrr.io/cran/batchelor/), and a [vignette on its usage](https://rdrr.io/bioc/batchelor/f/vignettes/correction.Rmd).
 
-Read the `harmony` [package documentation(https://rdrr.io/github/immunogenomics/harmony/man/harmony.html), and a [vignette on its usage](https://cran.r-project.org/web/packages/harmony/vignettes/quickstart.html).
+Read the `harmony` [package documentation](https://rdrr.io/github/immunogenomics/harmony/man/harmony.html), and a [vignette on its usage](https://cran.r-project.org/web/packages/harmony/vignettes/quickstart.html).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
