@@ -24,12 +24,16 @@ Read the Base `R` [documentation](https://rdrr.io/r/).
 | Base `R`| [`<-function(x) { <code> }`](https://adv-r.hadley.nz/functions.html) | Function | Creates a function that would take the defined parameters as input and execute the commands within the curly braces  |
 
 
-### `scran`, `scater`, `SingleCellExperiment`
+### `SingleCellExperiment`, `scran`, and `scater`
+
+Read the `SingleCellExperiment` [package documentation (and e-book)](https://bioconductor.org/books/release/OSCA/), and a [vignette on its usage](https://rdrr.io/bioc/SingleCellExperiment/f/vignettes/intro.Rmd).
+Note that some of the `SingleCellExperiment` functions link to documentation from other packages like `SummarizedExperiment` or `ExperimentSubset`.
+In fact, `SingleCellExperiment` objects are based around existing Bioconductor functions in those packages, so the function usage is equivalent!
+
 Read the `scran` [package documentation](https://rdrr.io/bioc/scran/), and a [vignette on its usage](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
 
 Read the `scater` [package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
 
-Read the `SingleCellExperiment` [package documentation (and e-book)](https://bioconductor.org/books/release/OSCA/), and a [vignette on its usage](https://rdrr.io/bioc/SingleCellExperiment/f/vignettes/intro.Rmd).
 
 
 <br>
