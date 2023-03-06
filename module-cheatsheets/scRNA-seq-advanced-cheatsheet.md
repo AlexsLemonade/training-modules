@@ -3,7 +3,7 @@
 #### The tables below consist of valuable functions or commands that will help you through this module.
 ##### Each table represents a different library/tool and its corresponding commands.
 
-##### You may also be interested in the following additional cheatsheets:[Introduction to R and Tidyverse cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.pdf) and the [Introduction to Single-Cell RNA sequencing cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-cheatsheet.pdf).
+##### You may also be interested in the following additional cheatsheets:[Introduction to R and Tidyverse cheatsheet](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.pdf) and the [Introduction to Single-Cell RNA sequencing cheatsheet](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/scRNA-seq-cheatsheet.pdf).
 
 > Please note that these tables are not intended to tell you all the information you need to know about each command.
 >
@@ -16,7 +16,7 @@ If you have a different version of R or other R packages, the documentation may 
 
 ### `scater`
 
-Read the `scater` [package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
+Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
 
 <br>
 
@@ -29,7 +29,7 @@ Read the `scater` [package documentation](https://rdrr.io/bioc/scater/), and a [
 
 ### `miQC`
 
-Read the `miQC` [package documentation](https://rdrr.io/github/greenelab/miQC/), and a [vignette on its usage](https://www.bioconductor.org/packages/release/bioc/vignettes/miQC/inst/doc/miQC.html).
+Read the [`miQC` package documentation](https://rdrr.io/github/greenelab/miQC/), and a [vignette on its usage](https://www.bioconductor.org/packages/release/bioc/vignettes/miQC/inst/doc/miQC.html).
 
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
@@ -43,21 +43,21 @@ Read the `miQC` [package documentation](https://rdrr.io/github/greenelab/miQC/),
 
 ### `batchelor` and `harmony`
 
-Read the `batchelor` [package documentation](https://rdrr.io/cran/batchelor/), and a [vignette on its usage](https://rdrr.io/bioc/batchelor/f/vignettes/correction.Rmd).
+Read the [`batchelor` package documentation](https://rdrr.io/cran/batchelor/), and a [vignette on its usage](https://rdrr.io/bioc/batchelor/f/vignettes/correction.Rmd).
 
-Read the `harmony` [package documentation](https://rdrr.io/github/immunogenomics/harmony/man/harmony.html), and a [vignette on its usage](https://cran.r-project.org/web/packages/harmony/vignettes/quickstart.html).
+Read the [`harmony` package documentation](https://rdrr.io/github/immunogenomics/harmony/man/harmony.html), and a [vignette on its usage](https://cran.r-project.org/web/packages/harmony/vignettes/quickstart.html).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
 | `batchelor`| [`MultiBatchPCA()`](https://rdrr.io/bioc/batchelor/man/multiBatchPCA.html)| Multi-batch PCA | Perform PCA across multiple gene expression matrices, weighted by batch size |
 | `batchelor`| [`fastMNN()`](https://rdrr.io/bioc/batchelor/man/fastMNN.html)| Fast mutual nearest neighbors correction | Perform integration on an SCE object with mutual nearest neighbors using the `fastMNN` algorithm, returning an SCE object with batch-corrected principal components |
-| `harmony`| [`HarmonyMatrix()`](https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html)| Perform integration with `harmony` on a matrix | Perform integration with `harmony` on either a matrix of principle components or gene expression, returning a matrix of batch-corrected principal components  |
+| `harmony`| [`HarmonyMatrix()`](https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html)| Perform `harmony` integration on a matrix | Perform integration with `harmony` on either a matrix of principle components or gene expression, returning a matrix of batch-corrected principal components  |
 
 
 ### `pheatmap` and `EnhancedVolcano`
-Read the `pheatmap` [package documentation](https://rdrr.io/cran/pheatmap/).
+Read the [`pheatmap` package documentation](https://rdrr.io/cran/pheatmap/).
 
-Read the `EnhancedVolcano` [package documentation](https://rdrr.io/bioc/EnhancedVolcano/), and [vignette on its usage](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
+Read the [`EnhancedVolcano` package documentation](https://rdrr.io/bioc/EnhancedVolcano/), and [vignette on its usage](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
@@ -72,7 +72,7 @@ Read the `EnhancedVolcano` [package documentation](https://rdrr.io/bioc/Enhanced
 
 #### `purrr` functions
 
-Read the `purrr` [package documentation](https://purrr.tidyverse.org/), and a [vignette on its usage](https://purrr.tidyverse.org/articles/base.html).
+Read the [`purrr` package documentation](https://purrr.tidyverse.org/), and a [vignette on its usage](https://purrr.tidyverse.org/articles/base.html).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -84,7 +84,7 @@ Read the `purrr` [package documentation](https://purrr.tidyverse.org/), and a [v
 
 #### `ggplot2` functions
 
-Read the `ggplot2` [package documentation](https://ggplot2.tidyverse.org/) and an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html).
+Read the [`ggplot2` package documentation](https://ggplot2.tidyverse.org/) and an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|

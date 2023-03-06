@@ -13,7 +13,7 @@ If you have a different version of R or other R packages, the documentation may 
 
 ### Base `R`
 
-Read the Base `R` [documentation](https://rdrr.io/r/).
+Read the Base [`R` documentation](https://rdrr.io/r/).
 
 |Library/Package|Piece of Code|What it's called| What it does|
 |---------------|-------------|----------------|-------------|
@@ -26,13 +26,13 @@ Read the Base `R` [documentation](https://rdrr.io/r/).
 
 ### `SingleCellExperiment`, `scran`, and `scater`
 
-Read the `SingleCellExperiment` [package documentation (and e-book)](https://bioconductor.org/books/release/OSCA/), and a [vignette on its usage](https://rdrr.io/bioc/SingleCellExperiment/f/vignettes/intro.Rmd).
+Read the [`SingleCellExperiment` package documentation (and e-book)](https://bioconductor.org/books/release/OSCA/), and a [vignette on its usage](https://rdrr.io/bioc/SingleCellExperiment/f/vignettes/intro.Rmd).
 Note that some of the `SingleCellExperiment` functions link to documentation from other packages like `SummarizedExperiment` or `ExperimentSubset`.
 In fact, `SingleCellExperiment` objects are based around existing Bioconductor functions in those packages, so the function usage is equivalent!
 
-Read the `scran` [package documentation](https://rdrr.io/bioc/scran/), and a [vignette on its usage](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
+Read the [`scran` package documentation](https://rdrr.io/bioc/scran/), and a [vignette on its usage](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
 
-Read the `scater` [package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
+Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
 
 
 
@@ -72,7 +72,7 @@ Read the `scater` [package documentation](https://rdrr.io/bioc/scater/), and a [
 
 ### `purrr`
 
-Read the `purrr` [package documentation](https://purrr.tidyverse.org/).
+Read the [`purrr` package documentation](https://purrr.tidyverse.org/).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -82,7 +82,7 @@ Read the `purrr` [package documentation](https://purrr.tidyverse.org/).
 
 ### `stringr`
 
-Read the `stringr` [package documentation](https://stringr.tidyverse.org/).
+Read the [`stringr` package documentation](https://stringr.tidyverse.org/).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -102,7 +102,7 @@ Documentation for each of these packages can be accessed by clicking the package
 <br>
 
 ### Salmon
-Read the Salmon [documentation](https://salmon.readthedocs.io/en/latest/salmon.html).
+Read the [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html).
 
 | Piece of Code| What it's called| What it does |
 |--------------|-----------------|--------------|
