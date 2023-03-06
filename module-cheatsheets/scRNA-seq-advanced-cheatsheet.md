@@ -103,14 +103,15 @@ Read the [`purrr` package documentation](https://purrr.tidyverse.org/) and a [vi
 | `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by applying a given function |
 
 Note that `purrr::map()` functions can take advantage of R's new (as of version 4.1.0) [anonymous function syntax](https://rdrr.io/r/base/function.html):
-```
+
+```r
 # One-line syntax:
-\(x) function code goes here
+\(x) # function code goes here #
 
 # Multi-line syntax:
 \(x) {
-  function code goes
-  inside the curly braces
+  # function code goes      #
+  # inside the curly braces #
 }
 
 # Example: Use an anonymous function with `purrr::map()`
