@@ -1,4 +1,4 @@
-# Intro to R and Tidyverse Cheatsheet
+# Introduction to R and Tidyverse Cheatsheet
 
 #### The tables below consist of valuable functions and commands that will help you through this module.
 ##### Each table represents a different library/tool and the corresponding commands.
