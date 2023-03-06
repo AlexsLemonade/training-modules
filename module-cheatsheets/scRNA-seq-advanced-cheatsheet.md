@@ -3,7 +3,10 @@
 #### The tables below consist of valuable functions or commands that will help you through this module.
 ##### Each table represents a different library/tool and its corresponding commands.
 
-##### You may also be interested in the following additional cheatsheets:[Introduction to R and Tidyverse cheatsheet](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.pdf) and the [Introduction to Single-Cell RNA sequencing cheatsheet](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/scRNA-seq-cheatsheet.pdf).
+##### You may also be interested in the following additional cheatsheets:
+
+- Download the PDF for the [Introduction to R and Tidyverse](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.pdf)
+- Downlaod the PDF for the [Introduction to Single-Cell RNA sequencing cheatsheet](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/scRNA-seq-cheatsheet.pdf)
 
 > Please note that these tables are not intended to tell you all the information you need to know about each command.
 >
@@ -72,7 +75,7 @@ Read the [`EnhancedVolcano` package documentation](https://rdrr.io/bioc/Enhanced
 
 #### `purrr` functions
 
-Read the [`purrr` package documentation](https://purrr.tidyverse.org/), and a [vignette on its usage](https://purrr.tidyverse.org/articles/base.html).
+Read the [`purrr` package documentation](https://purrr.tidyverse.org/) and a [vignette on its usage](https://purrr.tidyverse.org/articles/base.html), and download the [`purr` package cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/purrr.pdf).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -81,10 +84,29 @@ Read the [`purrr` package documentation](https://purrr.tidyverse.org/), and a [v
 | `purrr`| [`map2()`](https://purrr.tidyverse.org/reference/map2.html)| map2 |  Apply a function across each element of two lists at a time; return a list |
 | `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by applying a given function |
 
+Note that `purrr::map()` functions can take advantage of R's new (as of version 4.1.0) [anonymous function syntax](https://rdrr.io/r/base/function.html):
+```
+# One-line syntax:
+\(x) function code goes here
+
+# Multi-line syntax:
+\(x) {
+  function code goes
+  inside the curly braces
+}
+
+# Example: Use an anonymous function with `purrr::map()`
+# to get the colData's rownames for each SCE in `list_of_sce_objects`
+purrr::map(
+  list_of_sce_objects,
+  \(x) rownames(colData(x))
+)
+```
+
 
 #### `ggplot2` functions
 
-Read the [`ggplot2` package documentation](https://ggplot2.tidyverse.org/) and an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html).
+Read the [`ggplot2` package documentation](https://ggplot2.tidyverse.org/) and an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html), and download the [`ggplot2` package cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/data-visualization.pdf).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -101,11 +123,11 @@ Read the [`ggplot2` package documentation](https://ggplot2.tidyverse.org/) and a
 
 #### `dplyr`, `tidyr`,`stringr`, and `tibble` functions
 
-Read the full documentation for these `tidyverse` packages at the following links:
+Read the full documentation and download cheatsheets (where available) for these `tidyverse` packages at the following links:
 
-- [`dplyr` documentation](https://dplyr.tidyverse.org/)
-- [`tidyr` documentation](https://tidyr.tidyverse.org/)
-- [`stringr` documentation](https://stringr.tidyverse.org/)
+- [`dplyr` documentation](https://dplyr.tidyverse.org/) and [`dplyr` cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/data-transformation.pdf)
+- [`tidyr` documentation](https://tidyr.tidyverse.org/) and [`tidyr` cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/tidyr.pdf)
+- [`stringr` documentation](https://stringr.tidyverse.org/) and [`stringr` cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/strings.pdf)
 - [`tibble` documentation](https://tibble.tidyverse.org/)
 
 <br>
