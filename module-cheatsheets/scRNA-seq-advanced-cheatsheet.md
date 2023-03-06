@@ -1,7 +1,7 @@
 # Advanced scRNA-seq Cheatsheet
 
 #### The tables below consist of valuable functions or commands that will help you through this module.
-##### Each table represents a different library/tool and its corresponding commands.
+#### Each table represents a different library/tool and its corresponding commands.
 
 ##### You may also be interested in the following additional cheatsheets:
 
@@ -14,6 +14,23 @@
 > Please be aware that the documentation will generally provide information about the given function's most current version (or a recent version, depending on how often the documentation site is updated).
 This will usually (but not always!) match what you have installed on your machine.
 If you have a different version of R or other R packages, the documentation may differ from what you have installed.
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+- [`scater`](#scater)
+- [`miQC`](#miqc)
+- [`batchelor` and `harmony`](#batchelor-and-harmony)
+- [`pheatmap` and `EnhancedVolcano`](#pheatmap-and-enhancedvolcano)
+- [`tidyverse` functions](#tidyverse-functions)
+  - [`purrr` functions](#purrr-functions)
+  - [`ggplot2` functions](#ggplot2-functions)
+  - [`dplyr`, `tidyr`,`stringr`, and `tibble` functions](#dplyr-tidyrstringr-and-tibble-functions)
+- [`Seurat` and `SCE` object conversion](#seurat-and-sce-object-conversion)
+  - [Converting from `Seurat` to `SCE`](#converting-from-seurat-to-sce)
+  - [Converting from `SCE` to `Seurat`](#converting-from-sce-to-seurat)
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 
 <div style="page-break-after: always;"></div>
 

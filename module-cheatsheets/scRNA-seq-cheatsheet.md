@@ -9,6 +9,17 @@
 This will usually (but not always!) match what you have installed on your machine.
 If you have a different version of R or other R packages, the documentation may differ from what you have installed.
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+- [Base `R`](#base-r)
+- [`SingleCellExperiment`, `scran`, and `scater`](#singlecellexperiment-scran-and-scater)
+- [`purrr`](#purrr)
+- [`stringr`](#stringr)
+- [`alevinQC`, `colorblindr`, `Rtsne`, `tibble`](#alevinqc-colorblindr-rtsne-tibble)
+- [Salmon](#salmon)
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 <div style="page-break-after: always;"></div>
 
 ### Base `R`
