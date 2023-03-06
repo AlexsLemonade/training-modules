@@ -9,6 +9,19 @@ Please be aware that the documentation will generally provide information about 
 This will usually (but not always!) match what you have installed on your machine.
 If you have a different version of R or other R packages, the documentation may differ from what you have installed.
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Base `R`](#base-r)
+- [`tidyverse`](#tidyverse)
+      - [`dplyr`](#dplyr)
+      - [`ggplot2`](#ggplot2)
+      - [`readr`, `tibble` and `tidyr`](#readr-tibble-and-tidyr)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+
 <div style="page-break-after: always;"></div>
 
 ### Base `R`
