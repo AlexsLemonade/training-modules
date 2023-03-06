@@ -6,7 +6,7 @@
 ##### You may also be interested in the following additional cheatsheets:
 
 - Download the PDF for the [Introduction to R and Tidyverse](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.pdf)
-- Downlaod the PDF for the [Introduction to Single-Cell RNA sequencing cheatsheet](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/scRNA-seq-cheatsheet.pdf)
+- Download the PDF for the [Introduction to Single-Cell RNA sequencing cheatsheet](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/scRNA-seq-cheatsheet.pdf)
 
 > Please note that these tables are not intended to tell you all the information you need to know about each command.
 >
