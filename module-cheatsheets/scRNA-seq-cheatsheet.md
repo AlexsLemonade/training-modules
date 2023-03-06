@@ -9,11 +9,23 @@
 This will usually (but not always!) match what you have installed on your machine.
 If you have a different version of R or other R packages, the documentation may differ from what you have installed.
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Base `R`](#base-r)
+- [`SingleCellExperiment`, `scran`, and `scater`](#singlecellexperiment-scran-and-scater)
+- [`purrr`](#purrr)
+- [`stringr`](#stringr)
+- [`alevinQC`, `colorblindr`, `Rtsne`, `tibble`](#alevinqc-colorblindr-rtsne-tibble)
+- [Salmon](#salmon)
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 <div style="page-break-after: always;"></div>
 
 ### Base `R`
 
-Read the Base `R` documentation [**here**](https://rdrr.io/r/).
+Read the Base [`R` documentation](https://rdrr.io/r/).
 
 |Library/Package|Piece of Code|What it's called| What it does|
 |---------------|-------------|----------------|-------------|
@@ -24,12 +36,16 @@ Read the Base `R` documentation [**here**](https://rdrr.io/r/).
 | Base `R`| [`<-function(x) { <code> }`](https://adv-r.hadley.nz/functions.html) | Function | Creates a function that would take the defined parameters as input and execute the commands within the curly braces  |
 
 
-### `scran`, `scater`, `SingleCellExperiment`
-Read the `scran` package documentation [**here**](https://rdrr.io/bioc/scran/), and a vignette on its usage [**here**](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
+### `SingleCellExperiment`, `scran`, and `scater`
 
-Read the `scater` package documentation [**here**](https://rdrr.io/bioc/scater/), and a vignette on its usage [**here**](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
+Read the [`SingleCellExperiment` package documentation (and e-book)](https://bioconductor.org/books/release/OSCA/), and a [vignette on its usage](https://rdrr.io/bioc/SingleCellExperiment/f/vignettes/intro.Rmd).
+Note that some of the `SingleCellExperiment` functions link to documentation from other packages like `SummarizedExperiment` or `ExperimentSubset`.
+In fact, `SingleCellExperiment` objects are based around existing Bioconductor functions in those packages, so the function usage is equivalent!
 
-Read the `SingleCellExperiment` package documentation (and e-book) [**here**](https://bioconductor.org/books/release/OSCA/), and a vignette on its usage [**here**](https://rdrr.io/bioc/SingleCellExperiment/f/vignettes/intro.Rmd).
+Read the [`scran` package documentation](https://rdrr.io/bioc/scran/), and a [vignette on its usage](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
+
+Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
+
 
 
 <br>
@@ -39,25 +55,36 @@ Read the `SingleCellExperiment` package documentation (and e-book) [**here**](ht
 | `SingleCellExperiment` | [`SingleCellExperiment()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html) | Single Cell Experiment| Creates a `SingleCellExperiment` object  |
 | `SingleCellExperiment`| [`colData()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#2_Creating_SingleCellExperiment_instances) | Column Data | Extracts and stores cell-level metadata that describes features of the `SingleCellExperiment` object|
 | `SingleCellExperiment`| [`rowData()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#2_Creating_SingleCellExperiment_instances)  | Row Data   | Extracts and stores gene-level metadata that describes features of the `SingleCellExperiment` object|
-| `SingleCellExperiment`| [`logcounts()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#3_Adding_low-dimensional_representations)| Log counts| Stores or extracts log-transformed single-cell experiment count data as an assay of the `SingleCellExperiment` object|
-| `SingleCellExperiment`| [`counts()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#4_Convenient_access_to_named_assays)| Counts| Stores or extracts raw single-cell experiment count data as an assay of the `SingleCellExperiment` object|
+| `SingleCellExperiment`| [`assay()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)  | Assay | Extracts and stores a given assay from a `SingleCellExperiment` object|
+| `SingleCellExperiment`| [`assayNames()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)  | Assay names  | Returns a vector of the names of all assays in a `SingleCellExperiment` object|
+| `SingleCellExperiment`| [`logcounts()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#4_Convenient_access_to_named_assays)| Log counts| Extracts and stores log-transformed single-cell experiment count data as an assay of the `SingleCellExperiment` object|
+| `SingleCellExperiment`| [`counts()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#4_Convenient_access_to_named_assays)| Counts| Extracts and stores raw single-cell experiment count data as an assay of the `SingleCellExperiment` object|
+| `SingleCellExperiment`| [`reducedDim()`](https://rdrr.io/bioc/ExperimentSubset/man/reducedDim.html)| Reduced dim| Extracts or stores a given reduced dimension from a `SingleCellExperiment` object|
+| `SingleCellExperiment`| [`reducedDimNames()`](https://rdrr.io/bioc/ExperimentSubset/man/reducedDimNames.html)| Reduced dim names| Returns a vector of the names of all reduced dimensions in a `SingleCellExperiment` object|
 | `scran` | [`quickCluster()`](https://rdrr.io/bioc/scran/man/quickCluster.html) | Quick Clustering     | Groups similar cells into clusters which are stored in the `SingleCellExperiment` object and are used for the calculation of size factors by `scran::computeSumFactors`|
 | `scran` | [`computeSumFactors()`](https://rdrr.io/bioc/scran/man/computeSumFactors.html)  | Compute Sum Factors| Returns a numeric vector of computed sum factors for each cell cluster stored in the `SingleCellExperiment` object. The cluster-based size factors are deconvolved into cell-based size factors that are stored in the `SingleCellExperiment` object and used by the `scran::normalize` function for the normalization of each cell's gene expression profile|
 | `scran`| [`getTopHVGs()`](https://rdrr.io/bioc/scran/man/getTopHVGs.html)| Get top highly variable genes | Identify variable genes in a `SingleCellExperiment` object, based on variance |
 | `scran`| [`modelGeneVar()`](https://rdrr.io/bioc/scran/man/modelGeneVar.html)| model per gene variance | Model the per gene variance of a `SingleCellExperiment` object |
 | `scran`| [`findMarkers()`](https://rdrr.io/bioc/scran/man/findMarkers.html)| Find marker genes | Find candidate marker genes for clusters of cells |
-| `scater`| [`logNormCounts()`](https://rdrr.io/bioc/scuttle/man/logNormCounts.html) | Normalize log counts| Returns the `SingleCellExperiment` object with normalized expression values for each cell, using the size factors stored in the object 
+| `scater`| [`logNormCounts()`](https://rdrr.io/bioc/scuttle/man/logNormCounts.html) | Normalize log counts| Returns the `SingleCellExperiment` object with normalized expression values for each cell, using the size factors stored in the object
 | `scater`| [`addPerCellQC()`](https://rdrr.io/bioc/scuttle/man/addPerCellQC.html)| Add per cell quality control | For a `SingleCellExperiment` object, calculate and add quality control per cell and store in `colData`  |
-| `scater`| [`addPerFeatureQC()`](https://rdrr.io/bioc/scater/man/addPerCellQC.html)| Add per feature quality control | For a `SingleCellExperiment` object, calculate and add quality control per feature (genes usually) and store in `rowData`|
-| `scater`| [`calculatePCA()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate PCA | Calculates principal components analysis on a `SingleCellExperiment` object |
-| `scater`| [`calculateUMAP()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate UMAP | Calculates uniform manifold approximate projection on a `SingleCellExperiment` object |
-| `scater`| [`calculateTSNE()`](https://bioconductor.org/packages/devel/bioc/manuals/scater/man/scater.pdf)| Calculate t-SNE | Calculate t-stochastic neighbor embedding on a `SingleCellExperiment` object |
+| `scater`| [`addPerFeatureQC()`](https://rdrr.io/bioc/scuttle/man/addPerCellQC.html)| Add per feature quality control | For a `SingleCellExperiment` object, calculate and add quality control per feature (genes usually) and store in `rowData`|
+| `scater`| [`calculatePCA()`](https://rdrr.io/bioc/scater/man/runPCA.html)| Calculate PCA | Calculates principal components analysis on a `SingleCellExperiment` object, returning a PCA matrix |
+| `scater`| [`runPCA()`](https://rdrr.io/bioc/scater/man/runPCA.html)| Run PCA | Calculates principal components analysis on a `SingleCellExperiment` object, returning an SCE object with a PCA reduced dimension |
+| `scater`| [`calculateUMAP()`](https://rdrr.io/bioc/scater/man/runUMAP.html)| Calculate UMAP| Calculates uniform manifold approximate projection on a `SingleCellExperiment` object, returning a UMAP matrix |
+| `scater`| [`runUMAP()`](https://rdrr.io/bioc/scater/man/runUMAP.html)| Run UMAP | Calculates uniform manifold approximate projection on a `SingleCellExperiment` object, returning an SCE object with a UMAP reduced dimension |
+| `scater`| [`calculateTSNE()`](https://rdrr.io/bioc/scater/man/runTSNE.html)| Calculate t-SNE | Calculates t-stochastic neighbor embedding on a `SingleCellExperiment` object, returning an SCE object with a TSNE reduced dimension |
+| `scater`| [`runTSNE()`](https://rdrr.io/bioc/scater/man/runTSNE.html)| Calculate UMAP | Calculates t-stochastic neighbor embedding on a `SingleCellExperiment` object, returning a t-SNE matrix  |
+| `scater`| [`plotReducedDim()`](https://rdrr.io/bioc/scater/man/plotReducedDim.html)| Plot reduced dimensions | Plot a given reduced dimension slot from a `SingleCellExperiment` object by its name |
+| `scater`| [`plotPCA()`](https://rdrr.io/bioc/scater/man/plot_reddim.html)| Plot PCA | Plot the "PCA"-named reduced dimension slot from a `SingleCellExperiment` object |
+| `scater`| [`plotUMAP()`](https://rdrr.io/bioc/scater/man/plot_reddim.html)| Plot UMAP | Plot the "UMAP"-named reduced dimension slot from a `SingleCellExperiment` object |
+
 
 <div style="page-break-after: always;"></div>
 
 ### `purrr`
 
-Read the `purrr` documentation [**here**](https://purrr.tidyverse.org/).
+Read the [`purrr` package documentation](https://purrr.tidyverse.org/).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -67,7 +94,7 @@ Read the `purrr` documentation [**here**](https://purrr.tidyverse.org/).
 
 ### `stringr`
 
-Read the `stringr` documentation [**here**](https://stringr.tidyverse.org/).
+Read the [`stringr` package documentation](https://stringr.tidyverse.org/).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -87,8 +114,8 @@ Documentation for each of these packages can be accessed by clicking the package
 <br>
 
 ### Salmon
-Read the Salmon documentation [**here**](https://salmon.readthedocs.io/en/latest/salmon.html).
+Read the [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html).
 
-| Piece of Code| What it's called| What it does |  
+| Piece of Code| What it's called| What it does |
 |--------------|-----------------|--------------|
 | [`salmon alevin`](https://salmon.readthedocs.io/en/latest/alevin.html)    | Salmon Alevin     | Runs the Alevin quantification from the command line  |
