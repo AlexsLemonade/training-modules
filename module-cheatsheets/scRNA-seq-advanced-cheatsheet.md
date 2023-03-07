@@ -203,9 +203,9 @@ The function `Seurat::as.Seurat()` can be used to convert an `SCE` object into a
 - The `SCE` object to convert
 - Optional named arguments with the following defaults:
   - `counts = "counts"` specifies that the `SCE` object contains a `"counts"` assay of normalized counts that should be included during conversion.
-    - If there is no `"counts"` assay in the SCE object, set this argument as `counts = NULL` or rename accordingly, e.g. `logcounts = "whatever_assay_name_you_are_using"`.
+    - If there is no `"counts"` assay in the SCE object, set this argument as `counts = NULL` or rename accordingly, e.g. `counts = "whatever_assay_name_you_are_using"`.
   - `data = "logcounts"` specifies that the `SCE` object contains a `"logcounts"` assay of normalized counts that should be included during conversion.
-    - If there is no `"logcounts"` assay in the SCE object, set this argument as `logcounts = NULL` or rename accordingly, e.g. `logcounts = "whatever_assay_name_you_are_using"`.
+    - If there is no `"logcounts"` assay in the SCE object, set this argument as `data = NULL` or rename accordingly, e.g. `data = "whatever_assay_name_you_are_using"`.
   - `assay = NULL` specifies that, by default, all assays will be converted.
     - To specify that an additional assay besides `"counts"` or `"logcounts"` should be converted, include it here as in `assay = "additional_assay_name"`.
   - `project = "SingleCellExperiment"` specifies that the `Seurat` object being created will have this associated project name. You can override this with any string of interest, e.g. `project = "sample_XYZ"`.
@@ -215,6 +215,12 @@ The function `Seurat::as.Seurat()` can be used to convert an `SCE` object into a
 # Convert SCE object to Seurat object, assuming both
 #  `counts` and  `logcounts` assays are present
 seurat_object <- Seurat::as.Seurat(sce_object)
+
+# Convert SCE object to Seurat object, where the SCE object
+#  contains a `counts` but not a `logcounts` assay
+seurat_object <- Seurat::as.Seurat(sce_object, data = NULL)
+
+
 ```
 
 #### Approaches from `ScPCA`
