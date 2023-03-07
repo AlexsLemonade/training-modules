@@ -30,6 +30,8 @@ If you have a different version of R or other R packages, the documentation may 
 - [`Seurat` and `SCE` object conversion](#seurat-and-sce-object-conversion)
   - [Converting from `Seurat` to `SCE`](#converting-from-seurat-to-sce)
   - [Converting from `SCE` to `Seurat`](#converting-from-sce-to-seurat)
+    - [Approaches from `ScPCA`](#approaches-from-scpca)
+
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
@@ -75,7 +77,7 @@ Read the [`harmony` package documentation](https://rdrr.io/github/immunogenomics
 | `harmony`| [`HarmonyMatrix()`](https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html)| Perform `harmony` integration on a matrix | Perform integration with `harmony` on either a matrix of principle components or gene expression, returning a matrix of batch-corrected principal components  |
 
 
-### `pheatmap` and `EnhancedVolcano`
+## `pheatmap` and `EnhancedVolcano`
 Read the [`pheatmap` package documentation](https://rdrr.io/cran/pheatmap/).
 
 Read the [`EnhancedVolcano` package documentation](https://rdrr.io/bioc/EnhancedVolcano/), and [vignette on its usage](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
