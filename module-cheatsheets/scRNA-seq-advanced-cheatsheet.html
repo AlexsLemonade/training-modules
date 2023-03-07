@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>scRNA-seq-advanced-cheatsheet.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 0px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/*
+
+Style with support for rainbow parens
+
+*/
+
+.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background: #474949;
+  color: #d1d9e1;
+}
+
+
+.hljs-comment,
+.hljs-quote {
+  color: #969896;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type,
+.hljs-addition {
+  color: #cc99cc;
+}
+
+.hljs-number,
+.hljs-selector-attr,
+.hljs-selector-pseudo {
+  color: #f99157;
+}
+
+.hljs-string,
+.hljs-doctag,
+.hljs-regexp {
+  color: #8abeb7;
+}
+
+.hljs-title,
+.hljs-name,
+.hljs-section,
+.hljs-built_in {
+  color: #b5bd68;
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-selector-id,
+.hljs-class .hljs-title {
+   color: #ffcc66;
+}
+
+.hljs-section,
+.hljs-name,
+.hljs-strong {
+  font-weight: bold;
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-subst,
+.hljs-meta,
+.hljs-link {
+  color: #f99157;
+}
+
+.hljs-deletion {
+  color: #dc322f;
+}
+
+.hljs-formula {
+  background: #eee8d5;
+}
+
+.hljs-attr,
+.hljs-attribute {
+  color: #81a2be;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+<link rel="stylesheet" href="file:///Users/sjspielman/ALSF/training/training-modules/module-cheatsheets/assets/markdown-pdf.css" type="text/css"><link rel="stylesheet" href="file:///Users/sjspielman/ALSF/training/training-modules/module-cheatsheets/assets/markdown-pdf.css" type="text/css">
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="advanced-scrna-seq-cheatsheet">Advanced scRNA-seq Cheatsheet</h1>
+<h3 id="the-tables-below-consist-of-valuable-functions-or-commands-that-will-help-you-through-this-module">The tables below consist of valuable functions or commands that will help you through this module.</h3>
+<h3 id="each-table-represents-a-different-librarytool-and-its-corresponding-commands">Each table represents a different library/tool and its corresponding commands.</h3>
+<h4 id="you-may-also-be-interested-in-the-following-additional-cheatsheets">You may also be interested in the following additional cheatsheets:</h4>
+<ul>
+<li>Download the PDF for the <a href="https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.pdf">Introduction to R and Tidyverse cheatsheet</a></li>
+<li>Download the PDF for the <a href="https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/scRNA-seq-cheatsheet.pdf">Introduction to Single-Cell RNA sequencing cheatsheet</a></li>
+</ul>
+<blockquote>
+<p>Please note that these tables are not intended to tell you all the information you need to know about each command.</p>
+<p>The hyperlinks found in each piece of code will take you to the documentation for further information on the usage of each command.<br>
+Please be aware that the documentation will generally provide information about the given function's most current version (or a recent version, depending on how often the documentation site is updated).<br>
+This will usually (but not always!) match what you have installed on your machine.<br>
+If you have a different version of R or other R packages, the documentation may differ from what you have installed.</p>
+</blockquote>
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<p><strong>Table of Contents</strong></p>
+<ul>
+<li><a href="#scater"><code>scater</code></a></li>
+<li><a href="#miqc"><code>miQC</code></a></li>
+<li><a href="#batchelor-and-harmony"><code>batchelor</code> and <code>harmony</code></a></li>
+<li><a href="#pheatmap-and-enhancedvolcano"><code>pheatmap</code> and <code>EnhancedVolcano</code></a></li>
+<li><a href="#tidyverse-functions"><code>tidyverse</code> functions</a>
+<ul>
+<li><a href="#purrr-functions"><code>purrr</code> functions</a></li>
+<li><a href="#ggplot2-functions"><code>ggplot2</code> functions</a></li>
+<li><a href="#dplyr-tidyrstringr-and-tibble-functions"><code>dplyr</code>, <code>tidyr</code>,<code>stringr</code>, and <code>tibble</code> functions</a></li>
+</ul>
+</li>
+<li><a href="#seurat-and-sce-object-conversion"><code>Seurat</code> and <code>SCE</code> object conversion</a>
+<ul>
+<li><a href="#converting-from-seurat-to-sce">Converting from <code>Seurat</code> to <code>SCE</code></a></li>
+<li><a href="#converting-from-sce-to-seurat">Converting from <code>SCE</code> to <code>Seurat</code></a>
+<ul>
+<li><a href="#approaches-from-scpca">Approaches from <code>ScPCA</code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+<div style="page-break-after: always;"></div>
+<h2 id="scater"><code>scater</code></h2>
+<p>Read the <a href="https://rdrr.io/bioc/scater/"><code>scater</code> package documentation</a>, and a <a href="http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html">vignette on its usage</a>.</p>
+<br>
+<table>
+<thead>
+<tr>
+<th>Library/Package</th>
+<th>Piece of Code</th>
+<th>What it's called</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scater</code></td>
+<td><a href="https://rdrr.io/bioc/scater/man/plotReducedDim.html"><code>plotReducedDim()</code></a></td>
+<td>Plot reduced dimensions</td>
+<td>Plot a given reduced dimension slot from a <code>SingleCellExperiment</code> object by its name</td>
+</tr>
+<tr>
+<td><code>scater</code></td>
+<td><a href="https://rdrr.io/bioc/scater/man/plot_reddim.html"><code>plotUMAP()</code></a></td>
+<td>Plot UMAP</td>
+<td>Plot the &quot;UMAP&quot;-named reduced dimension slot from a <code>SingleCellExperiment</code> object</td>
+</tr>
+<tr>
+<td><code>scater</code></td>
+<td><a href="https://rdrr.io/bioc/scater/man/plotExpression.html"><code>plotExpression()</code></a></td>
+<td>Plot expression</td>
+<td>Plot expression values for all cells in a <code>SingleCellExperiment</code> object, using the <code>logcounts</code> assay by default</td>
+</tr>
+</tbody>
+</table>
+<h2 id="miqc"><code>miQC</code></h2>
+<p>Read the <a href="https://rdrr.io/github/greenelab/miQC/"><code>miQC</code> package documentation</a>, and a <a href="https://www.bioconductor.org/packages/release/bioc/vignettes/miQC/inst/doc/miQC.html">vignette on its usage</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Library/Package</th>
+<th>Piece of Code</th>
+<th>What it's called</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>miQC</code></td>
+<td><a href="https://rdrr.io/github/greenelab/miQC/man/mixtureModel.html"><code>mixtureModel()</code></a></td>
+<td>Mixture model</td>
+<td>Fit a <code>miQC</code> mixture model to a <code>SingleCellExperiment</code> object for use in filtering</td>
+</tr>
+<tr>
+<td><code>miQC</code></td>
+<td><a href="https://rdrr.io/github/greenelab/miQC/man/filterCells.html"><code>filterCells()</code></a></td>
+<td>Filter cells</td>
+<td>Filter cells from a <code>SingleCellExperiment</code> object based on a <code>miQC</code> model, returning a filtered <code>SingleCellExperiment</code> object</td>
+</tr>
+<tr>
+<td><code>miQC</code></td>
+<td><a href="https://rdrr.io/github/greenelab/miQC/man/plotMetrics.html"><code>plotMetrics()</code></a></td>
+<td>Plot metrics</td>
+<td>Plot percent of mitochondrial reads against the number of unique genes found for each cell</td>
+</tr>
+<tr>
+<td><code>miQC</code></td>
+<td><a href="https://rdrr.io/github/greenelab/miQC/man/plotModel.html"><code>plotModel()</code></a></td>
+<td>Plot model</td>
+<td><code>miQC::plotMetics()</code> with the <code>miQC</code> fitted model overlaid</td>
+</tr>
+<tr>
+<td><code>miQC</code></td>
+<td><a href="https://rdrr.io/github/greenelab/miQC/man/plotFiltering.html"><code>plotFiltering()</code></a></td>
+<td>Plot filtering</td>
+<td>Plot percent of mitochondrial reads against the number of unique genes found, coloring points based on whether they will be filtered out or not</td>
+</tr>
+</tbody>
+</table>
+<h2 id="batchelor-and-harmony"><code>batchelor</code> and <code>harmony</code></h2>
+<p>Read the <a href="https://rdrr.io/cran/batchelor/"><code>batchelor</code> package documentation</a>, and a <a href="https://rdrr.io/bioc/batchelor/f/vignettes/correction.Rmd">vignette on its usage</a>.</p>
+<p>Read the <a href="https://rdrr.io/github/immunogenomics/harmony/man/harmony.html"><code>harmony</code> package documentation</a>, and a <a href="https://cran.r-project.org/web/packages/harmony/vignettes/quickstart.html">vignette on its usage</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Library/Package</th>
+<th>Piece of Code</th>
+<th>What it's called</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>batchelor</code></td>
+<td><a href="https://rdrr.io/bioc/batchelor/man/multiBatchPCA.html"><code>MultiBatchPCA()</code></a></td>
+<td>Multi-batch PCA</td>
+<td>Perform PCA across multiple gene expression matrices, weighted by batch size</td>
+</tr>
+<tr>
+<td><code>batchelor</code></td>
+<td><a href="https://rdrr.io/bioc/batchelor/man/fastMNN.html"><code>fastMNN()</code></a></td>
+<td>Fast mutual nearest neighbors correction</td>
+<td>Perform integration on an SCE object with mutual nearest neighbors using the <code>fastMNN</code> algorithm, returning an SCE object with batch-corrected principal components</td>
+</tr>
+<tr>
+<td><code>harmony</code></td>
+<td><a href="https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html"><code>HarmonyMatrix()</code></a></td>
+<td>Perform <code>harmony</code> integration on a matrix</td>
+<td>Perform integration with <code>harmony</code> on either a matrix of principle components or gene expression, returning a matrix of batch-corrected principal components</td>
+</tr>
+</tbody>
+</table>
+<h2 id="pheatmap-and-enhancedvolcano"><code>pheatmap</code> and <code>EnhancedVolcano</code></h2>
+<p>Read the <a href="https://rdrr.io/cran/pheatmap/"><code>pheatmap</code> package documentation</a>.</p>
+<p>Read the <a href="https://rdrr.io/bioc/EnhancedVolcano/"><code>EnhancedVolcano</code> package documentation</a>, and <a href="https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html">vignette on its usage</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Library/Package</th>
+<th>Piece of Code</th>
+<th>What it's called</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pheatmap</code></td>
+<td><a href="https://rdrr.io/cran/pheatmap/man/pheatmap.html"><code>pheatmap()</code></a></td>
+<td>Pretty heatmap</td>
+<td>Plot a (pretty!) clustered heatmap</td>
+</tr>
+<tr>
+<td><code>EnhancedVolcano</code></td>
+<td><a href="https://rdrr.io/bioc/EnhancedVolcano/man/EnhancedVolcano.html"><code>EnhancedVolcano()</code></a></td>
+<td>Enhanced volcano</td>
+<td>Plot a volcano plot to visualize differential expression analysis results</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tidyverse-functions"><code>tidyverse</code> functions</h2>
+<h3 id="purrr-functions"><code>purrr</code> functions</h3>
+<p>Read the <a href="https://purrr.tidyverse.org/"><code>purrr</code> package documentation</a> and a <a href="https://purrr.tidyverse.org/articles/base.html">vignette on its usage</a>, and download the <a href="https://github.com/rstudio/cheatsheets/raw/main/purrr.pdf"><code>purr</code> package cheatsheet</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Library/Package</th>
+<th>Piece of Code</th>
+<th>What it's called</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>purrr</code></td>
+<td><a href="https://purrr.tidyverse.org/reference/map.html"><code>map()</code></a></td>
+<td>map</td>
+<td>Apply a function across each element of list; return a list</td>
+</tr>
+<tr>
+<td><code>purrr</code></td>
+<td><a href="https://purrr.tidyverse.org/reference/imap.html"><code>imap()</code></a></td>
+<td>imap</td>
+<td>Apply a function across each element of list and its index/names; return a list</td>
+</tr>
+<tr>
+<td><code>purrr</code></td>
+<td><a href="https://purrr.tidyverse.org/reference/map2.html"><code>map2()</code></a></td>
+<td>map2</td>
+<td>Apply a function across each element of two lists at a time; return a list</td>
+</tr>
+<tr>
+<td><code>purrr</code></td>
+<td><a href="https://purrr.tidyverse.org/reference/reduce.html"><code>reduce()</code></a></td>
+<td>Reduce</td>
+<td>Reduce a list to a single value by applying a given function</td>
+</tr>
+</tbody>
+</table>
+<p>Note that <code>purrr::map()</code> functions can take advantage of R's new (as of version 4.1.0) <a href="https://rdrr.io/r/base/function.html">anonymous function syntax</a>:</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># One-line syntax:</span>
+\(x) <span class="hljs-comment"># function code goes here #</span>
+
+<span class="hljs-comment"># Multi-line syntax:</span>
+\(x) {
+  <span class="hljs-comment"># function code goes      #</span>
+  <span class="hljs-comment"># inside the curly braces #</span>
+}
+
+<span class="hljs-comment"># Example: Use an anonymous function with `purrr::map()`</span>
+<span class="hljs-comment"># to get the colData's rownames for each SCE in `list_of_sce_objects`</span>
+purrr::map(
+  list_of_sce_objects,
+  \(x) rownames(colData(x))
+)
+</div></code></pre>
+<h3 id="ggplot2-functions"><code>ggplot2</code> functions</h3>
+<p>Read the <a href="https://ggplot2.tidyverse.org/"><code>ggplot2</code> package documentation</a> and an <a href="https://ggplot2.tidyverse.org/reference/index.html">overall reference for <code>ggplot2</code> functions</a>, and download the <a href="https://github.com/rstudio/cheatsheets/raw/main/data-visualization.pdf"><code>ggplot2</code> package cheatsheet</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Library/Package</th>
+<th>Piece of Code</th>
+<th>What it's called</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ggplot2</code></td>
+<td><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html"><code>geom_bar()</code></a></td>
+<td>Barplot</td>
+<td>Creates a barplot of counts for a given categorical variable when added as a layer to a <code>ggplot()</code> object</td>
+</tr>
+<tr>
+<td><code>ggplot2</code></td>
+<td><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html"><code>scale_fill_brewer()</code></a></td>
+<td>Add brewer fill scale</td>
+<td>Apply a Brewer &quot;fill&quot; color palette to a categorical variable in a <code>ggplot()</code> object</td>
+</tr>
+<tr>
+<td><code>ggplot2</code></td>
+<td><a href="https://ggplot2.tidyverse.org/reference/guides.html"><code>guides()</code></a></td>
+<td>Guides</td>
+<td>Function to customize legend (&quot;guide&quot;) appearance</td>
+</tr>
+<tr>
+<td><code>ggplot2</code></td>
+<td><a href="https://ggplot2.tidyverse.org/reference/facet_grid.html"><code>facet_grid()</code></a></td>
+<td>Facet grid</td>
+<td>Plot individual panels using specified variables to subset the data across rows and/or columns of a grid</td>
+</tr>
+<tr>
+<td><code>ggplot2</code></td>
+<td><a href="https://ggplot2.tidyverse.org/reference/vars.html"><code>vars()</code></a></td>
+<td>Vars</td>
+<td>Helper function to specify variables to <code>facet_grid()</code> or <code>facet_wrap()</code></td>
+</tr>
+<tr>
+<td><code>ggplot2</code></td>
+<td><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html"><code>theme_bw()</code></a></td>
+<td>Black and white theme</td>
+<td>Display <code>ggplot</code> with gridlines but a white background</td>
+</tr>
+<tr>
+<td><code>ggplot2</code></td>
+<td><a href="https://ggplot2.tidyverse.org/reference/theme.html"><code>theme()</code></a></td>
+<td>Theme</td>
+<td>Customize elements of a <code>ggplot</code> plot theme</td>
+</tr>
+<tr>
+<td><code>ggplot2</code></td>
+<td><a href="https://ggplot2.tidyverse.org/reference/element.html"><code>element_text()</code></a></td>
+<td>Element text</td>
+<td>Customize textual elements of a <code>ggplot</code> theme</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dplyr-tidyrstringr-and-tibble-functions"><code>dplyr</code>, <code>tidyr</code>,<code>stringr</code>, and <code>tibble</code> functions</h3>
+<p>Read the full documentation and download cheatsheets (where available) for these <code>tidyverse</code> packages at the following links:</p>
+<ul>
+<li><a href="https://dplyr.tidyverse.org/"><code>dplyr</code> documentation</a> and <a href="https://github.com/rstudio/cheatsheets/raw/main/data-transformation.pdf"><code>dplyr</code> cheatsheet</a></li>
+<li><a href="https://tidyr.tidyverse.org/"><code>tidyr</code> documentation</a> and <a href="https://github.com/rstudio/cheatsheets/raw/main/tidyr.pdf"><code>tidyr</code> cheatsheet</a></li>
+<li><a href="https://stringr.tidyverse.org/"><code>stringr</code> documentation</a> and <a href="https://github.com/rstudio/cheatsheets/raw/main/strings.pdf"><code>stringr</code> cheatsheet</a></li>
+<li><a href="https://tibble.tidyverse.org/"><code>tibble</code> documentation</a></li>
+</ul>
+<br>
+<table>
+<thead>
+<tr>
+<th>Library/Package</th>
+<th>Piece of Code</th>
+<th>What it's called</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dplyr</code></td>
+<td><a href="https://dplyr.tidyverse.org/reference/pull.html"><code>pull()</code></a></td>
+<td>Pull</td>
+<td>Extract a single column from a data frame into a stand-alone vector</td>
+</tr>
+<tr>
+<td><code>dplyr</code></td>
+<td><a href="https://dplyr.tidyverse.org/reference/count.html"><code>count()</code></a></td>
+<td>Count</td>
+<td>Count the number of observations in each group of a data frame</td>
+</tr>
+<tr>
+<td><code>dplyr</code></td>
+<td><a href="https://dplyr.tidyverse.org/reference/left_join.html"><code>left_join()</code></a></td>
+<td>Left join</td>
+<td>Joins two data frames together, retaining only rows present in the first (&quot;left&quot;) argument to the function</td>
+</tr>
+<tr>
+<td><code>dplyr</code></td>
+<td><a href="https://dplyr.tidyverse.org/reference/relocate.html"><code>relocate()</code></a></td>
+<td>Relocate</td>
+<td>Change column order in a data frame by relocating one or more columns</td>
+</tr>
+<tr>
+<td><code>dplyr</code></td>
+<td><a href="https://dplyr.tidyverse.org/reference/case_when.html"><code>case_when()</code></a></td>
+<td>Case when</td>
+<td>Return a value based on a set of <code>TRUE</code>/<code>FALSE</code> comparisons; a vectorized <code>if-else</code></td>
+</tr>
+<tr>
+<td><code>tidyr</code></td>
+<td><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html"><code>pivot_longer()</code></a></td>
+<td>Pivot longer</td>
+<td>Convert a &quot;wide&quot; format data frame to a &quot;long&quot; format data frame</td>
+</tr>
+<tr>
+<td><code>tibble</code></td>
+<td><a href="https://tibble.tidyverse.org/reference/as_tibble.html"><code>as_tibble()</code></a></td>
+<td>As tibble</td>
+<td>Convert an object to a tibble</td>
+</tr>
+<tr>
+<td><code>stringr</code></td>
+<td><a href="https://stringr.tidyverse.org/reference/str_detect.html"><code>str_detect()</code></a></td>
+<td>String detect</td>
+<td>Returns <code>TRUE</code>/<code>FALSE</code> if a string contains a given substring</td>
+</tr>
+<tr>
+<td><code>stringr</code></td>
+<td><a href="https://stringr.tidyverse.org/reference/str_starts.html"><code>str_starts()</code></a></td>
+<td>String starts</td>
+<td>Returns <code>TRUE</code>/<code>FALSE</code> if a string starts with a given substring</td>
+</tr>
+</tbody>
+</table>
+<div style="page-break-after: always;"></div>
+<h2 id="seurat-and-sce-object-conversion"><code>Seurat</code> and <code>SCE</code> object conversion</h2>
+<p>When converting between <code>Seurat</code> and <code>SCE</code> objects, it's helpful to know how the different object types store and refer to similar information.<br>
+The table below shows different aspects of single-cell objects and how to access the associated data, assuming the default names for each type of single-cell object.<br>
+There are several differences between <code>Seurat</code> and <code>SCE</code> objects that are useful to be aware of when converting them.<br>
+Importantly, the term <code>&quot;assay&quot;</code> refers to different things in <code>SCE</code> vs. <code>Seurat</code> objects:</p>
+<ul>
+<li>In an <code>SCE</code> object, an <code>assay</code> is a matrix of counts, with default names <code>&quot;counts&quot;</code> for raw counts and <code>&quot;logcounts&quot;</code> for normalized counts.</li>
+<li>In a <code>Seurat</code> object, an <code>assay</code> instead refers to an <em>experiment</em>. The default <code>Seurat</code> assay is called <code>&quot;RNA&quot;</code>, and it is analogous to the &quot;main experiment&quot; in an <code>SCE</code> object, which is not given a particular name.</li>
+<li>The <code>Seurat</code> count matrices are stored within a given assay (experiment) and have default names of <code>&quot;counts&quot;</code> for raw counts and <code>&quot;data&quot;</code> for normalized counts.<br>
+In addition, by default, <code>SCE</code> reduced dimension names are capitalized (e.g., <code>&quot;PCA&quot;</code>), and <code>Seurat</code> reduced dimension names are in lower case (e.g., <code>&quot;pca&quot;</code>).<br>
+Always bear in mind that your object(s) may be named differently from the defaults as described here!</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Data aspect</th>
+<th><code>SCE</code></th>
+<th><code>Seurat</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Raw counts matrix</td>
+<td><code>counts(sce_object)</code></td>
+<td><code>seurat_obj[[&quot;RNA&quot;]]@counts</code></td>
+</tr>
+<tr>
+<td>Normalized counts matrix</td>
+<td><code>logcounts(sce_object)</code></td>
+<td><code>seurat_obj[[&quot;RNA&quot;]]@data</code></td>
+</tr>
+<tr>
+<td>Reduced dimension: PCA matrix</td>
+<td><code>reducedDim(sce_object, &quot;PCA)</code></td>
+<td><code>seurat_obj$pca@cell.embeddings</code></td>
+</tr>
+<tr>
+<td>Reduced dimension: UMAP matrix</td>
+<td><code>reducedDim(sce_object, &quot;UMAP)</code></td>
+<td><code>seurat_obj$umap@cell.embeddings</code></td>
+</tr>
+<tr>
+<td>Cell-level metadata</td>
+<td><code>colData(sce_object)</code></td>
+<td><code>seurat_obj@meta.data</code></td>
+</tr>
+<tr>
+<td>Feature (gene)-level metadata</td>
+<td><code>rowData(sce_object)</code></td>
+<td><code>seurat_obj[[&quot;RNA&quot;]]@meta.features</code></td>
+</tr>
+<tr>
+<td>Miscellaneous additional metadata</td>
+<td><code>metadata(sce_object)</code></td>
+<td><code>seurat_obj@misc</code></td>
+</tr>
+</tbody>
+</table>
+<p>The <code>Seurat</code> documentation provides a <a href="https://satijalab.org/seurat/articles/conversion_vignette.html">vignette about converting objects</a> between <code>SCE</code> and <code>Seurat</code> formats, as well as other <code>Seurat</code> format conversions.</p>
+<p>Below, we provide some code examples below for how you can accomplish these conversions.<br>
+For all code examples below, it is assumed that the <code>SingleCellExperiment</code> library has been loaded into your R environment:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">library</span>(SingleCellExperiment)
+</div></code></pre>
+<h3 id="converting-from-seurat-to-sce">Converting from <code>Seurat</code> to <code>SCE</code></h3>
+<p>The following example code assumes you have a <code>Seurat</code> object called <code>seurat_obj</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># Convert Seurat object to SCE object</span>
+sce_object &lt;- Seurat::as.SingleCellExperiment(seurat_obj)
+</div></code></pre>
+<p>By default, all assays (experiments) present in the <code>Seurat</code> object will be ported into the new <code>SCE</code> object.<br>
+Recall, in <code>Seurat</code>, an assay refers to an <em>experiment</em> which may be associated with multiple count matrices.<br>
+To only specify that certain assays are retained, you can optionally provide the argument <code>assay</code> with <em><code>Seurat</code> assay names</em> to retain in the <code>SCE</code> object, for example:</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># Convert Seurat object to SCE object, retaining only the 'RNA' experiment (assay)</span>
+sce_object &lt;- Seurat::as.SingleCellExperiment(seurat_obj, assay = <span class="hljs-string">"RNA"</span>)
+</div></code></pre>
+<p>Specifying <code>assay</code> is mostly useful if there are alternative experiments, for example from CITE-Seq data, present in the <code>Seurat</code> object that you do not want to retain during <code>SCE</code> conversion.</p>
+<h3 id="converting-from-sce-to-seurat">Converting from <code>SCE</code> to <code>Seurat</code></h3>
+<p>The following example code assumes you are starting with an <code>SCE</code> object called <code>sce_object</code>.</p>
+<p>The function <code>Seurat::as.Seurat()</code> can be used to convert an <code>SCE</code> object into a <code>Seurat</code> object and takes the following arguments:</p>
+<ul>
+<li>The <code>SCE</code> object to convert</li>
+<li>Optional named arguments with the following defaults:
+<ul>
+<li><code>counts = &quot;counts&quot;</code> specifies that the <code>SCE</code> object contains a <code>&quot;counts&quot;</code> assay of normalized counts that should be included during conversion.
+<ul>
+<li>If there is no <code>&quot;counts&quot;</code> assay in the SCE object, set this argument as <code>counts = NULL</code> or rename accordingly, e.g. <code>counts = &quot;whatever_assay_name_you_are_using&quot;</code>.</li>
+</ul>
+</li>
+<li><code>data = &quot;logcounts&quot;</code> specifies that the <code>SCE</code> object contains a <code>&quot;logcounts&quot;</code> assay of normalized counts that should be included during conversion.
+<ul>
+<li>If there is no <code>&quot;logcounts&quot;</code> assay in the SCE object, set this argument as <code>data = NULL</code> or rename accordingly, e.g. <code>data = &quot;whatever_assay_name_you_are_using&quot;</code>.</li>
+</ul>
+</li>
+<li><code>assay = NULL</code> specifies that, by default, all assays (experiments) will be converted.</li>
+<li><code>project = &quot;SingleCellExperiment&quot;</code> specifies that the <code>Seurat</code> object being created will have this associated project name. You can override this with any string of interest, e.g. <code>project = &quot;sample_XYZ&quot;</code>.</li>
+</ul>
+</li>
+</ul>
+<pre class="hljs"><code><div><span class="hljs-comment"># Convert SCE object to Seurat object, assuming both</span>
+<span class="hljs-comment">#  `counts` and  `logcounts` assays are present</span>
+seurat_object &lt;- Seurat::as.Seurat(sce_object)
+
+<span class="hljs-comment"># Convert SCE object to Seurat object, where the SCE object</span>
+<span class="hljs-comment">#  contains a `counts` but not a `logcounts` assay</span>
+seurat_object &lt;- Seurat::as.Seurat(sce_object, data = <span class="hljs-literal">NULL</span>)
+</div></code></pre>
+<h4 id="approaches-from-scpca">Approaches from <code>ScPCA</code></h4>
+<p>In addition, this <a href="https://scpca.readthedocs.io/en/latest/faq.html#what-if-i-want-to-use-seurat-instead-of-bioconductor">documentation from the <code>ScPCA</code></a> introduces how to convert <code>SCE</code> objects to <code>Seurat</code> objects.<br>
+Although this documentation was written for <code>ScPCA</code> datasets, the steps generally apply to any <code>SCE</code> object.<br>
+It's worth noting that the example code provided at that link will only retain a single assay (raw <code>&quot;counts&quot;</code>) in the new <code>SCE</code> object, and it will not retain reduced dimension representations (e.g., PCA or UMAP).<br>
+Therefore, this example code is mostly useful at the early stages of processing before you have performed normalization and calculated reduced dimensions.</p>
+
+</body>
+</html>

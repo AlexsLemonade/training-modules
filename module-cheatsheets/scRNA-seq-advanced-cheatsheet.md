@@ -167,27 +167,32 @@ Read the full documentation and download cheatsheets (where available) for these
 
 
 
+<div style="page-break-after: always;"></div>
 
 
 ## `Seurat` and `SCE` object conversion
 
 When converting between `Seurat` and `SCE` objects, it's helpful to know how the different object types store and refer to similar information.
 The table below shows different aspects of single-cell objects and how to access the associated data, assuming the default names for each type of single-cell object.
-Importantly, these default names may not be the same - for example, `SCE` refers to normalized counts as `"logcounts"`, but `Seurat` refers to normalized counts as `"data"`.
-The table below additionally assumes that the `Seurat` object assay of interest is named `"RNA"`, which is the default assay name that `Seurat` assigns.
+There are several differences between `Seurat` and `SCE` objects that are useful to be aware of when converting them.
+Importantly, the term `"assay"` refers to different things in `SCE` vs. `Seurat` objects:
+  - In an `SCE` object, an `assay` is a matrix of counts, with default names `"counts"` for raw counts and `"logcounts"` for normalized counts.
+  - In a `Seurat` object, an `assay` instead refers to an _experiment_. The default `Seurat` assay is called `"RNA"`, and it is analogous to the "main experiment" in an `SCE` object, which is not given a particular name.
+  - The `Seurat` count matrices are stored within a given assay (experiment) and have default names of `"counts"` for raw counts and `"data"` for normalized counts.
+
+In addition, by default, `SCE` reduced dimension names are capitalized (e.g., `"PCA"`), and `Seurat` reduced dimension names are in lower case (e.g., `"pca"`).
+
+Always bear in mind that your object(s) may be named differently from the defaults as described here!
 
 | Data aspect | `SCE` | `Seurat` |
 |------------|---------|---------|
-| Raw counts assay | `counts(sce_object)` | `seurat_obj[["RNA"]]@counts` |
-| Normalized counts assay | `logcounts(sce_object)` | `seurat_obj[["RNA"]]@data` |
+| Raw counts matrix | `counts(sce_object)` | `seurat_obj[["RNA"]]@counts` |
+| Normalized counts matrix | `logcounts(sce_object)` | `seurat_obj[["RNA"]]@data` |
 | Reduced dimension: PCA matrix | `reducedDim(sce_object, "PCA)` | `seurat_obj$pca@cell.embeddings` |
 | Reduced dimension: UMAP matrix | `reducedDim(sce_object, "UMAP)` | `seurat_obj$umap@cell.embeddings` |
 | Cell-level metadata | `colData(sce_object)` | `seurat_obj@meta.data` |
 | Feature (gene)-level metadata | `rowData(sce_object)` | `seurat_obj[["RNA"]]@meta.features`|
 | Miscellaneous additional metadata | `metadata(sce_object)` | `seurat_obj@misc`|
-
-
-The `Seurat` documentation provides a [vignette about converting objects](https://satijalab.org/seurat/articles/conversion_vignette.html) between `SCE` and `Seurat` formats, as well as other `Seurat` format conversions.
 
 Below, we provide some code examples below for how you can accomplish these conversions.
 For all code examples below, it is assumed that the `SingleCellExperiment` library has been loaded into your R environment:
@@ -195,6 +200,9 @@ For all code examples below, it is assumed that the `SingleCellExperiment` libra
 ```r
 library(SingleCellExperiment)
 ```
+
+<div style="page-break-after: always;"></div>
+
 
 ### Converting from `Seurat` to `SCE`
 
@@ -205,9 +213,17 @@ The following example code assumes you have a `Seurat` object called `seurat_obj
 sce_object <- Seurat::as.SingleCellExperiment(seurat_obj)
 ```
 
-By default, all assays present in the `Seurat` object will be ported into the new `SCE` object.
-To only specify that certain assays are retained, you can optionally provide the argument `assays`, as in: `assays = c("assays", "to", "keep")`.
+By default, all assays (experiments) present in the `Seurat` object will be ported into the new `SCE` object.
+Recall, in `Seurat`, an assay refers to an _experiment_ which may be associated with multiple count matrices.
+To only specify that certain assays are retained, you can optionally provide the argument `assay` with _`Seurat` assay names_ to retain in the `SCE` object, for example:
 
+
+```r
+# Convert Seurat object to SCE object, retaining only the 'RNA' experiment (assay)
+sce_object <- Seurat::as.SingleCellExperiment(seurat_obj, assay = "RNA")
+```
+
+Specifying `assay` is mostly useful if there are alternative experiments, for example from CITE-Seq data, present in the `Seurat` object that you do not want to retain during `SCE` conversion.
 
 ### Converting from `SCE` to `Seurat`
 
@@ -221,8 +237,7 @@ The function `Seurat::as.Seurat()` can be used to convert an `SCE` object into a
     - If there is no `"counts"` assay in the SCE object, set this argument as `counts = NULL` or rename accordingly, e.g. `counts = "whatever_assay_name_you_are_using"`.
   - `data = "logcounts"` specifies that the `SCE` object contains a `"logcounts"` assay of normalized counts that should be included during conversion.
     - If there is no `"logcounts"` assay in the SCE object, set this argument as `data = NULL` or rename accordingly, e.g. `data = "whatever_assay_name_you_are_using"`.
-  - `assay = NULL` specifies that, by default, all assays will be converted.
-    - To specify that an additional assay besides `"counts"` or `"logcounts"` should be converted, include it here as in `assay = "additional_assay_name"`.
+  - `assay = NULL` specifies that, by default, all assays (experiments) will be converted. If there are multiple assays and you wish to only convert, for example, the `"RNA"` assay, set this argument as `assay = "RNA"`.
   - `project = "SingleCellExperiment"` specifies that the `Seurat` object being created will have this associated project name. You can override this with any string of interest, e.g. `project = "sample_XYZ"`.
 
 
@@ -234,28 +249,11 @@ seurat_object <- Seurat::as.Seurat(sce_object)
 # Convert SCE object to Seurat object, where the SCE object
 #  contains a `counts` but not a `logcounts` assay
 seurat_object <- Seurat::as.Seurat(sce_object, data = NULL)
-
-
 ```
 
 #### Approaches from `ScPCA`
 
 In addition, this [documentation from the `ScPCA`](https://scpca.readthedocs.io/en/latest/faq.html#what-if-i-want-to-use-seurat-instead-of-bioconductor) introduces how to convert `SCE` objects to `Seurat` objects.
 Although this documentation was written for `ScPCA` datasets, the steps generally apply to any `SCE` object.
-
-We also offer a conversion function `sce_to_seurat()` as part of our [`scpcaTools()` package](https://github.com/AlexsLemonade/scpcaTools/), which holds utilities used in the `ScPCA` workflow.
-Again, although this function was written to convert `SCE` objects from `ScPCA`, it should generally work for most `SCE` objects, although it will only retain a single assay (raw `"counts"`) in the new `SCE` object, and it will not retain reduced dimension representations (e.g., PCA or UMAP).
-Therefore, this function is mostly useful at the early stages of processing before you have normalized counts and and calculated reduced dimensions.
-
-You can obtain this package using the `remotes` package, which may also need to be installed first:
-
-```r
-# Install `remotes`, as needed:
-install.packages("remotes")
-
-# Install the current version of `scpcaTools`
-remotes::install_github("AlexsLemonade/scpcaTools")
-
-# Now, you can use the function for conversion:
-seurat_object <- scpcaTools::sce_to_seurat(sce_object)
-```
+It's worth noting that the example code provided at that link will only retain a single assay (raw `"counts"`) in the new `SCE` object, and it will not retain reduced dimension representations (e.g., PCA or UMAP).
+Therefore, this example code is mostly useful at the early stages of processing before you have performed normalization and calculated reduced dimensions.
