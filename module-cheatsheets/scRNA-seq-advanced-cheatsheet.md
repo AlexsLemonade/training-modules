@@ -171,15 +171,30 @@ Read the full documentation and download cheatsheets (where available) for these
 
 ## `Seurat` and `SCE` object conversion
 
-The `Seurat` documentation provides a [vignette about converting objects](https://satijalab.org/seurat/articles/conversion_vignette.html) between `SCE` and `Seurat` formats.
+When converting between `Seurat` and `SCE` objects, it's helpful to know how the different object types store and refer to similar information.
+The table below shows different aspects of single-cell objects and how to access the associated data, assuming the default names for each type of single-cell object.
+Importantly, these default names may not be the same - for example, `SCE` refers to normalized counts as `"logcounts"`, but `Seurat` refers to normalized counts as `"data"`.
+The table below additionally assumes that the `Seurat` object assay of interest is named `"RNA"`, which is the default assay name that `Seurat` assigns.
 
-In addition, we provide some code examples below for how you can accomplish these conversions.
+| Data aspect | `SCE` | `Seurat` |
+|------------|---------|---------|
+| Raw counts assay | `counts(sce_object)` | `seurat_obj[["RNA"]]@counts` |
+| Normalized counts assay | `logcounts(sce_object)` | `seurat_obj[["RNA"]]@data` |
+| Reduced dimension: PCA matrix | `reducedDim(sce_object, "PCA)` | `seurat_obj$pca@cell.embeddings` |
+| Reduced dimension: UMAP matrix | `reducedDim(sce_object, "UMAP)` | `seurat_obj$umap@cell.embeddings` |
+| Cell-level metadata | `colData(sce_object)` | `seurat_obj@meta.data` |
+| Feature (gene)-level metadata | `rowData(sce_object)` | `seurat_obj[["RNA"]]@meta.features`|
+| Miscellaneous additional metadata | `metadata(sce_object)` | `seurat_obj@misc`|
+
+
+The `Seurat` documentation provides a [vignette about converting objects](https://satijalab.org/seurat/articles/conversion_vignette.html) between `SCE` and `Seurat` formats, as well as other `Seurat` format conversions.
+
+Below, we provide some code examples below for how you can accomplish these conversions.
 For all code examples below, it is assumed that the `SingleCellExperiment` library has been loaded into your R environment:
 
 ```r
 library(SingleCellExperiment)
 ```
-
 
 ### Converting from `Seurat` to `SCE`
 
