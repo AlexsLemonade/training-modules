@@ -221,6 +221,7 @@ seurat_object <- Seurat::as.Seurat(sce_object)
 
 In addition, this [documentation from the `ScPCA`](https://scpca.readthedocs.io/en/latest/faq.html#what-if-i-want-to-use-seurat-instead-of-bioconductor) introduces how to convert `SCE` objects to `Seurat` objects.
 Although this documentation was written for `ScPCA` datasets, the steps generally apply to any `SCE` object.
+
 We also offer a conversion function `sce_to_seurat()` as part of our [`scpcaTools()` package](https://github.com/AlexsLemonade/scpcaTools/), which holds utilities used in the `ScPCA` workflow.
 Again, although this function was written to convert `SCE` objects from `ScPCA`, it should generally work for most `SCE` objects, although it will only retain a single assay (raw `"counts"`) in the new `SCE` object, and it will not retain reduced dimension representations (e.g., PCA or UMAP).
 Therefore, this function is mostly useful at the early stages of processing before you have normalized counts and and calculated reduced dimensions.
@@ -234,6 +235,6 @@ install.packages("remotes")
 # Install the current version of `scpcaTools`
 remotes::install_github("AlexsLemonade/scpcaTools")
 
-# Now, you can use the function, specifying the argument `assay` for which
+# Now, you can use the function for conversion:
 seurat_object <- scpcaTools::sce_to_seurat(sce_object)
 ```
