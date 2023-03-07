@@ -172,10 +172,9 @@ Read the full documentation and download cheatsheets (where available) for these
 The `Seurat` documentation provides a [vignette about converting objects](https://satijalab.org/seurat/articles/conversion_vignette.html) between `SCE` and `Seurat` formats.
 
 In addition, we provide some code examples below for how you can accomplish these conversions.
-For all code examples below, it is assumed that `SingleCellExperiment` and `Seurat` libraries have been loaded in your R environment:
+For all code examples below, it is assumed that the `SingleCellExperiment` library has been loaded into your R environment:
 
 ```r
-library(Seurat)
 library(SingleCellExperiment)
 ```
 
@@ -185,9 +184,8 @@ library(SingleCellExperiment)
 The following example code assumes you have a `Seurat` object called `seurat_obj`.
 
 ```r
-# Convert Seurat object to SCE object using the
-#  Seurat function `as.SingleCellExperiment()
-sce_object <- as.SingleCellExperiment(seurat_obj)
+# Convert Seurat object to SCE object
+sce_object <- Seurat::as.SingleCellExperiment(seurat_obj)
 ```
 
 Alternatively, you can extract individual slots from the `Seurat` object and build your `SCE` object from scratch.
@@ -196,7 +194,7 @@ For example, to obtain an SCE object that contains only the raw counts stored in
 
 ```r
 # First, extract the counts matrix from the Seurat object
-counts_matrix <- GetAssayData(seurat_obj[["RNA"]])
+counts_matrix <- Seurat::GetAssayData(seurat_obj[["RNA"]])
 
 # Create an SCE object from the counts matrix
 sce_object <- SingleCellExperiment(assays = list(counts = counts_matrix))
@@ -211,10 +209,9 @@ We provide `"RNA"` as the argument to `assay`, as this `Seurat`'s default name f
 
 ```r
 # Create seurat object from the existing `sce_object`'s counts matrix,
-#  using the Seurat function `CreateSeuratObject`
-seurat_object <- CreateSeuratObject(counts = counts(sce_object),
-                                    assay = "RNA",
-                                    project = "name of your project goes here")
+seurat_object <- Seueat::CreateSeuratObject(counts = counts(sce_object),
+                                            assay = "RNA",
+                                            project = "name of your project goes here")
 ```
 
 For further conversion steps, please see the [associated `ScPCA` documentation](https://scpca.readthedocs.io/en/latest/faq.html#what-if-i-want-to-use-seurat-instead-of-bioconductor).
