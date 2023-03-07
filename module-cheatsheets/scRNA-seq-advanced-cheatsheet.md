@@ -188,30 +188,44 @@ The following example code assumes you have a `Seurat` object called `seurat_obj
 sce_object <- Seurat::as.SingleCellExperiment(seurat_obj)
 ```
 
-Alternatively, you can extract individual slots from the `Seurat` object and build your `SCE` object from scratch.
-You can refer to the ["The `SingleCellExperiment` class" chapter in _Orchestrating Single Cell Analyses_](http://bioconductor.org/books/release/OSCA.intro/the-singlecellexperiment-class.html) for approaches to constructing `SCE` objects.
-For example, to obtain an SCE object that contains only the raw counts stored in the `Seurat` object's "RNA" assay:
+By default, all assays present in the `Seurat` object will be ported into the new `SCE` object.
+To only specify that certain assays are retained, you can optionally provide the argument `assays`, as in: `assays = c("assays", "to", "keep")`.
 
-```r
-# First, extract the counts matrix from the Seurat object
-counts_matrix <- Seurat::GetAssayData(seurat_obj[["RNA"]])
-
-# Create an SCE object from the counts matrix
-sce_object <- SingleCellExperiment(assays = list(counts = counts_matrix))
-```
 
 #### Converting from `SCE` to `Seurat`
 
 This [documentation from the `ScPCA`](https://scpca.readthedocs.io/en/latest/faq.html#what-if-i-want-to-use-seurat-instead-of-bioconductor) introduces how to convert `SCE` objects to `Seurat` objects.
-Although this documentation was written for `ScPCA` datasets, the steps generally apply to any `SCE object`.
+Although this documentation was written for `ScPCA` datasets, the steps generally apply to any `SCE` object.
 Briefly, here is how you can convert a `Seurat` to `SCE` object, focusing on porting over _assays_.
 We provide `"RNA"` as the argument to `assay`, as this `Seurat`'s default name for raw count matrices.
+
+The following example code assumes you have an `SCE` object called `sce_object`.
 
 ```r
 # Create seurat object from the existing `sce_object`'s counts matrix,
 seurat_object <- Seueat::CreateSeuratObject(counts = counts(sce_object),
                                             assay = "RNA",
                                             project = "name of your project goes here")
+
+#
 ```
 
 For further conversion steps, please see the [associated `ScPCA` documentation](https://scpca.readthedocs.io/en/latest/faq.html#what-if-i-want-to-use-seurat-instead-of-bioconductor).
+
+Alternatively, we offer a conversion function `sce_to_seurat()` as part of our [`scpcaTools()` package](https://github.com/AlexsLemonade/scpcaTools/), which holds utilities used in the `ScPCA` workflow.
+Again, although this function was written to convert `SCE` objects from `ScPCA`, it should generally work for most `SCE` objects.
+Importantly, it will only retain a single assay, the raw counts, in the new `SCE` object, and it will not retain reduced dimension representations (e.g., PCA or UMAP).
+Therefore, this function may be moslty useful at the early stages of processing before you have normalized counts and and calculated reduced dimensions.
+
+You can obtain this package using the `remotes` package, which may also need to be installed first:
+
+```r
+# Install `remotes`, as needed:
+install.packages("remotes")
+
+# Install the current version of `scpcaTools`
+remotes::install_github("AlexsLemonade/scpcaTools")
+
+# Now, you can use the function, specifying the argument `assay` for which
+seurat_object <- scpcaTools::sce_to_seurat(sce_object)
+```
