@@ -1,9 +1,9 @@
 # Advanced scRNA-seq Cheatsheet
 
-#### The tables below consist of valuable functions or commands that will help you through this module.
-#### Each table represents a different library/tool and its corresponding commands.
+### The tables below consist of valuable functions or commands that will help you through this module.
+### Each table represents a different library/tool and its corresponding commands.
 
-##### You may also be interested in the following additional cheatsheets:
+#### You may also be interested in the following additional cheatsheets:
 
 - Download the PDF for the [Introduction to R and Tidyverse cheatsheet](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.pdf)
 - Download the PDF for the [Introduction to Single-Cell RNA sequencing cheatsheet](https://github.com/AlexsLemonade/training-modules/raw/master/module-cheatsheets/scRNA-seq-cheatsheet.pdf)
@@ -30,12 +30,14 @@ If you have a different version of R or other R packages, the documentation may 
 - [`Seurat` and `SCE` object conversion](#seurat-and-sce-object-conversion)
   - [Converting from `Seurat` to `SCE`](#converting-from-seurat-to-sce)
   - [Converting from `SCE` to `Seurat`](#converting-from-sce-to-seurat)
+    - [Approaches from `ScPCA`](#approaches-from-scpca)
+
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
 <div style="page-break-after: always;"></div>
 
-### `scater`
+## `scater`
 
 Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
 
@@ -48,7 +50,7 @@ Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [
 | `scater`| [`plotExpression()`](https://rdrr.io/bioc/scater/man/plotExpression.html)| Plot expression | Plot expression values for all cells in a `SingleCellExperiment` object, using the `logcounts` assay by default|
 
 
-### `miQC`
+## `miQC`
 
 Read the [`miQC` package documentation](https://rdrr.io/github/greenelab/miQC/), and a [vignette on its usage](https://www.bioconductor.org/packages/release/bioc/vignettes/miQC/inst/doc/miQC.html).
 
@@ -62,7 +64,7 @@ Read the [`miQC` package documentation](https://rdrr.io/github/greenelab/miQC/),
 | `miQC`| [`plotFiltering()`](https://rdrr.io/github/greenelab/miQC/man/plotFiltering.html)| Plot filtering | Plot percent of mitochondrial reads against the number of unique genes found, coloring points based on whether they will be filtered out or not |
 
 
-### `batchelor` and `harmony`
+## `batchelor` and `harmony`
 
 Read the [`batchelor` package documentation](https://rdrr.io/cran/batchelor/), and a [vignette on its usage](https://rdrr.io/bioc/batchelor/f/vignettes/correction.Rmd).
 
@@ -75,7 +77,7 @@ Read the [`harmony` package documentation](https://rdrr.io/github/immunogenomics
 | `harmony`| [`HarmonyMatrix()`](https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html)| Perform `harmony` integration on a matrix | Perform integration with `harmony` on either a matrix of principle components or gene expression, returning a matrix of batch-corrected principal components  |
 
 
-### `pheatmap` and `EnhancedVolcano`
+## `pheatmap` and `EnhancedVolcano`
 Read the [`pheatmap` package documentation](https://rdrr.io/cran/pheatmap/).
 
 Read the [`EnhancedVolcano` package documentation](https://rdrr.io/bioc/EnhancedVolcano/), and [vignette on its usage](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
@@ -87,13 +89,13 @@ Read the [`EnhancedVolcano` package documentation](https://rdrr.io/bioc/Enhanced
 
 
 
-### `tidyverse` functions
+## `tidyverse` functions
 
 
 
-#### `purrr` functions
+### `purrr` functions
 
-Read the [`purrr` package documentation](https://purrr.tidyverse.org/) and a [vignette on its usage](https://purrr.tidyverse.org/articles/base.html), and download the [`purr` package cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/purrr.pdf).
+Read the [`purrr` package documentation](https://purrr.tidyverse.org/) and a [vignette on its usage](https://purrr.tidyverse.org/articles/base.html), and download the [`purr` package cheatsheet](https://github.com/rstudio/cheatsheets/raw/main/purrr.pdf).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -123,9 +125,9 @@ purrr::map(
 ```
 
 
-#### `ggplot2` functions
+### `ggplot2` functions
 
-Read the [`ggplot2` package documentation](https://ggplot2.tidyverse.org/) and an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html), and download the [`ggplot2` package cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/data-visualization.pdf).
+Read the [`ggplot2` package documentation](https://ggplot2.tidyverse.org/) and an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html), and download the [`ggplot2` package cheatsheet](https://github.com/rstudio/cheatsheets/raw/main/data-visualization.pdf).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
@@ -140,13 +142,13 @@ Read the [`ggplot2` package documentation](https://ggplot2.tidyverse.org/) and a
 
 
 
-#### `dplyr`, `tidyr`,`stringr`, and `tibble` functions
+### `dplyr`, `tidyr`,`stringr`, and `tibble` functions
 
 Read the full documentation and download cheatsheets (where available) for these `tidyverse` packages at the following links:
 
-- [`dplyr` documentation](https://dplyr.tidyverse.org/) and [`dplyr` cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/data-transformation.pdf)
-- [`tidyr` documentation](https://tidyr.tidyverse.org/) and [`tidyr` cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/tidyr.pdf)
-- [`stringr` documentation](https://stringr.tidyverse.org/) and [`stringr` cheatsheet](https://github.com/rstudio/cheatsheets/blob/main/strings.pdf)
+- [`dplyr` documentation](https://dplyr.tidyverse.org/) and [`dplyr` cheatsheet](https://github.com/rstudio/cheatsheets/raw/main/data-transformation.pdf)
+- [`tidyr` documentation](https://tidyr.tidyverse.org/) and [`tidyr` cheatsheet](https://github.com/rstudio/cheatsheets/raw/main/tidyr.pdf)
+- [`stringr` documentation](https://stringr.tidyverse.org/) and [`stringr` cheatsheet](https://github.com/rstudio/cheatsheets/raw/main/strings.pdf)
 - [`tibble` documentation](https://tibble.tidyverse.org/)
 
 <br>
@@ -165,10 +167,93 @@ Read the full documentation and download cheatsheets (where available) for these
 
 
 
+<div style="page-break-after: always;"></div>
 
 
-### `Seurat` and `SCE` object conversion
+## `Seurat` and `SCE` object conversion
 
-#### Converting from `Seurat` to `SCE`
+When converting between `Seurat` and `SCE` objects, it's helpful to know how the different object types store and refer to similar information.
+The table below shows different aspects of single-cell objects and how to access the associated data, assuming the default names for each type of single-cell object.
+There are several differences between `Seurat` and `SCE` objects that are useful to be aware of when converting them.
+Importantly, the term `"assay"` refers to different things in `SCE` vs. `Seurat` objects:
+  - In an `SCE` object, an `assay` is a matrix of counts, with default names `"counts"` for raw counts and `"logcounts"` for normalized counts.
+  - In a `Seurat` object, an `assay` instead refers to an _experiment_. The default `Seurat` assay is called `"RNA"`, and it is analogous to the "main experiment" in an `SCE` object, which is not given a particular name.
+  - The `Seurat` count matrices are stored within a given assay (experiment) and have default names of `"counts"` for raw counts and `"data"` for normalized counts.
 
-#### Converting from `SCE` to `Seurat`
+In addition, by default, `SCE` reduced dimension names are capitalized (e.g., `"PCA"`), and `Seurat` reduced dimension names are in lower case (e.g., `"pca"`).
+
+Always bear in mind that your object(s) may be named differently from the defaults as described here!
+
+| Data aspect | `SCE` | `Seurat` |
+|------------|---------|---------|
+| Raw counts matrix | `counts(sce_object)` | `seurat_obj[["RNA"]]@counts` |
+| Normalized counts matrix | `logcounts(sce_object)` | `seurat_obj[["RNA"]]@data` |
+| Reduced dimension: PCA matrix | `reducedDim(sce_object, "PCA)` | `seurat_obj$pca@cell.embeddings` |
+| Reduced dimension: UMAP matrix | `reducedDim(sce_object, "UMAP)` | `seurat_obj$umap@cell.embeddings` |
+| Cell-level metadata | `colData(sce_object)` | `seurat_obj@meta.data` |
+| Feature (gene)-level metadata | `rowData(sce_object)` | `seurat_obj[["RNA"]]@meta.features`|
+| Miscellaneous additional metadata | `metadata(sce_object)` | `seurat_obj@misc`|
+
+Below, we provide some code examples below for how you can accomplish these conversions.
+For all code examples below, it is assumed that the `SingleCellExperiment` library has been loaded into your R environment:
+
+```r
+library(SingleCellExperiment)
+```
+
+<div style="page-break-after: always;"></div>
+
+
+### Converting from `Seurat` to `SCE`
+
+The following example code assumes you have a `Seurat` object called `seurat_obj`.
+
+```r
+# Convert Seurat object to SCE object
+sce_object <- Seurat::as.SingleCellExperiment(seurat_obj)
+```
+
+By default, all assays (experiments) present in the `Seurat` object will be ported into the new `SCE` object.
+Recall, in `Seurat`, an assay refers to an _experiment_ which may be associated with multiple count matrices.
+To only specify that certain assays are retained, you can optionally provide the argument `assay` with _`Seurat` assay names_ to retain in the `SCE` object, for example:
+
+
+```r
+# Convert Seurat object to SCE object, retaining only the 'RNA' experiment (assay)
+sce_object <- Seurat::as.SingleCellExperiment(seurat_obj, assay = "RNA")
+```
+
+Specifying `assay` is mostly useful if there are alternative experiments, for example from CITE-Seq data, present in the `Seurat` object that you do not want to retain during `SCE` conversion.
+
+### Converting from `SCE` to `Seurat`
+
+The following example code assumes you are starting with an `SCE` object called `sce_object`.
+
+The function `Seurat::as.Seurat()` can be used to convert an `SCE` object into a `Seurat` object and takes the following arguments:
+
+- The `SCE` object to convert
+- Optional named arguments with the following defaults:
+  - `counts = "counts"` specifies that the `SCE` object contains a `"counts"` assay of normalized counts that should be included during conversion.
+    - If there is no `"counts"` assay in the SCE object, set this argument as `counts = NULL` or rename accordingly, e.g. `counts = "whatever_assay_name_you_are_using"`.
+  - `data = "logcounts"` specifies that the `SCE` object contains a `"logcounts"` assay of normalized counts that should be included during conversion.
+    - If there is no `"logcounts"` assay in the SCE object, set this argument as `data = NULL` or rename accordingly, e.g. `data = "whatever_assay_name_you_are_using"`.
+  - `assay = NULL` specifies that, by default, all assays (experiments) will be converted. If there are multiple assays and you wish to only convert, for example, the `"RNA"` assay, set this argument as `assay = "RNA"`.
+  - `project = "SingleCellExperiment"` specifies that the `Seurat` object being created will have this associated project name. You can override this with any string of interest, e.g. `project = "sample_XYZ"`.
+
+
+```r
+# Convert SCE object to Seurat object, assuming both
+#  `counts` and  `logcounts` assays are present
+seurat_object <- Seurat::as.Seurat(sce_object)
+
+# Convert SCE object to Seurat object, where the SCE object
+#  contains a `counts` but not a `logcounts` assay
+seurat_object <- Seurat::as.Seurat(sce_object, data = NULL)
+```
+
+#### Approaches from `ScPCA`
+
+In addition, this [documentation from the `ScPCA`](https://scpca.readthedocs.io/en/latest/faq.html#what-if-i-want-to-use-seurat-instead-of-bioconductor) introduces how to convert `SCE` objects to `Seurat` objects.
+Although this documentation was written for `ScPCA` datasets, the steps generally apply to any `SCE` object.
+It's worth noting that the example code provided at that link will only retain a single assay (raw `"counts"`) in the new `SCE` object, and it will not retain reduced dimension representations (e.g., PCA or UMAP).
+Therefore, this example code is mostly useful at the early stages of processing before you have performed normalization and calculated reduced dimensions.
