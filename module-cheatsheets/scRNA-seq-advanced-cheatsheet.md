@@ -169,7 +169,7 @@ Read the full documentation and download cheatsheets (where available) for these
 
 ### `Seurat` and `SCE` object conversion
 
-This [vignette](https://satijalab.org/seurat/articles/conversion_vignette.html) from the `Seurat` documentation explains how to convert between `SCE` and `Seurat` formats.
+The `Seurat` documentation provides a [vignette about converting objects](https://satijalab.org/seurat/articles/conversion_vignette.html) between `SCE` and `Seurat` formats.
 
 In addition, we provide some code examples below for how you can accomplish these conversions.
 For all code examples below, it is assumed that `SingleCellExperiment` and `Seurat` libraries have been loaded in your R environment:
@@ -208,6 +208,7 @@ This [documentation from the `ScPCA`](https://scpca.readthedocs.io/en/latest/faq
 Although this documentation was written for `ScPCA` datasets, the steps generally apply to any `SCE object`.
 Briefly, here is how you can convert a `Seurat` to `SCE` object, focusing on porting over _assays_.
 We provide `"RNA"` as the argument to `assay`, as this `Seurat`'s default name for raw count matrices.
+
 ```r
 # Create seurat object from the existing `sce_object`'s counts matrix,
 #  using the Seurat function `CreateSeuratObject`
