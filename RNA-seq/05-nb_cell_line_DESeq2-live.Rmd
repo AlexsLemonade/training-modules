@@ -2,8 +2,8 @@
 title: "Neuroblastoma Cell Line: Differential expression analysis with DESeq2"
 author: CCDL for ALSF
 date: 2021
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -19,7 +19,7 @@ This notebook will demonstrate how to:
 
 ---
 
-In this notebook, we'll perform an analysis to identify the genes that are differentially expressed in _MYCN_ amplified vs. nonamplified neuroblastoma cell lines. 
+In this notebook, we'll perform an analysis to identify the genes that are differentially expressed in _MYCN_ amplified vs. nonamplified neuroblastoma cell lines.
 
 These RNA-seq data are from [Harenza, _et al._ (2017)](https://doi.org/10.1038/sdata.2017.33).
 
@@ -28,7 +28,7 @@ More information about DESeq2 can be found in the [excellent vignette](https://b
 DESeq2 takes unnormalized counts or estimated counts and does the following:
 
 * [Estimates size factors](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/estimateSizeFactors)
-* [Estimates dispersion](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/estimateDispersions) 
+* [Estimates dispersion](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/estimateDispersions)
 * Negative binomial generalized linear model fitting and [Wald statistics](https://www.rdocumentation.org/packages/DESeq2/versions/1.12.3/topics/nbinomWaldTest)
 
 ![](diagrams/rna-seq_6.png)
@@ -36,9 +36,6 @@ DESeq2 takes unnormalized counts or estimated counts and does the following:
 ## Libraries and functions
 
 ```{r library}
-# magrittr pipe
-library(magrittr)
-
 # Load the DESeq2 library
 library(DESeq2)
 
@@ -79,7 +76,7 @@ We will also need a directory to store our plots.
 
 ```{r output-files}
 # RDS for the output of DESeq analysis
-deseq_file <- file.path(results_dir, 
+deseq_file <- file.path(results_dir,
                         "NB-cell_DESeq_amplified_v_nonamplified.RDS")
 
 # DESeq2 results table
@@ -124,7 +121,7 @@ Let's look at the `levels` of `status`.
 levels(gene_summarized$status)
 ```
 
-We can see that these are in alphabetical order, so "Amplified" samples would be the reference. 
+We can see that these are in alphabetical order, so "Amplified" samples would be the reference.
 We can use the `relevel()` function to remedy this.
 
 ```{r relevel}
@@ -141,7 +138,7 @@ gene_summarized$status <- relevel(gene_summarized$status, ref = "Nonamplified")
 #### DESeq Dataset creation
 
 ```{r ddset, live = TRUE}
-# Create a DESeq2 dataset from `gene_summarized` 
+# Create a DESeq2 dataset from `gene_summarized`
 # remember that `status` is the variable of interest here
 
 ```
@@ -150,7 +147,7 @@ gene_summarized$status <- relevel(gene_summarized$status, ref = "Nonamplified")
 
 ### Filtering low-expressed genes
 
-Genes that have very low counts are not likely to yield reliable differential expression results, so we will do some light [pre-filtering](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering). 
+Genes that have very low counts are not likely to yield reliable differential expression results, so we will do some light [pre-filtering](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering).
 We will keep only genes with total counts of at least 10 across all samples.
 
 ```{r filter_ddset}
@@ -162,7 +159,7 @@ ddset <- ddset[genes_to_keep, ]
 ### The `DESeq()` function
 
 We'll now use the wrapper function `DESeq()` to perform our differential expression analysis.
-As mentioned earlier, this performs a number of steps, including an [outlier removal procedure](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#approach-to-count-outliers). 
+As mentioned earlier, this performs a number of steps, including an [outlier removal procedure](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#approach-to-count-outliers).
 For this particular dataset, there is a pretty large number of outliers, which can be a bit of a red flag, but we will proceed for now.
 
 ```{r DESeq}
@@ -206,21 +203,21 @@ resultsNames(deseq_object)
 
 We are interested in the `status` coefficient, which is in position 2.
 
-There are a few options for the shrinkage estimation. 
+There are a few options for the shrinkage estimation.
 The default is `apeglm` ([Zhu _et al._ 2018](https://doi.org/10.1093/bioinformatics/bty895)), but we have found that this can be sensitive to extreme outliers, which are definitely a factor in this data set.
-So for this data set we will be using `ashr` ([Stephens 2017](https://doi.org/10.1093/biostatistics/kxw041)) 
+So for this data set we will be using `ashr` ([Stephens 2017](https://doi.org/10.1093/biostatistics/kxw041))
 
 ```{r lfc_shrink}
 # calculate shrunken log2 fold change estimates
 deseq_shrunken <- lfcShrink(deseq_object,
                             # the coefficient we want to reestimate
-                            coef = 2, 
+                            coef = 2,
                             # We will use `ashr` for estimation
                             type = "ashr"
                             )
 ```
 
-Let's compare the log2 fold change estimates from the two results tables by creating a plot. 
+Let's compare the log2 fold change estimates from the two results tables by creating a plot.
 
 First we will combine the results into a new data frame.
 
@@ -235,13 +232,13 @@ comparison_df <- data.frame(
 Now we can plot the original and shrunken log2 fold change values to see what happened after shrinkage.
 
 ```{r plot_comparison}
-ggplot(comparison_df, 
-       aes(x = lfc_original, 
-           y = lfc_shrunken, 
+ggplot(comparison_df,
+       aes(x = lfc_original,
+           y = lfc_shrunken,
            color = logmean)) +
   geom_point(alpha = 0.1) +
   theme_bw() +
-  scale_color_viridis_c() + 
+  scale_color_viridis_c() +
   coord_cartesian(xlim = c(-10,10), ylim = c(-10,10)) # zoom in on the middle
 ```
 
@@ -249,20 +246,20 @@ We will now do a bit of manipulation to store the results in a data frame and ad
 
 ```{r results_dataframe}
 # this is of class DESeqResults -- we want a data frame
-deseq_df <- deseq_shrunken %>%
+deseq_df <- deseq_shrunken |>
   # convert to a data frame
-  as.data.frame() %>%
+  as.data.frame() |>
   # the gene ids were stored as row names -- let's them a column for easy display
-  tibble::rownames_to_column(var = "gene_id") %>%
+  tibble::rownames_to_column(var = "gene_id") |>
   # add on the gene symbols from the original deseq object
   dplyr::mutate(gene_symbol = rowData(deseq_object)$gene_name)
 ```
 
-Let's print out the results table, sorted by log2 fold change. 
+Let's print out the results table, sorted by log2 fold change.
 The highest values should be genes more expressed in the _MYCN_ amplified cell lines.
 
 ```{r sorted_table, live = TRUE}
-# Print the table sorted by log2FoldChange 
+# Print the table sorted by log2FoldChange
 
 ```
 
@@ -273,7 +270,7 @@ readr::write_tsv(deseq_df, file = deseq_df_file)
 ```
 
 
-## Making a Volcano Plot 
+## Making a Volcano Plot
 
 With these shrunken effect sizes, we will draw a volcano plot, using the [`EnhancedVolcano` package](https://github.com/kevinblighe/EnhancedVolcano) to make it a bit easier.
 This package automatically color codes the points by cutoffs for both significance and fold change and labels many of the significant genes (subject to spacing).
