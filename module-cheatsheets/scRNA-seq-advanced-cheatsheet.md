@@ -67,7 +67,7 @@ Read the [`miQC` package documentation](https://rdrr.io/github/greenelab/miQC/),
 
 ## `SingleR`
 
-Read the [`SingleR` package documentation](https://rdrr.io/bioc/SingleR/), and a [eBook on its usage](http://bioconductor.org/books/release/SingleRBook/).
+Read the [`SingleR` package documentation](https://rdrr.io/bioc/SingleR/), and a [e-book on its usage](http://bioconductor.org/books/release/SingleRBook/).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|--------------------|---------------------|---------------|
