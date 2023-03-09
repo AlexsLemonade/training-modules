@@ -21,6 +21,7 @@ If you have a different version of R or other R packages, the documentation may 
 
 - [`scater`](#scater)
 - [`miQC`](#miqc)
+- [`SingleR`](#singler)
 - [`batchelor` and `harmony`](#batchelor-and-harmony)
 - [`pheatmap` and `EnhancedVolcano`](#pheatmap-and-enhancedvolcano)
 - [`tidyverse` functions](#tidyverse-functions)
@@ -62,6 +63,17 @@ Read the [`miQC` package documentation](https://rdrr.io/github/greenelab/miQC/),
 | `miQC`| [`plotMetrics()`](https://rdrr.io/github/greenelab/miQC/man/plotMetrics.html)| Plot metrics | Plot percent of mitochondrial reads against the number of unique genes found for each cell |
 | `miQC`| [`plotModel()`](https://rdrr.io/github/greenelab/miQC/man/plotModel.html)| Plot model | `miQC::plotMetics()` with the `miQC` fitted model overlaid |
 | `miQC`| [`plotFiltering()`](https://rdrr.io/github/greenelab/miQC/man/plotFiltering.html)| Plot filtering | Plot percent of mitochondrial reads against the number of unique genes found, coloring points based on whether they will be filtered out or not |
+
+
+## `SingleR`
+
+Read the [`SingleR` package documentation](https://rdrr.io/bioc/SingleR/), and a [eBook on its usage](http://bioconductor.org/books/release/SingleRBook/).
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `SingleR` | [`SingleR()`](https://rdrr.io/bioc/SingleR/man/SingleR.html) | Annotate scRNA-seq data | Combines the below "training" and classification functions into a single function to assign cell types to the cells in an SCE object using an annotated reference dataset |
+| `SingleR` | [`trainSingleR`](https://rdrr.io/bioc/SingleR/man/trainSingleR.html) | Train the SingleR classifier | Build a `SingleR` classifier model object from an annotated reference dataset |
+| `SingleR` | [`classifySingleR()`](https://rdrr.io/bioc/SingleR/man/classifySingleR.html) | Classify cells with SingleR | Use a `SingleR` model object to assign cell types to the cells in an SCE object |
 
 
 ## `batchelor` and `harmony`
