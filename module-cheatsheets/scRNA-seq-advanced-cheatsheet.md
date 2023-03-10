@@ -109,7 +109,7 @@ Read the [`DESeq2` package documentation](https://rdrr.io/bioc/DESeq2/), and a [
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|--------------------|---------------------|---------------|
-| `scater`| [`aggregateAcrossCells()`](https://rdrr.io/bioc/scuttle/man/aggregateAcrossCells.html)| Aggregate data across groups of cells | Sum counts for each combination of features across groups of cells, commonly used to _pseudo-bulk_ `SCE` counts |
+| `scuttle`| [`aggregateAcrossCells()`](https://rdrr.io/bioc/scuttle/man/aggregateAcrossCells.html)| Aggregate data across groups of cells | Sum counts for each combination of features across groups of cells, commonly used to _pseudo-bulk_ `SCE` counts |
 | `DESeq2`| [`DESeqDataSet()`](https://rdrr.io/bioc/DESeq2/man/DESeqDataSet.html)| DESeq Dataset | Create a `DESeq` object for input to differential expression analysis from a pseudo-bulked `SingleCellExperiment` object or a bulk `SummarizedExperiment` object |
 | `DESeq2`| [`estimateSizeFactors()`](https://rdrr.io/bioc/DESeq2/man/estimateSizeFactors.html)| Estimate size factors | Estimate size factors which are used to normalize counts for differential expression analysis  |
 | `DESeq2`| [`rlog()`](https://rdrr.io/bioc/DESeq2/man/rlog.html)| Apply a regularized log transformation | Log2-transform counts in a `DESeq`  object for differential expression analysis   |
