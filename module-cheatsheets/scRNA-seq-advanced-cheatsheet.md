@@ -102,7 +102,7 @@ Read the [`EnhancedVolcano` package documentation](https://rdrr.io/bioc/Enhanced
 
 
 
-## `DESeq2` and other differential expression functions
+## `DESeq2` and pseudobulking functions
 
 Read the [`DESeq2` package documentation](https://rdrr.io/bioc/DESeq2/), and a [vignette on its usage](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
 
@@ -110,7 +110,7 @@ Read the [`DESeq2` package documentation](https://rdrr.io/bioc/DESeq2/), and a [
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|--------------------|---------------------|---------------|
 | `scuttle`| [`aggregateAcrossCells()`](https://rdrr.io/bioc/scuttle/man/aggregateAcrossCells.html)| Aggregate data across groups of cells | Sum counts for each combination of features across groups of cells, commonly used to _pseudo-bulk_ `SCE` counts |
-| `DESeq2`| [`DESeqDataSet()`](https://rdrr.io/bioc/DESeq2/man/DESeqDataSet.html)| DESeq Dataset | Create a `DESeq` object for input to differential expression analysis from a pseudo-bulked `SingleCellExperiment` object or a bulk `SummarizedExperiment` object |
+| `DESeq2`| [`DESeqDataSet()`](https://rdrr.io/bioc/DESeq2/man/DESeqDataSet.html)| DESeq Dataset | Create a `DESeq` object from a pseudo-bulked `SingleCellExperiment` object or a bulk `SummarizedExperiment` object |
 | `DESeq2`| [`estimateSizeFactors()`](https://rdrr.io/bioc/DESeq2/man/estimateSizeFactors.html)| Estimate size factors | Estimate size factors which are used to normalize counts for differential expression analysis  |
 | `DESeq2`| [`rlog()`](https://rdrr.io/bioc/DESeq2/man/rlog.html)| Apply a regularized log transformation | Log2-transform counts in a `DESeq`  object for differential expression analysis   |
 | `DESeq2`| [`plotPCA()`](https://rdrr.io/bioc/DESeq2/man/plotPCA.html)| Sample PCA plot for transformed data | Plot sample PCA from a log-transformed `DESeq` object to check for batch effects  |
@@ -118,7 +118,7 @@ Read the [`DESeq2` package documentation](https://rdrr.io/bioc/DESeq2/), and a [
 | `DESeq2`| [`plotDispEsts()`](https://rdrr.io/bioc/DESeq2/man/plotDispEsts.html)|Plot dispersion estimates | Plot dispersion estimates from a fitted `DESeq` object to evaluate model fit |
 | `DESeq2`| [`results()`](https://rdrr.io/bioc/DESeq2/man/results.html) |Extract results from a `DESeq` analysis  | Extract results from a fitted `DESeq` object into a data frame |
 | `DESeq2`| [`resultsNames()`](https://rdrr.io/bioc/DESeq2/man/results.html) | Extract results names | Return coefficient names from a fitted `DESeq` object |
-| `DESeq2`| [`lfcShrink()`](https://rdrr.io/bioc/DESeq2/man/lfcShrink.html) | Shrink log2 fold changes | Add shrunken log2-fold changes to a results table produced by `DESeq2::results()` from a fitted `DESeq` object |
+| `DESeq2`| [`lfcShrink()`](https://rdrr.io/bioc/DESeq2/man/lfcShrink.html) | Shrink log2 fold changes | Add shrunken log2-fold changes to a results table produced by `DESeq2::results()` |
 
 
 ## `tidyverse` functions
