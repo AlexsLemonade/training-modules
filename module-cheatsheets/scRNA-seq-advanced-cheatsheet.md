@@ -21,6 +21,7 @@ If you have a different version of R or other R packages, the documentation may 
 
 - [`scater`](#scater)
 - [`miQC`](#miqc)
+- [`SingleR`](#singler)
 - [`batchelor` and `harmony`](#batchelor-and-harmony)
 - [`pheatmap` and `EnhancedVolcano`](#pheatmap-and-enhancedvolcano)
 - [`tidyverse` functions](#tidyverse-functions)
@@ -44,7 +45,7 @@ Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [
 <br>
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
-|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+|----------------------|--------------------|---------------------|---------------|
 | `scater`| [`plotReducedDim()`](https://rdrr.io/bioc/scater/man/plotReducedDim.html)| Plot reduced dimensions | Plot a given reduced dimension slot from a `SingleCellExperiment` object by its name |
 | `scater`| [`plotUMAP()`](https://rdrr.io/bioc/scater/man/plot_reddim.html)| Plot UMAP | Plot the "UMAP"-named reduced dimension slot from a `SingleCellExperiment` object |
 | `scater`| [`plotExpression()`](https://rdrr.io/bioc/scater/man/plotExpression.html)| Plot expression | Plot expression values for all cells in a `SingleCellExperiment` object, using the `logcounts` assay by default|
@@ -56,12 +57,23 @@ Read the [`miQC` package documentation](https://rdrr.io/github/greenelab/miQC/),
 
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
-|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+|----------------------|--------------------|---------------------|---------------|
 | `miQC`| [`mixtureModel()`](https://rdrr.io/github/greenelab/miQC/man/mixtureModel.html)| Mixture model | Fit a `miQC` mixture model to a `SingleCellExperiment` object for use in filtering |
 | `miQC`| [`filterCells()`](https://rdrr.io/github/greenelab/miQC/man/filterCells.html)| Filter cells | Filter cells from a `SingleCellExperiment` object based on a `miQC` model, returning a filtered `SingleCellExperiment` object |
 | `miQC`| [`plotMetrics()`](https://rdrr.io/github/greenelab/miQC/man/plotMetrics.html)| Plot metrics | Plot percent of mitochondrial reads against the number of unique genes found for each cell |
 | `miQC`| [`plotModel()`](https://rdrr.io/github/greenelab/miQC/man/plotModel.html)| Plot model | `miQC::plotMetics()` with the `miQC` fitted model overlaid |
 | `miQC`| [`plotFiltering()`](https://rdrr.io/github/greenelab/miQC/man/plotFiltering.html)| Plot filtering | Plot percent of mitochondrial reads against the number of unique genes found, coloring points based on whether they will be filtered out or not |
+
+
+## `SingleR`
+
+Read the [`SingleR` package documentation](https://rdrr.io/bioc/SingleR/), and an [e-book on its usage](http://bioconductor.org/books/release/SingleRBook/).
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `SingleR` | [`trainSingleR`](https://rdrr.io/bioc/SingleR/man/trainSingleR.html) | Train the SingleR classifier | Build a `SingleR` classifier model object from an annotated reference dataset |
+| `SingleR` | [`classifySingleR()`](https://rdrr.io/bioc/SingleR/man/classifySingleR.html) | Classify cells with SingleR | Use a `SingleR` model object to assign cell types to the cells in an `SCE` object |
+| `SingleR` | [`SingleR()`](https://rdrr.io/bioc/SingleR/man/SingleR.html) | Annotate scRNA-seq data | Combines `trainSingleR()` and `classifySingleR()` to assign cell types to an `SCE` object from an annotated reference dataset |
 
 
 ## `batchelor` and `harmony`
@@ -71,7 +83,7 @@ Read the [`batchelor` package documentation](https://rdrr.io/cran/batchelor/), a
 Read the [`harmony` package documentation](https://rdrr.io/github/immunogenomics/harmony/man/harmony.html), and a [vignette on its usage](https://cran.r-project.org/web/packages/harmony/vignettes/quickstart.html).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
-|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+|----------------------|--------------------|---------------------|---------------|
 | `batchelor`| [`MultiBatchPCA()`](https://rdrr.io/bioc/batchelor/man/multiBatchPCA.html)| Multi-batch PCA | Perform PCA across multiple gene expression matrices, weighted by batch size |
 | `batchelor`| [`fastMNN()`](https://rdrr.io/bioc/batchelor/man/fastMNN.html)| Fast mutual nearest neighbors correction | Perform integration on an SCE object with mutual nearest neighbors using the `fastMNN` algorithm, returning an SCE object with batch-corrected principal components |
 | `harmony`| [`HarmonyMatrix()`](https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html)| Perform `harmony` integration on a matrix | Perform integration with `harmony` on either a matrix of principle components or gene expression, returning a matrix of batch-corrected principal components  |
@@ -83,15 +95,13 @@ Read the [`pheatmap` package documentation](https://rdrr.io/cran/pheatmap/).
 Read the [`EnhancedVolcano` package documentation](https://rdrr.io/bioc/EnhancedVolcano/), and [vignette on its usage](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
-|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+|----------------------|--------------------|---------------------|---------------|
 | `pheatmap`| [`pheatmap()`](https://rdrr.io/cran/pheatmap/man/pheatmap.html)| Pretty heatmap | Plot a (pretty!) clustered heatmap |
 | `EnhancedVolcano`| [`EnhancedVolcano()`](https://rdrr.io/bioc/EnhancedVolcano/man/EnhancedVolcano.html)| Enhanced volcano | Plot a volcano plot to visualize differential expression analysis results |
 
 
 
 ## `tidyverse` functions
-
-
 
 ### `purrr` functions
 
