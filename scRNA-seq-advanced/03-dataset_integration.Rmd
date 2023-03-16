@@ -3,7 +3,7 @@ title: "Integrating scRNA-seq datasets"
 author: Data Lab for ALSF
 date: 2023
 output:
-  html_notebook: 
+  html_notebook:
     toc: true
     toc_depth: 3
     toc_float: true
@@ -34,8 +34,8 @@ To learn about integration, we'll have a look at four samples from the [`SCPCP00
 The particular libraries we'll integrate come from two rhabdomyosarcoma (RMS) patients, with two samples from each of two patients, all sequenced with 10Xv3 technology.
 Each library is from a separate biological sample.
 
-We'll be integrating these samples with two different tools, [`fastMNN`](http://www.bioconductor.org/packages/3.16/bioc/html/batchelor.html) ([Haghverdi _et al._ 2018](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ 2019](https://doi.org/10.1038/s41592-019-0619-0)). 
-Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed at the cell level. 
+We'll be integrating these samples with two different tools, [`fastMNN`](http://www.bioconductor.org/packages/3.16/bioc/html/batchelor.html) ([Haghverdi _et al._ 2018](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ 2019](https://doi.org/10.1038/s41592-019-0619-0)).
+Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed at the cell level.
 `fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about from this [vignette by Lun (2019)](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
 
@@ -47,7 +47,7 @@ This merged SCE can then be used for integration to obtain a formally batch-corr
 
 ```{r setup}
 # Load libraries
-library(ggplot2)  # plotting tools 
+library(ggplot2)  # plotting tools
 library(SingleCellExperiment) # work with SCE objects
 
 # Set the seed for reproducibility
@@ -69,7 +69,7 @@ These SCE objects, stored as RDS files, are available in the `data/rms/processed
 To begin, let's set up our directories and files:
 
 ```{r directories, live = TRUE}
-# Define directory where processed SCE object to be integrated are stored
+# Define directory where processed SCE objects to be integrated are stored
 input_dir <- file.path("data", "rms", "processed")
 
 # Define directory to save integrated SCE object to
@@ -92,7 +92,7 @@ dir(input_dir)
 ```
 
 We want to read in just four of these files, as listed previously.
-To read in these files, we could use the `readr::read_rds()` function (or the base R `readRDS()`) four times, once for each of the files. 
+To read in these files, we could use the `readr::read_rds()` function (or the base R `readRDS()`) four times, once for each of the files.
 We could also use a `for` loop, which is the approach that many programming languages would lean toward.
 A different and more modular coding approach to reading in these files (and more!) is to leverage the [`purrr`](https://purrr.tidyverse.org/) `tidyverse` package, which provides a convenient set of functions for operating on lists.
 You can read more about these functions and their power and utility in R in [Chapter 21 of _R for Data Science_](https://r4ds.had.co.nz/iteration.html#for-loops-vs.-functionals).
@@ -102,14 +102,14 @@ The general syntax for `purrr::map()` and friends is:
 
 ```
 # Syntax for using the map function:
-purrr::map(<input list or vector>, 
-           <function to apply to each item in the input>, 
-           <any additional arguments to the function can go here>, 
+purrr::map(<input list or vector>,
+           <function to apply to each item in the input>,
+           <any additional arguments to the function can go here>,
            <and also here if there are even more arguments, and so on>)
 ```
 
 
-The output from running `purr::map()` is always a list (but note that there are other `purrr::map()` relatives which return other object types, as you can read about in [the `purrr::map()` documentation](https://purrr.tidyverse.org/reference/index.html)).
+The output from running `purrr::map()` is always a list (but note that there are other `purrr::map()` relatives which return other object types, as you can read about in [the `purrr::map()` documentation](https://purrr.tidyverse.org/reference/index.html)).
 If this concept sounds a little familiar to you, that's because it probably is!
 Base R's `lapply()` function can provide similar utility, and the `purrr::map()` family of functions can (in part) be thought of as an alternative to some of the base R `apply` functions, with more consistent behavior.
 
@@ -118,7 +118,7 @@ Let's see a very simple example of `purrr::map()` in action, inspired by cancer 
 ```{r map example}
 # Define a list of cancer histologies
 histologies <- list(
-  "low-grade gliomas"  = c("SEGA", "PA", "GNG", "PXA"), 
+  "low-grade gliomas"  = c("SEGA", "PA", "GNG", "PXA"),
   "high-grade gliomas" = c("DMG", "DIPG"),
   "embryonal tumors"   = c("MB", "ATRT", "ETMR")
  )
@@ -145,7 +145,7 @@ paste("Welcome to the", org_name, "workshop on Advanced scRNA-seq!")
 We can use `glue::glue()` to accomplish the same goal with some different syntax:
 
 ```{r glue}
-# glue::glue takes a single string argument (only one set of quotes!), and 
+# glue::glue takes a single string argument (only one set of quotes!), and
 #  variables can easily be included inside {curly braces}
 glue::glue("Welcome to the {org_name} workshop on Advanced scRNA-seq!")
 ```
@@ -172,7 +172,7 @@ sample_names <- c("SCPCL000479",
 
 ```{r define sce_paths, live = TRUE}
 # Now, convert these to file paths: <input_dir>/<sample_name>.rds
-sce_paths <- file.path(input_dir, 
+sce_paths <- file.path(input_dir,
                        glue::glue("{sample_names}.rds")
 )
 # Print the sce_paths vector
@@ -187,7 +187,7 @@ The output from this code will still be a list, since that's what `purrr::map()`
 ```{r read sce paths, live = TRUE}
 # Use purrr::map() to read all files into a list at once
 sce_list <- purrr::map(
-  sce_paths, 
+  sce_paths,
   readr::read_rds
 )
 ```
@@ -213,8 +213,8 @@ sce_list
 ```
 
 If you look closely at the printed SCE objects, you may notice that they all contain `colData` table columns `celltype_fine` and `celltype_broad`.
-These columns (which we added to SCE objects during [pre-processing](https://github.com/AlexsLemonade/training-modules/tree/master/scRNA-seq-advanced/setup/rms)) contain putative _cell type annotations_ as assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003). 
-We will end up leveraging these cell type annotations to explore how successful our integration is; after integration, we expect cell types from different samples to group together, rather than being separated by batches. 
+These columns (which we added to SCE objects during [pre-processing](https://github.com/AlexsLemonade/training-modules/tree/master/scRNA-seq-advanced/setup/rms)) contain putative _cell type annotations_ as assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003).
+We will end up leveraging these cell type annotations to explore how successful our integration is; after integration, we expect cell types from different samples to group together, rather than being separated by batches.
 
 That said, the integration methods we will be applying _do not actually use_ these cell type annotations.
 If we have annotations, they are a helpful "bonus" for assessing the integration's success, but they are not part of the integration itself.
@@ -226,14 +226,14 @@ If we have annotations, they are a helpful "bonus" for assessing the integration
 
 
 Now that we have a list of processed SCE objects, we need to merge the objects into one overall SCE object for input to integration.
-A word of caution before we begin: **This merged SCE object is NOT an integrated SCE!** 
+A word of caution before we begin: **This merged SCE object is NOT an integrated SCE!**
 Merging SCEs does not perform any batch correction, but just reorganizes the data to allow us to proceed to integration next.
 
 To merge SCE objects, we do need to do some wrangling and bookkeeping to ensure compatibility and that we don't lose important information.
-Overall we'll want to take care of these items: 
+Overall we'll want to take care of these items:
 
 1. We should be able to trace sample-specific information back to the originating sample, including...
-    - Cell-level information: Which sample is each cell from? 
+    - Cell-level information: Which sample is each cell from?
     - Library-specific feature statistics, e.g., gene-level statistics for a given library found in `rowData`.
     Which sample is a given feature statistic from?
 2. SCE objects should contain the same genes: Each SCE object should have the same row names.
@@ -254,12 +254,12 @@ The best way to do this is simply to add a `colData` column with the sample info
 In addition, we want to pay some attention to the SCE object's column names (the cell ids), which must remain unique after merging since duplicate ids will cause an R error.
 In this case, the SCE column names are barcodes (which is usually but not always the case in SCE objects), which are only guaranteed to be unique _within_ a sample but may be repeated across samples.
 So, after merging, it's technically possible that multiple cells will have the same barcode.
-This would be a problem for two reasons: 
+This would be a problem for two reasons:
 First, the cell id would not be able to point us back to cell's originating sample.
 Second, it would literally cause an error in R, which does not allow duplicate column names.
 
 
-One way to ensure that cell ids remain unique even after merging is to actually modify them by _prepending_ the relevant sample name. 
+One way to ensure that cell ids remain unique even after merging is to actually modify them by _prepending_ the relevant sample name.
 For example, consider these barcodes for the `SCPCL000479` sample:
 
 ```{r barcodes}
@@ -269,7 +269,7 @@ colnames(sce_list$SCPCL000479) |>
   head()
 ```
 
-These ids will be updated `SCPCL000479-GGGACCTCAAGCGGAT`, `SCPCL000479-CACAGATAGTGAGTGC`, and so on, thereby ensuring fully unique ids for all cells across all samples.
+These ids will be updated to `SCPCL000479-GGGACCTCAAGCGGAT`, `SCPCL000479-CACAGATAGTGAGTGC`, and so on, thereby ensuring fully unique ids for all cells across all samples.
 
 #### Preserving sample information at the gene level
 
@@ -280,12 +280,12 @@ rowData(sce_list$SCPCL000479) |>
   head()
 ```
 
-Here, the rownames are Ensembl gene ids, and columns are `gene_symbol`, `mean`, and `detected`. 
-The `gene_symbol` column is general information about all genes, not specific to any library or experiment, but `mean` and `detected` are library-specific gene statistics. 
+Here, the rownames are Ensembl gene ids, and columns are `gene_symbol`, `mean`, and `detected`.
+The `gene_symbol` column is general information about all genes, not specific to any library or experiment, but `mean` and `detected` are library-specific gene statistics.
 So, `gene_symbol` does not need to be traced back to its originating sample, but `mean` and `detected` do.
-To this end, we can take a similar approach to what we'll do for cell ids: 
+To this end, we can take a similar approach to what we'll do for cell ids:
 We can change the sample-specific `rowData` column names by prepending the sample name.
-For example, rather than being called `mean`, this column will be named `SCPCL000478-mean` for the `SCPCL000478` sample.
+For example, rather than being called `mean`, this column will be named `SCPCL000479-mean` for the `SCPCL000479` sample.
 
 All our SCE objects have the same `rowData` columns (as we can see in the next chunk), so we'll perform this renaming across all SCEs.
 
@@ -298,7 +298,7 @@ purrr::map(sce_list,
 
 #### Ensuring that only shared genes are used
 
-The next step in ensuring SCE compatibility is to make sure they all contain the same genes, which are stored as the SCE object's row names (these names are also found the `rowData` slot's row names). 
+The next step in ensuring SCE compatibility is to make sure they all contain the same genes, which are stored as the SCE object's row names (these names are also found the `rowData` slot's row names).
 Here, those gene ids are unique Ensembl gene ids.
 
 We can use some `purrr` magic to quickly find the set of shared genes among our samples:
@@ -317,7 +317,7 @@ shared_genes <- sce_list |>
 head(shared_genes)
 ```
 
-In this case, we happen to know that all SCE objects we're working with already contained the same genes. 
+In this case, we happen to know that all SCE objects we're working with already contained the same genes.
 We do a quick-and-dirty check for this by looking at the number of rows across SCE objects, and we'll see that they are all the same:
 
 ```{r check shared genes, live = TRUE}
@@ -327,7 +327,7 @@ sce_list |>
 ```
 
 So, for our data, we will not have to subset to shared genes since they are already shared!
- 
+
 #### Ensuring matching columns in `colData`
 
 Finally, we'll need to have the same column names across all SCE `colData` tables, so let's look at all those column names.
@@ -342,7 +342,7 @@ It looks like the column names are all already matching among SCEs, so there's n
 
 ### Perform SCE merging
 
-As you can see, there's a lot of moving parts to consider! 
+As you can see, there's a lot of moving parts to consider!
 Again, these moving parts may (will!) differ for SCEs that you are working with, so you have to explore your own SCEs in depth to prepare for merging.
 
 Based on our exploration, here is a schematic of how one of the SCE objects will ultimately be modified into the final merged SCE:
@@ -361,25 +361,25 @@ format_sce <- function(sce, sample_name) {
   ## sce: An SCE object to format
   ## sample_name: The SCE object's name
   # This function returns a formatted SCE object.
-  
+
   ###### Ensure that we can identify the originating sample information ######
   # Add a column called `sample` that stores this information
   # This will be stored in `colData`
   sce$sample <- sample_name
-  
-  
+
+
   ###### Ensure cell ids will be unique ######
   # Update the SCE object column names (cell ids) by prepending `sample_name`
   colnames(sce) <- glue::glue("{sample_name}-{colnames(sce)}")
-        
-  
+
+
   ###### Ensure gene-level statistics can be identified in `rowData` ######
   # We want to rename the columns `mean` and `detected` to contain the `sample_name`
-  # Recall the names are: "gene_symbol", "mean", "detected"   
-  colnames(rowData(sce)) <- c("gene_symbol", 
+  # Recall the names are: "gene_symbol", "mean", "detected"
+  colnames(rowData(sce)) <- c("gene_symbol",
                               glue::glue("{sample_name}-mean"),
                               glue::glue("{sample_name}-detected"))
-  
+
   # Return the formatted SCE object
   return(sce)
 }
@@ -391,7 +391,7 @@ In our case, we want to run `format_sce()` over paired `sce_list` items and `sce
 ```{r format sces for merge, live = TRUE}
 # We can use `purrr::map2()` to loop over two list/vector arguments
 sce_list_formatted <- purrr::map2(
-  # Each "iteration" will march down the first two 
+  # Each "iteration" will march down the first two
   #  arguments `sce_list` and `names(sce_list)` in order
   sce_list,
   names(sce_list),
@@ -414,7 +414,7 @@ Following that structure, other SCE slots (`colData`, `rowData`, reduced dimensi
 Since we need to apply `cbind()` to a _list_ of objects, we need to use some slightly-gnarly syntax: We'll use the function `do.call()`, which allows the `cbind()` input to be a list of objects to combine.
 
 ```{r merges sces, live = TRUE}
-# Merge SCE objects 
+# Merge SCE objects
 merged_sce <- do.call(cbind, sce_list_formatted)
 
 # Print the merged_sce object
@@ -456,7 +456,7 @@ reducedDimNames(merged_sce)
 
 These represent the original dimension reductions that were performed on _each individual SCE_ before merging, but we actually need to calculate PCA (and UMAP for visualization) from the merged object directly.
 
-Why can't we use the sample-specific PCA and UMAP matrices? 
+Why can't we use the sample-specific PCA and UMAP matrices?
 Part of these calculations themselves involves scaling the raw data to center the mean.
 When samples are separately centered but plotting together, you will see samples "overlapping" in space, but this placement is actually just an artifact of the individual centering.
 In addition, the mathematical relationship between the original expression data and reduced dimension version of that data will differ across samples, meaning we can't interpret them all together.
@@ -478,7 +478,7 @@ As we see in this UMAP, all samples are centered at zero and all overlapping.
 This visual artifact can give the _incorrect impression_ that data is integrated - to be clear, this data is NOT integrated!
 
 For input to integration, we'll want the reduced dimension calculations to consider normalized gene expression values from all samples simultaneously.
-So we'll need to recalculate PCA (and UMAP for visualization) on the merged object. 
+So we'll need to recalculate PCA (and UMAP for visualization) on the merged object.
 We'll also save these new reduced dimensions with different names, `merged_PCA` and `merged_UMAP`, to distinguish them from already-present `PCA` and `UMAP`.
 
 First, as usual, we'll determine the high-variance genes to use for PCA from the `merged_sce` object.
@@ -506,7 +506,7 @@ This weighting ensures that all batches, which may have very different numbers o
 # Use batchelor to calculate PCA for merged_sce, considering only
 #  the high-variance genes
 # We'll need to include the argument `preserve.single = TRUE` to get
-#  a single matrix with all samples and not separate matries for each sample
+#  a single matrix with all samples and not separate matrices for each sample
 merged_pca <- batchelor::multiBatchPCA(merged_sce,
                                        subset.row = hv_genes,
                                        batch = merged_sce$sample,
@@ -528,7 +528,7 @@ merged_pca[[1]][1:5,1:5]
 We can now include this PCA matrix in our `merged_sce` object:
 
 ```{r add merged_pca, live = TRUE}
-# add PCA results to merged SCE object 
+# add PCA results to merged SCE object
 reducedDim(merged_sce, "merged_PCA") <- merged_pca[[1]]
 ```
 
@@ -587,7 +587,7 @@ Let's run it and save the result to a variable called `integrated_sce`.
 # integrate with fastMNN, again specifying only our high-variance genes
 integrated_sce <- batchelor::fastMNN(
   merged_sce,
-  batch = merged_sce$sample, 
+  batch = merged_sce$sample,
   subset.row = hv_genes
 )
 ```
@@ -601,7 +601,7 @@ integrated_sce
 
 There are couple pieces of information here of interest:
 
-- The `corrected` reduced dimension represents the batch-corrected PCA that `fastMNN` calculated. 
+- The `corrected` reduced dimension represents the batch-corrected PCA that `fastMNN` calculated.
 - The `reconstructed` assay represents the batch-corrected normalized expression values, which `fastMNN` "back-calculated" from the batch-corrected PCA (`corrected`).
 Generally speaking, these expression values are not stand-alone values that you should use for other applications like differential gene expression, as described in [_Orchestrating Single Cell Analyses_](http://bioconductor.org/books/3.16/OSCA.multisample/using-corrected-values.html).
 If the `subset.row` argument is provided (as it was here), only genes present in `subset.row` will be included in these reconstructed expression values, but this setting can be overridden so that all genes have reconstructed expression with the argument `correct.all = TRUE`.
@@ -618,8 +618,8 @@ Finally, we'll calculate UMAP from these corrected PCA matrix for visualization.
 ```{r calculate fastmnn umap, live = TRUE}
 # Calculate UMAP
 merged_sce <- scater::runUMAP(
-  merged_sce, 
-  dimred = "fastmnn_PCA", 
+  merged_sce,
+  dimred = "fastmnn_PCA",
   name = "fastmnn_UMAP"
 )
 ```
@@ -644,7 +644,7 @@ scater::plotReducedDim(merged_sce,
 ```
 
 This `fastmnn_UMAP` certainly looks different from the one we made from `merged_UMAP`!
-What different trends do you see? 
+What different trends do you see?
 Do all samples look "equally well" integrated, from a first look?
 
 Importantly, one reason that batches may still appear separated in the corrected UMAP is if they _should_ be separated - for example, maybe two batches contain very different cell types, have very different diagnoses, or may be from different patients.
@@ -654,22 +654,22 @@ Let's take a quick detour to see what kinds of cell types are in this data by ma
 
 ```{r explore celltypes}
 # Cell types are in the `celltype_broad` and `celltype_fine` columns
-merged_sce_df <- as.data.frame(colData(merged_sce)) 
+merged_sce_df <- as.data.frame(colData(merged_sce))
 
-# Use ggplot2 to make a barplot the cell types across samples 
-ggplot(merged_sce_df, 
-       aes(x = sample, 
+# Use ggplot2 to make a barplot the cell types across samples
+ggplot(merged_sce_df,
+       aes(x = sample,
            fill = celltype_broad)) +
   # Barplot of celltype proportions
-  geom_bar(position = "fill") + 
+  geom_bar(position = "fill") +
   # Use a CVD-friendly color scheme
   scale_fill_brewer(palette = "Dark2", na.value = "grey80") +
   # nicer theme
-  theme_bw() 
+  theme_bw()
 ```
 
 We see that Tumor cell types are by far the most prevalent across all samples, and normal tissue cell types are not very common.
-We see also that `SCPCL000481` has a larger `Tumor_Myocyte` population, while all other samples have larger `Tumor_Mesoderm` populations. 
+We see also that `SCPCL000481` has a larger `Tumor_Myocyte` population, while all other samples have larger `Tumor_Mesoderm` populations.
 This difference _may_ explain why we observe that `SCPCL000481` is somewhat more separated from the other samples in the `fastMNN` UMAP.
 
 Let's re-plot this UMAP to highlight cell types:
@@ -705,7 +705,7 @@ scater::plotReducedDim(merged_sce,
   # Facet by sample
   facet_wrap(vars(sample)) +
   # Use a theme with background grid to more easily compare panel coordinates
-  theme_bw() 
+  theme_bw()
 ```
 
 What trends do you observe between tumor and healthy tissues among these integrated samples?
@@ -714,7 +714,7 @@ What trends do you observe between tumor and healthy tissues among these integra
 ### Integration with `harmony`
 
 `fastMNN` is only one of many approaches to perform integration, and different methods have different capabilities and may give different results.
-For example, some methods can accommodate additional covariates (e.g., technology, patient, diagnosis, etc.) that can influence integration. 
+For example, some methods can accommodate additional covariates (e.g., technology, patient, diagnosis, etc.) that can influence integration.
 In fact the data we are using has a known _patient_ covariate; `SCPCL000479` and `SCPCL000480` are from the first patient, and `SCPCL000481` and `SCPCL000482` are from the second patient.
 
 So, let's perform integration with a method that can use this information - [`harmony`](https://portals.broadinstitute.org/harmony/)!
@@ -727,8 +727,8 @@ The expressions are evaluated in order, stopping at the _first_ one that evaluat
 ```{r add patient info}
 # Create patient column with values "A" or "B" for the two patients
 merged_sce$patient <- dplyr::case_when(
-  merged_sce$sample %in% c("SCPCL000479", "SCPCL000480") ~ "A", 
-  merged_sce$sample %in% c("SCPCL000481", "SCPCL000482") ~ "B", 
+  merged_sce$sample %in% c("SCPCL000479", "SCPCL000480") ~ "A",
+  merged_sce$sample %in% c("SCPCL000481", "SCPCL000482") ~ "B",
 )
 ```
 
@@ -741,13 +741,13 @@ For input, `harmony` needs a couple pieces of information:
 - First, `harmony` can either take a matrix of normalized expression values, from which it will calculate a batch-weighted PCA matrix to integrate, or it can take a batch-weighted PCA matrix directly to perform integration.
 Since we already calculated a batch-weighted PCA matrix (our `merged_PCA` reduced dimension), we'll provide this information directly.
   - We will need to specify the additional argument `do_pca=FALSE` to tell `harmony` that the input matrix we provided already is a PCA matrix.
-- Second, we need to tell `harmony` about the covariates to use - `sample` and `patient`. 
+- Second, we need to tell `harmony` about the covariates to use - `sample` and `patient`.
 To do this, we provide two arguments:
-  - `meta_data`, a data frame that contains covariates across samples. 
+  - `meta_data`, a data frame that contains covariates across samples.
   We can simply specify the SCE `colData` here since it contains `sample` and `patient` columns.
   - `vars_use`, a vector of which column names in `meta_data` should actually be used as covariates.
   Other columns in `meta_data` which are not in `vars_use` are ignored.
-  
+
 Let's go!
 
 ```{r run harmony, live = TRUE}
@@ -777,8 +777,8 @@ We'll also calculate UMAP from it.
 reducedDim(merged_sce, "harmony_PCA") <- harmony_pca
 
 # As before, calculate UMAP on this PCA matrix with appropriate names
-merged_sce <- scater::runUMAP(merged_sce, 
-                              dimred = "harmony_PCA", 
+merged_sce <- scater::runUMAP(merged_sce,
+                              dimred = "harmony_PCA",
                               name   = "harmony_UMAP")
 ```
 
@@ -792,7 +792,7 @@ scater::plotReducedDim(merged_sce,
                        point_size = 0.5,
                        point_alpha = 0.2) +
   ggtitle("UMAP after integration with harmony") +
-  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) 
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1)))
 ```
 
 How do you think this `harmony` UMAP compares to that from `fastMNN` integration?
@@ -812,12 +812,12 @@ scater::plotReducedDim(merged_sce,
   facet_wrap(vars(sample))
 ```
 
-With the faceted view, we can now see that the small amounts of `Tumor_Myocyte` from other samples are "pulled" towards those cells in `SCPCL000481`. 
+With the faceted view, we can now see that the small amounts of `Tumor_Myocyte` from other samples are "pulled" towards those cells in `SCPCL000481`.
 
 What other patterns do you see that are similar or different from the `fastMNN` UMAP?
 How do you think `fastMNN` vs. `harmony` performed in integrating these samples?
 
-### Export 
+### Export
 
 Finally, we'll export the final SCE object with both `fastMNN` and `harmony` integration to a file.
 Since this object is very large (over 1 GB!), we'll export it to a file with some compression, which, in this case, will reduce the final size to a smaller ~360 MB.
@@ -825,7 +825,7 @@ This will take a couple minutes to save while compression is performed.
 
 ```{r save integration, live = TRUE}
 # Export to RDS file with "gz" compression
-readr::write_rds(merged_sce, 
+readr::write_rds(merged_sce,
                  integrated_sce_file,
                  compress = "gz")
 ```
