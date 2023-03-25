@@ -5,7 +5,6 @@
 # Input (path hardcoded): SRA run selector table txt file for SRP049821
 # Output (path hardcoded): a cleaned metadata TSV
 
-`%>%` <- dplyr::`%>%`
 data_dir <- "/shared/data/training-modules/RNA-seq/data/leukemia"
 
 # files
@@ -16,11 +15,11 @@ output_file <- file.path(data_dir, "SRP049821_metadata.tsv")
 
 # read, clean, write
 metadata <- readr::read_csv(input_file)
-metadata <- metadata %>%
+metadata <- metadata |>
   dplyr::select(Run, Experiment, `Sample Name`, BioSample, cell_sorting, Organism,
-                Cell_type, `genotype/variation`, Strain) %>%
-  dplyr::rename(sample_name = `Sample Name`, 
-                genotype_variation = `genotype/variation`) %>%
+                Cell_type, `genotype/variation`, Strain) |>
+  dplyr::rename(sample_name = `Sample Name`,
+                genotype_variation = `genotype/variation`) |>
   dplyr::mutate(cell_sorting = gsub("-", "neg",
-                                    gsub("\\+", "pos", cell_sorting))) %>%
+                                    gsub("\\+", "pos", cell_sorting))) |>
   readr::write_tsv(output_file)

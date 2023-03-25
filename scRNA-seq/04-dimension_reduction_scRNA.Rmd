@@ -3,7 +3,7 @@ title: "Dimension Reduction with scRNA-seq data"
 author: CCDL for ALSF
 date: 2021
 output:
-  html_notebook: 
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -12,22 +12,22 @@ output:
 
 This notebook will demonstrate how to:
 
-- Read Cell Ranger data into R 
+- Read Cell Ranger data into R
 - Filter post-quantification cells using `emptyDrops()`
 - Apply dimensionality reduction methods to single cell data
 - Visualize samples in reduced dimensional space
 
 ---
 
-In this notebook, we'll try out some dimension reduction techniques on single-cell RNA-seq data. 
+In this notebook, we'll try out some dimension reduction techniques on single-cell RNA-seq data.
 
 Visualizing highly dimensional data is a common challenge in genomics, and especially with RNA-seq data.
 The expression of every gene we look at is another dimension describing a sample.
-When we also have hundreds or thousands of individual samples, as in the case of single-cell analysis, figuring out how to clearly display all of the data in a meaningful way is difficult. 
+When we also have hundreds or thousands of individual samples, as in the case of single-cell analysis, figuring out how to clearly display all of the data in a meaningful way is difficult.
 
-A common practice is to common to use dimension reduction techniques so all of the data is in a more manageable form for plotting, clustering, and other downstream analyses. 
+A common practice is to common to use dimension reduction techniques so all of the data is in a more manageable form for plotting, clustering, and other downstream analyses.
 
-## Set Up 
+## Set Up
 
 ```{r setup}
 # Load libraries
@@ -35,16 +35,13 @@ library(ggplot2)
 library(scater)
 library(scran)
 
-# Magrittr pipe
-library(magrittr)
-
 # Setting the seed for reproducibility
 set.seed(12345)
 ```
 
 ### Directories and files
 
-The data we will be using for this module comes from a a 10X Genomics data set of expression data from a  Hodgkin's Lymphoma tumor. 
+The data we will be using for this module comes from a a 10X Genomics data set of expression data from a  Hodgkin's Lymphoma tumor.
 The data was generated with the 10Xv3.1 chemistry, and processed with Cell Ranger and 10X Genomics standard pipeline.
 https://support.10xgenomics.com/single-cell-gene-expression/datasets/4.0.0/Parent_NGSC3_DI_HodgkinsLymphoma
 
@@ -58,7 +55,7 @@ Cell Ranger does some filtering on its own, but we will start with the raw data.
 data_dir <- file.path("data", "hodgkins")
 
 # Path to the Cell Ranger matrix
-raw_matrix_dir <- file.path(data_dir, "cellranger", 
+raw_matrix_dir <- file.path(data_dir, "cellranger",
                             "raw_feature_bc_matrix")
 
 # Path to mitochondrial genes table
@@ -77,12 +74,12 @@ output_sce_file <- file.path(normalized_dir, "normalized_hodgkins_sce.rds")
 ## Reading Cell Ranger data
 
 Cell Ranger output includes count data in two main formats.
-The first is a folder with a feature list, a barcode list, and a sparse matrix in ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html). 
-The `DropletUtils::read10xCounts()` function takes this directory and reads in the data from these three files, assembling the `SingleCellExperiment` object we have worked with before. 
+The first is a folder with a feature list, a barcode list, and a sparse matrix in ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html).
+The `DropletUtils::read10xCounts()` function takes this directory and reads in the data from these three files, assembling the `SingleCellExperiment` object we have worked with before.
 
-Alternatively, we could use the `HDF5` format file that Cell Ranger outputs as a file with the `.h5` extension, which contains the same data. 
-For whatever reason, the way you read the data affects how it is stored in R. 
-Reading from the directory results in smaller objects in R, so that is what we will do here. 
+Alternatively, we could use the `HDF5` format file that Cell Ranger outputs as a file with the `.h5` extension, which contains the same data.
+For whatever reason, the way you read the data affects how it is stored in R.
+Reading from the directory results in smaller objects in R, so that is what we will do here.
 
 Cell Ranger also outputs both filtered and raw matrices; today we will start with the raw matrix and perform our own filtering.
 ![](diagrams/cellranger_1.png)
@@ -97,7 +94,7 @@ How many potential cells are there here?
 dim(hodgkins_sce)
 ```
 
-That is a lot of cells! 
+That is a lot of cells!
 In fact, it is really every possible barcode, whether there were reads associated with it or not.
 We should probably do something about that.
 
@@ -111,8 +108,8 @@ We will start by calculating the basic QC stats as we have done previously, addi
 The first step again is reading in our table of mitochondrial genes and finding the ones that were quantified our data set.
 
 ```{r mitogenes}
-mito_genes <- readr::read_tsv(mito_file) %>%
-  dplyr::filter(gene_id %in% rownames(hodgkins_sce)) %>%
+mito_genes <- readr::read_tsv(mito_file) |>
+  dplyr::filter(gene_id %in% rownames(hodgkins_sce)) |>
   dplyr::pull(gene_id)
 ```
 
@@ -121,7 +118,7 @@ Note that this is much slower than before, as we have many more genes in the unf
 
 ```{r calculateQC}
 hodgkins_sce <- scater::addPerCellQC(
-  hodgkins_sce, 
+  hodgkins_sce,
   subsets = list(mito = mito_genes))
 ```
 
@@ -134,14 +131,14 @@ dim(hodgkins_sce)
 
 ### Filtering with `emptyDrops()`
 
-The `DropletUtils` package that we used to read in the 10X data has a number of other useful features. 
-One is the `emptyDrops()` function, which uses the overall gene expression patterns in the sample to identify droplets that are likely to not contain an intact cell, but may simply have contained loose ambient RNA released during cell separation. 
+The `DropletUtils` package that we used to read in the 10X data has a number of other useful features.
+One is the `emptyDrops()` function, which uses the overall gene expression patterns in the sample to identify droplets that are likely to not contain an intact cell, but may simply have contained loose ambient RNA released during cell separation.
 
 This method, described in [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y), uses the droplets with very low UMI counts to estimate the "ambient" expression pattern of RNA content outside of cells.
 It then scores the remaining cells based how much they deviate from that pattern, assigning a small P value when the droplet's expression deviates from the ambient expression pattern.
 Because it uses the low UMI count droplets, this method should not be used when other filtering has already been performed (which is unfortunately the case with the version of `salmon alevin` we used).
 
-This method seems to perform well to exclude false "cells" while retaining cells with distinct expression profiles but low counts that might have failed a simple cutoff. 
+This method seems to perform well to exclude false "cells" while retaining cells with distinct expression profiles but low counts that might have failed a simple cutoff.
 Note that this method also requires that the data has already been quantified, with reads assigned to genes, as compared to a simple total UMI count filter which can be performed much earlier in the pipeline.
 
 The `emptyDrops()` function takes the `counts` matrix from our SingleCellExperiment, and returns a data frame with the statistics it calculated.
@@ -153,7 +150,7 @@ droplet_stats <- DropletUtils::emptyDrops(
   BPPARAM = BiocParallel::MulticoreParam(4)) # use multiprocessing
 ```
 
-We will use a false discovery rate (FDR) of 0.01 as our cutoff for "real" cells. 
+We will use a false discovery rate (FDR) of 0.01 as our cutoff for "real" cells.
 Since `emptyDrops()` uses low count cells to estimate the "ambient" expression pattern, those cells are not assigned an FDR value, and have a value of NA.
 These NAs can be a problem for filtering with a Boolean vector, as we did above, so instead we will use the `which()` function to get the *positions* of the cells that pass our filter and select the columns we want using that.
 
@@ -164,19 +161,19 @@ filtered_sce <- hodgkins_sce[, cells_to_retain]
 dim(filtered_sce)
 ```
 
-How does this compare to the number of cells in the Cell Ranger filtered data? 
+How does this compare to the number of cells in the Cell Ranger filtered data?
 Looking the `web_summary.html` report from Cell Ranger, it seems that it would have kept 3,394 cells, so we seem to be getting broadly similar results.
 
 ### Checking mitochondrial content
 
 While `emptyDrops()` should have filtered out droplets containing no cells, it will not necessarily filter out damaged cells.
-For that we will still want to look at mitochondrial content, as we did previously.  
+For that we will still want to look at mitochondrial content, as we did previously.
 The statistics we calculated earlier with `addPerCellQC()` are retained in our new object, so we can plot those directly.
 
 ```{r mito_percent_plot}
 # Plot the mitochondrial percents stored in `filtered_sce`
 ggplot(mapping = aes(x = filtered_sce$subsets_mito_percent)) +
-  geom_histogram(bins = 100) 
+  geom_histogram(bins = 100)
 ```
 There are certainly some cells with high mitochondrial percentages!
 For now, we will use a cutoff of 20% to filter out the worst of the cells.
@@ -186,7 +183,7 @@ filtered_sce <- filtered_sce[, filtered_sce$subsets_mito_percent < 20]
 ```
 
 
-We can also filter by features (genes in our case) using `scater::addPerFeatureQC()` which will compute the number of samples where each gene is detected and the mean count across all genes. 
+We can also filter by features (genes in our case) using `scater::addPerFeatureQC()` which will compute the number of samples where each gene is detected and the mean count across all genes.
 We can then use those data (stored in `rowData`) to filter by row to only the genes that are detected in at least 5% of cells, and with a mean count > 0.1.
 
 ```{r gene_qc}
@@ -198,7 +195,7 @@ expressed <- rowData(filtered_sce)$mean > 0.1
 filtered_sce <- filtered_sce[detected & expressed, ]
 ```
 
-How many cells do we have now? 
+How many cells do we have now?
 
 ```{r filtered_dim}
 dim(filtered_sce)
@@ -214,16 +211,16 @@ You might recall that there is a bit of randomness in some of these calculations
 # Cluster similar cells
 qclust <- scran::quickCluster(filtered_sce)
 
-# Compute sum factors for each cell cluster grouping.  
+# Compute sum factors for each cell cluster grouping.
 filtered_sce <- scran::computeSumFactors(filtered_sce, clusters = qclust)
 
-# Normalize and log transform. 
+# Normalize and log transform.
 normalized_sce <- scater::logNormCounts(filtered_sce)
 ```
 
 At this point, we have a few different versions of our `SingleCellExperiment` object.
 The original (mostly) unfiltered version is in `hodgkins_sce`, the filtered version in `filtered_sce`, and the normalized version in `normalized_sce`.
-We can clean those up a bit to save memory, keeping only the latest `normalized_sce` version, which now has two `assay`s: 
+We can clean those up a bit to save memory, keeping only the latest `normalized_sce` version, which now has two `assay`s:
 `counts` with the raw data and `logcounts` with the normalized and transformed data.
 
 ```{r clean_up, live = TRUE}
@@ -241,7 +238,7 @@ Principal component analysis (PCA) is a dimensionality reduction technique that 
 Our expression data can be thought of as mapping each sample in a multidimensional space defined by the expression level of each gene.
 The expression of many of those genes are correlated, so we can often get a better, simpler picture of the data by combining the information from those correlated genes.
 
-PCA rotates and transforms this space so that each axis is now a combination of multiple correlated genes, ordered so the first axes capture the most variation from the data. 
+PCA rotates and transforms this space so that each axis is now a combination of multiple correlated genes, ordered so the first axes capture the most variation from the data.
 These new axes are the "principal components."
 If we look at the first few components, we can often get a nice overview of relationships among the samples in the data.
 
@@ -292,14 +289,14 @@ plotReducedDim(normalized_sce, "PCA", ncomponents = c(3,4))
 
 ### Modeling variance
 
-The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about. 
-In order to roughly account for this we could just take the largest variance genes, on the assumption that low variance genes are mostly just noise. 
+The variation in gene expression we see among cells comes from a combination of variation due to technical effects and the biology we really care about.
+In order to roughly account for this we could just take the largest variance genes, on the assumption that low variance genes are mostly just noise.
 This is the default approach that `runPCA()` and `calculatePCA()` take, using the genes with the greatest variance across cells to calculate the PCA matrix.
 
 If we want to be a bit more careful about it, we can model the variance in expression of each gene as a function of the mean expression for that gene.
 This is useful because we generally expect the variance to increase as mean expression increases, even if there is no biological signal in the expression variation.
 
-We will do this modeling of variance by expression with the `scran::modelGeneVar()` function, saving the results to a new variable. 
+We will do this modeling of variance by expression with the `scran::modelGeneVar()` function, saving the results to a new variable.
 
 ```{r model_variance}
 gene_variance <- scran::modelGeneVar(normalized_sce)
@@ -312,14 +309,14 @@ We can add a function like that curve to a `ggplot` with a `stat_function` layer
 ```{r plot_variance}
 ggplot(as.data.frame(gene_variance), aes(x = mean, y = total)) +
   geom_point(alpha = 0.1) +
-  stat_function(fun = metadata(gene_variance)$trend, color = "blue") + 
+  stat_function(fun = metadata(gene_variance)$trend, color = "blue") +
   labs(
     x = "Mean log-expression",
     y = "Variance") +
   theme_bw()
 ```
 
-Now we can use `scran::getTopHVGs()` to select the genes that have the most biological variation (according to the model) and recalculate PCA scores using only those genes. 
+Now we can use `scran::getTopHVGs()` to select the genes that have the most biological variation (according to the model) and recalculate PCA scores using only those genes.
 (In practice, we are selecting the genes with the largest residual variation after removing technical variation modeled by the mean/variance relationship.)
 
 Here we are picking the 2000 top genes to match the number of genes from our earlier calculations.
@@ -332,7 +329,7 @@ normalized_sce <- runPCA(normalized_sce, subset_row = highvar_genes)
 ```
 
 Now we can plot our new PCA values for comparison.
-You might realize that our old PCA values were replaced when we ran `runPCA()` again, so we can't recreate the earlier plots at this stage of the notebook. 
+You might realize that our old PCA values were replaced when we ran `runPCA()` again, so we can't recreate the earlier plots at this stage of the notebook.
 You will have to scroll up to your earlier plots to compare.
 
 ```{r plotPCA_highvar, live = TRUE}
@@ -343,13 +340,13 @@ plotReducedDim(normalized_sce, "PCA", ncomponents = c(3,4))
 
 ### UMAP
 
-**UMAP** (Uniform Manifold Approximation and Projection) is a machine learning technique designed to provide more detail in highly dimensional data than a typical principal components analysis. 
-While PCA assumes that the variation we care about has a particular distribution (normal, broadly speaking), UMAP allows more complicated distributions that it learns from the data. 
+**UMAP** (Uniform Manifold Approximation and Projection) is a machine learning technique designed to provide more detail in highly dimensional data than a typical principal components analysis.
+While PCA assumes that the variation we care about has a particular distribution (normal, broadly speaking), UMAP allows more complicated distributions that it learns from the data.
 The underlying mathematics are beyond me, but if you are more ambitious than I, you can look at the paper by [McInnes, Healy, & Melville (2018)](https://arxiv.org/abs/1802.03426).
-The main advantage of this change in underlying assumptions is that UMAP can do a better job separating clusters, especially when some of those clusters may be more similar to each other than others.  
+The main advantage of this change in underlying assumptions is that UMAP can do a better job separating clusters, especially when some of those clusters may be more similar to each other than others.
 
-Another dimensionality reduction technique that you may have heard of is **t-SNE** (t-distributed Stochastic Neighbor Embedding), which has similar properties to UMAP, and often produces similar results. 
-There is some ongoing debate about which of these two techniques is superior, and whether the differences are due to the underlying algorithm or to implementation and parameter initialization defaults. 
+Another dimensionality reduction technique that you may have heard of is **t-SNE** (t-distributed Stochastic Neighbor Embedding), which has similar properties to UMAP, and often produces similar results.
+There is some ongoing debate about which of these two techniques is superior, and whether the differences are due to the underlying algorithm or to implementation and parameter initialization defaults.
 Regardless of why, in our experience, UMAP seems to produce slightly better results and run a bit faster, but the differences can be subtle.
 
 #### Default parameters
@@ -357,22 +354,22 @@ Regardless of why, in our experience, UMAP seems to produce slightly better resu
 For ease of use with this data, we will be using the `scater::calculateUMAP()` and `scater::runUMAP()` function to apply UMAP to our single cell data, but similar functions the `uwot` package (notably `uwot::umap()`) can be used to apply UMAP to any numerical matrix.
 
 UMAP can be slow for a large data set with lots of parameters.
-It is worth noting that the `scater::calculateUMAP()` implementation actually does PCA first, and then runs UMAP on the top 50 PCs. 
+It is worth noting that the `scater::calculateUMAP()` implementation actually does PCA first, and then runs UMAP on the top 50 PCs.
 If we have already calculated PCA (as we have) we can tell it to use those results with the `dimred` argument.
 
 As with PCA, there are two functions we could use:
-`scater::calculateUMAP()` will return a matrix of results, with one row for each sample, and a column for each of the UMAP dimensions returned. 
+`scater::calculateUMAP()` will return a matrix of results, with one row for each sample, and a column for each of the UMAP dimensions returned.
 `scater::runUMAP()` performs the same function, but returns the results in a SingleCellExperiment object.
 
 Let's see how it looks with the (mostly) default parameters:
 
 ```{r calculate_umap, live = TRUE}
 # Run UMAP
-normalized_sce <- runUMAP(normalized_sce, 
+normalized_sce <- runUMAP(normalized_sce,
                           dimred = "PCA") # use already stored PCA results
 ```
 
-Now we can plot with the same `plotReducedDim()` function, specifying we want to plot the UMAP results this time. 
+Now we can plot with the same `plotReducedDim()` function, specifying we want to plot the UMAP results this time.
 We will also add some color (colour) this time with the `colour_by` argument, using the number of genes detected in each cell to assign a hue.
 
 ```{r plot_umap, live = TRUE}
@@ -387,7 +384,7 @@ We will come back to this question later!
 
 ### UMAP experiments
 
-Now that we have an idea of what a UMAP plot with the default parameters looks like, let's try experimenting with the `n_neighbors` parameter. 
+Now that we have an idea of what a UMAP plot with the default parameters looks like, let's try experimenting with the `n_neighbors` parameter.
 First, we should see what this parameter is, and what the default value is.
 In the console, run `?scater::calculateUMAP` to see what this (and other parameters) are.
 For even more parameters, you can look at the underlying implementation code that `calculateUMAP()` uses, which is the function `uwot::umap()`
@@ -398,10 +395,10 @@ Here we are saving only a line of code, but we could apply this to a much more c
 ```{r UMAP-function}
 UMAP_plot_wrapper <- function(sce = normalized_sce, nn_param = 15) {
   # Purpose: Run UMAP and plot the output
-  # Args: nn_param: a single numeric argument that will change the 
-  #                 n_neighbors variable in the calculateUMAP() function. 
-  # Output: a scatterplot with the two UMAP coordinates plotted and 
-  #         cell-types labeled with data point colors. 
+  # Args: nn_param: a single numeric argument that will change the
+  #                 n_neighbors variable in the calculateUMAP() function.
+  # Output: a scatterplot with the two UMAP coordinates plotted and
+  #         cell-types labeled with data point colors.
 
   # Run UMAP with a specified n_neighbors parameter
   sce_umap <- scater::runUMAP(sce, dimred = "PCA", n_neighbors = nn_param)
@@ -419,12 +416,12 @@ UMAP_plot_wrapper(nn_param = 15)
 
 *Kind of?*
 
-This isn't your fault! 
-UMAP is a non-deterministic function, which means that there is a random component to the results. 
+This isn't your fault!
+UMAP is a non-deterministic function, which means that there is a random component to the results.
 We can use `set.seed()` to be sure that an individual run (or set of runs) is the same every time you run your analysis, but it is important to check your results a few times with different random starting points to be sure that the random component is not giving you anomalous results.
 Setting a different random number seed with `set.seed()` is one way to do this, or you can run the analysis multiple times in the same session, as we have done here.
 
-Fill in the next few code chunks with the function and the `n_neighbors` argument you would like to use for each. 
+Fill in the next few code chunks with the function and the `n_neighbors` argument you would like to use for each.
 (Feel free to add more tests!)
 Then run the chunks and compare your output graphs.
 
@@ -443,23 +440,23 @@ UMAP_plot_wrapper(nn_param = 100)
 UMAP_plot_wrapper(nn_param = 5)
 ```
 
-#### Some 'big picture' thoughts to take from this experiment: 
+#### Some 'big picture' thoughts to take from this experiment:
 
-1. Analyses such as UMAP have various limitations for interpretability. 
-The coordinates of UMAP output for any given cell can change dramatically depending on parameters, and even run to run with the same parameters. 
-This probably means that you shouldn't rely on the exact values of UMAP's output. 
+1. Analyses such as UMAP have various limitations for interpretability.
+The coordinates of UMAP output for any given cell can change dramatically depending on parameters, and even run to run with the same parameters.
+This probably means that you shouldn't rely on the exact values of UMAP's output.
 
-    - One particular limitation of UMAP (and t-SNE) is that while observed clusters have some meaning, the distance *between* clusters usually does not (nor does cluster density). 
-    The fact that two clusters are near each other should NOT be interpreted to mean that they are more related to each other than to more distant clusters. 
+    - One particular limitation of UMAP (and t-SNE) is that while observed clusters have some meaning, the distance *between* clusters usually does not (nor does cluster density).
+    The fact that two clusters are near each other should NOT be interpreted to mean that they are more related to each other than to more distant clusters.
     (There is some disagreement about whether UMAP distances have more meaning, but it is probably safer to assume they don't.)
 
 
-2. Playing with parameters so you can fine-tune them is a good way to give you more information about a particular analysis as well as the data itself. 
+2. Playing with parameters so you can fine-tune them is a good way to give you more information about a particular analysis as well as the data itself.
 
-3. Where results are consistent, they are more likely to have meaning. 
+3. Where results are consistent, they are more likely to have meaning.
 While we do not have labeled cell types in this case, there does seem to be some consistency of the overall patterns that we see (if not precise values), and this likely reflects biological information (or technical artifacts).
-   
-In summary, if the results of an analysis can be completely changed by changing its parameters, you should be more cautious when it comes to the conclusions you draw from it as well as having good rationale for the parameters you choose. 
+
+In summary, if the results of an analysis can be completely changed by changing its parameters, you should be more cautious when it comes to the conclusions you draw from it as well as having good rationale for the parameters you choose.
 
 ### t-SNE comparison
 
@@ -475,7 +472,7 @@ plotReducedDim(normalized_sce, "TSNE", colour_by = "detected")
 ```
 
 Different! (Slower!) Is it better or worse? Hard to say!
-Different people like different things, and one plot might illustrate a particular point better than another. 
+Different people like different things, and one plot might illustrate a particular point better than another.
 
 ## Save results
 
@@ -486,13 +483,13 @@ readr::write_rds(normalized_sce, file = output_sce_file)
 ```
 
 
-### Some further reading on dimension reduction:  
+### Some further reading on dimension reduction:
 
-- This website explains [PCA visually](http://setosa.io/ev/principal-component-analysis/).  
-- [Becht *et al.* (2018)](https://www.nature.com/articles/nbt.4314) discusses using [UMAP](https://github.com/lmcinnes/umap) for single-cell data.  
-- [Wattenberg *et al.* (2016)](https://distill.pub/2016/misread-tsne/) discuss how to use t-SNE properly with great visuals. 
+- This website explains [PCA visually](http://setosa.io/ev/principal-component-analysis/).
+- [Becht *et al.* (2018)](https://www.nature.com/articles/nbt.4314) discusses using [UMAP](https://github.com/lmcinnes/umap) for single-cell data.
+- [Wattenberg *et al.* (2016)](https://distill.pub/2016/misread-tsne/) discuss how to use t-SNE properly with great visuals.
 (The lessons apply to UMAP as well, with a broad substitution of the `n_neighbors` parameter for `perplexity`.)
-- [Nguyen & Holmes (2019)](https://journals.plos.org/ploscompbiol/article/file?id=10.1371/journal.pcbi.1006907&type=printable) lay out guidelines on choosing dimensions reduction methods.  
+- [Nguyen & Holmes (2019)](https://journals.plos.org/ploscompbiol/article/file?id=10.1371/journal.pcbi.1006907&type=printable) lay out guidelines on choosing dimensions reduction methods.
 - [Freitag (2019)](https://rpubs.com/Saskia/520216) is a nice explanation and comparison of many different dimensionality reduction techniques that you may encounter.
 
 

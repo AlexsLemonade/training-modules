@@ -2,8 +2,8 @@
 title: "OpenPBTA: Create a heatmap"
 author: CCDL for ALSF
 date: 2021
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -15,7 +15,7 @@ This notebook will demonstrate how to:
 
 - Load tabular expression data and prepare it for use with `DESeq2`
 - Create an annotated heatmap of gene expression variation using the `ComplexHeatmap` package
-- Customize a PCA plot and compare the output with hierarchical clustering of the same data 
+- Customize a PCA plot and compare the output with hierarchical clustering of the same data
 
 ---
 
@@ -49,7 +49,7 @@ library(ComplexHeatmap)
 
 ### Directories and files
 
-We have stored the data we'll use in this notebook in `data/open-pbta`. 
+We have stored the data we'll use in this notebook in `data/open-pbta`.
 
 ```{r directories, live = TRUE}
 data_dir <- file.path("data", "open-pbta")
@@ -74,18 +74,18 @@ rnaseq_file = file.path(data_dir, "pbta-rsem-expected_count-subset.rds")
 #### Output files
 
 ```{r png_output, live = TRUE}
-heatmap_file <- file.path(plots_dir, 
+heatmap_file <- file.path(plots_dir,
                           "common_histologies_high_variance_heatmap.png")
 ```
 
 ## Read in and prepare data
 
-### Metadata 
+### Metadata
 
 Let's read in the metadata file file and take a look at the data.
 
 ```{r read_rds, live = TRUE}
-histologies_df <- read_tsv(histologies_file)  
+histologies_df <- read_tsv(histologies_file)
 ```
 
 Use the chunk below to explore the metadata data frame.
@@ -98,11 +98,11 @@ We'll use the disease labels in a column called `short_histology` when we label 
 Let's count how many samples are assigned each `short_histology` label using the Tidyverse.
 
 ```{r count_histologies}
-histology_count_df <- histologies_df %>%
-  # Count how many samples are in each short_histology and name the column 
+histology_count_df <- histologies_df |>
+  # Count how many samples are in each short_histology and name the column
   # with that number n
-  count(short_histology) %>%
-  # Sort from largest number of samples to smallest number of samples in a 
+  count(short_histology) |>
+  # Sort from largest number of samples to smallest number of samples in a
   # histology
   arrange(desc(n))
 
@@ -120,16 +120,16 @@ rnaseq_exp <- read_rds(rnaseq_file)
 
 ### Convert and round
 
-The count data we have consists mostly of integers, but because of the estimation procedure that RSEM uses, some counts are fractional. 
-`DESeq2`, which we will be using below expects all integers, so we will round all of the count data. 
+The count data we have consists mostly of integers, but because of the estimation procedure that RSEM uses, some counts are fractional.
+`DESeq2`, which we will be using below expects all integers, so we will round all of the count data.
 This is easiest if we first convert from a data frame to a matrix.
 
 ```{r convert_round, live = TRUE}
-rnaseq_mat <- rnaseq_exp %>%
+rnaseq_mat <- rnaseq_exp |>
   # move gene_id to the rownames
-  tibble::column_to_rownames("gene_id") %>%
+  tibble::column_to_rownames("gene_id") |>
   # convert to a matrix and round
-  as.matrix() %>%
+  as.matrix() |>
   round()
 ```
 
@@ -145,7 +145,7 @@ all.equal(histologies_df$Kids_First_Biospecimen_ID,
           colnames(rnaseq_mat))
 ```
 
-Now we can make our matrix into a `DESeq2` dataset, adding on the sample information from `histologies_df`. 
+Now we can make our matrix into a `DESeq2` dataset, adding on the sample information from `histologies_df`.
 Unlike when we were performing differential expression analysis, we won't provide an experimental design at this stage.
 
 ```{r make-DESEq}
@@ -154,7 +154,7 @@ ddset <- DESeqDataSetFromMatrix(rnaseq_mat,
                                 design = ~ 1) # don't store an experimental design
 ```
 
-We will again remove low count genes, as they are not likely to be informative. 
+We will again remove low count genes, as they are not likely to be informative.
 
 ```{r trim}
 genes_to_keep <- rowSums(counts(ddset)) >= 10
@@ -188,7 +188,7 @@ This is because the genes that *don't* vary are not likely to contribute much to
 First, we'll calculate the variance for each gene using `rowVars()` from the `matrixStats` package and then take the genes in the top 10%.
 
 ```{r high_var_genes}
-# Calculate variance from the expression data 
+# Calculate variance from the expression data
 gene_variance <- matrixStats::rowVars(expr_mat)
 
 # Find the value that we'll use as a threshold to filter the top 10%
@@ -214,7 +214,7 @@ First, we'll set up the metadata that we want to use to label samples in the hea
 In `ComplexHeatmap` terminology, this is called annotation, or `HeatmapAnnotation`, specifically.
 
 ```{r sample_annotation_df}
-sample_annotation_df <- histologies_df %>%
+sample_annotation_df <- histologies_df |>
   # Select only the columns that we'll use
   select(Kids_First_Biospecimen_ID,
          short_histology,
@@ -224,10 +224,10 @@ sample_annotation_df <- histologies_df %>%
 # Let's examine these columns
 sample_annotation_df
 ```
-`ComplexHeatmap` is going to want the data frame we provide to have the sample identifiers as row names, so let's set that up. 
+`ComplexHeatmap` is going to want the data frame we provide to have the sample identifiers as row names, so let's set that up.
 
 ```{r annotation_as_df, live = TRUE}
-sample_annotation_df <- sample_annotation_df %>%
+sample_annotation_df <- sample_annotation_df |>
   tibble::column_to_rownames("Kids_First_Biospecimen_ID")
 ```
 
@@ -235,7 +235,7 @@ To specify the colors in our annotation bar, we need to create a list of named v
 The names of the list need to *exactly* match the column names in `sample_annotation_df` and the names in each vector need to *exactly* match the values in those columns.
 
 ```{r color_palettes}
-# The Okabe Ito palette is recommended for those with color vision deficiencies  
+# The Okabe Ito palette is recommended for those with color vision deficiencies
 histology_colors <- palette.colors(palette = "Okabe-Ito")[2:5]
 # `palette.colors()` returns a named vector, which can cause trouble
 histology_colors <- unname(histology_colors)
@@ -282,7 +282,7 @@ It's calculated for each value in a row (gene) by subtracting the gene's mean an
 This will result in every row having a mean of 0 and a standard deviation of 1.
 
 ```{r zscore}
-zscores_mat <- 
+zscores_mat <-
   (high_var_mat - rowMeans(high_var_mat)) / matrixStats::rowSds(high_var_mat)
 ```
 
@@ -313,7 +313,7 @@ Heatmap(zscores_mat,
         name = "z-score")
 ```
 
-`ComplexHeatmap` gives a few warning here, but nothing to be concerned about. 
+`ComplexHeatmap` gives a few warning here, but nothing to be concerned about.
 One is complaining that the color scale may be truncated relative to our data.
 The other warns that our very large heatmap itself is being drawn at a lower resolution to speed things up.
 
@@ -322,10 +322,10 @@ For the second drawing we will deal with the raster warning and produce a higher
 
 ```{r save_heatmap_png, live = TRUE}
 # Open PNG plot device
-png(filename = heatmap_file, 
-    width = 11, 
-    height = 7, 
-    units = "in", 
+png(filename = heatmap_file,
+    width = 11,
+    height = 7,
+    units = "in",
     res = 300)
 # Heatmap, again!
 Heatmap(zscores_mat,
@@ -362,10 +362,10 @@ In fact, the samples at opposite ends of the heatmap could be right next to one 
 
 ### PCA as an alternative to clustering
 
-You probably noticed that the hierarchical clustering we performed didn't perfectly separate out the different cancer subtypes we were looking at. 
+You probably noticed that the hierarchical clustering we performed didn't perfectly separate out the different cancer subtypes we were looking at.
 
-What would have happened if we had used PCA to visualize the relationships among samples? 
-Would that have made it easier to separate disease types? 
+What would have happened if we had used PCA to visualize the relationships among samples?
+Would that have made it easier to separate disease types?
 Let's try it!
 
 We will use the VST transformed data here too, and the `plotPCA()` function from `DESeq2`.
@@ -375,23 +375,23 @@ We will use the VST transformed data here too, and the `plotPCA()` function from
 pca_df <- plotPCA(vst_data,
                   ntop = 5000, # use the top 5000 genes by variance
                   intgroup = "short_histology",
-                  returnData = TRUE) 
+                  returnData = TRUE)
 
 
-ggplot(pca_df, aes(PC1, PC2, color = short_histology)) + 
+ggplot(pca_df, aes(PC1, PC2, color = short_histology)) +
   geom_point() +
-  theme_bw() + 
+  theme_bw() +
   scale_color_manual(
     values = c("LGAT" = histology_colors[[1]],
                "Ependymoma" = histology_colors[[2]],
                "HGAT" = histology_colors[[3]],
                "Medulloblastoma" = histology_colors[[4]])
-  ) + 
+  ) +
   labs(color = "Histology")
 ```
 
 We can see that neither method perfectly separates the different disease types.
-With PCA, if we didn't color the points, it might even be difficult to identify distinct clusters in the data at all by eye. 
+With PCA, if we didn't color the points, it might even be difficult to identify distinct clusters in the data at all by eye.
 (We could look at more than two PCs, which might help out, but we would need to use a different function for our calculation, since `plotPCA()` only returns the first two.)
 
 For nice comparison of the relative advantages of these two methods (with a little mention of some further directions), we recommend [blog post by Soneson](https://www.rna-seqblog.com/a-comparison-between-pca-and-hierarchical-clustering/).

@@ -6,7 +6,6 @@
 # Load libraries
 suppressPackageStartupMessages({
   library(optparse)
-  library(magrittr)
   library(SingleCellExperiment)
 })
 
@@ -28,27 +27,27 @@ opt <- parse_args(OptionParser(option_list = options))
 
 # Setup ------------------------------------------------------------------------
 
-# create list of SCE objects 
+# create list of SCE objects
 if(is.null(opt$input_file_list)){
   stop("List of input files containing individual SCE objects to merge is missing.")
 } else {
   sce_paths <- unlist(stringr::str_split(opt$input_file_list, ' '))
-} 
+}
 
-# check that at least 2 SCE files have been provided 
+# check that at least 2 SCE files have been provided
 if(length(sce_paths) < 2){
   stop("Must provide at least 2 SCE files to integrate.")
 }
 
-# extract sample ids from file names 
+# extract sample ids from file names
 sample_ids <- stringr::str_remove(basename(sce_paths), ".rds")
 
-# read in list of SCE objects 
+# read in list of SCE objects
 sce_list <- purrr::map(
   sce_paths,
   readr::read_rds
 )
-# name list with sample ids 
+# name list with sample ids
 names(sce_list) <- sample_ids
 
 # remove SCPCL000482
@@ -65,29 +64,29 @@ if (!(dir.exists(output_dir))) {
 
 # set up function to re-format individual SCEs prior to merging
 format_sce_list <- function(sce, sce_name, shared_genes) {
-  
+
   # Reduce to shared genes
   sce <- sce[shared_genes,]
-  
+
   # Update the colData row names so we can know where cells came from back
   rownames(colData(sce)) <- glue::glue("{sce_name}-{rownames(colData(sce))}")
-  
+
   # Update the rowData names, except `gene_symbol`
-  names(rowData(sce)) <- c("gene_symbol", 
+  names(rowData(sce)) <- c("gene_symbol",
                            glue::glue("{sce_name}-mean"),
                            glue::glue("{sce_name}-detected"))
-                                
+
   # Add in sample-level information as stand-alone column
   colData(sce)$sample <- sce_name
-  
+
   # Return
   return(sce)
 }
 
-# grab shared genes 
-shared_genes <- sce_list %>%
+# grab shared genes
+shared_genes <- sce_list |>
   # get rownames for each entry in sce_list
-  purrr::map(rownames) %>%
+  purrr::map(rownames) |>
   # find their intersection
   purrr::reduce(intersect)
 
@@ -113,13 +112,13 @@ hvg_list <- scran::getTopHVGs(gene_variance,
 metadata(combined_sce)$combined_hvg <- hvg_list
 
 # Add PCA and UMAP into the SCE
-combined_sce <- combined_sce %>%
-  scater::runPCA(subset_row = hvg_list) %>%
+combined_sce <- combined_sce |>
+  scater::runPCA(subset_row = hvg_list) |>
   scater::runUMAP(dimred = "PCA")
 
 # Integration ------------------------------------------------------------------
 
-# perform fastMNN integration 
+# perform fastMNN integration
 integrated_sce <- batchelor::fastMNN(combined_sce,
                                      batch = combined_sce$sample,
                                      subset.row = hvg_list,
@@ -128,10 +127,10 @@ integrated_sce <- batchelor::fastMNN(combined_sce,
 # add reconstructed object back to combined sce
 assay(combined_sce, "fastmnn_corrected") <- assay(integrated_sce, "reconstructed")
 
-# add integrated PCs to combined sce 
+# add integrated PCs to combined sce
 reducedDim(combined_sce, "fastmnn_PCA") <- reducedDim(integrated_sce, "corrected")
 
-# add integrated UMAP to combined SCE 
+# add integrated UMAP to combined SCE
 combined_sce <- scater::runUMAP(combined_sce,
                                 dimred = "fastmnn_PCA",
                                 name = "fastmnn_UMAP")

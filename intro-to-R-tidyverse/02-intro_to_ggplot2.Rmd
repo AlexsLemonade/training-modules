@@ -1,9 +1,9 @@
 ---
 title: "Introduction to ggplot2"
-author: "CCDL for ALSF" 
+author: "CCDL for ALSF"
 date: 2021
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -11,50 +11,50 @@ output:
 
 ## Objectives
 
-This notebook will demonstrate how to: 
+This notebook will demonstrate how to:
 
-- Load and use R packages  
-- Read in and perform simple manipulations of data frames 
+- Load and use R packages
+- Read in and perform simple manipulations of data frames
 - Use `ggplot2` to plot and visualize data
 - Customize plots using features of `ggplot2`
 
 ---
 
-We'll use a real gene expression dataset to get comfortable making visualizations using ggplot2. 
+We'll use a real gene expression dataset to get comfortable making visualizations using ggplot2.
 We've [performed differential expression analyses](./scripts/00-setup-intro-to-R.R) on a pre-processed [astrocytoma microarray dataset](https://www.refine.bio/experiments/GSE44971/gene-expression-data-from-pilocytic-astrocytoma-tumour-samples-and-normal-cerebellum-controls).
 We'll start by making a volcano plot of differential gene expression results from this experiment.
-We performed three sets of contrasts:  
+We performed three sets of contrasts:
 
-1) `sex` category contrasting: `Male` vs `Female`  
-2) `tissue` category contrasting : `Pilocytic astrocytoma tumor` samples vs `normal cerebellum` samples  
-3) An interaction of both `sex` and `tissue`. 
+1) `sex` category contrasting: `Male` vs `Female`
+2) `tissue` category contrasting : `Pilocytic astrocytoma tumor` samples vs `normal cerebellum` samples
+3) An interaction of both `sex` and `tissue`.
 
-**More ggplot2 resources:**  
+**More ggplot2 resources:**
 
-- [ggplot2 website](https://ggplot2.tidyverse.org/)  
+- [ggplot2 website](https://ggplot2.tidyverse.org/)
 - [Handy cheatsheet for ggplot2 (pdf)](https://github.com/rstudio/cheatsheets/raw/main/data-visualization.pdf)
 - [_Data Visualization, A practical introduction_](https://socviz.co/)
-- [Data visualization chapter of _R for Data Science_](https://r4ds.had.co.nz/data-visualisation.html)  
-- [ggplot2 online tutorial](http://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html)  
+- [Data visualization chapter of _R for Data Science_](https://r4ds.had.co.nz/data-visualisation.html)
+- [ggplot2 online tutorial](http://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html)
 
 ## Set Up
 
 We saved these results to a tab separated values (TSV) file called `gene_results_GSE44971.tsv`.
-It's been saved to the `data` folder. 
+It's been saved to the `data` folder.
 File paths are relative to where this notebook file (.Rmd) is saved.
-So we can reference it later, let's make a variable with our data directory name. 
+So we can reference it later, let's make a variable with our data directory name.
 
 ```{r}
 data_dir <- "data"
 ```
 
-Let's declare our output folder name as its own variable. 
+Let's declare our output folder name as its own variable.
 
 ```{r}
 plots_dir <- "plots"
 ```
 
-We can also create a directory if it doesn't already exist. 
+We can also create a directory if it doesn't already exist.
 
 ```{r createif}
 # The if statement here tests whether the plot directory exists and
@@ -85,8 +85,8 @@ stats_df <- read_tsv(file.path(
 ))
 ```
 
-We can take a look at a column individually by using a `$`. 
-Note we are using `head()` so the whole thing doesn't print out. 
+We can take a look at a column individually by using a `$`.
+Note we are using `head()` so the whole thing doesn't print out.
 
 ```{r column}
 head(stats_df$contrast)
@@ -123,8 +123,8 @@ stats_df <- mutate(stats_df, # data frame we'd like to add a variable to
 )
 ```
 
-Let's filter to only `male_female` contrast data. 
-First let's try out a logical expression: 
+Let's filter to only `male_female` contrast data.
+First let's try out a logical expression:
 
 ```{r eval = FALSE}
 stats_df$contrast == "male_female"
@@ -138,7 +138,7 @@ Notice that we are not assigning the results to a variable, so this filtered dat
 filter(stats_df, contrast == "male_female")
 ```
 
-Now we can assign the results to a new data frame: `male_female_df`. 
+Now we can assign the results to a new data frame: `male_female_df`.
 
 ```{r filter-save, live = TRUE}
 # filter and save to male_female_df
@@ -147,9 +147,9 @@ male_female_df <- filter(stats_df, contrast == "male_female")
 
 ## Plotting this data
 
-Let's make a volcano plot with this data. 
-First let's take a look at only the tumor vs. normal comparison. 
-Let's save this as a separate data frame by assigning it a new name. 
+Let's make a volcano plot with this data.
+First let's take a look at only the tumor vs. normal comparison.
+Let's save this as a separate data frame by assigning it a new name.
 
 ```{r filter-tumor}
 tumor_normal_df <- filter(stats_df, contrast == "astrocytoma_normal")
@@ -158,11 +158,11 @@ tumor_normal_df <- filter(stats_df, contrast == "astrocytoma_normal")
 To make this plot we will be using functions from the `ggplot2` package, the main plotting package of the tidyverse.
 We use the first function, `ggplot()` to define the data that will be plotted.
 Remember, the name of this package is `ggplot2`, but the function we use is called `ggplot()` without the `2`.
-`ggplot()` takes two main arguments:  
+`ggplot()` takes two main arguments:
 
-1. `data`, which is the data frame that contains the data we want to plot.  
-2. `mapping`, which is a special list made with the `aes()` function to describe which values will be used for each **aes**thetic component of the plot, such as the x and y coordinates of each point. 
-(If you find calling things like the x and y coordinates "aesthetics" confusing, don't worry, you are not alone.)  
+1. `data`, which is the data frame that contains the data we want to plot.
+2. `mapping`, which is a special list made with the `aes()` function to describe which values will be used for each **aes**thetic component of the plot, such as the x and y coordinates of each point.
+(If you find calling things like the x and y coordinates "aesthetics" confusing, don't worry, you are not alone.)
 Specifically, the `aes()` function is used to specify that a given column (variable) in your data frame be mapped to a given aesthetic component of the plot.
 
 
@@ -177,7 +177,7 @@ ggplot(
 )
 ```
 
-You'll notice this plot doesn't have anything on it because we haven't 
+You'll notice this plot doesn't have anything on it because we haven't
 specified a plot type yet.
 To do that, we will add another ggplot layer with `+` which will specify exactly what we want to plot.
 A volcano plot is a special kind of scatter plot, so to make that we will want to plot individual points, which we can do with `geom_point()`.
@@ -195,7 +195,7 @@ ggplot(
   geom_point()
 ```
 
-Here's a brief summary of ggplot2 structure. 
+Here's a brief summary of ggplot2 structure.
 ![ggplot2 structure](diagrams/ggplot_structure.png)
 
 ### Adjust our ggplot
@@ -215,8 +215,8 @@ ggplot(
   geom_point()
 ```
 
-Because we have so many points overlapping one another, we will want to adjust 
-the transparency, which we can do with an `alpha` argument. 
+Because we have so many points overlapping one another, we will want to adjust
+the transparency, which we can do with an `alpha` argument.
 
 ```{r ggplot-alpha, live = TRUE}
 ggplot(
@@ -230,7 +230,7 @@ ggplot(
   geom_point(alpha = 0.2) # We are using the `alpha` argument to make our points transparent
 ```
 
-Notice that we added the alpha within the `geom_point()` function, not to the `aes()`. 
+Notice that we added the alpha within the `geom_point()` function, not to the `aes()`.
 We did this because we want all of the points to have the same level of transparency, and it will not vary depending on any variable in the data.
 We can also change the background and appearance of the plot as a whole by adding a `theme`.
 
@@ -247,7 +247,7 @@ ggplot(
   theme_bw() # Add on this set of appearance presets to make it pretty
 ```
 
-We are not limited to a single plotting layer. 
+We are not limited to a single plotting layer.
 For example, if we want to add a horizontal line to indicate a significance cutoff, we can do that with `geom_hline()`.
 For now, we will choose the value of 5.5 (that is close to a Bonferroni correction) and add that to the plot.
 
@@ -260,11 +260,11 @@ ggplot(
     color = avg_expression
   )
 ) +
-  geom_point(alpha = 0.2) + 
+  geom_point(alpha = 0.2) +
   geom_hline(yintercept = 5.5, color = "darkgreen") # we can specify colors by names here
 ```
 
-We can change the x and y labels using a few different strategies. 
+We can change the x and y labels using a few different strategies.
 One approach is to use functions `xlab()` and `ylab()` individually to set, respectively, the x-axis label and the the y-axis label.
 
 
@@ -281,12 +281,12 @@ ggplot(
   geom_hline(yintercept = 5.5, color = "darkgreen") +
   theme_bw() +
   # Add labels with separate functions:
-  xlab("log2 Fold Change Tumor/Normal") + 
-  ylab("-log10 p value") 
+  xlab("log2 Fold Change Tumor/Normal") +
+  ylab("-log10 p value")
 ```
 
 
-Alternatively, we can use the `ggplot2` function `labs()`, which takes individual arguments for each label we want want to set. 
+Alternatively, we can use the `ggplot2` function `labs()`, which takes individual arguments for each label we want want to set.
 We can also include the argument `title` to add an overall plot title.
 
 ```{r ggplot-label-2, live = TRUE}
@@ -307,10 +307,10 @@ ggplot(
     y = "-log10 p value",
     title = "Astrocytoma Tumor vs Normal Cerebellum"
   )
-  
+
 ```
 
-Something great about the `labs()` function is you can also use it to specify labels for your *legends* derived from certain aesthetics. 
+Something great about the `labs()` function is you can also use it to specify labels for your *legends* derived from certain aesthetics.
 In this plot, our legend is derived from a *color aesthetic*, so we can specify the keyword "color" to update the legend title.
 
 ```{r ggplot-label-aes}
@@ -333,11 +333,11 @@ ggplot(
     # Use the color keyword to label the color legend
     color = "Average expression"
   )
-  
+
 ```
 
 
-Use this chunk to make the same kind of plot as the previous chunk but instead plot the male female contrast data, that is stored in `male_female_df`. 
+Use this chunk to make the same kind of plot as the previous chunk but instead plot the male female contrast data, that is stored in `male_female_df`.
 
 ```{r mf-volcano, live = TRUE}
 # Use this chunk to make the same kind of volcano plot, but with the male-female contrast data.
@@ -345,7 +345,7 @@ Use this chunk to make the same kind of plot as the previous chunk but instead p
 ```
 
 
-Turns out, we don't have to plot each contrast separately, instead, we can use the original data frame that contains all three contrasts' data, `stats_df`, and add a `facet_wrap` to make each contrast its own plot. 
+Turns out, we don't have to plot each contrast separately, instead, we can use the original data frame that contains all three contrasts' data, `stats_df`, and add a `facet_wrap` to make each contrast its own plot.
 
 ```{r ggplot-facets}
 ggplot(
@@ -359,7 +359,7 @@ ggplot(
   geom_point(alpha = 0.2) +
   geom_hline(yintercept = 5.5, color = "darkgreen") +
   theme_bw() +
-  facet_wrap(~contrast) +
+  facet_wrap(vars(contrast)) +
   labs(
     x  = "log2 Fold Change", # Now that this includes the other contrasts,
                              # we'll make this label more general
@@ -369,8 +369,8 @@ ggplot(
   coord_cartesian(xlim = c(-25, 25)) # zoom in on the x-axis
 ```
 
-We can store the plot as an object in the global environment by using `<-` operator. 
-Here we will call this `volcano_plot`. 
+We can store the plot as an object in the global environment by using `<-` operator.
+Here we will call this `volcano_plot`.
 
 ```{r ggplot-store-object}
 volcano_plot <- ggplot(
@@ -384,16 +384,16 @@ volcano_plot <- ggplot(
   geom_point(alpha = 0.2) +
   geom_hline(yintercept = 5.5, color = "darkgreen") +
   theme_bw() +
-  facet_wrap(~contrast) +
+  facet_wrap(vars(contrast)) +
   labs(
-    x  = "log2 Fold Change",
+    x = "log2 Fold Change",
     y = "-log10 p value",
     color = "Average expression"
   ) +
   coord_cartesian(xlim = c(-25, 25))
 ```
 
-When we are happy with our plot, we can save the plot using `ggsave`. 
+When we are happy with our plot, we can save the plot using `ggsave`.
 It's a good idea to also specify `width` and `height` arguments (units in inches)
 to ensure the saved plot is always the same size every time you run this code.
 Here, we'll save a 6"x6" plot.
@@ -403,8 +403,8 @@ Here, we'll save a 6"x6" plot.
 ggsave(
   plot = volcano_plot,
   filename = file.path(plots_dir, "volcano_plot.png"),
-  width = 6, 
-  height = 6 
+  width = 6,
+  height = 6
 )
 ```
 

@@ -2,8 +2,8 @@
 title: "Gastric cancer: gene-level summarization with `tximeta`"
 author: CCDL for ALSF
 date: 2021
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -14,7 +14,7 @@ This notebook will demonstrate how to:
 
 - Import RNA-seq expression quantification output using `tximeta`
 - Summarize transcript-level expression to the gene level
-- Interrogate and extract data from a `SummarizedExperiment` object 
+- Interrogate and extract data from a `SummarizedExperiment` object
 
 ---
 
@@ -30,9 +30,6 @@ For more information about `tximeta`, see [this excellent vignette](https://www.
 ## Libraries and functions
 
 ```{r library}
-# Load magrittr for the pipe
-library(magrittr)
-
 # Load the tximeta package
 library(tximeta)
 
@@ -57,7 +54,7 @@ if (!dir.exists(txi_dir)) {
 }
 ```
 
-We'll need the `quant.sf` files for all the samples in an experiment which we have stored in `quant_dir`. 
+We'll need the `quant.sf` files for all the samples in an experiment which we have stored in `quant_dir`.
 
 ```{r input-names}
 # the quant files themselves
@@ -73,7 +70,7 @@ meta_file <- file.path(data_dir, "gastric-cancer_metadata.tsv")
 **Output**
 
 ```{r output-names, live = TRUE}
-# Name the output gastric-cancer_tximeta.RDS and use the directory created 
+# Name the output gastric-cancer_tximeta.RDS and use the directory created
 # above as the rest of the path
 txi_out_file <- file.path(txi_dir, "gastric-cancer_tximeta.RDS")
 ```
@@ -101,16 +98,16 @@ sample_names
 
 ## Set up metadata
 
-`tximeta` needs a data frame with at least these two columns: 
+`tximeta` needs a data frame with at least these two columns:
 - a `files` column  with the file paths to the quant.sf files
 - a `names` column with the sample names
 
 ```{r names_sf_files}
-coldata <- data.frame(files = sf_files, 
+coldata <- data.frame(files = sf_files,
                       names = sample_names)
 ```
 
-We have more information about these samples stored in the metadata file that we will also want stored in `coldata`. 
+We have more information about these samples stored in the metadata file that we will also want stored in `coldata`.
 Let's read in the sample metadata from the TSV file.
 
 ```{r sample_meta_df, live = TRUE}
@@ -119,10 +116,10 @@ sample_meta_df <- readr::read_tsv(meta_file)
 sample_meta_df
 ```
 
-We'll want this information to be added to the `coldata`, which we can do by using a join function to match up the rows between the two data frames and combine them. 
+We'll want this information to be added to the `coldata`, which we can do by using a join function to match up the rows between the two data frames and combine them.
 
 ```{r join-sample_meta_df}
-coldata <- coldata %>%
+coldata <- coldata |>
   dplyr::inner_join(sample_meta_df, by = c("names" = "srr_accession"))
 
 coldata
@@ -147,7 +144,7 @@ We'll summarize to the gene level using the `summarizeToGene()` function.
 
 ```{r summarize-gene}
 # Summarize to the gene level
-gene_summarized <- summarizeToGene(txi_data) 
+gene_summarized <- summarizeToGene(txi_data)
 ```
 
 We can use the `class` function to see what type of object `gene_summarized` is.
@@ -157,16 +154,16 @@ We can use the `class` function to see what type of object `gene_summarized` is.
 class(gene_summarized)
 ```
 
-This tells us that `gene_summarized` is an object called a [`SummarizedExperiment`](https://www.rdocumentation.org/packages/SummarizedExperiment/versions/1.2.3/topics/SummarizedExperiment-class) which can be handled by functions from the package of the same name. 
+This tells us that `gene_summarized` is an object called a [`SummarizedExperiment`](https://www.rdocumentation.org/packages/SummarizedExperiment/versions/1.2.3/topics/SummarizedExperiment-class) which can be handled by functions from the package of the same name.
 We more specifically have a `RangedSummarizedExperiment` which is a more specific type of `SummarizedExperiment`.
 
-`SummarizedExperiment` objects have this general structure:  
+`SummarizedExperiment` objects have this general structure:
 
 ![SummarizedExperiment](diagrams/SummarizeExperiment-structure.png)
 
 This figure is from this handy vignette about [`SummarizedExperiment` objects](https://www.bioconductor.org/packages/devel/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
 
-As shown in the diagram, we can use some of the functions provided by the `SummarizedExperiment` package to extract data from our `gene_summarized` object. 
+As shown in the diagram, we can use some of the functions provided by the `SummarizedExperiment` package to extract data from our `gene_summarized` object.
 For example, calling `rowData()` on our object shows all the gene information that `tximeta` set up!
 
 ```{r}
@@ -174,10 +171,10 @@ For example, calling `rowData()` on our object shows all the gene information th
 rowData(gene_summarized)
 ```
 
-The `assay` slot in `SummarizedExperiment`s holds data from the experiment. 
-In this case, it will include our gene-level expression information stored as a gene x sample matrix. 
+The `assay` slot in `SummarizedExperiment`s holds data from the experiment.
+In this case, it will include our gene-level expression information stored as a gene x sample matrix.
 
-Multiple `assays` can be stored in an `SummarizedExperiment` and we can use the `assayNames()` function to see what assays are included in `gene_summarized`. 
+Multiple `assays` can be stored in an `SummarizedExperiment` and we can use the `assayNames()` function to see what assays are included in `gene_summarized`.
 
 ```{r assay-names, live = TRUE}
 assayNames(gene_summarized)
@@ -205,7 +202,7 @@ head(assay(gene_summarized, "abundance"))
 
 ## Save to file
 
-We could use `readr::write_tsv` to save `counts_mat` only but `gene_summarized` has a lot of information stored here beyond the counts, so we may want to save all of this to a RDS object. 
+We could use `readr::write_tsv` to save `counts_mat` only but `gene_summarized` has a lot of information stored here beyond the counts, so we may want to save all of this to a RDS object.
 
 ```{r write-txi, live = TRUE}
 # Write `gene_summarized` to RDS object

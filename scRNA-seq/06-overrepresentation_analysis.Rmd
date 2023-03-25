@@ -1,6 +1,6 @@
 ---
 title: "Pathway analysis: Over-representation analysis (ORA)"
-output: 
+output:
   html_notebook:
     toc: true
     toc_float: true
@@ -23,10 +23,10 @@ In this notebook, we'll cover a type of pathway or gene set analysis called over
 The idea behind ORA is relatively straightforward: given a set of genes, do these genes overlap with a pathway more than we expect by chance?
 The simplicity of only requiring an input gene set (sort of, more on that below) can be attractive.
 
-ORA has some limitations, outlined nicely (and more extensively!) in [Khatri _et al._ (2012)]( https://doi.org/10.1371/journal.pcbi.1002375). 
+ORA has some limitations, outlined nicely (and more extensively!) in [Khatri _et al._ (2012)]( https://doi.org/10.1371/journal.pcbi.1002375).
 One of the main issues with ORA is that typically all genes are treated as equal -- the context of the magnitude of a change we may be measuring is removed and each gene is treated as independent, which can sometimes result in an incorrect estimate of significance.
 
-We will use the [`clusterProfiler` package](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html) ([Yu *et al.* 2012](https://doi.org/10.1089/omi.2011.0118.)) to perform ORA. 
+We will use the [`clusterProfiler` package](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html) ([Yu *et al.* 2012](https://doi.org/10.1089/omi.2011.0118.)) to perform ORA.
 `clusterProfiler` has many built-in functions that will run a specific type of analysis using a specific source of pathways/gene sets automatically, but for our purposes we're going to keep things as general as possible.
 See the [`clusterProfiler` book](https://yulab-smu.github.io/clusterProfiler-book/index.html) for more information about the package's full suite of functionality.
 
@@ -44,9 +44,7 @@ Check out the [_AnnotationDbi: Introduction To Bioconductor Annotation Packages_
 ### Libraries
 
 ```{r libraries}
-# Pipes
-library(magrittr)
-# Package we'll use to 
+# Package we'll use to run ORA
 library(clusterProfiler)
 # Package that contains MSigDB gene sets in tidy format
 library(msigdbr)
@@ -84,7 +82,7 @@ We're going to use a file that is a cleaned version of the [CellMarker](http://b
 You can see how we obtained and cleaned this file in [this notebook](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/setup/cellmarker_genes.Rmd).
 
 ```{r cm_input}
-cellmarker_file <- file.path("gene-sets", 
+cellmarker_file <- file.path("gene-sets",
                              "CellMarker_cleaned_human_markers.tsv")
 ```
 
@@ -103,11 +101,11 @@ We'll save the table of ORA results (e.g., p-values).
 
 ```{r output_files, live = TRUE}
 go_results_file <- file.path(results_dir, "cluster01_go_ora_results.tsv")
-cm_results_file <- file.path(results_dir, 
+cm_results_file <- file.path(results_dir,
                              "cluster01_CellMarker_ora_results.tsv")
 ```
 
-## Read in marker genes 
+## Read in marker genes
 
 Let's read in our marker genes from cluster 1.
 
@@ -147,23 +145,23 @@ The function we will use to map from Ensembl gene IDs to gene symbols is called 
 # This returns a named vector which we can convert to a data frame, where
 # the keys (Ensembl IDs) are the names
 symbols_vector <- mapIds(org.Hs.eg.db,  # Specify the annotation package
-                         # The vector of gene identifiers we want to 
+                         # The vector of gene identifiers we want to
                          # map
-                         keys = markers_df$gene, 
+                         keys = markers_df$gene,
                          # What type of gene identifiers we're starting
                          # with
-                         keytype = "ENSEMBL", 
+                         keytype = "ENSEMBL",
                          # The type of gene identifier we want returned
-                         column = "SYMBOL", 
+                         column = "SYMBOL",
                          # In the case of 1:many mappings, return the
                          # first one. This is default behavior!
-                         multiVals = "first") 
+                         multiVals = "first")
 
 # We would like a data frame we can join to the DGE results
 symbols_df <- data.frame(
   ensembl_id = names(symbols_vector),
   gene_symbol = symbols_vector
-) %>%
+) |>
   # Drop genes that don't have a gene symbol!
   tidyr::drop_na()
 ```
@@ -175,7 +173,7 @@ Now we are ready to add the gene symbols to our data frame with the marker genes
 We can use a _join_ function from the `dplyr` package to do this, which will use the Ensembl gene IDs in both data frames to determine how to join the rows.
 
 ```{r add_symbols, live = TRUE}
-markers_df <- symbols_df %>%
+markers_df <- symbols_df |>
   # An *inner* join will only return rows that are in both data frames
   dplyr::inner_join(markers_df,
                     # The name of the column that contains the Ensembl gene IDs
@@ -228,20 +226,20 @@ When we test **multiple pathways or gene sets**, the p-values then need to be **
 #### Top 100 cluster 1 genes
 
 We're interested in what pathways are over-represented in genes that mark, or are more highly expressed in, cluster 1.
-We'll select the top 100 genes for this comparison. 
+We'll select the top 100 genes for this comparison.
 
 ```{r cluster01_genes}
-cluster01_markers <- markers_df %>%
+cluster01_markers <- markers_df |>
   # Positive fold changes
-  dplyr::filter(summary.logFC > 0) %>%
+  dplyr::filter(summary.logFC > 0) |>
   # Take the "top 100" when ordering by FDR (smallest FDR values)
-  dplyr::slice_min(order_by = FDR, n = 100) %>%
+  dplyr::slice_min(order_by = FDR, n = 100) |>
   # Extract a vector of the gene symbols
   dplyr::pull(gene_symbol)
 ```
 
 You may think that selecting the top 100 genes is pretty arbitrary and you are not wrong!
-This also may seem strict, but let's think about our goal for this particular analysis: we hope that using ORA with resources that encode some knowledge about cell types will help us annotate cluster 1. 
+This also may seem strict, but let's think about our goal for this particular analysis: we hope that using ORA with resources that encode some knowledge about cell types will help us annotate cluster 1.
 We're using the very top ranked genes in service of this goal.
 
 An alternative approach would be to have filtered to genes that are below a specific FDR threshold, but that would also be an arbitrary threshold that we chose.
@@ -257,11 +255,11 @@ You can read a little more about this in the [_Invalidity of p-values_ section o
 As we saw above, calculating the p-value for ORA relies on the number of genes in the background distribution.
 Sometimes folks consider genes from the entire genome to comprise the background, but in the example borrowed from the `clusterProfiler` authors, they state:
 
-> 17,980 genes detected in a Microarray study 
+> 17,980 genes detected in a Microarray study
 
-Where the key phrase is **genes detected**. 
+Where the key phrase is **genes detected**.
 
-If we were unable to include a gene in our marker gene comparisons because, for example, we could not reliably measure it, we shouldn't include in our background set!  
+If we were unable to include a gene in our marker gene comparisons because, for example, we could not reliably measure it, we shouldn't include in our background set!
 
 Our markers data frame has all of the genes that we did not filter out and have gene symbols corresponding to the Ensembl gene IDs, so we can use the `gene_symbol` column as our background set.
 
@@ -280,7 +278,7 @@ The Gene Ontology (GO) ([Ashburner *et al.* 2000](https://dx.doi.org/10.1038/755
 * **Cellular component (CC):** cellular structures and compartments
 
 GO is "loosely hierarchical" ([GO ontology documentation](http://geneontology.org/docs/ontology-documentation/)).
-There are parent and child terms, where the "higher up" a term is, the more general it is. 
+There are parent and child terms, where the "higher up" a term is, the more general it is.
 This is somewhat abstract, so let's take a look at a GO term that's likely to be relevant to our Hodgkin's lymphoma data to get an idea of what this is like in practice: [`leukocyte activation`](http://www.informatics.jax.org/vocab/gene_ontology/GO:0045321).
 
 #### Run `enrichGO()`
@@ -313,7 +311,7 @@ go_result_df <- data.frame(go_ora_results@result)
 Let's take a look at the GO sets with an adjusted p-value less than 0.00001.
 
 ```{r filter_padj, live = TRUE}
-go_result_df %>%
+go_result_df |>
   dplyr::filter(p.adjust < 0.00001)
 ```
 
@@ -375,7 +373,7 @@ cellmarker_ora_results <- enricher(
   pvalueCutoff = 0.05,  # More permissive cut off
   pAdjustMethod = "BH",  # FDR
   universe = background_set,  # Background set
-  # The pathway information should be a data frame with a term name or 
+  # The pathway information should be a data frame with a term name or
   # identifier and the gene identifiers
   TERM2GENE = cellmarker_df
 )
@@ -392,14 +390,14 @@ barplot(cellmarker_ora_results) +
 ```
 
 One thing that the [web version of CellMarker](http://bio-bigdata.hrbmu.edu.cn/CellMarker/) allows us to do is to get a better idea of _marker prevalence_.
-Some of the genes that show up in our top 100 may not be very specific. 
+Some of the genes that show up in our top 100 may not be very specific.
 It's also likely that kidney is not very relevant to our analysis of Hodgkin's lymphoma, but lymph node is highly relevant.
 However, blood cells in kidney are not _unexpected_ and, if we view the [CellMarker tissue type browser](http://bio-bigdata.hrbmu.edu.cn/CellMarker/browse.jsp), we can see that there are _a lot_ of genes annotated to kidney.
 Every resource will have some limitations "baked in."
 
 We could do additional filtering of the gene sets to remove irrelevant tissues and to remove marker genes that are not particularly specific.
 (Fewer gene sets would mean a lower multiple hypothesis testing burden.)
-If some of the CellMarker marker genes come from immunostaining of terminally differentiated cells, we might not expect their transcripts to show up in scRNA-seq data, for example. 
+If some of the CellMarker marker genes come from immunostaining of terminally differentiated cells, we might not expect their transcripts to show up in scRNA-seq data, for example.
 All things to keep in mind if you use this resource for your own work!
 
 ### Write results to file
@@ -408,7 +406,7 @@ Write the results to file for both GO and CellMarker gene sets.
 
 ```{r write_results, live = TRUE}
 readr::write_tsv(go_result_df, file = go_results_file)
-data.frame(cellmarker_ora_results@result) %>%
+data.frame(cellmarker_ora_results@result) |>
   readr::write_tsv(file = cm_results_file)
 ```
 
@@ -423,7 +421,7 @@ This is a limitation of ORA: we have to make some choices that are somewhat arbi
 It's a good idea to think about the goal of your analysis _upfront_ and pick cutoffs based on your goals.
 That can help you avoid the temptation of trying a bunch of cutoffs until you get results that "look good."
 
-## Session Info 
+## Session Info
 
 ```{r session_info}
 sessionInfo()

@@ -1,6 +1,6 @@
 ---
 title: "Pathway analysis: Gene Set Variation Analysis (GSVA)"
-output: 
+output:
   html_notebook:
     toc: true
     toc_float: true
@@ -42,8 +42,6 @@ Note that these scores will depend on the samples included in the dataset when y
 ### Libraries
 
 ```{r libraries}
-# Pipes
-library(magrittr)
 # Gene Set Variation Analysis
 library(GSVA)
 ```
@@ -53,12 +51,12 @@ library(GSVA)
 #### Directories
 
 ```{r directories}
-# We have some medulloblastoma data from the OpenPBTA project that we've 
+# We have some medulloblastoma data from the OpenPBTA project that we've
 # prepared ahead of time
 input_dir <- file.path("data", "open-pbta")
 
 # Create a directory specifically for the results using this dataset
-output_dir <- file.path("results", "open-pbta") 
+output_dir <- file.path("results", "open-pbta")
 if (!dir.exists(output_dir)) {
   dir.create(output_dir, recursive = TRUE)
 }
@@ -125,8 +123,8 @@ rnaseq_df[1:5, 1:5]
 For GSVA, we need a matrix.
 
 ```{r rnaseq_mat, live = TRUE}
-rnaseq_mat <- rnaseq_df %>%
-  tibble::column_to_rownames("gene_symbol") %>%
+rnaseq_mat <- rnaseq_df |>
+  tibble::column_to_rownames("gene_symbol") |>
   as.matrix()
 ```
 
@@ -141,7 +139,7 @@ rnaseq_mat <- rnaseq_df %>%
 You may notice that GSVA has some commonalities with GSEA.
 Rather than ranking genes based on some statistic _we_ selected ahead of time, GSVA fits a model and ranks genes based on their expression level relative to the sample distribution.
 This is a way of asking if a gene _i_ is highly or lowly expressed in a sample _j_ in the context of this experiment and ranking accordingly ([Hänzelmann _et al._ 2013](https://doi.org/10.1186/1471-2105-14-7)).
-The pathway-level score calculated is a way of asking how genes _within_ a gene set vary as compared to genes that are _outside_ of that gene set ([Malhotra. 2018](https://towardsdatascience.com/decoding-gene-set-variation-analysis-8193a0cfda3)). 
+The pathway-level score calculated is a way of asking how genes _within_ a gene set vary as compared to genes that are _outside_ of that gene set ([Malhotra. 2018](https://towardsdatascience.com/decoding-gene-set-variation-analysis-8193a0cfda3)).
 (This is sometimes called a competitive test in gene set enrichment literature.)
 The intuition here is that we will get pathway-level scores for each sample that indicate if genes in a pathway vary concordantly in one direction (overexpressed or underexpressed relative to the overall population) ([Hänzelmann _et al._ 2013](https://doi.org/10.1186/1471-2105-14-7)).
 
@@ -150,13 +148,13 @@ The output is a gene set by sample matrix of GSVA scores.
 ### Perform GSVA
 
 ```{r run_gsva}
-gsva_results <- gsva(rnaseq_mat, 
+gsva_results <- gsva(rnaseq_mat,
                      hallmarks_list,
                      method = "gsva",
                      # Appropriate for our transformed data on log2-like scale
-                     kcdf = "Gaussian",  
+                     kcdf = "Gaussian",
                      # Minimum gene set size
-                     min.sz = 15, 
+                     min.sz = 15,
                      # Maximum gene set size
                      max.sz = 500,
                      # Compute Gaussian-distributed scores
@@ -171,7 +169,7 @@ gsva_results[1:5, 1:5]
 ```
 
 ### A note on gene set size
- 
+
 Often the scores of gene set enrichment methods are not comparable between gene sets of different sizes.
 Let's do an experiment using randomly generated gene sets to explore this idea a bit more.
 
@@ -186,7 +184,7 @@ all_genes <- rownames(rnaseq_mat)
 set.seed(2020)
 ```
 
-Our minimum gene set size earlier was 15 genes and our maximum gene set size was 500 genes. 
+Our minimum gene set size earlier was 15 genes and our maximum gene set size was 500 genes.
 We'll use the same minimum and maximum values for our random gene sets and some values in between.
 
 ```{r gene_set_sizes}
@@ -200,7 +198,7 @@ For each gene set size, we will generate 100 random gene sets.
 # Set number of replicates
 nreps <- 100
 # Generate 100 random gene sets of each size
-random_gene_sets <- rep(gene_set_size, nreps) %>%  # Repeat gene sizes so we run `nreps` times 
+random_gene_sets <- rep(gene_set_size, nreps) |>  # Repeat gene sizes so we run `nreps` times
   purrr::map(
     # Sample the vector of all genes, choosing the number of items specified
     # in the element of gene set size
@@ -212,38 +210,38 @@ random_gene_sets <- rep(gene_set_size, nreps) %>%  # Repeat gene sizes so we run
 The Hallmarks list we used earlier stored the gene set names as the name of the list, so let's add names to our random gene sets that indicate what size they are and so `gsva()` doesn't get upset.
 
 ```{r name_random_gene_sets}
-# We will include the size of the gene set in the gene set name 
+# We will include the size of the gene set in the gene set name
 # Start by taking the length of each pathway and appending "pathway_" to that
 # number
-lengths_vector <- random_gene_sets %>%
+lengths_vector <- random_gene_sets |>
   # Get the length of each gene set (number of genes)
-  purrr::map(~ length(.x)) %>%
+  purrr::map(~ length(.x)) |>
   # Make it "pathway_<gene set size>"
-  purrr::map(~ paste0("pathway_", .x)) %>%
+  purrr::map(~ paste0("pathway_", .x)) |>
   # Return a vector
   purrr::flatten_chr()
 
 # Add the names in lengths_vector to the list - "pathway_<gene set size>"
-random_gene_sets <- random_gene_sets %>% 
+random_gene_sets <- random_gene_sets |>
   # make.names() appends a "version" if something is not unique
   purrr::set_names(nm = make.names(lengths_vector, unique = TRUE))
 ```
- 
+
 Run GSVA on our dataset with the same parameters as before, but now with random gene sets.
 
 ```{r random_gsva, live = TRUE}
-random_gsva_results <- gsva(rnaseq_mat, 
+random_gsva_results <- gsva(rnaseq_mat,
                             random_gene_sets,
                             method = "gsva",
-                            # Appropriate for our transformed data on 
+                            # Appropriate for our transformed data on
                             # log2-like scale
-                            kcdf = "Gaussian",  
+                            kcdf = "Gaussian",
                             # Minimum gene set size
-                            min.sz = 15, 
+                            min.sz = 15,
                             # Maximum gene set size
                             max.sz = 500,
                             # Compute Gaussian-distributed scores
-                            mx.diff = TRUE)                            
+                            mx.diff = TRUE)
 ```
 
 Now let's make a plot to look at the distribution of scores from random gene sets.
@@ -251,20 +249,20 @@ First we need to get this data in an appropriate format for `ggplot2`.
 
 ```{r longer_random_gsva}
 # The random results are a matrix
-random_long_df <- random_gsva_results %>%
-  data.frame() %>%
+random_long_df <- random_gsva_results |>
+  data.frame() |>
   # Gene set names are rownames
-  tibble::rownames_to_column("gene_set") %>%
+  tibble::rownames_to_column("gene_set") |>
   # Get into long format
-  tidyr::pivot_longer(cols = -gene_set, 
+  tidyr::pivot_longer(cols = -gene_set,
                       names_to = "Kids_First_Biospecimen_ID",
-                      values_to = "gsva_score") %>%
+                      values_to = "gsva_score") |>
   # Remove the .version added by make.names()
-  dplyr::mutate(gene_set = stringr::str_remove(gene_set, "\\..*")) %>%
+  dplyr::mutate(gene_set = stringr::str_remove(gene_set, "\\..*")) |>
   # Add a column that keeps track of the gene set size
-  dplyr::mutate(gene_set_size = stringr::word(gene_set, 2, sep = "_")) %>%
+  dplyr::mutate(gene_set_size = stringr::word(gene_set, 2, sep = "_")) |>
   # We want to plot smallest no. genes -> largest no. genes
-  dplyr::mutate(gene_set_size = factor(gene_set_size, 
+  dplyr::mutate(gene_set_size = factor(gene_set_size,
                                        levels = c(15, 25, 50, 100, 250, 500)))
 
 ```
@@ -273,8 +271,8 @@ Let's make a violin plot so we can look at the distribution of scores by gene se
 
 ```{r random_violin}
 # Violin plot comparing GSVA scores of different random gene set sizes
-random_long_df %>%
-  ggplot2::ggplot(ggplot2::aes(x = gene_set_size, 
+random_long_df |>
+  ggplot2::ggplot(ggplot2::aes(x = gene_set_size,
                                y = gsva_score)) +
   # Make a violin plot that's a pretty blue!
   ggplot2::geom_violin(fill = "#99CCFF", alpha = 0.5) +
@@ -301,7 +299,7 @@ How might you use this information to inform your interpretation of GSVA scores?
 ### How can you use these scores?
 
 If you did have groups information for your samples, you could test for pathway scores differences between groups.
-Here's [an example](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/OpenPBTA-analysis/blob/9b44bf1c186b3126b16dbe5b87756b3eae3feec2/analyses/gene-set-enrichment-analysis/02-model-gsea.nb.html) of that from the OpenPBTA project itself! 
+Here's [an example](https://htmlpreview.github.io/?https://github.com/AlexsLemonade/OpenPBTA-analysis/blob/9b44bf1c186b3126b16dbe5b87756b3eae3feec2/analyses/gene-set-enrichment-analysis/02-model-gsea.nb.html) of that from the OpenPBTA project itself!
 
 You can also visualize this matrix in a heatmap.
 Here's a figure from the OpenPBTA project, where the middle panel is a heatmap of GSVA scores that were significantly different between histologies.
@@ -313,9 +311,9 @@ Here's a figure from the OpenPBTA project, where the middle panel is a heatmap o
 ### Write results to file
 
 ```{r write_gsva_results}
-gsva_results %>%
-  as.data.frame() %>%
-  tibble::rownames_to_column("pathway") %>%
+gsva_results |>
+  as.data.frame() |>
+  tibble::rownames_to_column("pathway") |>
   readr::write_tsv(file = gsva_results_file)
 ```
 

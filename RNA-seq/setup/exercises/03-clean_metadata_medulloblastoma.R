@@ -5,7 +5,6 @@
 # Input (path hardcoded): SRA run selector table txt file for SRP150101
 # Output (path hardcoded): a cleaned metadata TSV
 
-`%>%` <- dplyr::`%>%`
 data_dir <- "/shared/data/training-modules/RNA-seq/data/medulloblastoma"
 
 # files
@@ -21,10 +20,10 @@ sra_metadata <- readr::read_csv(sra_input_file)
 refinebio_metadata <- readr::read_tsv(refinebio_input_file)
 
 # join the two data frames of metadata
-metadata <- sra_metadata %>%
+metadata <- sra_metadata |>
   # we'll get most of our fields from the SRA file
   dplyr::select(Run, Experiment, `Sample Name`, disease_state, Organism,
-                Treatment, Group) %>%
+                Treatment, Group) |>
   # the refine.bio *title* is what tells us about technical replicates
   dplyr::inner_join(dplyr::select(refinebio_metadata,
                                   refinebio_accession_code,
@@ -32,8 +31,8 @@ metadata <- sra_metadata %>%
                     by = c("Run" = "refinebio_accession_code"))
 
 # clean!
-metadata <- metadata %>%
-  dplyr::rename(sample_name = `Sample Name`) %>%
+metadata <- metadata |>
+  dplyr::rename(sample_name = `Sample Name`) |>
   dplyr::mutate(
     # everything but the last 5 characters is the mouse ID
     mouse_id = stringr::str_sub(metadata$refinebio_title, 1, -6),
@@ -48,7 +47,7 @@ metadata <- metadata %>%
       ),
     # Make group into a string so and keep it that way on reimport
     Group = stringr::str_c("Group_", Group)
-    ) %>%
+    ) |>
   # we no longer need the title
-  dplyr::select(-refinebio_title) %>%
+  dplyr::select(-refinebio_title) |>
   readr::write_tsv(output_file)

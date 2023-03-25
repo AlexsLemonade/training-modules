@@ -23,6 +23,8 @@ Unlike bulk RNA-seq analysis, scRNA-seq analysis allows us to identify and annot
 This means that we can account for differences in cell type composition across samples and specifically focus on cell types or populations of interest when performing differential expression (DE) analysis.
 In this notebook, we will work with multiple samples to identify differentially expressed genes across cell types of interest using the [`DESeq2`](https://bioconductor.org/packages/3.16/bioc/html/DESeq2.html) package. 
 
+![Single-cell roadmap: Differential expression](diagrams/roadmap_differential_expression.png)
+
 We will continue working with samples from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), an investigation of pediatric solid tumors led by the Dyer and Chen labs at St. Jude Children's Research Hospital.
 This particular dataset contains 10 different samples that have been integrated using `fastMNN`, following the same procedure we outlined in `03-dataset_integration.Rmd`.
 These 10 samples represent two different types of rhabdomyosarcoma (RMS): embryonal rhabdomyosarcoma (ERMS) and alveolar rhabdomyosarcoma (ARMS).
@@ -272,7 +274,7 @@ ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
     geom_bar(position = "fill", color = "black", size = 0.2) +
     labs(
       x = "Sample",
-      y = "Number of cells", 
+      y = "Proportion of cells", 
       fill = "Cell type"
     ) +
   theme_bw() +
@@ -534,8 +536,7 @@ deseq_object <- DESeq2::estimateSizeFactors(deseq_object)
 
 # normalize and log transform to use for visualization
 normalized_object <- DESeq2::rlog(deseq_object, 
-                                  blind = TRUE, 
-                                  fitType = 'local')
+                                  blind = TRUE)
 normalized_object
 ```
 
@@ -554,8 +555,7 @@ This function calculates normalization factors, estimates gene-wise dispersions,
 
 ```{r deseq, live=TRUE}
 # run DESeq
-# use the same fit type as with rlog 
-deseq_object <- DESeq2::DESeq(deseq_object, fitType = "local")
+deseq_object <- DESeq2::DESeq(deseq_object)
 ```
 
 We can evaluate how well the model fit our data by looking at the dispersion estimates.
@@ -678,7 +678,7 @@ This can help us validate the `DESeq2` results so that we can visualize gene exp
 # filter to just myoblast cells and remove any NA's before plotting
 myoblast_combined_sce <- rms_sce[, which(rms_sce$celltype_broad == "Tumor_Myoblast")]
 
-# plot PTPRT expression in ARMS vs. ERMS
+# plot PTPRT (ENSG00000196090) expression in ARMS vs. ERMS
 scater::plotReducedDim(myoblast_combined_sce,
                        dimred = "fastmnn_UMAP",
                        colour_by = "ENSG00000196090", #PTPRT

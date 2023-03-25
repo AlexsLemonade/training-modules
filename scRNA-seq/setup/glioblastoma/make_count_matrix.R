@@ -10,7 +10,7 @@
 # "-s" - sample information file, a csv of sample data from ena (Optional)
 # "-o" - Outfile for count matrix
 # "-r" - Outfile for tximport RDS matrix
-# "-p" - Outfile for plot 
+# "-p" - Outfile for plot
 # "-m" - Percent mapped reads (reported as a decimal) cutoff for filtering
 #        samples. Default is 0.5.
 #
@@ -22,14 +22,12 @@
 # -o data/counts.tsv \
 # -r data/txi.RDS \
 # -p data/mapping_plot.png \
-# -m 0.5 
+# -m 0.5
 
 #-------------------------- Get necessary packages-----------------------------#
 # Attach needed libraries
 library(optparse)
 
-# Magrittr pipe
-`%>%` <- dplyr::`%>%`
 
 #--------------------------------Set up options--------------------------------#
 option_list <- list(
@@ -50,10 +48,10 @@ option_list <- list(
                 default = NULL),
     make_option(c("-p", "--plot"), type = "character",
                 help = "Output file for mapping rate plot (png)",
-                default = NULL),  
+                default = NULL),
     make_option(c("-m", "--mapped"), type = "numeric",
-                default = "0.5", 
-                help = "Cutoff for what percent mapped_reads samples should have. 
+                default = "0.5",
+                help = "Cutoff for what percent mapped_reads samples should have.
                 Any samples with less than the cutoff will be removed.")
 )
 
@@ -76,8 +74,8 @@ transcripts <- read.table(quant_files[[1]], header = TRUE,
 tx2gene_df <- readr::read_tsv(opt$tx2gene)
 
 # Do the thing
-txi <- tximport::tximport(quant_files, 
-                          type = "salmon", 
+txi <- tximport::tximport(quant_files,
+                          type = "salmon",
                           tx2gene = tx2gene_df,
                           countsFromAbundance = "no",
                           ignoreTxVersion = TRUE)
@@ -112,20 +110,20 @@ counts_df <- counts_df[, which(salmon.prop.assigned > opt$mapped)]
 
 # If a sample table is provided change sample names:
 if (is.character(opt$sample_file) && is.character(opt$sample_id)){
-  sample_df <- readr::read_csv(opt$sample_file) %>%
-    dplyr::select("run_accession", opt$sample_id) %>%
+  sample_df <- readr::read_csv(opt$sample_file) |>
+    dplyr::select("run_accession", opt$sample_id) |>
     dplyr::distinct()
   # rename columns in counts_df
-  counts_df <- counts_df %>%
+  counts_df <- counts_df |>
     dplyr::rename_all(function(run_id){
-      tibble::tibble(run_accession = run_id) %>% 
-        dplyr::left_join(sample_df, by = "run_accession") %>%
+      tibble::tibble(run_accession = run_id) |>
+        dplyr::left_join(sample_df, by = "run_accession") |>
         dplyr::pull(opt$sample_id)
       })
 }
 
 # Make a gene column so read_tsv will have the info
-counts_df <- counts_df %>% tibble::rownames_to_column("gene")
+counts_df <- counts_df |> tibble::rownames_to_column("gene")
 
 # Save to tsv file
 readr::write_tsv(counts_df, file.path(opt$outfile))

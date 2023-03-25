@@ -1,7 +1,7 @@
 ---
 title: "OpenPBTA: Create a heatmap"
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 author: CCDL for ALSF
@@ -35,7 +35,7 @@ library(ComplexHeatmap)
 
 ### Directories and files
 
-We have stored the data we'll use in this notebook in `data/open-pbta/processed`. 
+We have stored the data we'll use in this notebook in `data/open-pbta/processed`.
 
 ```{r directories, live = TRUE}
 data_dir <- file.path("data", "open-pbta", "processed")
@@ -51,19 +51,19 @@ if (!dir.exists(plots_dir)) {
 
 ```{r input_files}
 histologies_file <- file.path(data_dir, "pbta-histologies-stranded-rnaseq.tsv")
-rnaseq_file <- file.path(data_dir, "pbta-vst-stranded.tsv.gz") 
+rnaseq_file <- file.path(data_dir, "pbta-vst-stranded.tsv.gz")
 ```
 
 #### Output files
 
 ```{r png_output, live = TRUE}
-heatmap_file <- file.path(plots_dir, 
+heatmap_file <- file.path(plots_dir,
                           "common_histologies_high_variance_heatmap.png")
 ```
 
 ## Read in and prepare data
 
-### Metadata 
+### Metadata
 
 Let's read in the metadata file and take a look.
 
@@ -72,7 +72,7 @@ histologies_df <- read_tsv(histologies_file,
                            # this specifies how many lines should be used to
                            # guess column types - this file has well under
                            # 10000 lines
-                           guess_max = 10000)   
+                           guess_max = 10000)
 ```
 
 Use the chunk below to explore the metadata data frame.
@@ -85,12 +85,12 @@ We'll use the disease labels in a column called `short_histology` when we label 
 Let's count how many samples are assigned each `short_histology` label using the Tidyverse.
 
 ```{r count_histologies}
-histology_count_df <- histologies_df %>%
-  group_by(short_histology) %>%
-  # Count how many samples are in each short_histology and name the column 
+histology_count_df <- histologies_df |>
+  group_by(short_histology) |>
+  # Count how many samples are in each short_histology and name the column
   # with that number n
-  tally() %>%
-  # Sort from largest number of samples to smallest number of samples in a 
+  tally() |>
+  # Sort from largest number of samples to smallest number of samples in a
   # histology
   arrange(desc(n))
 
@@ -99,12 +99,12 @@ histology_count_df
 
 ```{r filter_histologies, live = TRUE}
 # Only include histologies with over 50 samples
-histologies_to_keep <- histology_count_df %>%
-  filter(n > 50) %>%
+histologies_to_keep <- histology_count_df |>
+  filter(n > 50) |>
   pull(short_histology)
 
 # Filter the full metadata file to only the histologies with n > 50
-filtered_histologies_df <- histologies_df %>%
+filtered_histologies_df <- histologies_df |>
   filter(short_histology %in% histologies_to_keep)
 ```
 
@@ -129,13 +129,13 @@ head(filtered_histologies_df$Kids_First_Biospecimen_ID)
 ```{r create_rnaseq_mat}
 # Filter to the samples in the histologies we're interested in
 # and create a matrix where the rownames are the gene identifiers
-rnaseq_mat <- rnaseq_df %>%
+rnaseq_mat <- rnaseq_df |>
   select(gene_id,
-         # In addition to *selecting* the samples in histologies that are in 
-         # the filtered histologies data frame, this step also makes it such 
+         # In addition to *selecting* the samples in histologies that are in
+         # the filtered histologies data frame, this step also makes it such
          # that the samples are in the same order in both data frames
-         filtered_histologies_df$Kids_First_Biospecimen_ID) %>%
-  tibble::column_to_rownames("gene_id") %>%
+         filtered_histologies_df$Kids_First_Biospecimen_ID) |>
+  tibble::column_to_rownames("gene_id") |>
   as.matrix()
 ```
 
@@ -175,7 +175,7 @@ First, we'll set up the metadata that we want to use to label samples in the hea
 In `ComplexHeatmap` terminology, this is called annotation, or `HeatmapAnnotation`, specifically.
 
 ```{r sample_annotation_df}
-sample_annotation_df <- filtered_histologies_df %>%
+sample_annotation_df <- filtered_histologies_df |>
   # Select only the columns that we'll use
   select(Kids_First_Biospecimen_ID,
          short_histology,
@@ -193,12 +193,12 @@ Usually this is pretty much equivalent to a data frame.
 class(sample_annotation_df)
 ```
 
-BUT `ComplexHeatmap` expects a data frame, so sometimes it will behave in unexpected ways when you give it a tibble! 
+BUT `ComplexHeatmap` expects a data frame, so sometimes it will behave in unexpected ways when you give it a tibble!
 Let's make a data frame and make the sample identifiers the rownames.
 
 ```{r annotation_as_df, live = TRUE}
-sample_annotation_df <- sample_annotation_df %>%
-  as.data.frame() %>%
+sample_annotation_df <- sample_annotation_df |>
+  as.data.frame() |>
   tibble::column_to_rownames("Kids_First_Biospecimen_ID")
 ```
 
@@ -206,7 +206,7 @@ To specify the colors in our annotation bar, we need to create a list of named v
 The names of the list need to *exactly* match the column names in `sample_annotation_df` and the names in each vector need to *exactly* match the values in those columns.
 
 ```{r color_palettes}
-# Palette recommended for those with color vision deficencies - we'll use that 
+# Palette recommended for those with color vision deficencies - we'll use that
 # for histologies
 histology_colors <- palette.colors(palette = "Okabe-Ito")[2:5]
 sample_annotation_colors <- list(
@@ -246,7 +246,7 @@ This is sometimes called a standardized score.
 It's calculated for each value in a row (gene) by subtracting the gene's mean and dividing by the gene's standard deviation.
 
 ```{r}
-zscores_mat <- 
+zscores_mat <-
   (high_var_mat - rowMeans(high_var_mat)) / matrixStats::rowSds(high_var_mat)
 ```
 
@@ -300,7 +300,7 @@ Heatmap(zscores_mat,
         clustering_method_columns = "average",
         show_row_names = FALSE,
         show_column_names = FALSE,
-        # Add annotation bars to the top of the 
+        # Add annotation bars to the top of the
         top_annotation = column_annotation,
         # This will be used as the label for the color bar
         # of the cells of the heatmap itself
@@ -311,10 +311,10 @@ We have to create the heatmap _twice_ -- once for display in the notebook and on
 
 ```{r save_heatmap_png, live = TRUE}
 # Open PNG plot device
-png(filename = heatmap_file, 
-    width = 11, 
-    height = 7, 
-    units = "in", 
+png(filename = heatmap_file,
+    width = 11,
+    height = 7,
+    units = "in",
     res = 300)
 # Heatmap, again!
 Heatmap(zscores_mat,
@@ -336,8 +336,8 @@ The heatmap we made with all of the histologies under consideration suggested th
 Let's take a closer look at the medulloblastoma samples.
 
 ```{r mb_sample_ids, live = TRUE}
-medulloblastoma_samples <- filtered_histologies_df %>%
-  filter(short_histology == "Medulloblastoma") %>%
+medulloblastoma_samples <- filtered_histologies_df |>
+  filter(short_histology == "Medulloblastoma") |>
   pull(Kids_First_Biospecimen_ID)
 ```
 
@@ -350,7 +350,7 @@ medulloblastoma_mat <- rnaseq_mat[, medulloblastoma_samples]
 We'll use Pearson correlation for our distance metric here again, but let's break down what goes into hierarchical clustering a bit here.
 
 ```{r calculate_cor}
-# cor() will take the correlation between columns - we're interested in the 
+# cor() will take the correlation between columns - we're interested in the
 # relationship between medulloblastoma samples, so we don't need to transpose
 # the matrix before using cor()
 mb_sample_correlation <- cor(medulloblastoma_mat,
@@ -370,22 +370,22 @@ Now we're ready to perform [hierarchical clustering](https://en.wikipedia.org/wi
 This is an _agglomerative_ method of clustering - each sample starts in its own cluster and then at each step of the algorithm the two most similar clusters are joined until there's only a single cluster left.
 
 ```{r mb_hclust, live = TRUE}
-mb_sample_hclust <- hclust(mb_sample_dist, 
+mb_sample_hclust <- hclust(mb_sample_dist,
                            method = "average")
 ```
 
-Here, `method = "average"` refers to the agglomeration or linkage method used during clustering. 
+Here, `method = "average"` refers to the agglomeration or linkage method used during clustering.
 The method we're using is also known as [UPGMA (unweighted pair group method with arithmetic mean)](https://en.wikipedia.org/wiki/UPGMA) and is how we specify what formula to use for calculating inter-cluster distances during hierarchical clustering.
 The distance between two clusters is the average distance between all pairs of points in the two clusters, where each pair is comprised of one point from each of the two clusters.
 
 To look at the dendrogram produced by `hclust()`, we can use built-in graphics by calling `plot()`.
 
 ```{r mb_dendrogram}
-plot(mb_sample_hclust, 
+plot(mb_sample_hclust,
      # Put the labels at the same height
-     hang = -1, 
+     hang = -1,
      # Control the size of the text labels
-     cex = 0.5) 
+     cex = 0.5)
 ```
 
 How many groups of medulloblastoma samples do you think there are?
