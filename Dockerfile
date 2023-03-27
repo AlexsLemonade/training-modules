@@ -21,7 +21,7 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     libglpk-dev \
     liblzma-dev \
     libmagick++-dev \
-    libmariadbclient-dev \
+    libmariadb-dev-compat \
     libmariadbd-dev \
     libpq-dev \
     libproj-dev \
