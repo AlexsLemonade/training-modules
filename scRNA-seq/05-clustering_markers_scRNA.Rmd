@@ -249,20 +249,25 @@ purrr::map(
 
 This returns a list of data frames, which isn't quite what we want.
 
-There is no built-in function that will give us just the first few _row names_, so we will have to define one, and `purrr` gives us a nice shorthand for doing that with `~` syntax.
-In this syntax we type a `~` followed by an expression (R code) that uses `.x` as a placeholder for a single element of the list.
-`purrr::map()` will then apply the expression to each element of the list, and return the results as a new list.
+There is no built-in function that will give us just the first few _row names_, so we will have to define one.
+As of version 4.1, R introduced a new approach to defining _anonymous functions_ - that is, functions you can quickly define "on-the-fly" without formally assigning them.
+They are handy when you need to do a very short task that requires a function, but it isn't really a function you need beyond this context.
+This new anonymous syntax looks like this: `\(x)...` (or for slightly longer code, use curly braces as in `\(x) {...}`).
+This would define an anonymous function that takes one argument, `x`, and `...` is where you would put the expression to calculate, aka the "body" of the function.
+
+`purrr::map()` will then apply the expression in our anonymous functionto each element of the list, and return the results as a new list.
 
 ```{r head_markernames, live = TRUE}
 # Get the first few row names of each table with a purrr function.
 purrr::map(as.list(markers), # convert markers to a 'regular' list for purrr
-           ~ rownames(head(.x))) # our custom function.
+           \(x) rownames(head(x))) # our custom function.
 ```
 
 Another variant is `purrr::imap()`, which allows us to use the names of the list elements in our function.
 (Try `names(markers)` to see the names for the list we are working with now.)
 We will use that here to name output files where we will print each of the marker tables, one for each cell type.
-We are again defining a custom function within the call to `purrr:imap()` using the `~` syntax, but this time we can use `.x` for the list elements and `.y` for their names.
+We are again defining a custom function within the call to `purrr:imap()` using the `\(x)` syntax, but this time we can use `x` for the list elements and `y` for their names.
+So, we'll actually start by defining the function as `\(x,y)`, since there will be two input arguments.
 Because we don't know the identities of the clusters we identified, these are just the cluster numbers for now.
 
 Making file names from numbers can be a a bit fraught, as we really want them to sort in numerical order, but many systems will sort by alphabetical order.
@@ -281,16 +286,18 @@ In addition to writing the tables out, we are saving the data frames we created 
 ```{r write_tables}
 marker_df_list <- purrr::imap(
   as.list(markers), # convert markers to a 'regular' list for purrr
-  # purrr function: .x is the list element, .y is the element name (number here)
-  ~ as.data.frame(.x) |> # first convert to a data frame
-    tibble::rownames_to_column("gene") |> # make genes a column
-    dplyr::arrange(FDR) |> # sort to be sure small FDR genes are first
-    readr::write_tsv( # write each data frame to a file
+  # purrr function: x is the list element, y is the element name (number here)
+  \(x, y) {
+    as.data.frame(x) |> # first convert to a data frame
+      tibble::rownames_to_column("gene") |> # make genes a column
+      dplyr::arrange(FDR) |> # sort to be sure small FDR genes are first
+      readr::write_tsv( # write each data frame to a file
       file.path(marker_dir, # construct the output path
-                sprintf("cluster%02d_markers.tsv", as.integer(.y)) # format cluster numbers in file names with leading zeros
+                sprintf("cluster%02d_markers.tsv", as.integer(y)) # format cluster numbers in file names with leading zeros
                 )
       )
-  )
+  }
+)
 ```
 
 
