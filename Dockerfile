@@ -1,4 +1,4 @@
-FROM rocker/tidyverse:4.1.2
+FROM rocker/tidyverse:4.2.3
 LABEL maintainer="ccdl@alexslemonade.org"
 WORKDIR /rocker-build/
 
@@ -17,10 +17,11 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     less \
     libboost-all-dev \
     libbz2-dev \
+    libfftw3-dev \
     libglpk-dev \
     liblzma-dev \
     libmagick++-dev \
-    libmariadbclient-dev \
+    libmariadb-dev-compat \
     libmariadbd-dev \
     libpq-dev \
     libproj-dev \
@@ -33,34 +34,34 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
     python3-pip \
     time \
     unzip \
-    zlib1g-dev 
+    zlib1g-dev
 
 # AWS
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.1.27.zip" -o "awscliv2.zip" && \
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install
 
 # FastQC
 RUN apt update && apt install -y fastqc
 
-# fastp 
+# fastp
 ENV FASTP_VERSION 0.20.1
 RUN git clone https://github.com/OpenGene/fastp.git
 RUN cd fastp && \
     git checkout tags/v${FASTP_VERSION} -b v${FASTP_VERSION} && \
     make && \
-    make install 
+    make install
 
 # MultiQC
 ENV MULTIQC_VERSION 1.9
 RUN pip3 install multiqc==${MULTIQC_VERSION}
 
 # Snakemake
-ENV SNAKEMAKE_VERSION 5.19.3
+ENV SNAKEMAKE_VERSION 7.25.0
 RUN pip3 install snakemake==${SNAKEMAKE_VERSION}
 
 # Salmon
-ENV SALMON_VERSION 1.4.0
+ENV SALMON_VERSION 1.10.0
 WORKDIR /usr/local/src
 RUN wget --quiet https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/salmon-${SALMON_VERSION}_linux_x86_64.tar.gz
 RUN tar xzf salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
@@ -68,7 +69,7 @@ RUN tar xzf salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
     ln -s /usr/local/src/salmon-latest_linux_x86_64/bin/salmon /usr/local/bin/salmon
 
 # Use renv for R packages
-ENV RENV_VERSION 0.15.2
+ENV RENV_VERSION 0.17.2
 ENV RENV_CONFIG_CACHE_ENABLED FALSE
 RUN R -e "install.packages('remotes')"
 RUN R -e "remotes::install_version('renv', version = '${RENV_VERSION}')"
