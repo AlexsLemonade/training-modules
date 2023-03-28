@@ -1,4 +1,4 @@
-FROM rocker/tidyverse:4.2.3
+FROM rocker/tidyverse:4.2.2
 LABEL maintainer="ccdl@alexslemonade.org"
 WORKDIR /rocker-build/
 
@@ -42,7 +42,7 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     ./aws/install
 
 # FastQC
-RUN apt update && apt install -y fastqc
+RUN apt-get update && apt-get install -y fastqc
 
 # fastp
 ENV FASTP_VERSION 0.20.1
@@ -69,10 +69,8 @@ RUN tar xzf salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
     ln -s /usr/local/src/salmon-latest_linux_x86_64/bin/salmon /usr/local/bin/salmon
 
 # Use renv for R packages
-ENV RENV_VERSION 0.17.2
 ENV RENV_CONFIG_CACHE_ENABLED FALSE
-RUN R -e "install.packages('remotes')"
-RUN R -e "remotes::install_version('renv', version = '${RENV_VERSION}')"
+RUN R -e "install.packages(c('renv', 'yaml', 'BiocManager'))"
 
 WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
