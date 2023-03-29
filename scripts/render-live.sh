@@ -30,12 +30,12 @@ files=(
   scRNA-seq/03-normalizing_scRNA.Rmd
   scRNA-seq/04-dimension_reduction_scRNA.Rmd
   scRNA-seq/05-clustering_markers_scRNA.Rmd
-  scRNA-seq/06-overrepresentation_analysis.Rmd
-  scRNA-seq/07-gene_set_enrichment_analysis.Rmd
+  scRNA-seq/06-celltype_assignment.Rmd
   scRNA-seq-advanced/01-read_filter_normalize_scRNA.Rmd
-  scRNA-seq-advanced/02-celltype_assignment.Rmd
-  scRNA-seq-advanced/03-dataset_integration.Rmd
-  scRNA-seq-advanced/04-differential_expression.Rmd
+  scRNA-seq-advanced/02-dataset_integration.Rmd
+  scRNA-seq-advanced/03-differential_expression.Rmd
+  scRNA-seq-advanced/04-overrepresentation_analysis.Rmd
+  scRNA-seq-advanced/05-gene_set_enrichment_analysis.Rmd
   # machine-learning/01-openpbta_heatmap.Rmd
   # machine-learning/02-openpbta_consensus_clustering.Rmd
   # machine-learning/03-openpbta_PLIER.Rmd
