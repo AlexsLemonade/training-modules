@@ -32,13 +32,13 @@ sync_dirs=(
   RNA-seq/data/open-pbta
   scRNA-seq/data/hodgkins/cellranger
   # scRNA-seq/data/mouse-liver/normalized
+  scRNA-seq/data/PBMC-TotalSeqB/normalized
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/index/Mus_musculus
   scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
   scRNA-seq-advanced/data/hodgkins/markers
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
-  scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
   scRNA-seq-advanced/data/rms/processed
   scRNA-seq-advanced/data/rms/integrated
   scRNA-seq-advanced/data/pancreas/processed
