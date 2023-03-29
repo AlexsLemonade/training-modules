@@ -2,13 +2,10 @@
 
 This repository is a collection of modules that are combined into 1-5 day workshops on computational topics for the childhood cancer research community.
 
-**If you are a childhood cancer researcher** and are interested attending a workshop go to the [CCDL's website](https://www.ccdatalab.org/projects-training)
-to learn more about our upcoming workshop locations and dates.
+**If you are a childhood cancer researcher** and are interested attending a workshop go to the [CCDL's website](https://www.ccdatalab.org/projects-training) to learn more about our upcoming workshop locations and dates.
 
-Here is a sample schedule [for the RNA-seq workshop](https://github.com/AlexsLemonade/RNA-Seq-Exercises/blob/master/schedule.md) if you'd like to see the order in
-which this material is presented.
-The data files that we process in the course are too large to be stored on GitHub so you will not be able to follow the material *exactly* as written without attending a
-workshop.
+Here is a sample schedule [for the RNA-seq workshop](https://github.com/AlexsLemonade/RNA-Seq-Exercises/blob/master/schedule.md) if you'd like to see the order in which this material is presented.
+The data files that we process in the course are too large to be stored on GitHub so you will not be able to follow the material *exactly* as written without attending a workshop.
 
 ### Structure of each module:
 
@@ -20,11 +17,12 @@ The accompanying slides for each module are linked below and briefly introduce t
 
 - [Intro to RStudio](https://docs.google.com/presentation/d/1VwKLleg5RG4Ck_SWRgQhLOWmoguB9k5uhhmz1cdtea0/edit?usp=sharing)
 - [RNA-seq](https://docs.google.com/presentation/d/1WRDOHXFgJT5GikYIIzwmbzGLTIoclh-XhwtnMLFnmBc/edit?usp=sharing)
-- [scRNA-seq](https://docs.google.com/presentation/d/1EGijSWUxcfjLpDU9QULYLHxsHMHlI6KPtR1Cs4QWy7A/edit?usp=sharing)
 - [Machine learning](https://docs.google.com/presentation/d/1o90uBTlQMx8qu3Jbhqe-ch-ykvLb3_vpi0O-6lBggRg/edit?usp=sharing)
+- Intro to scRNA-seq
+  - [Intro to scRNA-seq](https://docs.google.com/presentation/d/1EGijSWUxcfjLpDU9QULYLHxsHMHlI6KPtR1Cs4QWy7A/edit?usp=sharing)
+    - [Cell type annotation](https://docs.google.com/presentation/d/16ivLdwm17jqHZKOnRGVjigIMAZtr9Xpc5kjspn9mIhQ/edit?usp=sharing)
 - Advanced scRNA-seq
-  - [Intro to scRNA-seq](https://docs.google.com/presentation/d/1qjmx_C0P5feswxXvn6ezCRE5OObtB9iftQvI3ceUAa0/edit?usp=sharing)
-  - [Cell type annotation](https://docs.google.com/presentation/d/16ivLdwm17jqHZKOnRGVjigIMAZtr9Xpc5kjspn9mIhQ/edit?usp=sharing)
+  - [scRNA-seq refresher](https://docs.google.com/presentation/d/1qjmx_C0P5feswxXvn6ezCRE5OObtB9iftQvI3ceUAa0/edit?usp=sharing)
   - [Integration](https://docs.google.com/presentation/d/1l1Nmj_OADnfZ6J8DaIj7ncetCo_cbLvOI-2xtpW_FrI/edit?usp=sharing)
   - [Differential expression](https://docs.google.com/presentation/d/1TFfq1NV9vYkzZqtifVPRHXUhPeYSQgv0KkLH5qy4yMA/edit?usp=sharing)
 
