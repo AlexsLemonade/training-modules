@@ -34,14 +34,15 @@ sync_dirs=(
   # scRNA-seq/data/mouse-liver/normalized
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
-  scRNA-seq/gene-sets
   scRNA-seq/index/Mus_musculus
   scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
+  scRNA-seq-advanced/data/hodgkins/markers
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
   scRNA-seq-advanced/data/rms/processed
   scRNA-seq-advanced/data/rms/integrated
   scRNA-seq-advanced/data/pancreas/processed
+  scRNA-seq-advanced/gene-sets
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
@@ -76,10 +77,10 @@ sync_files+=(${output_files[@]})
 for loc in ${sync_dirs[@]}
 do
   if [[ -d ${loc} ]]; then
-    # upload directories to S3, make public, ignore timestamps, ignore hidden files
+    # upload directories to S3, ignore timestamps, ignore hidden files
     aws s3 sync ${loc} ${bucket}/${loc} \
     --size-only \
-    --exclude ".*"
+    --exclude ".*" 
   else
     echo "${loc} does not exist."
   fi
@@ -90,8 +91,8 @@ echo "Directories synced"
 for loc in ${sync_files[@]}
 do
   if [[ -f ${loc} ]]; then
-    # upload individual files to S3, make public
-    aws s3 cp ${loc} ${bucket}/${loc}
+    # upload individual files to S3
+    aws s3 cp ${loc} ${bucket}/${loc} 
   else
     echo "${loc} does not exist."
   fi
