@@ -56,17 +56,17 @@ sync_files=(
   RNA-seq/data/medulloblastoma/SRP150101_metadata.tsv
   scRNA-seq/data/glioblastoma/preprocessed/txi/count_matrix.tsv
   scRNA-seq/data/glioblastoma/preprocessed/darmanis_metadata.tsv
+  scRNA-seq/data/glioblastoma/normalized/glioblastoma_normalized_sce.rds
   scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
-  scRNA-seq/analysis/mouse-liver/markers/cluster07_markers.tsv
+  scRNA-seq-advanced/analysis/mouse-liver/markers/cluster07_markers.tsv
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv
 )
 
 output_files=(
-  scRNA-seq-advanced/data/glioblastoma/normalized/glioblastoma_normalized_sce.rds
   scRNA-seq-advanced/data/rms/integrated/rms_subset_sce.rds
   scRNA-seq-advanced/analysis/rms/deseq/rms_myoblast_deseq_results.tsv
 )
@@ -80,7 +80,7 @@ do
     # upload directories to S3, ignore timestamps, ignore hidden files
     aws s3 sync ${loc} ${bucket}/${loc} \
     --size-only \
-    --exclude ".*" 
+    --exclude ".*"
   else
     echo "${loc} does not exist."
   fi
@@ -92,7 +92,7 @@ for loc in ${sync_files[@]}
 do
   if [[ -f ${loc} ]]; then
     # upload individual files to S3
-    aws s3 cp ${loc} ${bucket}/${loc} 
+    aws s3 cp ${loc} ${bucket}/${loc}
   else
     echo "${loc} does not exist."
   fi
