@@ -1,0 +1,39 @@
+# Workflow for downloading Glioblastoma data from 10X
+configfile: "config.yaml"
+raw_dir = config["base_dir"]
+normalized_dir = config["normalized_dir"]
+
+rule targets:
+  input:
+   os.path.join(raw_dir, "raw_feature_bc_matrix"),
+   os.path.join(normalized_dir, "glioblastoma_normalized_sce.rds")
+
+rule download_raw:
+  output:
+    directory(os.path.join(raw_dir, "raw_feature_bc_matrix"))
+  params:
+    url = config["url"]
+  shell:
+    "curl -L {params.url} | tar xz -C {outdir}"
+
+
+# run filter & normalize notebook as preparation for exercise notebook in intro
+# ouput file is copied to the intro directory
+rule normalize_sce:
+  input:
+   os.path.join(raw_dir, "raw_feature_bc_matrix")
+  output:
+    os.path.join(normalized_dir, "glioblastoma_normalized_sce.rds")
+  params:
+    notebook = "../../01-read_filter_normalize_scRNA.Rmd"
+  shell:
+    """
+    Rscript -e "
+      temp_dir = tempdir()
+      rmarkdown::render({params.notebook},
+                        knit_root_dir = temp_dir,
+                        output_dir = temp_dir)
+      fs::file_copy(file.path(temp_dir, glioblastoma_normalized_sce.rds"),
+                    {output})
+    "
+    """
