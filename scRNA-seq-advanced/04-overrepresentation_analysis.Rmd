@@ -57,11 +57,16 @@ library(org.Hs.eg.db)
 #### Directories
 
 ```{r create_ora_directory, live = TRUE}
+hodgkins_data_dir <- file.path("data", "hodgkins")
 # We'll use the output of the clustering notebook for ORA
+hodgkins_analysis_dir <- file.path("analysis", "hodgkins")
 
-# We'll create a directory to specifically hold the pathway results if it doesn't
-# exist yet
+# We'll create a directory to specifically hold the pathway results
+results_dir <- file.path(hodgkins_analysis_dir, "pathway-analysis")
+fs::dir_create(results_dir)
 
+# Create a directory for an updated marker list file
+fs::dir_create(file.path(hodgkins_analysis_dir, "markers"))
 ```
 
 #### Input files
@@ -69,7 +74,7 @@ library(org.Hs.eg.db)
 We're going to perform ORA on the marker genes from cluster 1 we looked at in the previous notebook.
 
 ```{r cluster_input}
-input_file <- file.path(hodgkins_analysis_dir,
+input_file <- file.path(hodgkins_data_dir,
                         "markers",
                         "cluster01_markers.tsv")
 ```
@@ -96,7 +101,9 @@ cluster1_output_file <- file.path(hodgkins_analysis_dir,
 We'll save the table of ORA results (e.g., p-values).
 
 ```{r output_files, live = TRUE}
-
+go_results_file <- file.path(results_dir, "cluster01_go_ora_results.tsv")
+cm_results_file <- file.path(results_dir,
+                             "cluster01_CellMarker_ora_results.tsv")
 ```
 
 ## Read in marker genes
@@ -104,13 +111,13 @@ We'll save the table of ORA results (e.g., p-values).
 Let's read in our marker genes from cluster 1.
 
 ```{r read_in_markers, live = TRUE}
-
+markers_df <- readr::read_tsv(input_file)
 ```
 
 And let's take a peek!
 
 ```{r marker_head, live = TRUE}
-
+head(markers_df)
 ```
 
 ### Gene identifier conversion
@@ -128,7 +135,7 @@ we would use `org.Dr.eg.db` for zebrafish (_Danio rerio_).
 We can see what types of IDs are available to us in an annotation package with `keytypes()`.
 
 ```{r keytypes, live = TRUE}
-
+keytypes(org.Hs.eg.db)
 ```
 
 Even though we'll use this package to convert from Ensembl gene IDs (`ENSEMBL`) to gene symbols (`SYMBOL`), we could just as easily use it to convert from an Ensembl transcript ID (`ENSEMBLTRANS`) to Entrez IDs (`ENTREZID`).
@@ -167,19 +174,19 @@ Now we are ready to add the gene symbols to our data frame with the marker genes
 We can use a _join_ function from the `dplyr` package to do this, which will use the Ensembl gene IDs in both data frames to determine how to join the rows.
 
 ```{r add_symbols, live = TRUE}
-
+markers_df <- symbols_df |>
   # An *inner* join will only return rows that are in both data frames
-
+  dplyr::inner_join(markers_df,
                     # The name of the column that contains the Ensembl gene IDs
                     # in the left data frame and right data frame, effectively
                     # dropping genes that don't have gene symbols
-
+                    by = c("ensembl_id" = "gene"))
 ```
 
 We're going to use this table again, with the gene symbols, in the next notebook so let's write it to a file.
 
 ```{r save_gene_symbols, live = TRUE}
-
+readr::write_tsv(markers_df, file = cluster1_output_file)
 ```
 
 ## Over-representation Analysis (ORA)
@@ -258,7 +265,7 @@ If we were unable to include a gene in our marker gene comparisons because, for 
 Our markers data frame has all of the genes that we did not filter out and have gene symbols corresponding to the Ensembl gene IDs, so we can use the `gene_symbol` column as our background set.
 
 ```{r get_background_set, live = TRUE}
-
+background_set <- markers_df$gene_symbol
 ```
 
 ### Gene Ontology ORA
@@ -305,7 +312,8 @@ go_result_df <- data.frame(go_ora_results@result)
 Let's take a look at the GO sets with an adjusted p-value less than 0.00001.
 
 ```{r filter_padj, live = TRUE}
-
+go_result_df |>
+  dplyr::filter(p.adjust < 0.00001)
 ```
 
 Some of these columns have names that are somewhat opaque and are used for visualization, so let's briefly talk about them here!
@@ -320,7 +328,7 @@ Some of these columns have names that are somewhat opaque and are used for visua
 We can use a dot plot to visualize our significant enrichment results.
 
 ```{r dotplot, live = TRUE}
-
+enrichplot::dotplot(go_ora_results)
 ```
 
 **What cell type do you think the cells from cluster 1 are?**
@@ -328,7 +336,7 @@ We can use a dot plot to visualize our significant enrichment results.
 We can use an [UpSet plot](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4720993/) to visualize the **overlap** between the gene sets that were returned as significant.
 
 ```{r upsetplot, live = TRUE}
-
+enrichplot::upsetplot(go_ora_results)
 ```
 
 It's important to keep in mind that gene sets or pathways aren't independent, either!
@@ -352,7 +360,7 @@ And there are both gene and protein markers.
 Let's read in the CellMarker data we've already cleaned:
 
 ```{r read_in_cm, live = TRUE}
-
+cellmarker_df <- readr::read_tsv(cellmarker_file)
 ```
 #### Run `enricher()`
 
@@ -361,10 +369,15 @@ We can use the it to run ORA with the CellMarker data, which contains gene symbo
 That's why we needed to perform gene identifier conversion earlier!
 
 ```{r cm_ora, live = TRUE}
-
+cellmarker_ora_results <- enricher(
+  gene = cluster01_markers,  # Genes of interest
+  pvalueCutoff = 0.05,  # More permissive cut off
+  pAdjustMethod = "BH",  # FDR
+  universe = background_set,  # Background set
   # The pathway information should be a data frame with a term name or
   # identifier and the gene identifiers
-
+  TERM2GENE = cellmarker_df
+)
 ```
 
 #### Visualizing results
@@ -393,7 +406,9 @@ All things to keep in mind if you use this resource for your own work!
 Write the results to file for both GO and CellMarker gene sets.
 
 ```{r write_results, live = TRUE}
-
+readr::write_tsv(go_result_df, file = go_results_file)
+data.frame(cellmarker_ora_results@result) |>
+  readr::write_tsv(file = cm_results_file)
 ```
 
 ## Parting thoughts

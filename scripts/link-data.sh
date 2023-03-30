@@ -31,6 +31,7 @@ mkdir -p scRNA-seq/data/tabula-muris/alevin-quant
 mkdir -p scRNA-seq/data/tabula-muris/normalized
 mkdir -p scRNA-seq/data/hodgkins
 mkdir -p scRNA-seq/data/mouse-liver
+mkdir -p scRNA-seq/data/PBMC-TotalSeqB/normalized/
 
 # scRNA-seq-advanced module directories
 mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
@@ -38,6 +39,7 @@ mkdir -p scRNA-seq-advanced/data/glioblastoma
 mkdir -p scRNA-seq-advanced/data/rms/integrated
 mkdir -p scRNA-seq-advanced/data/rms/annotations
 mkdir -p scRNA-seq-advanced/data/pancreas
+mkdir -p scRNA-seq-advanced/data/hodgkins
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -72,21 +74,23 @@ link_locs=(
   scRNA-seq/data/hodgkins/cellranger
   scRNA-seq/data/mouse-liver/normalized
   scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
+  scRNA-seq/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/data/tabula-muris/fastq
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
-  scRNA-seq/gene-sets
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
   scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
+  scRNA-seq-advanced/data/hodgkins/markers
   scRNA-seq-advanced/data/reference
   scRNA-seq-advanced/data/rms/processed
   scRNA-seq-advanced/data/rms/integrated/rms_all_sce.rds
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/pancreas/processed
+  scRNA-seq-advanced/gene-sets
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma

@@ -1,5 +1,5 @@
 ---
-title: "Assigning cell types from scRNA-seq data"
+title: "Annotating cell types from scRNA-seq data"
 author: Data Lab for ALSF
 date: 2023
 output:
@@ -19,7 +19,7 @@ This notebook will demonstrate how to:
 
 ---
 
-In this notebook, we will attempt to assign cell types to each of the cells in a dataset, using some of the automated tools that are available within the Bioconductor universe.
+In this notebook, we will attempt to annotate cell types to each of the cells in a dataset, using some of the automated tools that are available within the Bioconductor universe.
 
 Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/3.16/OSCA/). 
 
@@ -32,7 +32,7 @@ The antibodies used here are the [The TotalSeq™-B Human TBNK Cocktail](https:/
 
 The data here have already been filtered, normalized, and had dimension reductions calculated for the single-cell RNA-seq data.
 The ADT data has also been separately filtered and normalized.
-For details about how to perform these tasks with data that has been processed with Cell Ranger, have a look at our `exercise_01` notebook in this directory.
+For details about how to perform these tasks with data that has been processed with Cell Ranger, you may want to look at the ["Integrating with protein abundance" chapter](http://bioconductor.org/books/3.16/OSCA.advanced/integrating-with-protein-abundance.html#setting-up-the-data) of OSCA.
 
 The processed gene expression and ADT data were saved into a combined `SingleCellExperiment` (SCE) object, and we will start with that object for our exploration here.
 
@@ -61,15 +61,24 @@ We aren't planning any significant modifications of the underlying data, so we w
 
 ```{r filepaths, live=TRUE}
 # directory for the input data
+data_dir <- file.path("data", 
+                      "PBMC-TotalSeqB", 
+                      "normalized")
 
 # the input file itself
+sce_file <- file.path(data_dir, 
+                      "PBMC_TotalSeqB_normalized_sce.rds")
 
 # A directory to store outputs
+analysis_dir <- file.path("analysis", 
+                          "PBMC-TotalSeqB")
 
-# check whether the output directory exists 
+# Create directory if it doesn't exist
+fs::dir_create(analysis_dir)
 
 # output table path
-
+cellinfo_file <- file.path(analysis_dir, 
+                           "PBMC_TotalSeqB_cellinfo.tsv")
 ```
 
 
@@ -80,10 +89,11 @@ First we will read in the `SingleCellExperiment` from the input file we defined 
 
 ```{r read SCE, live=TRUE}
 # read in the SCE file
-
+sce <- readr::read_rds(sce_file)
 # print a summary of the SCE
-
+sce
 ```
+
 This should look similar to the SCE objects that we have seen before, containing `counts` and `logcounts` assays where each cell is a column and each row is a gene.
 We also have some of the `rowData`, `colData` and reduced dimension matrices that we have seen before.
 
@@ -99,7 +109,7 @@ Let's look at what we have in that slot:
 
 ```{r view altExp, live=TRUE}
 # print a summary of the 'ADT' altExp
-
+altExp(sce, "ADT")
 ```
 
 It is another `SingleCellExperiment`! 
@@ -116,7 +126,7 @@ Since there is only one `altExp`, we don't need the second (name) argument (`"AD
 
 ```{r adt rows, live=TRUE}
 # What proteins were assayed?
-
+rowData(altExp(sce))
 ```
 
 You can see here the names and symbols of the tags used, along with the designation that all have an "Antibody Capture" type (as opposed to "Gene Expression" for the RNA data).
@@ -133,16 +143,19 @@ While we have the ADT data, it is _not_ being used for this stage of the analysi
 
 ```{r cluster cells, live=TRUE}
 # perform clustering
-
+nn_clusters <- bluster::clusterRows(
   # PCA input
-
+  reducedDim(sce, "PCA"), 
   # graph clustering & parameters
+  bluster::NNGraphParam()
+)
 
 # add clusters to colData
-
+sce$nn_cluster <- nn_clusters
 ```
 
-Now we can plot the clusters we have identified with our old friend `scater::plotUMAP()`.
+Now we can plot the clusters we have identified with `scater::plotUMAP()`. 
+This is a shortcut for `scater::plotReducedDim(dimred = "UMAP", ...)`, which can save us a lot of typing as we do this repeatedly!
 
 ```{r plot clusters}
 # plot clusters
@@ -171,7 +184,7 @@ So to color by the ADT levels (as normalized in the `logcounts` matrix) we only 
 
 ```{r plot CD3, live=TRUE}
 # plot CD3 expression
-
+scater::plotUMAP(sce, colour_by = "CD3")
 ```
 
 It appears that we have a number of potential T cells down in the lower left!
@@ -186,12 +199,14 @@ Let's plot the ADT results for those two markers as well below:
 
 ```{r plot CD4, live=TRUE}
 # plot CD4 marker
-
+scater::plotUMAP(sce, 
+                 colour_by = "CD4")
 ```
 
 ```{r plot CD8, live=TRUE}
 # plot CD8 marker
-
+scater::plotUMAP(sce, 
+                 colour_by = "CD8")
 ```
 
 
@@ -236,21 +251,30 @@ We can perform this conversion using the [`tidyr::pivot_longer()`](https://tidyr
 which allows us to convert our data frame with one column per tag into a data frame with separate columns for the tag id (`ADT`) and the expression value (`logcount`).
 Following conversion, we will filter to just the ADTs that we care about.
 
-```{r pivot longer, live=TRUE}
-
+```{r pivot longer}
+adt_df_long <- adt_df |>
   # pivot to long format
-
+  tidyr::pivot_longer(
+    everything(), # use all columns
+    names_to = "ADT", # convert row names to a column called "ADT"
+    values_to = "logcount" # name the value column "logcount"
+  ) |>
   # filter to tags we are interested in
+  dplyr::filter(ADT %in% c("CD3", "CD4", "CD8"))
 
 # look at the resulting df
-
+head(adt_df_long)
 ```
 
 Now we can make a density plot with `ggplot2` for all three ADTs we are interested in at once.
 
 ```{r plot ADTs, live=TRUE}
 # plot logcounts by ADT
-
+ggplot(adt_df_long, aes(x = logcount, fill = ADT)) + 
+  geom_density() + # density plot
+  facet_grid(rows = vars(ADT)) + # facet by ADT
+  theme_bw() + # nicer theme
+  theme(legend.position = "none") # no legend needed
 ```
 
 These look pretty good!
@@ -346,7 +370,7 @@ monaco_ref <- celldex::MonacoImmuneData(ensembl = TRUE)
 What is this `monaco_ref` object?
 
 ```{r explore ref, live = TRUE}
-
+monaco_ref
 ```
 
 A `SummarizedExperiment` is very similar to a `SingleCellExperiment`, except rather than having one column per cell, each column is a *sample*.
@@ -356,7 +380,7 @@ In fact, the `SingleCellExperiment` object is derived from a `SummarizedExperime
 What information do we have for the samples?
 
 ```{r explore reference sample data, live=TRUE}
-
+colData(monaco_ref)
 ```
 
 There are three main columns for the sample data:
@@ -409,7 +433,12 @@ In this case, we will use the argument `BiocParallel::MulticoreParam(4)` to spec
 
 ```{r simple SingleR, live=TRUE}
 # calculate SingleR results in one step
-
+singler_result <- SingleR::SingleR(
+  sce, # our query SCE
+  ref = monaco_ref, # reference dataset
+  labels = monaco_ref$label.main, # reference labels to use
+  BPPARAM = BiocParallel::MulticoreParam(4) # multiprocessing
+)
 ```
 
 `SingleR` provides a few nice visualizations for evaluating the statistics it calculated and the assignments it makes.
@@ -417,19 +446,19 @@ One is a heatmap of the scores for each cell, arranged by the cell type that was
 This is created with the `SingleR::plotScoreHeatmap()` function.
 
 ```{r plot SingleR heatmap, live = TRUE}
-
+SingleR::plotScoreHeatmap(singler_result)
 ```
 We can also pull out individual components of the results object for plotting in the context of our input SCE object.
 Here we will save the pruned labels (where low-quality assignments have been given an `NA` label), storing them back in our SCE object (specifically to a new column of the `colData` table).
 
 ```{r save celltypes, live=TRUE}
-
+sce$celltype_main <- singler_result$pruned.labels
 ```
 
 Now we can plot the cell type assignments onto our UMAP to see how they compare to the patterns we saw there before.
 
 ```{r plot celltype umap, live=TRUE}
-
+scater::plotUMAP(sce, colour_by = "celltype_main") 
 ```
 Annoyingly, the `NA` and `T cells` labels are quite close in color, and the `scater` and `SingleR` packages don't agree on color choices, but this plot isn't a bad start!
 We seem to have a pretty good set of cell type assignments, with most falling into groupings consistent with what we see in the UMAP plot.
@@ -471,24 +500,30 @@ This step would happen automatically with the `SingleR::SingleR()` function, but
 
 ```{r train finemodel, live=TRUE}
 # build fine model
-
+singler_finemodel <- SingleR::trainSingleR(
+  monaco_ref, # reference dataset
+  labels = monaco_ref$label.fine, # labels for training dataset
   # use DE to select genes (default)
-
+  genes = "de", 
   # only use genes in the sce object
-
+  restrict = rownames(sce),
   # parallel processing
-
+  BPPARAM = BiocParallel::MulticoreParam(4)
+)
 ```
 
 Now we can perform the classification step, using our SCE object and the `SingleR` model that we just created.
 
 ```{r classify fine, live=TRUE}
 # classify with fine model
-
+singler_result_fine <- SingleR::classifySingleR(
+  sce, # our SCE object
+  singler_finemodel, # the trained model object
   # perform fine tuning (default)
-
+  fine.tune = TRUE,
   # parallel processing
-
+  BPPARAM = BiocParallel::MulticoreParam(4)
+)
 ```
 
 
@@ -500,9 +535,9 @@ table(singler_result_fine$pruned.labels, useNA = "ifany")
 
 ```{r plot umap fine, live=TRUE}
 # add fine labels to SCE
-
+sce$celltype_fine <- singler_result_fine$pruned.labels
 # plot UMAP with fine labels
-
+scater::plotUMAP(sce, colour_by = "celltype_fine")
 ```
 
 That's a pretty messy plot.
@@ -566,7 +601,9 @@ collapsed_labels <- singler_result_fine$pruned.labels |>
 Now that we have that set up, we can plot using our collapsed and ordered cell type labels.
 
 ```{r plot collapsed, live=TRUE}
-
+sce$celltype_collapsed <- collapsed_labels
+scater::plotUMAP(sce, 
+                 colour_by = "celltype_collapsed")
 ```
 
 
@@ -612,7 +649,7 @@ There is a lot of customization we could do here, but `pheatmap` (pretty heatmap
 
 ```{r cluster heatmap, live=TRUE}
 # plot with pheatmap
-
+pheatmap::pheatmap(type_cluster_tab)
 ```
 
 We can see that most of our clusters are indeed defined by a single cell type, though there are some clusters (e.g., 1 & 9) that have a number of (related) cell types within them.
@@ -646,9 +683,13 @@ As there are only 20 clusters to classify, this will be very quick, and we don't
 
 ```{r singler cluster, live=TRUE}
 # run SingleR classification with previously trained model
+singler_cluster <- SingleR::classifySingleR(
+  cluster_mat, # cluster expression matrix
+  singler_finemodel # pre-trained model
+)
 
 # view results
-
+head(singler_cluster)
 ```
 
 The result is a fairly small table of results, but we are most interested in the labels, which we would like to associate with each cell in our SCE object for visualization.
@@ -660,10 +701,10 @@ We'll select values repeatedly from the `singler_cluster` table, using the clust
 sce$celltype_cluster <- singler_cluster[sce$nn_cluster, "pruned.labels"]
 ```
 
-Now we can plot these cluster-based cell type assignments using the now familiar `plotUMAP()` function
+Now we can plot these cluster-based cell type assignments using the now familiar `plotUMAP()` function.
 
 ```{r plot cluster celltypes, live=TRUE}
-
+scater::plotUMAP(sce, colour_by = "celltype_cluster")
 ```
 
 This sure looks nice and clean, but what have we really done here? 
@@ -725,7 +766,9 @@ To save disk space (and time), we won't write out the whole SCE object, as we ha
 Instead we will just write out the cell information table (`colData`) as a TSV file.
 
 ```{r save cell info, live=TRUE}
-
+colData(sce) |>
+  as.data.frame() |>
+  readr::write_tsv(file = cellinfo_file)
 ```
 
 
