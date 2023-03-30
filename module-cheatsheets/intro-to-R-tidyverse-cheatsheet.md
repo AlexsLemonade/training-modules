@@ -109,14 +109,17 @@ Additional vignettes are available from the "Articles" dropdown menu on this web
 | `ggplot2`               | [`last_plot()`](https://ggplot2.tidyverse.org/reference/last_plot.html)           | Last plot                                       | Returns the last plot produced.                                           |
 
 
-#### `readr`, `tibble` and `tidyr`
+#### `readr`, `fs`, `tibble` `tidyr`
 Read the [`readr` package documentation](https://readr.tidyverse.org/) and a [vignette on its usage](https://readr.tidyverse.org/articles/readr.html). <br>
+Read the [`fs` package documentation](https://fs.r-lib.org/).
 Read the [`tibble` package documentation](https://tibble.tidyverse.org/) and a [vignette on its usage](https://tibble.tidyverse.org/articles/tibble.html). <br>
 Read the [`tidyr` package documentation](https://tidyr.tidyverse.org/) and a [vignette on its usage](https://tidyr.tidyverse.org/articles/tidy-data.html).
+https://fs.r-lib.org/reference/index.html
 
 | Library/Package                      | Piece of code                                   | What it's called       | What it does                                                                                                                                                                                      |
 |--------------------------------------|-----------------------------------------------------|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | `readr`           | [`read_tsv()`](https://readr.tidyverse.org/reference/read_delim.html)           | Read TSV             | Reads in a TSV file from a specified file path. This function can be tailored to read in other common types of files, e.g. `read_csv()`, `read_rds()`, etc.                                          |
+| `fs`           | [`dir_create()`](https://fs.r-lib.org/reference/create.html)           | Create directory             | Create a directory, unless the directory already exists.
 | `tibble`          | [`column_to_rownames()`](https://tibble.tidyverse.org/reference/rownames.html) | Column to Rownames    | Transforms an existing column called by a string into the rownames.                            |
 | `tibble`          | [`rownames_to_column()`](https://tibble.tidyverse.org/reference/rownames.html)      | Rownames to Column    | Transforms the rownames of a data frame into a column (which is added to the start of the data frame).  The string supplied as an argument will be the name of the new column.            |
 | `tidyr`          | [`pivot_longer()`](https://tidyr.tidyverse.org/reference/pivot_longer.html)                  | Pivot Longer    | Lengthens a data frame by increasing the number of rows and decreasing the number of columns.              |
