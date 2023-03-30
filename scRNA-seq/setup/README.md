@@ -7,19 +7,11 @@ Currently, these workflows do not include conda environments or docker, as those
 
 ## File locations
 
-On the RStudio server the main location for the files needed for training data is `/shared/data/training-data`.
-For users, this is generally symlinked from their home directories, so they can get to it from `~/shared-data/training-data`
+On the RStudio server the main location for the files needed for training data is `/shared/data/training-modules/scRNA-seq`.
 The files are then organized by dataset.
+For users, the required files are symlinked into the appropriate locations by the `link-data.sh` script
 
-After setup, the following symlinks should be established:
 
-```
-# cd scRNA-seq
-ln -s /shared/data/training-data/darmanis data/glioblastoma/preprocessed
-ln -s /shared/data/training-data/tabula-muris/fastq data/tabula-muris/fastq-raw
-ln -s /shared/data/training-data/tabula-muris/normalized/TM_normalized.rds data/tabula-muris/normalized/TM_normalized.rds
-
-```
 ## Smart-Seq Data
 
 The Smart-Seq data we are using comes from the study [GSE84465](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465), which corresponds to the SRA project SRP079058. 
@@ -41,10 +33,13 @@ If more cores are available, the `--cores` argument can be increased.
 `--keep-going` and `--restart-times 2` are there because I did have issues with occasional download steps failing.
 This should prevent the whole workflow from requiring repetition if an individual download fails (and hopefully it will succeed on one of the retries).
 
-## 10X data
+## Tabula Muris data
 
 The 10X data we use is from the Tabula Muris dataset.
-This workflow downloads a portion of the data defined in the `config.yaml`
+
+The data fro this script was originally downloaded as part of this workflow, but AWS has moved the bam files files to Glacier, so it is no longer quite so easy to download the raw data. 
+For now, we have all we need already downloaded, so that portion of the workflow is commented out.
+If we need to revisit these downloads in the future, updates will be required.
 
 This workflow is simpler, as it doesn't include any Salmon processing and the sample list is predefined.
 Files are stored in `/shared/data/training-modules/data/tabula-muris`
