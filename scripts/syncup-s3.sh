@@ -56,6 +56,7 @@ sync_files=(
   RNA-seq/data/medulloblastoma/SRP150101_metadata.tsv
   scRNA-seq/data/glioblastoma/preprocessed/txi/count_matrix.tsv
   scRNA-seq/data/glioblastoma/preprocessed/darmanis_metadata.tsv
+  scRNA-seq/data/glioblastoma/normalized/glioblastoma_normalized_sce.rds
   scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
@@ -66,7 +67,6 @@ sync_files=(
 )
 
 output_files=(
-  scRNA-seq-advanced/data/glioblastoma/normalized/glioblastoma_normalized_sce.rds
   scRNA-seq-advanced/data/rms/integrated/rms_subset_sce.rds
   scRNA-seq-advanced/analysis/rms/deseq/rms_myoblast_deseq_results.tsv
 )

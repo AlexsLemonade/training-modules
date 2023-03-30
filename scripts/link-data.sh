@@ -70,6 +70,7 @@ link_locs=(
   RNA-seq/data/open-pbta/pbta-histologies-subset.tsv
   RNA-seq/data/open-pbta/pbta-rsem-expected_count-subset.rds
   scRNA-seq/data/glioblastoma/preprocessed
+  scRNA-seq/data/glioblastoma/normalized
   scRNA-seq/data/hodgkins/cellranger
   scRNA-seq/data/mouse-liver/normalized
   scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
