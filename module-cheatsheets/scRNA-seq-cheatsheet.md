@@ -18,7 +18,9 @@ If you have a different version of R or other R packages, the documentation may 
 - [`purrr`](#purrr)
 - [`stringr`](#stringr)
 - [`alevinQC`, `colorblindr`, `Rtsne`, `tibble`](#alevinqc-colorblindr-rtsne-tibble)
+- [`SingleR`](#singler)
 - [Salmon](#salmon)
+
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 <div style="page-break-after: always;"></div>
@@ -112,6 +114,17 @@ Documentation for each of these packages can be accessed by clicking the package
 
 <br>
 <br>
+
+
+### `SingleR`
+
+Read the [`SingleR` package documentation](https://rdrr.io/bioc/SingleR/), and an [e-book on its usage](http://bioconductor.org/books/release/SingleRBook/).
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `SingleR` | [`trainSingleR()`](https://rdrr.io/bioc/SingleR/man/trainSingleR.html) | Train the SingleR classifier | Build a `SingleR` classifier model object from an annotated reference dataset |
+| `SingleR` | [`classifySingleR()`](https://rdrr.io/bioc/SingleR/man/classifySingleR.html) | Classify cells with SingleR | Use a `SingleR` model object to assign cell types to the cells in an `SCE` object |
+| `SingleR` | [`SingleR()`](https://rdrr.io/bioc/SingleR/man/SingleR.html) | Annotate scRNA-seq data | Combines `trainSingleR()` and `classifySingleR()` to assign cell types to an `SCE` object from an annotated reference dataset |
 
 ### Salmon
 Read the [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html).
