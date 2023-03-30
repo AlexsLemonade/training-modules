@@ -1,7 +1,7 @@
 #! /bin/bash
 set -euo pipefail
 
-# render-live.sh renders and/or converts to "live" a set of .Rmd notebooks by 
+# render-live.sh renders and/or converts to "live" a set of .Rmd notebooks by
 # calling `make-live.R` for each notebook in turn.
 # Rendering is done by default, but can be skipped  by setting the RENDER_RMD to FALSE:
 # For example: RENDER_RMD=FALSE bash render-live.sh
@@ -30,7 +30,7 @@ files=(
   scRNA-seq/03-normalizing_scRNA.Rmd
   scRNA-seq/04-dimension_reduction_scRNA.Rmd
   scRNA-seq/05-clustering_markers_scRNA.Rmd
-  scRNA-seq/06-celltype_assignment.Rmd
+  scRNA-seq/06-celltype_annotation.Rmd
   scRNA-seq-advanced/01-read_filter_normalize_scRNA.Rmd
   scRNA-seq-advanced/02-dataset_integration.Rmd
   scRNA-seq-advanced/03-differential_expression.Rmd
