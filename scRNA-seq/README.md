@@ -12,7 +12,7 @@ The notebooks that comprise this module are:
 - [Normalization](https://alexslemonade.github.io/training-modules/scRNA-seq/03-normalizing_scRNA.nb.html)
 - [Dimension reduction](https://alexslemonade.github.io/training-modules/scRNA-seq/04-dimension_reduction_scRNA.nb.html) 
 - [Clustering](https://alexslemonade.github.io/training-modules/scRNA-seq/05-clustering_markers_scRNA.nb.html)
-- [Cell type identification](https://alexslemonade.github.io/training-modules/scRNA-seq/06-celltype_assignment.nb.html)
+- [Cell type annotation](https://alexslemonade.github.io/training-modules/scRNA-seq/06-celltype_assignment.nb.html)
 
 
 Additional exercise notebooks:
