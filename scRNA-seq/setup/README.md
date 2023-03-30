@@ -27,8 +27,8 @@ This is glioblastoma data that was Fluorescence-Activated Cell sorted and proces
 [(Darmanis *et al.* 2017)](https://pubmed.ncbi.nlm.nih.gov/29091775/).
 
 The setup workflow for this data is in the subdirectory of this module.
-The files it creates will be stored in the `/shared/data/training-data/darmanis` directory.
-To run the workflow, use the terminal to change to the `setup/glioblastoma` directory and then run the following command:
+The files it creates will be stored in the `/shared/data/training-modules/data` directory.
+To run the workflow, use the terminal to change to the `setup/glioblastoma-darmanis` directory and then run the following command:
 
 ```sh
 snakemake --cores 8 --keep-going --restart-times 2
@@ -47,7 +47,7 @@ The 10X data we use is from the Tabula Muris dataset.
 This workflow downloads a portion of the data defined in the `config.yaml`
 
 This workflow is simpler, as it doesn't include any Salmon processing and the sample list is predefined.
-Files are stored in `/shared/data/training-data/tabula-muris`
+Files are stored in `/shared/data/training-modules/data/tabula-muris`
 Again, the procedure is the same: change directories to the `setup/tabula-muris` directory and run:
 
 ```sh
