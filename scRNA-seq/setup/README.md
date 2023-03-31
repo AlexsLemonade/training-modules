@@ -37,7 +37,7 @@ This should prevent the whole workflow from requiring repetition if an individua
 
 The 10X data we use is from the Tabula Muris dataset.
 
-The data fro this script was originally downloaded as part of this workflow, but AWS has moved the bam files files to Glacier, so it is no longer quite so easy to download the raw data.
+The data fro this script was originally downloaded as part of this workflow, but AWS has moved the `.bam` files files to Glacier, so it is no longer quite so easy to download the raw data.
 For now, we have all we need already downloaded, so that portion of the workflow is commented out.
 If we need to revisit these downloads in the future, updates will be required.
 
