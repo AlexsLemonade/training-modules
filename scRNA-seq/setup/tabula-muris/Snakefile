@@ -4,18 +4,20 @@ workdir: config["base_dir"]
 
 rule targets:
     input:
-        "TM_droplet_metadata.csv",
+ #       "TM_droplet_metadata.csv",
         expand("qc-reports/alevinQC/{run_id}_alevinqc.html", run_id = config["run_ids"]),
         "fastq/10X_P4_3"
 
-rule get_metadata:
-    output:
-        "TM_droplet_metadata.csv"
-    shell:
-        "wget {config[metadata_url]} -O {output}"
-
-# bamfiles are no longer available on S3, so we are skipping this step for now
-
+## tabula muris files are no longer available on S3, so we are skipping this step for now
+#
+# rule get_metadata:
+#     output:
+#         "TM_droplet_metadata.csv"
+#     shell:
+#         "wget {config[metadata_url]} -O {output}"
+#
+#
+#
 # rule get_bamfile:
 #     output:
 #         temp("bam/{file}")
@@ -66,8 +68,8 @@ rule alevinQC:
         "qc-reports/alevinQC/{run_id}_alevinqc.html"
     shell:
         # add a null whitelist file if none was generated (append to protect against logic errors)
-        "[ -e {input}/alevin-quant/whitelist.txt ] ||"
-        " echo 'NNNNNNNNNNNNNNNN' >> {input}/alevin-quant/whitelist.txt ; "
+        "[ -e {input}/alevin/whitelist.txt ] ||"
+        " echo 'NNNNNNNNNNNNNNNN' >> {input}/alevin/whitelist.txt ; "
         # run alevinQC
         "Rscript -e "
         " 'alevinQC::alevinQCReport("
