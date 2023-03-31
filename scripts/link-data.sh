@@ -74,14 +74,12 @@ link_locs=(
   scRNA-seq/data/glioblastoma-10x/normalized
   scRNA-seq/data/hodgkins/cellranger
   scRNA-seq/data/mouse-liver/normalized
-  scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
   scRNA-seq/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/data/tabula-muris/fastq
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
-  scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
-  scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
+  scRNA-seq/data/reference
   scRNA-seq-advanced/analysis/mouse-liver/markers
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds

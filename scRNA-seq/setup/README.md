@@ -72,3 +72,22 @@ snakemake -j2
 
 This will place the original downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/glioblastoma-10x` and then run the `scRNA-seq-advanced/01-read_filter_normalize_scRNA.Rmd` notebook for processing.
 The output SCE, stored as an rds file, will then be copied to the `/shared/data/training-modules/scRNA-seq/data/glioblastoma-10x` directory.
+
+### PBMC TotalSeq-B
+
+This data comes from this 10x Genomics Dataset: https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p.
+
+Quoting from the data page:
+
+> Peripheral blood mononuclear cells (PBMCs) from a healthy donor were obtained by 10x Genomics from AllCells and were labelled with a panel of a panel of nine [TotalSeq™-B antibodies (BioLegend)](https://www.biolegend.com/en-us/products/totalseq-b-human-tbnk-cocktail-19043).
+
+> Libraries were generated following the Chromium Next GEM Single Cell 3ʹ Reagent Kits v3.1 (Dual Index) with Feature Barcode technology for Cell Surface Protein and Cell Multiplexing User Guide (CG000390) and sequenced on Illumina NovaSeq 6000.
+
+To download the files, change directories to the `setup/PBMC_TotalSeqB` directory and run:
+
+```sh
+snakemake -j2
+```
+
+This will place the downloaded files in `/shared/data/training-modules/scRNA-seq/data/PBMC-TotalSeqB`
+
