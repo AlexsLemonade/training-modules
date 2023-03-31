@@ -2,7 +2,7 @@
 
 This document describes how the training data is prepared for the advanced single cell RNA-seq training data on the RStudio Server.
 
-As new training data is added, notebooks, scripts, and/or workflows should be added to this directory to describe the steps required to recreate the required training input files. 
+As new training data is added, notebooks, scripts, and/or workflows should be added to this directory to describe the steps required to recreate the required training input files.
 These files should include source locations for downloading raw data as appropriate, and all processing steps required to prepare data for use.
 
 ## File locations
@@ -22,7 +22,7 @@ If no data will be written to a data directory, linking to that directory will b
 An R notebook to create a table of human mitochondrial genes is found in the `mito_gene_lists.Rmd` notebook.
 This can be opened and run to create the table, which will saved at `/shared/data/training-modules/scRNA-seq-advanced/data/reference`.
 
-### Glioblastoma
+### Glioblastoma 10x
 
 This data comes from this 10x Genomics Dataset: https://www.10xgenomics.com/resources/datasets/2-k-sorted-cells-from-human-glioblastoma-multiforme-3-v-3-1-3-1-standard-6-0-0.
 
@@ -33,13 +33,15 @@ Quoting from the data page:
 > Libraries were generated following the Chromium Next GEM Single Cell 3ʹ Reagent Kits v3.1 (Dual Index) User Guide (CG000315) and sequenced on Illumina NovaSeq 6000.
 
 
-To download the files, change directories to the `setup/glioblastoma` directory and run:
+To download the files, change directories to the `setup/glioblastoma-10x` directory and run:
 
 ```sh
-snakemake -j2 
+snakemake -j2
 ```
 
-This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/glioblastoma`
+This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/glioblastoma-10x`
+
+This dataset is also used in the `scRNA-seq/06-celltype_annotation.Rmd` notebook, but this requires it to be processed before use, so the workflow will also run the `scRNA-seq-advanced/01-read_filter_normalize_scRNA.Rmd` notebook and copy the output RDS from that run to the `/shared/data/training-modules/scRNA-seq/data/glioblastoma-10x` directory.
 
 
 ### PBMC TotalSeq-B
@@ -55,7 +57,7 @@ Quoting from the data page:
 To download the files, change directories to the `setup/PBMC_TotalSeqB` directory and run:
 
 ```sh
-snakemake -j2 
+snakemake -j2
 ```
 
 This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/PBMC-TotalSeqB`
@@ -88,7 +90,7 @@ The included script splits the dataset by donor, then performs filtering, normal
 To produce the files, change directories to the `setup/pancreas` directory and run:
 
 ```sh
-snakemake -j2 
+snakemake -j2
 ```
 
 This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/pancreas`
