@@ -41,7 +41,7 @@ snakemake -j2
 
 This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/glioblastoma-10x`
 
-This dataset is also used in the `scRNA-seq/06-celltype_annotation.Rmd` notebook, but this requires it to be processed before use, so the workflow will also run the `scRNA-seq-advanced/01-read_filter_normalize_scRNA.Rmd` notebook and copy the output RDS from that run to the `/shared/data/training-modules/scRNA-seq/data/glioblastoma-10x` directory.
+Because a processed version of this dataset is also used in the `scRNA-seq/06-celltype_annotation.Rmd`, this workflow will also run the `scRNA-seq-advanced/01-read_filter_normalize_scRNA.Rmd` notebook (which performs this processing) and copy its `RDS` output to the `/shared/data/training-modules/scRNA-seq/data/glioblastoma-10x` directory.
 
 
 ### PBMC TotalSeq-B

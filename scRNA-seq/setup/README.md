@@ -9,13 +9,13 @@ Currently, these workflows do not include conda environments or docker, as those
 
 On the RStudio server the main location for the files needed for training data is `/shared/data/training-modules/scRNA-seq`.
 The files are then organized by dataset.
-For users, the required files are symlinked into the appropriate locations by the `link-data.sh` script
+For users, the required files are symlinked into the appropriate locations by the `link-data.sh` script.
 
 
 ## Smart-Seq Data
 
 The Smart-Seq data we are using comes from the study [GSE84465](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84465), which corresponds to the SRA project SRP079058.
-This is glioblastoma data that was Fluorescence-Activated Cell sorted and processed by paired-end sequencing using Smart-seq2 protocol
+This is glioblastoma data that was Fluorescence-Activated Cell sorted and processed by paired-end sequencing using Smart-seq2 protocol.
 [(Darmanis *et al.* 2017)](https://pubmed.ncbi.nlm.nih.gov/29091775/).
 
 The setup workflow for this data is in the subdirectory of this module.
