@@ -13,7 +13,7 @@ output:
 This notebook will demonstrate how to:
 
 - Read Cell Ranger data into R
-- Filter post-quantification cells using `emptyDrops()`
+- Filter post-quantification cells using `emptyDropsCellRanger()`
 - Apply dimensionality reduction methods to single cell data
 - Visualize samples in reduced dimensional space
 
@@ -41,11 +41,11 @@ set.seed(12345)
 
 ### Directories and files
 
-The data we will be using for this module comes from a a 10X Genomics data set of expression data from a  Hodgkin's Lymphoma tumor.
-The data was generated with the 10Xv3.1 chemistry, and processed with Cell Ranger and 10X Genomics standard pipeline.
-https://support.10xgenomics.com/single-cell-gene-expression/datasets/4.0.0/Parent_NGSC3_DI_HodgkinsLymphoma
+The data we will be using for this module comes from a a 10x Genomics data set of [expression data from a Hodgkin's Lymphoma tumor](https://support.10xgenomics.com/single-cell-gene-expression/datasets/4.0.0/Parent_NGSC3_DI_HodgkinsLymphoma).
+The data was generated with the 10Xv3.1 chemistry, and processed with Cell Ranger and 10x Genomics standard pipeline.
 
-There are a variety of files that you will often see as part of the standard output from Cell Ranger, which are described in detail in [10X Genomics documentation](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/output/overview).
+
+There are a variety of files that you will often see as part of the standard output from Cell Ranger, which are described in detail in [10x Genomics documentation](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/output/overview).
 We have included some of these in the `data/hodkins/cellranger` directory, including the `web_summary.html` file that includes some similar QC statistics to those we generated with `alevinQC`.
 The main file we will be working with are the feature by barcode matrices.
 Cell Ranger does some filtering on its own, but we will start with the raw data.
@@ -136,12 +136,12 @@ dim(hodgkins_sce)
 
 ### Filtering with `emptyDropsCellRanger()`
 
-The `DropletUtils` package that we used to read in the 10X data has a number of other useful features.
+The `DropletUtils` package that we used to read in the 10x data has a number of other useful features.
 One is the `emptyDropsCellRanger()` function, which uses the overall gene expression patterns in the sample to identify droplets that are likely to not contain an intact cell, but may simply have contained loose ambient RNA released during cell separation.
 This method was originally developed by [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y) and implemented as the function `emptyDrops()`, but has since been adapted as the main filtering method used by Cell Ranger. 
 The `emptyDropsCellRanger()` function emulates the variant of this function that used by Cell Ranger, making the results more comparable between the two methods.
 
-This method, described in , uses the droplets with very low UMI counts to estimate the "ambient" expression pattern of RNA content outside of cells.
+The Empty Drops method uses the droplets with very low UMI counts to estimate the "ambient" expression pattern of RNA content outside of cells.
 It then scores the remaining cells based how much they deviate from that pattern, assigning a small P value when the droplet's expression deviates from the ambient expression pattern.
 Because it uses the low UMI count droplets, this method should not be used when other filtering has already been performed (which is unfortunately the case with the version of `salmon alevin` we used).
 
