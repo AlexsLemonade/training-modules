@@ -35,8 +35,9 @@ sync_dirs=(
   scRNA-seq/data/PBMC-TotalSeqB/normalized
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
+  scRNA-seq/data/reference
   scRNA-seq/index/Mus_musculus
-  scRNA-seq-advanced/data/glioblastoma/raw_feature_bc_matrix
+  scRNA-seq-advanced/data/glioblastoma-10x/raw_feature_bc_matrix
   scRNA-seq-advanced/data/hodgkins/markers
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/rms/processed
@@ -54,13 +55,10 @@ sync_files=(
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/leukemia/SRP049821_metadata.tsv
   RNA-seq/data/medulloblastoma/SRP150101_metadata.tsv
-  scRNA-seq/data/glioblastoma/preprocessed/txi/count_matrix.tsv
-  scRNA-seq/data/glioblastoma/preprocessed/darmanis_metadata.tsv
-  scRNA-seq/data/glioblastoma/normalized/glioblastoma_normalized_sce.rds
-  scRNA-seq/data/hodgkins/hs_mitochondrial_genes.tsv
+  scRNA-seq/data/glioblastoma-darmanis/preprocessed/txi/count_matrix.tsv
+  scRNA-seq/data/glioblastoma-darmanis/preprocessed/darmanis_metadata.tsv
+  scRNA-seq/data/glioblastoma-10x/normalized/glioblastoma_normalized_sce.rds
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
-  scRNA-seq/data/tabula-muris/mm_mitochondrial_genes.tsv
-  scRNA-seq/data/tabula-muris/mm_ensdb95_tx2gene.tsv
   scRNA-seq-advanced/analysis/mouse-liver/markers/cluster07_markers.tsv
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv

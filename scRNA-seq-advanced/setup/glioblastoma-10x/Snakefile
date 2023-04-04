@@ -1,0 +1,48 @@
+# Workflow for downloading Glioblastoma data from 10X
+configfile: "config.yaml"
+base_dir = config["base_dir"]
+intro_dir = config["intro_dir"]
+
+rule targets:
+  input:
+   os.path.join(base_dir, "raw_feature_bc_matrix"),
+   os.path.join(intro_dir, "normalized/glioblastoma_normalized_sce.rds")
+
+rule download_raw:
+  output:
+    directory(os.path.join(base_dir, "raw_feature_bc_matrix"))
+  params:
+    url = config["url"]
+  shell:
+    "curl -L {params.url} | tar xz -C {base_dir}"
+
+
+# run filter & normalize notebook as preparation for exercise notebook in intro
+# ouput file is copied to the intro directory
+rule normalize_sce:
+  input:
+    os.path.join(base_dir, "raw_feature_bc_matrix")
+  output:
+    os.path.join(intro_dir, "normalized/glioblastoma_normalized_sce.rds")
+  params:
+    notebook = "../../01-read_filter_normalize_scRNA.Rmd"
+  shell:
+    """
+    Rscript -e "
+      nb <- '{params.notebook}'
+      nb_dir <- fs::path_dir(nb)
+      rds_out <- file.path(nb_dir, 'data/glioblastoma-10x/normalized/glioblastoma_normalized_sce.rds')
+
+      rds_temp <- fs::path_temp('previous_sce.rds')
+
+      # check if there is already an output file, and move it for later
+      if(fs::file_exists(rds_out)) fs::file_move(rds_out, rds_temp)
+
+      # render the notebook to a temp file and move the output RDS
+      rmarkdown::render(nb, output_file = fs::file_temp())
+      fs::file_move(rds_out, '{output}')
+
+      # move the previous file back
+      if(fs::file_exists(rds_temp)) fs::file_move(rds_temp, rds_out)
+    "
+    """
