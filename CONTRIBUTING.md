@@ -262,6 +262,6 @@ npm install -g doctoc
 
 To re-render a cheatsheet to PDF after making desired changes in its markdown, take the following steps:
 
-* Nagivate in terminal to the `module-cheatsheets` directory
+* Navigate in terminal to the `module-cheatsheets` directory
 * Run `doctoc` on the file to update its table of contents: `doctoc cheatsheet-file.md`
 * Convert the markdown file to an updated PDF version: `mdpdf cheatsheet-file.md`
