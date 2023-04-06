@@ -11,7 +11,7 @@ Some of these files will also be copied to S3 by the `sync-s3.sh` script for use
 Files are listed below by the notebook that produces them:
 
 - `01-read_filter_normalize_scRNA.Rmd`
-  - `data/glioblastoma/normalized/glioblastoma_normalized_sce.rds`
+  - `data/glioblastoma-10x/normalized/glioblastoma_normalized_sce.rds`
 - `02-dataset_integration.Rmd` 
   - `data/rms/integrated/rms_integrated_subset.rds`
 - `03-differential_expression.Rmd`
