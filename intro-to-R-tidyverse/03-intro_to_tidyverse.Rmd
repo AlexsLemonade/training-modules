@@ -84,11 +84,20 @@ If we want to more pointedly look for "results" in our working directory we can 
 dir.exists("results")
 ```
 
-If the above says `FALSE` that means we will need to create a `results` directory using the function `dir.create()`.
+If the above says `FALSE` that means we will need to create a `results` directory.
+We've previously seen that we can make directories in R using the base R function `dir.create()`.
+But, as we've also seen, this function will throw an error if you try to create a directory that already exists, which can be frustrating if you are re-running code!
+A different option is to use the [`fs`](https://fs.r-lib.org/) package, which provides functions for you to interact with your computer's file system, and _bonus_ it's guaranteed to work on any kind of operating system (Max, Linuc, PC, etc.)!
+One function from this package is `fs::dir_create()` (note that it has an _underscore_, not a period), and much like the base R `dir.create()`, it creates directories. 
+It has some other helpful features too:
+- It will simply do nothing if that directory already exists; no errors, and nothing will get overwritten
+- It allows you to quickly create _nested_ directories, i.e. in one call make directories inside of other directories
+
+Let's go ahead and use it to create our `results` directory:
 
 ```{r create-dir, live = TRUE}
 # Make a directory within the working directory called 'results'
-dir.create("results")
+fs::dir_create("results")
 ```
 
 After creating the results directory above, let's re-run `dir.exists()` to see if now it exists.
@@ -96,22 +105,6 @@ After creating the results directory above, let's re-run `dir.exists()` to see i
 ```{r check-dir-again, live = TRUE}
 # Re-check if the results directory exists
 dir.exists("results")
-```
-
-We can use the output of `dir.exists()` to automatically create or hold off on creating a directory by putting this together in an `if` statement like below.
-An `if` statement has two main parts:
-First, the test, which is an expression that will result in either `TRUE` or `FALSE`.
-This is put in parenthesis immediately after the `if`.
-The next part is the body, which is the commands that will be executed *if* the test is `TRUE`.
-These are placed within a set of braces `{ }`.
-Note that we used an exclamation point in the test to signify that we want a directory to be created only *if* `dir.exists(results)` is NOT equal to `TRUE`.
-
-```{r create-if}
-# If 'results' directory doesn't exist...
-if (!dir.exists("results")) {
-  # ... create a 'results' directory
-  dir.create("results")
-}
 ```
 
 The `dir.exists()` function will not work on files themselves.
