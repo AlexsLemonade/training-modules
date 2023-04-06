@@ -254,7 +254,7 @@ You can install this package globally for all users with (or remove the `-g` for
 npm install -g mdpdf
 ```
 
-In addition, cheatsheet table of contents are created with `npm` library [`doctoc`](https://github.com/thlorenz/doctoc), which can similarly be globally installed with:
+In addition, cheatsheet table of contents are created with the `npm` library [`doctoc`](https://github.com/thlorenz/doctoc), which can similarly be globally installed with:
 
 ```
 npm install -g doctoc
