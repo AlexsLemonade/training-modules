@@ -15,9 +15,9 @@ If you have a different version of R or other R packages, the documentation may 
 
 - [Base `R`](#base-r)
 - [`tidyverse`](#tidyverse)
-      - [`dplyr`](#dplyr)
-      - [`ggplot2`](#ggplot2)
-      - [`readr`, `tibble` and `tidyr`](#readr-tibble-and-tidyr)
+  - [`dplyr`](#dplyr)
+  - [`ggplot2`](#ggplot2)
+  - [`readr`, `fs`, `tibble` `tidyr`](#readr-fs-tibble-tidyr)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -56,7 +56,7 @@ Read the [Base `R` documentation](https://rdrr.io/r/).
 | Base `R`          | [`getwd()`](https://rdrr.io/r/base/getwd.html)             | Get working directory | Finds the current working directory.                                                                                                                                                              |
 | Base `R`          | [`setwd()`](https://rdrr.io/r/base/getwd.html)             | Set working directory | Changes the current working directory.                                                                                                                                                            |
 | Base `R`          | [`dir.exists()`](https://rdrr.io/r/base/files2.html)         | Directory exists      | Checks the file path to see if the directory exists there.                                                                                                                                         |
-| Base `R`          | [`dir.create()`](https://rdrr.io/r/base/files2.html)             | Create directory      | Creates a directory at the specified file path.                                                                                                                                                   |
+| Base `R`          | [`dir.create()`](https://rdrr.io/r/base/files2.html)             | Create directory      | Creates a directory at the specified path.                                                                                                                                                   |
 | Base `R`          | [`apply()`](https://rdrr.io/r/base/apply.html)             | Apply                 | Returns a vector or list of values after applying a specified function to values in each row/column of an object.                                                                                  |
 | Base `R`          | [`round()`](https://rdrr.io/r/base/Round.html)             | Round                 | Rounds the values of an object to the specified number of decimal places (default is 0).                                                                                                          |
 | Base `R`          | [`names()`](https://rdrr.io/r/base/names.html)                       | Names                     | Gets or sets the names of an object.                                      |
