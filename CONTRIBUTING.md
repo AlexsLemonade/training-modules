@@ -51,7 +51,7 @@ The Carpentries [Curriculum Development Handbook section on learning objectives]
 
 For most notebooks, 3-5 objectives should be sufficient.
 
-The objectives list should be followed by a horizontal rule for visual distinction: 
+The objectives list should be followed by a horizontal rule for visual distinction:
 
 ```
 ---
@@ -152,10 +152,10 @@ Note that when you open up the `training-modules.Rproj`, the `.Rprofile` file ma
 
 For most cases you can create your `renv.lock-only` changes PR by following these steps:
 
-1. Create your `renv.lock-only` branch from the latest `master` branch.  
-2. In your `renv.lock-only` branch, checkout the renv.lock file from your development branch (where you were generally doing steps 1-6 from the previous section) using `git checkout devbranch renv.lock`.  
-3. Commit the renv.lock changes you just checked out.  
-4. Push the changes and file your renv.lock only PR.  
+1. Create your `renv.lock-only` branch from the latest `master` branch.
+2. In your `renv.lock-only` branch, checkout the renv.lock file from your development branch (where you were generally doing steps 1-6 from the previous section) using `git checkout devbranch renv.lock`.
+3. Commit the renv.lock changes you just checked out.
+4. Push the changes and file your renv.lock only PR.
 
 Note that the `renv::snapshot()` command will skip adding a package to renv.lock if it isn't used in a notebook or script.
 
@@ -163,13 +163,13 @@ Note that the `renv::snapshot()` command will skip adding a package to renv.lock
 
 If there are changes happening on multiple branches that require renv.lock changes, you may need to follow a slightly different version of steps:
 
-1. Create your `renv.lock-only` branch from the latest `master` branch.  
-2. Run `renv::restore()`.  
-3. Install the packages needed on both branches (`install.packages()` or etc).  
-4. Add those packages to `components/dependencies.R`.   
-5. Run `renv::snapshot()`.  
-6. Only commit the `renv.lock` changes to your branch.  
-7. Push the changes and file your renv.lock only PR.  
+1. Create your `renv.lock-only` branch from the latest `master` branch.
+2. Run `renv::restore()`.
+3. Install the packages needed on both branches (`install.packages()` or etc).
+4. Add those packages to `components/dependencies.R`.
+5. Run `renv::snapshot()`.
+6. Only commit the `renv.lock` changes to your branch.
+7. Push the changes and file your renv.lock only PR.
 
 ### How we use `renv` with Docker
 
@@ -244,12 +244,24 @@ This workflow then files a PR to `master` with the rendered and live files.
 
 ## Cheatsheets
 
-Training modules have corresponding cheatsheets in `module-cheatsheets`. 
-Cheatsheets are written in plain markdown and can be converted to a shareable PDF format interactively as follows:
+Training modules have corresponding cheatsheets in `module-cheatsheets`.
+When choosing documentation links to incorporate in cheatsheets, we prefer to use [`https://rdrr.io/`](https://rdrr.io/) when possible for Base R and Bioconductor, and we prefer to use [`https://www.tidyverse.org/`](https://www.tidyverse.org/) for `tidyverse` functions.
 
-+ Be on a MacOS computer
-+ Install and/or open the [MacDown program](https://macdown.uranusjr.com/)
-+ Open the markdown cheatsheet in MacDown, and go to `File` -> `Export` -> `PDF`
-+ Save appropriately and voila!
+Cheatsheets are written in plain markdown and are converted to a shareable PDF format using the `npm` library [`mdpdf`](https://github.com/BlueHatbRit/mdpdf), with the default PDF style.
+You can install this package globally for all users with (or remove the `-g` for local installation) with:
 
-When choosing documentation links to incorporate in cheatsheets, we prefer to use [`https://rdrr.io/`](https://rdrr.io/) when possible for Base R and Bioconductor, and we prefer to use [`https://www.tidyverse.org/`](https://www.tidyverse.org/) for `tidyverse` functions. 
+```
+npm install -g mdpdf
+```
+
+In addition, cheatsheet table of contents are created with `npm` library [`doctoc`](https://github.com/thlorenz/doctoc), which can similarly be globally installed with:
+
+```
+npm install -g doctoc
+```
+
+To re-render a cheatsheet to PDF after making desired changes in its markdown, take the following steps:
+
+* Nagivate in terminal to the `module-cheatsheets` directory
+* Run `doctoc` on the file to update its table of contents: `doctoc cheatsheet-file.md`
+* Convert the markdown file to an updated PDF version: `mdpdf cheatsheet-file.md`
