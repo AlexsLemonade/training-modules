@@ -21,18 +21,17 @@ This notebook will demonstrate how to:
 In this notebook, we will be running through the basics of processing raw single-cell RNA-seq data.
 
 We will be using a tag-based scRNA-seq sample from the [*Tabula Muris* project](https://www.nature.com/articles/s41586-018-0590-4).
-This dataset is made of 20 mouse organs that were sequenced using 10X Genomics Chromium single cell sequencing methods.
-For 10X Genomics scRNA-seq data, cells are separated by emulsion/droplets, and individual cells are given barcodes (often abbreviated 'CB' in documentation).
+This dataset is made of 20 mouse organs that were sequenced using 10x Genomics Chromium single cell sequencing methods.
+For 10x Genomics scRNA-seq data, cells are separated by emulsion/droplets, and individual cells are given barcodes (often abbreviated 'CB' in documentation).
 Each transcript will also contain a [Unique Molecular Identifiers (UMIs)](http://www.nature.com/doifinder/10.1038/nmeth.2772) which allow us to examine PCR amplification errors and biases.
 
-**Relative workflow for tag-based data**
-![](diagrams/tag-based_1.png)
+![Roadmap: Preprocessing & Initial QC](diagrams/roadmap_single_preprocess_qc.png)
 
 ## About the data
 
 We obtained these data from Tabula Muris project's [Figshare](https://figshare.com/projects/Tabula_Muris_Transcriptomic_characterization_of_20_organs_and_tissues_from_Mus_musculus_at_single_cell_resolution/27733).
 The BAM files that were on Figshare were converted to `fastq` files using
-[`bamtofastq`](https://support.10xgenomics.com/docs/bamtofastq) from 10X Genomics.
+[`bamtofastq`](https://support.10xgenomics.com/docs/bamtofastq) from 10x Genomics.
 We will process a `fastq` file from mouse bladder for this as an example.  
 To limit the amount of time this takes to run in the context of this workshop,
 we are only running part of the sample's reads.
@@ -78,7 +77,7 @@ You should see a list of multiple `fastq` files all starting with `10X_P4_3`, in
 
 If you notice, each `fastq` file name contains either `R1` or `R2`.
 These correspond to the two sequencing reads of a paired-end library.
-For 10X data, the first read (the `R1` file) will contain the cell barcode and UMI sequence, and the second read (the `R2` file) will contain a cDNA sequence corresponding to the captured transcript.
+For 10x data, the first read (the `R1` file) will contain the cell barcode and UMI sequence, and the second read (the `R2` file) will contain a cDNA sequence corresponding to the captured transcript.
 We will need both of these files to quantify our data. 
 
 ```
@@ -112,7 +111,7 @@ mkdir -p data/tabula-muris/alevin-quant/10X_P4_3_subset
 ### Indexing the mouse transcriptome 
 
 Before you can quantify with Salmon and [Alevin](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y) we need to index the transcriptome for the species we will be mapping to.
-This step would be the same for mapping bulk RNA-seq data, and you can use the same transcriptome indexes as bulk RNA-seq, however, due to the shorter read lengths in the 10X sequencing, we may want to use shorter kmers than the default index size that salmon uses.
+This step would be the same for mapping bulk RNA-seq data, and you can use the same transcriptome indexes as bulk RNA-seq, however, due to the shorter read lengths in the 10x sequencing, we may want to use shorter kmers than the default index size that salmon uses.
 In this instance, we used a `-k` of 23.
 
 In the interest of time, we have already run the command below and have the index built and ready for you in a shared directory.
@@ -168,8 +167,8 @@ See [Salmon's documentation](https://salmon.readthedocs.io/en/latest/library_typ
 Note that this option must come *before* the read files.
 
 #### `--chromium`
-Because we are using 10X v2 chromium data, we have to use this flag to tell `alevin` where to expect the barcodes, UMIs and sequence data.
-If we were using 10X v3 data, we would need the `--chromiumV3` flag instead. 
+Because we are using 10x v2 chromium data, we have to use this flag to tell `alevin` where to expect the barcodes, UMIs and sequence data.
+If we were using 10x v3 data, we would need the `--chromiumV3` flag instead. 
 Drop-seq data is also supported, for which we would use the `--dropseq` flag instead of this.
 
 
@@ -223,11 +222,9 @@ Keep separate samples (and replicates) separate!
 
 ## Initial quality control with `alevinQC`
 
-Now that we have quantified our data with Alevin, we are ready to perform quality control checks.
+Now that we have quantified our data with Alevin, we are ready to perform initial quality control checks.
 
-![**Current status of this dataset**](diagrams/tag-based_2.png)
-
-In order to perform quality control checks, we'll use the `alevinQC` R package.
+In order to perform these quality control checks, we'll use the `alevinQC` R package.
 Note that `alevinQC` depends on files that we get using the`--dumpFeatures` option in Alevin.
 
 About the `alevinQCReport()` function:
@@ -259,15 +256,17 @@ This is indicative of poor single-cell capture during library construction.
 The mean number of reads per cell and median number of detected genes per cell can be helpful in understanding how deeply the library was sequenced. 
 The higher these numbers are, the more information you will obtain per cell. 
 
-The `knee plot` shows the number of distinct UMIs for each possible cell barcode on the y-axis, with the barcodes ranked from the most UMIs to the fewest along the x-axis.
+The **knee plot** shows the number of distinct UMIs for each possible cell barcode on the y-axis, with the barcodes ranked from the most UMIs to the fewest along the x-axis.
 
 Cell barcodes with low UMI counts are likely to be empty droplets that did not contain a cell. 
 These droplets must be filtered out so we only consider true cells for downstream analysis.
 
-To do this, we can look for a `knee` on the curve where the number of UMIs per barcode starts to drop off rapidly, with the intuition that this is where we are reaching the end of the UMIs per cell distribution for true cells.
+To do this, we can look for a "knee" on the curve where the number of UMIs per barcode starts to drop off rapidly, with the intuition that this is where we are reaching the end of the UMIs per cell distribution for true cells.
 We can then choose a threshold below the knee and only include barcodes above this threshold in the final cell barcode list.
 
-Alevin, and [`cellranger count`](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/using/count), both use knee-based filtering.  
+This "knee" method, which is implemented by `alevin`, is fairly effective and does not require any read mapping or quantification before filtering.
+More recent versions of Cell Ranger use a somewhat different method based on the "empty drops" method of [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y), that is applied after initial gene quantification.
+This allows filtering to retain cells with low counts that are nonetheless likely to represent real cells.
 
 ## Next steps: Loading Alevin output into R
 

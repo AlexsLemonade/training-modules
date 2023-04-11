@@ -13,7 +13,7 @@ output:
 This notebook will demonstrate how to:
 
 - Read Cell Ranger data into R
-- Filter post-quantification cells using `emptyDrops()`
+- Filter post-quantification cells using `emptyDropsCellRanger()`
 - Apply dimensionality reduction methods to single cell data
 - Visualize samples in reduced dimensional space
 
@@ -41,11 +41,11 @@ set.seed(12345)
 
 ### Directories and files
 
-The data we will be using for this module comes from a a 10X Genomics data set of expression data from a  Hodgkin's Lymphoma tumor.
-The data was generated with the 10Xv3.1 chemistry, and processed with Cell Ranger and 10X Genomics standard pipeline.
-https://support.10xgenomics.com/single-cell-gene-expression/datasets/4.0.0/Parent_NGSC3_DI_HodgkinsLymphoma
+The data we will be using for this module comes from a a 10x Genomics data set of [expression data from a Hodgkin's Lymphoma tumor](https://support.10xgenomics.com/single-cell-gene-expression/datasets/4.0.0/Parent_NGSC3_DI_HodgkinsLymphoma).
+The data was generated with the 10Xv3.1 chemistry, and processed with Cell Ranger and 10x Genomics standard pipeline.
 
-There are a variety of files that you will often see as part of the standard output from Cell Ranger, which are described in detail in [10X Genomics documentation](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/output/overview).
+
+There are a variety of files that you will often see as part of the standard output from Cell Ranger, which are described in detail in [10x Genomics documentation](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/output/overview).
 We have included some of these in the `data/hodkins/cellranger` directory, including the `web_summary.html` file that includes some similar QC statistics to those we generated with `alevinQC`.
 The main file we will be working with are the feature by barcode matrices.
 Cell Ranger does some filtering on its own, but we will start with the raw data.
@@ -65,9 +65,7 @@ mito_file <- file.path(ref_dir, "hs_mitochondrial_genes.tsv")
 
 # Directory and file to save output
 normalized_dir <- file.path(data_dir, "normalized")
-if (!dir.exists(normalized_dir)) {
-  dir.create(normalized_dir, recursive = TRUE)
-}
+fs::dir_create(normalized_dir)
 
 output_sce_file <- file.path(normalized_dir, "normalized_hodgkins_sce.rds")
 
@@ -84,7 +82,8 @@ For whatever reason, the way you read the data affects how it is stored in R.
 Reading from the directory results in smaller objects in R, so that is what we will do here.
 
 Cell Ranger also outputs both filtered and raw matrices; today we will start with the raw matrix and perform our own filtering.
-![](diagrams/cellranger_1.png)
+
+![Roadmap: Preprocessing and Import](diagrams/roadmap_single_preprocess_alevin.png)
 
 ```{r read10x, live = TRUE}
 hodgkins_sce <- DropletUtils::read10xCounts(raw_matrix_dir)
@@ -102,6 +101,8 @@ We should probably do something about that.
 
 
 ## QC and normalization
+
+![Roadmap: QC and filtering](diagrams/roadmap_single_qc_norm.png)
 
 ### Basic QC stats
 
@@ -131,29 +132,31 @@ hodgkins_sce <- hodgkins_sce[, hodgkins_sce$total > 0]
 dim(hodgkins_sce)
 ```
 
-### Filtering with `emptyDrops()`
+### Filtering with `emptyDropsCellRanger()`
 
-The `DropletUtils` package that we used to read in the 10X data has a number of other useful features.
-One is the `emptyDrops()` function, which uses the overall gene expression patterns in the sample to identify droplets that are likely to not contain an intact cell, but may simply have contained loose ambient RNA released during cell separation.
+The `DropletUtils` package that we used to read in the 10x data has a number of other useful features.
+One is the `emptyDropsCellRanger()` function, which uses the overall gene expression patterns in the sample to identify droplets that are likely to not contain an intact cell, but may simply have contained loose ambient RNA released during cell separation.
+This method was originally developed by [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y) and implemented as the function `emptyDrops()`, but has since been adapted as the main filtering method used by Cell Ranger. 
+The `emptyDropsCellRanger()` function emulates the variant of this function that used by Cell Ranger, making the results more comparable between the two methods.
 
-This method, described in [Lun *et al.* (2019)](https://doi.org/10.1186/s13059-019-1662-y), uses the droplets with very low UMI counts to estimate the "ambient" expression pattern of RNA content outside of cells.
+The Empty Drops method uses the droplets with very low UMI counts to estimate the "ambient" expression pattern of RNA content outside of cells.
 It then scores the remaining cells based how much they deviate from that pattern, assigning a small P value when the droplet's expression deviates from the ambient expression pattern.
 Because it uses the low UMI count droplets, this method should not be used when other filtering has already been performed (which is unfortunately the case with the version of `salmon alevin` we used).
 
 This method seems to perform well to exclude false "cells" while retaining cells with distinct expression profiles but low counts that might have failed a simple cutoff.
 Note that this method also requires that the data has already been quantified, with reads assigned to genes, as compared to a simple total UMI count filter which can be performed much earlier in the pipeline.
 
-The `emptyDrops()` function takes the `counts` matrix from our SingleCellExperiment, and returns a data frame with the statistics it calculated.
+The `emptyDropsCellRanger()` function takes the `counts` matrix from our SingleCellExperiment, and returns a data frame with the statistics it calculates.
 This will take a few minutes to run, but we can speed it up by allowing parallel processing.
 
 ```{r emptydrops, live = TRUE}
-droplet_stats <- DropletUtils::emptyDrops(
+droplet_stats <- DropletUtils::emptyDropsCellRanger(
   counts(hodgkins_sce),
   BPPARAM = BiocParallel::MulticoreParam(4)) # use multiprocessing
 ```
 
 We will use a false discovery rate (FDR) of 0.01 as our cutoff for "real" cells.
-Since `emptyDrops()` uses low count cells to estimate the "ambient" expression pattern, those cells are not assigned an FDR value, and have a value of NA.
+Since `emptyDropsCellRanger()` uses low count cells to estimate the "ambient" expression pattern, those cells are not assigned an FDR value, and have a value of NA.
 These NAs can be a problem for filtering with a Boolean vector, as we did above, so instead we will use the `which()` function to get the *positions* of the cells that pass our filter and select the columns we want using that.
 
 ```{r filter_empty, live = TRUE}
@@ -168,7 +171,7 @@ Looking the `web_summary.html` report from Cell Ranger, it seems that it would h
 
 ### Checking mitochondrial content
 
-While `emptyDrops()` should have filtered out droplets containing no cells, it will not necessarily filter out damaged cells.
+While `emptyDropsCellRanger()` should have filtered out droplets containing no cells, it will not necessarily filter out damaged cells.
 For that we will still want to look at mitochondrial content, as we did previously.
 The statistics we calculated earlier with `addPerCellQC()` are retained in our new object, so we can plot those directly.
 
@@ -230,9 +233,10 @@ assayNames(normalized_sce)
 rm(hodgkins_sce, filtered_sce)
 ```
 
-![**Status of the current dataset**](diagrams/cellranger_2.png)
 
 ## Dimensionality reduction and display
+
+![Roadmap: Dimensionality reduction](diagrams/roadmap_single_dimension_reduction.png)
 
 ### Principal Components Analysis
 
