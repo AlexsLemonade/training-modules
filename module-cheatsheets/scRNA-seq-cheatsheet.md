@@ -117,9 +117,7 @@ Documentation for each of these packages can be accessed by clicking the package
 | [`Rtsne`](https://rdrr.io/cran/Rtsne/)| [`Rtsne()`](https://rdrr.io/cran/Rtsne/man/Rtsne.html)| T-Distributed Stochastic Neighbor Embedding using a Barnes-Hut Implementation | Reduces the dimensions of the specified matrix or data frame|
 | [`tibble`](https://tibble.tidyverse.org/index.html)|[`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html) | As tibble | Coerce data.frame or matrix to a tibble |
 
-<br>
-<br>
-
+<div style="page-break-after: always;"></div>
 
 ### `SingleR`
 
