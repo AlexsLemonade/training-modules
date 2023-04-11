@@ -15,7 +15,7 @@ If you have a different version of R or other R packages, the documentation may 
 
 - [Base `R`](#base-r)
 - [Salmon and `alevinQC`](#salmon-and-alevinqc)
-- [`SingleCellExperiment`, `S4Vectors`, `txmimeta`, and `DropletUtils`](#singlecellexperiment-s4vectors-txmimeta-and-dropletutils)
+- [`SingleCellExperiment`, `txmimeta`, and `DropletUtils`](#singlecellexperiment-txmimeta-and-dropletutils)
 - [`scran` and `scater`](#scran-and-scater)
 - [`purrr`, `stringr`, and `tibble`](#purrr-stringr-and-tibble)
 - [`SingleR`](#singler)
