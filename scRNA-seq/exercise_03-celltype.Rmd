@@ -1,31 +1,31 @@
 ---
 title: "Single Cell Exercise: Cell type assignment"
-output:   
-  html_notebook: 
+output:
+  html_notebook:
     toc: true
     toc_float: true
 ---
 
 In this exercise notebook we will work with a glioblastoma dataset from a 71 year old male patient that is available as an example dataset from 10X Genomics.
-This sample was processed by 10X Genomics using a 3' RNA kit (v3.1), sequenced, and quantified with Cell Ranger 6.0. 
+This sample was processed by 10X Genomics using a 3' RNA kit (v3.1), sequenced, and quantified with Cell Ranger 6.0.
 Further details about the sample and processing can be found on the [10X website](https://www.10xgenomics.com/resources/datasets/2-k-sorted-cells-from-human-glioblastoma-multiforme-3-v-3-1-3-1-standard-6-0-0).
 
-Previous bulk RNA-seq and scRNA-seq studies of glioblastoma samples revealed that glioblastoma cells exist in 4 main cellular states that resemble normal neurodevelopment ([Patel _et al._ 2014](https://doi.org/10.1126/science.1254257), [Couturier _et al._ 2020](https://doi.org/10.1038/s41467-020-17186-5), [Neftel _et al._ 2019](https://doi.org/10.1016/j.cell.2019.06.024)). 
+Previous bulk RNA-seq and scRNA-seq studies of glioblastoma samples revealed that glioblastoma cells exist in 4 main cellular states that resemble normal neurodevelopment ([Patel _et al._ 2014](https://doi.org/10.1126/science.1254257), [Couturier _et al._ 2020](https://doi.org/10.1038/s41467-020-17186-5), [Neftel _et al._ 2019](https://doi.org/10.1016/j.cell.2019.06.024)).
 Additionally, these tumors are highly heterogeneous and cells in these different cellular states can all be found within the same tumor, however the frequency of each state is variable across tumors.
 
-From [Neftel _et al._ (2019)](https://doi.org/10.1016/j.cell.2019.06.024): 
+From [Neftel _et al._ (2019)](https://doi.org/10.1016/j.cell.2019.06.024):
 
 > We find that malignant cells in glioblastoma exist in a limited set of cellular states that recapitulate (i) neural progenitor-like (NPC-like), (ii) oligodendrocyte-progenitor-like (OPC-like), (iii) astrocyte-like (AC-like), and (iv) mesenchymal like (MES-like) states.
 
 In addition to malignant cells, scRNA-seq studies of glioblastoma have also captured presence of normal brain cells (e.g., endothelial cells, oligodendrocytes, microglia, neurons).
 Let's see what cell types or cell states we are able to identify in this particular glioblastoma dataset.
 
-We will start with a version of this data that has already undergone filtering, normalization, dimension reduction, and clustering. 
+We will start with a version of this data that has already undergone filtering, normalization, dimension reduction, and clustering.
 This exercise notebook will give you the opportunity to practice different approaches to cell type assignment and to compare assignments for a given dataset.
 
 ---
 
-In this exercise notebook you will, 
+In this exercise notebook you will,
 
 - Part A: Annotate cell types using `SingleR`
 - Part B: Annotate cell types with `SingleR` using a `Metacell`-like approach
@@ -58,14 +58,14 @@ For details on the processing that we performed, you can refer to the [notebook 
 
 To do that we will need to define the file path, which we will do in two steps with two variables:
 
-1. `data_dir`: This directory holds the normalized output from the intro instruction notebook, `data/glioblastoma/normalized`.
+1. `data_dir`: This directory holds the normalized output from the intro instruction notebook, `data/glioblastoma-10x/normalized`.
 2. `sce_file`: This is the path to the `glioblastoma_normalized_sce.rds` file containing the filtered and normalized glioblastoma data
 
 ```{r input paths}
 # data directory
-data_dir <- file.path("data", "glioblastoma", "normalized")
+data_dir <- file.path("data", "glioblastoma-10x", "normalized")
 
-# input SCE file 
+# input SCE file
 sce_file <- file.path(data_dir, "glioblastoma_normalized_sce.rds")
 ```
 
@@ -75,9 +75,9 @@ In addition to defining the path to the file (`cellinfo_file`), you will need to
 If it doesn't exist, create it!
 
 ```{r output paths, solution = TRUE}
-# define the output directory 
+# define the output directory
 
-# create the output directory if it does not exist
+# create the output directory
 
 # define the output file
 
@@ -91,8 +91,8 @@ Next you will need to read in the input `rds` file and save it to a variable cal
 
 ```
 
-Print out the `sce` object and take a look at the output. 
-How many cells are present in this dataset? 
+Print out the `sce` object and take a look at the output.
+How many cells are present in this dataset?
 
 ```{r print sce, solution = TRUE}
 # print out the sce object
@@ -100,7 +100,7 @@ How many cells are present in this dataset?
 ```
 
 Before we saved this SCE object, we also performed graph-based clustering and assigned each cell in our sample to a cluster.
-In the next chunk, take a quick peek at the cluster assignments by using `scater::plotReducedDim()` to plot UMAP results and color each cell by cluster assignment. 
+In the next chunk, take a quick peek at the cluster assignments by using `scater::plotReducedDim()` to plot UMAP results and color each cell by cluster assignment.
 (Hint: Cluster assignments can be found in the `nn_cluster` column of the SCE's `colData` table.)
 
 ```{r cluster umap, solution = TRUE}
@@ -114,12 +114,12 @@ Based on this plot, it looks like we have some clear populations that clustered 
 
 Now we are ready to annotate the cell types present in our sample!
 
-Before we can use `SingleR`, we will first need to pick a reference dataset. 
+Before we can use `SingleR`, we will first need to pick a reference dataset.
 As discussed during instruction, `SingleR` will first identify a set of marker genes that differentiates cell types from each other in the reference dataset.
 
 Here we are examining a glioblastoma sample, so as discussed earlier we expect it to include cell types typically found in the brain (e.g., endothelial cells, oligodendrocytes, microglia, neurons).
 We also expect to cells that may resemble the different states present in glioblastoma, astrocytes, oligoprogenitors, mesenchymal cells, and neural progenitors.
-Ideally we would like to use a reference dataset that contains these cell types, so that we can identify them. 
+Ideally we would like to use a reference dataset that contains these cell types, so that we can identify them.
 
 However, our sample is a tumor sample, so there are likely to be both malignant and non-malignant cells in this sample.
 Malignant cells tend to have distinct gene expression patterns from normal cells, so it is likely that the marker genes that differentiate malignant cells are not the same as those that differentiate normal cells.
@@ -127,10 +127,10 @@ Therefore, using a reference dataset with only normal cell types may pose a chal
 This is why it is very important to consider your reference dataset when performing cell type annotation with tools like `SingleR`.
 
 The first dataset that we will use comes from the `celldex` package, the Human Primary Cell Atlas (HPCA).
-The HPCA reference consists of publicly available microarray datasets derived from human primary cells ([Mabbott et al. 2013](https://doi.org/10.1186/1471-2164-14-632)). 
+The HPCA reference consists of publicly available microarray datasets derived from human primary cells ([Mabbott et al. 2013](https://doi.org/10.1186/1471-2164-14-632)).
 This dataset is mostly comprised of blood cell types, but also contains some other tissue types, such as the brain.
 
-Go ahead and load the dataset, saving it to the variable, `primary_atlas`. 
+Go ahead and load the dataset, saving it to the variable, `primary_atlas`.
 We will also use the `ensembl=TRUE` option here to save the Ensembl ids as the rownames of the SCE object, matching the format of the glioblastoma SCE object.
 Of course, if you already know the Ensembl ids by heart, you can perform this manually as well.
 
@@ -144,13 +144,13 @@ As a reminder, the `celldex` datasets contain three columns: `label.main`, `labe
 For our purposes here, we are interested in the `label.main` annotations.
 
 ```{r count hpca celltypes, solution = TRUE}
-# what types of cells are found in the atlas? 
+# what types of cells are found in the atlas?
 
 ```
 
-In looking at this output you should notice that most of the cell types are immune cells, but we also see cell types that would be present in the brain – neurons, astrocytes, and neuroepithelial cells. 
+In looking at this output you should notice that most of the cell types are immune cells, but we also see cell types that would be present in the brain – neurons, astrocytes, and neuroepithelial cells.
 Given we are using a glioblastoma dataset, we expect these cell types may be present in our dataset.
-However, this doesn't contain the entire set of expected cell types as we mentioned earlier, so we still may miss some cell type assignments or incorrectly assign cells. 
+However, this doesn't contain the entire set of expected cell types as we mentioned earlier, so we still may miss some cell type assignments or incorrectly assign cells.
 It's important to think about what type of cells we expect to see when thinking about selecting our references!
 
 In this exercise, we will use the two step process to run `SingleR`.
@@ -171,7 +171,7 @@ Save the result to a variable named `hpca_result`.
 
 ```
 
-Let's explore our results! 
+Let's explore our results!
 Use the `SingleR::plotScoreHeatmap` function to take a look at the cell type assignments identified by `SingleR`.
 
 ```{r hpca singleR heatmap, solution = TRUE}
@@ -179,13 +179,13 @@ Use the `SingleR::plotScoreHeatmap` function to take a look at the cell type ass
 
 ```
 
-What cell types do you see? 
+What cell types do you see?
 Are these cell types what you would expect from a glioblastoma sample?
 
 In the below chunk add the cell types identified by `SingleR` (the pruned labels stored in `pruned.labels`) to the SCE object, saving them to a column in the SCE `colData` named `celltype_hpca`.
 
 ```{r hpca store cell types, solution = TRUE}
-# add the labels to the sce object 
+# add the labels to the sce object
 
 ```
 
@@ -196,9 +196,9 @@ Then, create a UMAP plot, coloring the cells by the identified cell types now pr
 
 ```
 
-It looks like most of the cells belong to only a few groups and we see a lot of astrocytes, macrophages, and monocytes. 
+It looks like most of the cells belong to only a few groups and we see a lot of astrocytes, macrophages, and monocytes.
 We may also have a small cluster of T cells.
-Can you make any conclusions about which of the 4 cell states found in glioblastoma (OPC-like, NPC-like, MES-like, and AC-like) may be dominant in this particular sample? 
+Can you make any conclusions about which of the 4 cell states found in glioblastoma (OPC-like, NPC-like, MES-like, and AC-like) may be dominant in this particular sample?
 
 This plot is a bit messy though, probably because we have a lot of cell types, some of which may only be present because a few cells were assigned to that cell type.
 Let's look at just the top 5 represented cell types.
@@ -215,8 +215,8 @@ hpca_collapsed_labels <- hpca_result$pruned.labels |>
 table(hpca_collapsed_labels)
 ```
 
-As expected from the earlier plot, using the HPCA dataset as a reference, most of our cells appear to be astrocytes, macrophages, and monocytes. 
-We also have a very small group of T cells that may be present. 
+As expected from the earlier plot, using the HPCA dataset as a reference, most of our cells appear to be astrocytes, macrophages, and monocytes.
+We also have a very small group of T cells that may be present.
 
 ### `SingleR` with a brain specific dataset
 
@@ -252,22 +252,22 @@ Go ahead and explore the reference that we grabbed.
 Print it out, and then take a look at the `colData` to figure out which column contains the cell type assignments.
 
 ```{r explore brain ref, solution = TRUE}
-# print it out 
+# print it out
 
 # find which column has the cell types
 
 ```
 
 How many cells are present in this data?
-Which column contains the cell type annotations for this reference dataset? 
+Which column contains the cell type annotations for this reference dataset?
 
-Let's take a look at the distribution of cell types that are found in this dataset. 
+Let's take a look at the distribution of cell types that are found in this dataset.
 How do these compare to the cell types found in the HPCA data?
-Do we expect to find these cell types in our dataset, based on what we know about cell states in glioblastoma tumors? 
+Do we expect to find these cell types in our dataset, based on what we know about cell states in glioblastoma tumors?
 
 ```{r brain cell types}
-# what types of cells are found in this dataset? 
-colData(brain_sce_ref) |> 
+# what types of cells are found in this dataset?
+colData(brain_sce_ref) |>
   as.data.frame() |>
   dplyr::count(cell.type)
 ```
@@ -300,7 +300,7 @@ Now we can train our new model, using the brain-specific reference dataset.
 We will use the same approach that we used with the HPCA dataset, with one alteration.
 
 We'll specify the argument `de.method="wilcox"` so that the model uses the Wilcoxon rank sum test to identify top markers for each pairwise comparison.
-This method is more appropriate for [annotation with a single-cell reference dataset](https://bioconductor.org/books/3.16/SingleRBook/more-markers.html#annotation-with-test-based-marker-detection) because it accommodates the low coverage and sparsity commonly seen in single-cell data. 
+This method is more appropriate for [annotation with a single-cell reference dataset](https://bioconductor.org/books/3.16/SingleRBook/more-markers.html#annotation-with-test-based-marker-detection) because it accommodates the low coverage and sparsity commonly seen in single-cell data.
 
 **A little tip:** When using the Wilcoxon rank sum test, normalized counts are not required.
 If you would like to use raw counts instead, be sure to use the `assay.type=counts` option.
@@ -353,8 +353,8 @@ When adding in the cell types to the SCE object, save them to a column in the `c
 
 Interestingly, in these results, cells that the HPCA reference classified as macrophages and monocytes are now being classified as microglia, which are a special population of macrophages residing in the brain and central nervous system.
 We also see that the cluster of astrocytes appear to be a mix of various cells: astrocytes, endothelial cells, and neurons.
-Does this change our answer to the previous question of which of the 4 glioblastoma cell states are present in our sample? 
-Using the HPCA reference we had seen this sample was comprised mostly of AC-like cells, but when using this reference dataset we also see cells that may be NPC-like. 
+Does this change our answer to the previous question of which of the 4 glioblastoma cell states are present in our sample?
+Using the HPCA reference we had seen this sample was comprised mostly of AC-like cells, but when using this reference dataset we also see cells that may be NPC-like.
 
 In this particular example, we are using a dataset that is more appropriately tailored to our tissue of interest and therefore we obtain cell types that are a better representation of our expected cell types.
 
@@ -374,7 +374,7 @@ Name this variable, `preds_mtx`.
 Don't forget to use the `useNA="ifany"` option to capture `NA` assignments.
 
 ```{r preds mtx, solution = TRUE}
-# combine predictions in one table 
+# combine predictions in one table
 
 ```
 
@@ -401,7 +401,7 @@ To do this, make a UMAP plot, coloring the cells by cluster assignment and facet
 
 ```{r celltype cluster umap, solution = TRUE}
 # UMAP colored by cluster assignment
-# and faceted by cell type 
+# and faceted by cell type
 
 ```
 
@@ -432,7 +432,7 @@ Use the `DelayedArray::colsum()` function to create a new matrix named `metacell
 In this case cells should be grouped by cluster assignment.
 This is the matrix we will use as input to `SingleR`.
 
-What are the dimensions of this new matrix? 
+What are the dimensions of this new matrix?
 
 ```{r metacell matrix, solution = TRUE}
 # create a "metacell" matrix by summing fine-scale clusters
@@ -450,7 +450,7 @@ Then, create a new column in the `colData` of the SCE object named `hpca_metacel
 Remember that you will need to make sure the dimensions match up!
 
 ```{r hpca metacell, solution = TRUE}
-# classify metacells with SingleR using HPCA model 
+# classify metacells with SingleR using HPCA model
 
 # apply metacell cell type assignments to individual cells
 
@@ -467,7 +467,7 @@ Similar to before, save the `SingleR` results to a variable called `brain_metace
 ```
 
 Now we can compare these results with UMAPs colored by cell type annotations from each reference.
-However, instead of printing out each plot individually, we can actually save our plots to variables and then use the [`patchwork::wrap_plots()` function](https://patchwork.data-imaginist.com/index.html) to combine plots into a grid. 
+However, instead of printing out each plot individually, we can actually save our plots to variables and then use the [`patchwork::wrap_plots()` function](https://patchwork.data-imaginist.com/index.html) to combine plots into a grid.
 `patchwork` is a handy package for when we want to combine multiple panels or plots that we've made separately into one figure.
 
 ```{r metacell umap}
@@ -476,20 +476,20 @@ hpca_umap <- scater::plotUMAP(sce,
                               colour_by = "hpca_metacell")
 
 # create brain umap
-brain_umap <- scater::plotUMAP(sce, 
+brain_umap <- scater::plotUMAP(sce,
                                colour_by = "brain_metacell")
 
 # combine into one plot
-patchwork::wrap_plots(hpca_umap, 
-                      brain_umap, 
+patchwork::wrap_plots(hpca_umap,
+                      brain_umap,
                       # stack umaps with only one column
                       ncol = 1)
 ```
 
-When looking at these results do you see any similarities or differences between using the two references? 
+When looking at these results do you see any similarities or differences between using the two references?
 As a reminder, each of our references have a different set of cell types represented so the colors used for annotation may not be the same in each panel.
 
-Before we move on to our last section, go ahead and save all of the cell type annotations to our output file, `celltype_file`. 
+Before we move on to our last section, go ahead and save all of the cell type annotations to our output file, `celltype_file`.
 Remember, we stored all of the cell type annotations to the `colData` of the SCE object, so we can grab the `colData` and save that to a TSV file without having to save the whole SCE object.
 
 ```{r save cell info, solution = TRUE}
@@ -500,21 +500,21 @@ Remember, we stored all of the cell type annotations to the `colData` of the SCE
 
 ## Part C: Explore expression of cell type specific marker genes
 
-The last thing we will look at is the expression of individual marker genes. 
-Marker genes can be used to identify cell types, setting thresholds as we showed in the instruction notebook. 
+The last thing we will look at is the expression of individual marker genes.
+Marker genes can be used to identify cell types, setting thresholds as we showed in the instruction notebook.
 Alternatively, we can use marker genes that have previously been identified to validate the cell type annotations from `SingleR` or other methods we may have used.
 
-From the [reference dataset for the motor cortex on `Azimuth`](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Motor%20Cortex) we can pull out some expected marker genes that should be found in the cell types identified in our glioblastoma sample. 
+From the [reference dataset for the motor cortex on `Azimuth`](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Motor%20Cortex) we can pull out some expected marker genes that should be found in the cell types identified in our glioblastoma sample.
 For this example we will focus on microglia cells.
 The microglia gene set can be found in the `subclass` drop down menu of "Annotation Details".
 
-Using `SingleR` with the brain-specific reference dataset we identified a group of cells that are likely to be microglia. 
-If they are indeed microglia then they should express some of the marker genes that are specific to microglia. 
+Using `SingleR` with the brain-specific reference dataset we identified a group of cells that are likely to be microglia.
+If they are indeed microglia then they should express some of the marker genes that are specific to microglia.
 We can check this by plotting the expression of microglia marker genes across cell types.
 Keep in mind that we are working with a tumor sample and there will be a mix of tumor cells and non-tumor cells present that we have not yet annotated.
 Therefore marker genes for normal cells may not always be equivalent to marker genes of tumor cells of the same cell type.
 
-The marker genes found on `Azimuth` are stored as gene symbols so we will first need to map those symbols to the Ensembl ids that we have stored in our SCE object. 
+The marker genes found on `Azimuth` are stored as gene symbols so we will first need to map those symbols to the Ensembl ids that we have stored in our SCE object.
 
 ```{r map ensemlb id}
 # define microglia geneset
@@ -529,7 +529,7 @@ microglia_info <- as.data.frame(rowData(sce)) |>
 microglia_info
 ```
 
-Now we can create UMAP plots and color the cells by expression of each of the microglia specific marker genes. 
+Now we can create UMAP plots and color the cells by expression of each of the microglia specific marker genes.
 To do this we will use the [`scuttle::makePerCellDF()` function](https://rdrr.io/bioc/scuttle/man/makePerCellDF.html) which conveniently takes all the cell metadata from a SCE object, including the dimension reduction results and creates a data frame we can use for plotting.
 We can also provide a list of features to include in the data frame using `features = ensembl_ids` so that all of the counts for our genes of interest are included in the returned data frame.
 After a little bit of wrangling, we can use `ggplot2` to create faceted UMAP plots.
@@ -540,30 +540,30 @@ For these UMAP plots we want one plot per marker gene where each cell is colored
 ensembl_ids <- microglia_info |>
   dplyr::pull(ID, name = Symbol)
 
-# create umap + logcounts data frame 
+# create umap + logcounts data frame
 umap_expression_df <- scuttle::makePerCellDF(sce, features = ensembl_ids) |>
   # select only UMAP embeddings and counts for ensembl genes
-  dplyr::select(UMAP1="UMAP.1", 
-                UMAP2="UMAP.2", 
+  dplyr::select(UMAP1="UMAP.1",
+                UMAP2="UMAP.2",
                 all_of(ensembl_ids)) |>
   # pivot to have one column with gene names
   #  and one column with logcounts for a given gene
-  tidyr::pivot_longer(!starts_with("UMAP"), 
-                      names_to = "gene", 
+  tidyr::pivot_longer(!starts_with("UMAP"),
+                      names_to = "gene",
                       values_to = "logcounts")
 
 # create faceted umaps colored by gene expression
-ggplot(umap_expression_df, 
+ggplot(umap_expression_df,
        aes(x=UMAP1, y=UMAP2, color = logcounts)) +
-  geom_point(size = 0.5) + 
-  scale_colour_viridis_c() + 
+  geom_point(size = 0.5) +
+  scale_colour_viridis_c() +
   # facet by gene name
   facet_wrap(vars(gene)) +
   theme_bw()
 ```
 
 These plots show us the expression of all of our genes of interest.
-We can also see that all the microglia genes we explored are indeed expressed in the same group of cells that `SingleR` annotated as microglia (using the brain reference). 
+We can also see that all the microglia genes we explored are indeed expressed in the same group of cells that `SingleR` annotated as microglia (using the brain reference).
 
 We could also plot the expression of all marker genes across the identified cell types, confirming that the marker genes for microglia are specifically expressed in cells labeled as microglia and not other cell types.
 Here we can use the `scater::plotExpression()` function to plot the expression of all marker genes and facet by any of the cell type annotations we have added to our SCE throughout this exercise.
@@ -581,13 +581,13 @@ scater::plotExpression(sce,
   scale_x_discrete(labels = names(ensembl_ids))
 ```
 
-Does this plot look how we expect given that we are looking at a list of genes that are specific markers of microglia? 
+Does this plot look how we expect given that we are looking at a list of genes that are specific markers of microglia?
 
 Because we are looking at samples from glioblastoma tumors, we can also look at markers that may be specific to tumor cells.
 [Yu _et al._ (2020)](https://doi.org/10.1093/nsr/nwaa099) identified markers of tumor cells and non-tumor cells in their single-cell RNA-seq study of brain tumors.
 Figure 1 identifies genes like `OLIG2`, `PTPRZ1`, and `AQP4` to be highly expressed in tumor cells.
 Are there cells or groups of cells in this glioblastoma sample that follow this pattern?
-Go ahead and explore on your own! 
+Go ahead and explore on your own!
 
 ```{r marker genes diy}
 # explore some genes and gene sets on your own!
