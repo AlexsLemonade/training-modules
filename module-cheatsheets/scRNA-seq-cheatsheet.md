@@ -38,21 +38,20 @@ Read the Base [`R` documentation](https://rdrr.io/r/).
 | Base `R`| [`<-function(x) { <code> }`](https://adv-r.hadley.nz/functions.html) | Function | Creates a function that would take the defined parameters as input and execute the commands within the curly braces  |
 
 
-### `SingleCellExperiment`, `DropletUtils`, `scran`, and `scater`
+### `SingleCellExperiment`, `txmimeta`, and `DropletUtils`
 
 Read the [`SingleCellExperiment` package documentation (and e-book)](https://bioconductor.org/books/release/OSCA/), and a [vignette on its usage](https://rdrr.io/bioc/SingleCellExperiment/f/vignettes/intro.Rmd).
 Note that some of the `SingleCellExperiment` functions link to documentation from other packages like `SummarizedExperiment` or `ExperimentSubset`.
 In fact, `SingleCellExperiment` objects are based around existing Bioconductor functions in those packages, so the function usage is equivalent!
 
+Read the [`tximeta` package documentation](https://rdrr.io/bioc/tximeta/), and a [vignette on its usage](https://rdrr.io/bioc/tximeta/f/README.md).
+
 Read the [`DropletUtils` package documentation](https://rdrr.io/github/MarioniLab/DropletUtils/).
-
-Read the [`scran` package documentation](https://rdrr.io/bioc/scran/), and a [vignette on its usage](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
-
-Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
 
 
 
 <br>
+
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
@@ -65,9 +64,23 @@ Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [
 | `SingleCellExperiment`| [`counts()`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#4_Convenient_access_to_named_assays)| Counts| Extracts and stores raw single-cell experiment count data as an assay of the `SingleCellExperiment` object|
 | `SingleCellExperiment`| [`reducedDim()`](https://rdrr.io/bioc/ExperimentSubset/man/reducedDim.html)| Reduced dim| Extracts or stores a given reduced dimension from a `SingleCellExperiment` object|
 | `SingleCellExperiment`| [`reducedDimNames()`](https://rdrr.io/bioc/ExperimentSubset/man/reducedDimNames.html)| Reduced dim names| Returns a vector of the names of all reduced dimensions in a `SingleCellExperiment` object|
+| `tximeta` | [`tximeta()`](https://rdrr.io/bioc/tximeta/man/tximeta.html) | Transcript Quantification Import with Automatic Metadata | Load a directory of results produced by Salmon/or alevin output, including the associated metadata |
 | `DropletUtils` | [`read10xCounts()`](https://rdrr.io/github/MarioniLab/DropletUtils/man/read10xCounts.html) | Read 10x counts | Load data from a 10X Genomics experiment into R |
 | `DropletUtils` | [`emptyDrops()`](https://rdrr.io/github/MarioniLab/DropletUtils/man/emptyDrops.html) | Empty drops | Use the overall gene expression patterns in the sample to identify empty droplets |
 | `DropletUtils` | [`emptyDropsCellRanger()`](https://rdrr.io/github/MarioniLab/DropletUtils/man/emptyDropsCellRanger.html) | Empty drops Cell Ranger | Use an  approach analogous to Cell Ranger's algorithm to identify empty droplets |
+
+
+<div style="page-break-after: always;"></div>
+
+
+### scran`, and `scater`
+
+
+Read the [`scran` package documentation](https://rdrr.io/bioc/scran/), and a [vignette on its usage](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
+
+Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
+
+
 | `scran` | [`quickCluster()`](https://rdrr.io/bioc/scran/man/quickCluster.html) | Quick Clustering     | Groups similar cells into clusters which are stored in the `SingleCellExperiment` object and are used for the calculation of size factors by `scran::computeSumFactors`|
 | `scran` | [`computeSumFactors()`](https://rdrr.io/bioc/scran/man/computeSumFactors.html)  | Compute Sum Factors| Returns a numeric vector of computed sum factors for each cell cluster stored in the `SingleCellExperiment` object. The cluster-based size factors are deconvolved into cell-based size factors that are stored in the `SingleCellExperiment` object and used by the `scran::normalize` function for the normalization of each cell's gene expression profile|
 | `scran`| [`getTopHVGs()`](https://rdrr.io/bioc/scran/man/getTopHVGs.html)| Get top highly variable genes | Identify variable genes in a `SingleCellExperiment` object, based on variance |
@@ -88,6 +101,7 @@ Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [
 
 
 <div style="page-break-after: always;"></div>
+
 
 ### `purrr`
 
