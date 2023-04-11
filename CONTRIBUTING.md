@@ -267,4 +267,6 @@ To re-render a cheatsheet to PDF after making desired changes in its markdown, t
 
 * Navigate in terminal to the `module-cheatsheets` directory
 * Run `doctoc` on the file to update its table of contents: `doctoc cheatsheet-file.md`
+  * Alternatively, you can use a tool such as the VS Code Extension [Markdown All in One](https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one).
+  If you choose this route, ensure that the table of contents is not duplicated.
 * Convert the markdown file to an updated PDF version: `mdpdf cheatsheet-file.md`
