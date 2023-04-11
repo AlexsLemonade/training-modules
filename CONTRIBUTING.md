@@ -247,17 +247,17 @@ This workflow then files a PR to `master` with the rendered and live files.
 Training modules have corresponding cheatsheets in `module-cheatsheets`.
 When choosing documentation links to incorporate in cheatsheets, we prefer to use [`https://rdrr.io/`](https://rdrr.io/) when possible for Base R and Bioconductor, and we prefer to use [`https://www.tidyverse.org/`](https://www.tidyverse.org/) for `tidyverse` functions.
 
-Cheatsheets are written in plain markdown and are converted to a shareable PDF format using the Node.js package [`mdpdf`](https://github.com/BlueHatbRit/mdpdf), with the default PDF style.
+Cheatsheets are written in plain markdown and are converted to a shareable PDF format using the `Node.js` package [`mdpdf`](https://github.com/BlueHatbRit/mdpdf), with the default PDF style.
 
-To render these packages, you will therefore have to first install `npm`, the Node.js package manager. 
-You can install Node.js and `npm` using Homebrew with `brew install node`, or you can install into a Conda enviroment with `conda install nodejs`
-With Node.js installed, you can install the `mdpdf` package into the default Node.js library with:
+To render these packages, you will therefore have to first install `npm`, the `Node.js` package manager.
+You can install `Node.js` and `npm` using Homebrew with `brew install node`, or you can install into a Conda environment with `conda install nodejs`
+With `Node.js` installed, you can install the `mdpdf` package into the default `Node.js` library with:
 
 ```
 npm install -g mdpdf
 ```
 
-In addition, cheatsheet table of contents are created with the `npm` library [`doctoc`](https://github.com/thlorenz/doctoc), which can similarly be globally installed with:
+In addition, cheatsheet table of contents are created with the `Node.js` library [`doctoc`](https://github.com/thlorenz/doctoc), which can similarly be globally installed with:
 
 ```
 npm install -g doctoc

@@ -76,6 +76,16 @@ Read the [`harmony` package documentation](https://rdrr.io/github/immunogenomics
 | `batchelor`| [`fastMNN()`](https://rdrr.io/bioc/batchelor/man/fastMNN.html)| Fast mutual nearest neighbors correction | Perform integration on an SCE object with mutual nearest neighbors using the `fastMNN` algorithm, returning an SCE object with batch-corrected principal components |
 | `harmony`| [`HarmonyMatrix()`](https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html)| Perform `harmony` integration on a matrix | Perform integration with `harmony` on either a matrix of principle components or gene expression, returning a matrix of batch-corrected principal components  |
 
+## `SingleR`
+
+Read the [`SingleR` package documentation](https://rdrr.io/bioc/SingleR/), and an [e-book on its usage](http://bioconductor.org/books/release/SingleRBook/).
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `SingleR` | [`trainSingleR()`](https://rdrr.io/bioc/SingleR/man/trainSingleR.html) | Train the SingleR classifier | Build a `SingleR` classifier model object from an annotated reference dataset |
+| `SingleR` | [`classifySingleR()`](https://rdrr.io/bioc/SingleR/man/classifySingleR.html) | Classify cells with SingleR | Use a `SingleR` model object to assign cell types to the cells in an `SCE` object |
+| `SingleR` | [`SingleR()`](https://rdrr.io/bioc/SingleR/man/SingleR.html) | Annotate scRNA-seq data | Combines `trainSingleR()` and `classifySingleR()` to assign cell types to an `SCE` object from an annotated reference dataset |
+
 
 ## `pheatmap` and `EnhancedVolcano`
 Read the [`pheatmap` package documentation](https://rdrr.io/cran/pheatmap/).
