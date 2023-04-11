@@ -10,7 +10,7 @@ The notebooks that comprise this module are:
 - [Quantification of tag-based scRNA-seq data](https://alexslemonade.github.io/training-modules/scRNA-seq/01-scRNA_quant_qc.nb.html)
 - [Quality control and filtering ](https://alexslemonade.github.io/training-modules/scRNA-seq/02-filtering_scRNA.nb.html)
 - [Normalization](https://alexslemonade.github.io/training-modules/scRNA-seq/03-normalizing_scRNA.nb.html)
-- [Dimension reduction](https://alexslemonade.github.io/training-modules/scRNA-seq/04-dimension_reduction_scRNA.nb.html) 
+- [Dimension reduction](https://alexslemonade.github.io/training-modules/scRNA-seq/04-dimension_reduction_scRNA.nb.html)
 - [Clustering](https://alexslemonade.github.io/training-modules/scRNA-seq/05-clustering_markers_scRNA.nb.html)
 - [Cell type annotation](https://alexslemonade.github.io/training-modules/scRNA-seq/06-celltype_annotation.nb.html)
 
@@ -19,4 +19,4 @@ Additional exercise notebooks:
 
 - [Quantification](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/exercise_01-scrna_quant.Rmd)
 - [Clustering](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/exercise_02-scrna_clustering.Rmd)
-- [Pathway analysis](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/exercise_03-scrna-seq_pathway.Rmd)
+- [Cell type annotation](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/06-celltype_annotation.Rmd)
