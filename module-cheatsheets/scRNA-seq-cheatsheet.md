@@ -36,7 +36,6 @@ Read the Base [`R` documentation](https://rdrr.io/r/).
 | Base `R`| [`prcomp()`](https://rdrr.io/r/stats/prcomp.html)| Principal Components Analysis|Executes a principal components analysis on specified matrix or data frame|
 | Base `R`| [`<-function(x) { <code> }`](https://adv-r.hadley.nz/functions.html) | Function | Creates a function that would take the defined parameters as input and execute the commands within the curly braces  |
 
-<br>
 
 ### Salmon and `alevinQC`
 Read the command-line tool [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html).
@@ -61,8 +60,6 @@ Read the [`tximeta` package documentation](https://rdrr.io/bioc/tximeta/), and a
 
 Read the [`DropletUtils` package documentation](https://rdrr.io/github/MarioniLab/DropletUtils/).
 
-
-<br>
 
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
