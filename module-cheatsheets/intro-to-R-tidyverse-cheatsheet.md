@@ -109,6 +109,8 @@ Additional vignettes are available from the "Articles" dropdown menu on this web
 | `ggplot2`               | [`last_plot()`](https://ggplot2.tidyverse.org/reference/last_plot.html)           | Last plot                                       | Returns the last plot produced.                                           |
 
 
+<div style="page-break-after: always;"></div>
+
 #### `readr`, `fs`, `tibble` `tidyr`
 Read the [`readr` package documentation](https://readr.tidyverse.org/) and a [vignette on its usage](https://readr.tidyverse.org/articles/readr.html). <br>
 Read the [`fs` package documentation](https://fs.r-lib.org/).

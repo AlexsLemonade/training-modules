@@ -51,7 +51,7 @@ Software/package | Piece of Code| What it's called| What it does |
 
 <div style="page-break-after: always;"></div>
 
-### `SingleCellExperiment`, `S4Vectors`, `txmimeta`, and `DropletUtils`
+### `SingleCellExperiment`, `txmimeta`, and `DropletUtils`
 
 Read the [`SingleCellExperiment` package documentation (and e-book)](https://bioconductor.org/books/release/OSCA/), and a [vignette on its usage](https://rdrr.io/bioc/SingleCellExperiment/f/vignettes/intro.Rmd).
 Note that some of the `SingleCellExperiment` functions link to documentation from other packages like `SummarizedExperiment` or `ExperimentSubset`.
@@ -155,7 +155,7 @@ purrr::map(
 )
 ```
 
-<br>
+<div style="page-break-after: always;"></div>
 
 ### `SingleR`
 
