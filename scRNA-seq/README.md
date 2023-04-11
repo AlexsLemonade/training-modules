@@ -19,4 +19,4 @@ Additional exercise notebooks:
 
 - [Quantification](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/exercise_01-scrna_quant.Rmd)
 - [Clustering](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/exercise_02-scrna_clustering.Rmd)
-- [Cell type annotation](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/06-celltype_annotation.Rmd)
+- [Cell type annotation](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/exercise_03-celltype.Rmd)
