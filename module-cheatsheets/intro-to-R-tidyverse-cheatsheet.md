@@ -44,8 +44,7 @@ Read the [Base `R` documentation](https://rdrr.io/r/).
 | Base `R`          | [`sum(x)`](https://rdrr.io/r/base/sum.html)                            | Sum               | Returns the sum of all values (values must be integer, numeric, or logical) in object `x`.                                                           |
 | Base `R`          | [`mean(x)`](https://rdrr.io/r/base/mean.html)                            | Mean               | Returns the arithmetic mean of all values (values must be integer or numeric) in object `x` or logical vector `x`.                                                           |
 | Base `R`          | [`log(x)`](https://rdrr.io/r/base/Log.html)                            | Logarithm        | Gives the natural logarithm of object `x`. `log2(x)` can be used to give the logarithm of the object in base 2. Or the base can be specified as an argument.                                                            |
-| Base `R`          | [`head()`](https://rdrr.io/r/utils/head.html)             | Head                  | Returns the top 6 rows of an object in the environment by default. You can specify how many rows you want by including the `n = `argument.                                                        |
-| Base `R`          | [`tail()`](https://rdrr.io/r/utils/head.html)             | Tail                  | Returns the bottom 6 rows of an object in the environment by default. You can specify how many rows you want by including the `n =` argument.                                                                  |
+| Base `R`          | [`head()`; `tail()`](https://rdrr.io/r/utils/head.html)             | Head; Tail               | Returns the top 6 (`head()`) or bottom 6 (`tail()`) an of an object in the environment by default. You can specify how many rows you want by including the `n =  argument.                                                        |
 | Base `R`          | [`factor(x)` or `as.factor(x)`](https://rdrr.io/r/base/factor.html)       | Factor             | Coerces object x into a factor (which is used to represent categorical data). This function can be used to coerce object `x` into other data types, i.e., `as.character`, `as.numeric`, `as.data.frame`, `as.matrix`, etc. |
 | Base `R`          | [`levels(x)`](https://rdrr.io/r/base/levels.html)                | Levels attributes    | Returns or sets the value of the levels in an object `x`.                                                                                                                                                               |
 | Base `R`          | [`summary(x)`](https://rdrr.io/r/base/summary.html)                | Object summary    | Returns a summary of the values in object `x`.                                                                                                                                                               |
@@ -87,6 +86,7 @@ Read the [`dplyr` package documentation](https://dplyr.tidyverse.org/), and a [v
 
 <div style="page-break-after: always;"></div>
 
+
 #### `ggplot2`
 Read the [`ggplot2` package documentation](https://ggplot2.tidyverse.org/), an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html), and a [vignette on the usage of the `ggplot2` aesthetics](https://ggplot2.tidyverse.org/articles/ggplot2-specs.html).
 Additional vignettes are available from the "Articles" dropdown menu on this webpage.
@@ -112,9 +112,9 @@ Additional vignettes are available from the "Articles" dropdown menu on this web
 <div style="page-break-after: always;"></div>
 
 #### `readr`, `fs`, `tibble` `tidyr`
-Read the [`readr` package documentation](https://readr.tidyverse.org/) and a [vignette on its usage](https://readr.tidyverse.org/articles/readr.html). <br>
+Read the [`readr` package documentation](https://readr.tidyverse.org/) and a [vignette on its usage](https://readr.tidyverse.org/articles/readr.html).
 Read the [`fs` package documentation](https://fs.r-lib.org/).
-Read the [`tibble` package documentation](https://tibble.tidyverse.org/) and a [vignette on its usage](https://tibble.tidyverse.org/articles/tibble.html). <br>
+Read the [`tibble` package documentation](https://tibble.tidyverse.org/) and a [vignette on its usage](https://tibble.tidyverse.org/articles/tibble.html).
 Read the [`tidyr` package documentation](https://tidyr.tidyverse.org/) and a [vignette on its usage](https://tidyr.tidyverse.org/articles/tidy-data.html).
 https://fs.r-lib.org/reference/index.html
 
