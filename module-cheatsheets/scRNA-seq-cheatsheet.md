@@ -14,12 +14,11 @@ If you have a different version of R or other R packages, the documentation may 
 **Table of Contents**
 
 - [Base `R`](#base-r)
-- [`SingleCellExperiment`, `DropletUtils`, `scran`, and `scater`](#singlecellexperiment-dropletutils-scran-and-scater)
-- [`purrr`](#purrr)
-- [`stringr`](#stringr)
-- [`alevinQC`, `colorblindr`, `Rtsne`, `tibble`](#alevinqc-colorblindr-rtsne-tibble)
+- [Salmon and `alevinQC`](#salmon-and-alevinqc)
+- [`SingleCellExperiment`, `S4Vectors`, `txmimeta`, and `DropletUtils`](#singlecellexperiment-s4vectors-txmimeta-and-dropletutils)
+- [`scran` and `scater`](#scran-and-scater)
+- [`purrr`, `stringr`, and `tibble`](#purrr-stringr-and-tibble)
 - [`SingleR`](#singler)
-- [Salmon](#salmon)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -37,16 +36,17 @@ Read the Base [`R` documentation](https://rdrr.io/r/).
 | Base `R`| [`prcomp()`](https://rdrr.io/r/stats/prcomp.html)| Principal Components Analysis|Executes a principal components analysis on specified matrix or data frame|
 | Base `R`| [`<-function(x) { <code> }`](https://adv-r.hadley.nz/functions.html) | Function | Creates a function that would take the defined parameters as input and execute the commands within the curly braces  |
 
+<br>
 
-### Salmon and alevinQC
-Read the [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html).
+### Salmon and `alevinQC`
+Read the command-line tool [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html).
 
-Read the [`alevinQC` documentation](https://rdrr.io/bioc/alevinQC/).
+Read the R package [`alevinQC` documentation](https://rdrr.io/bioc/alevinQC/).
 
-| Piece of Code| What it's called| What it does |
-|--------------|-----------------|--------------|
-| [`salmon alevin`](https://salmon.readthedocs.io/en/latest/alevin.html)    | Salmon Alevin     | Runs the Alevin quantification from the command line  |
-| [`alevinQC`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html) | [`alevinQCReport()`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html#generate-qc-report) | Alevin QC Report | Produces a QC (quality check) report from the alevin output |
+Software/packge | Piece of Code| What it's called| What it does |
+|--------------|-----------------|--------------|-----------------|
+| Salmon |[`salmon alevin`](https://salmon.readthedocs.io/en/latest/alevin.html)    | Salmon Alevin     | Runs the Alevin quantification from the command line  |
+|[`alevinQC`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html) | [`alevinQCReport()`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html#generate-qc-report) | Alevin QC Report | Produces a QC (quality check) report from the `salmon alevin` output |
 
 
 <div style="page-break-after: always;"></div>
@@ -132,10 +132,30 @@ Read the [`tibble` package documentation](https://tibble.tidyverse.org/).
 | `purrr`| [`map_df()`](https://purrr.tidyverse.org/reference/map.html)| map df |  Apply a function across each element of list; return a data frame |
 | `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| imap |  Apply a function across each element of list and its index/names |
 | `stringr`| [`str_remove()`](https://stringr.tidyverse.org/reference/str_remove.html)| String remove | Remove matched string patterns |
-| [`tibble`](https://tibble.tidyverse.org/index.html)|[`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html) | As tibble | Coerce data.frame or matrix to a tibble |
+| `tibble` |[`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html) | As tibble | Coerce `data.frame` or matrix to a tibble |
 
 
-<div style="page-break-after: always;"></div>
+Note that `purrr::map()` functions can take advantage of R's new (as of version 4.1.0) [anonymous function syntax](https://rdrr.io/r/base/function.html):
+
+```r
+# One-line syntax:
+\(x) # function code goes here #
+
+# Multi-line syntax:
+\(x) {
+  # function code goes      #
+  # inside the curly braces #
+}
+
+# Example: Use an anonymous function with `purrr::map()`
+# to get the colData's rownames for each SCE in `list_of_sce_objects`
+purrr::map(
+  list_of_sce_objects,
+  \(x) rownames(colData(x))
+)
+```
+
+<br>
 
 ### `SingleR`
 
