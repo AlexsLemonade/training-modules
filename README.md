@@ -15,7 +15,7 @@ The data files that we process in the course are too large to be stored on GitHu
 
 The accompanying slides for each module are linked below and briefly introduce the concepts underlying each module.
 
-- [Intro to RStudio](https://docs.google.com/presentation/d/1VwKLleg5RG4Ck_SWRgQhLOWmoguB9k5uhhmz1cdtea0/edit?usp=sharing)
+- [Intro to RStudio](https://docs.google.com/presentation/d/1q2f0dSePK65A6baJuupgnryX5OkGj1XnIGWzOP4Mqow/edit?usp=sharing)
 - [RNA-seq](https://docs.google.com/presentation/d/1WRDOHXFgJT5GikYIIzwmbzGLTIoclh-XhwtnMLFnmBc/edit?usp=sharing)
 - [Machine learning](https://docs.google.com/presentation/d/1o90uBTlQMx8qu3Jbhqe-ch-ykvLb3_vpi0O-6lBggRg/edit?usp=sharing)
 - Intro to scRNA-seq
@@ -25,6 +25,7 @@ The accompanying slides for each module are linked below and briefly introduce t
   - [scRNA-seq refresher](https://docs.google.com/presentation/d/1qjmx_C0P5feswxXvn6ezCRE5OObtB9iftQvI3ceUAa0/edit?usp=sharing)
   - [Integration](https://docs.google.com/presentation/d/1l1Nmj_OADnfZ6J8DaIj7ncetCo_cbLvOI-2xtpW_FrI/edit?usp=sharing)
   - [Differential expression](https://docs.google.com/presentation/d/1TFfq1NV9vYkzZqtifVPRHXUhPeYSQgv0KkLH5qy4yMA/edit?usp=sharing)
+  - [Intro to Pathway Analysis](https://docs.google.com/presentation/d/1ZEkifmVwiXx5GYJWb5nArktaEogrQkmgWRN5EHBohCU/edit?usp=sharing)
 
 
 ### Cheatsheets:
