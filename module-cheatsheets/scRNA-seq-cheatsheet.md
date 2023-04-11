@@ -43,7 +43,7 @@ Read the command-line tool [Salmon documentation](https://salmon.readthedocs.io/
 
 Read the R package [`alevinQC` documentation](https://rdrr.io/bioc/alevinQC/).
 
-Software/packge | Piece of Code| What it's called| What it does |
+Software/package | Piece of Code| What it's called| What it does |
 |--------------|-----------------|--------------|-----------------|
 | Salmon |[`salmon alevin`](https://salmon.readthedocs.io/en/latest/alevin.html)    | Salmon Alevin     | Runs the Alevin quantification from the command line  |
 |[`alevinQC`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html) | [`alevinQCReport()`](http://www.bioconductor.org/packages/devel/bioc//vignettes/alevinQC/inst/doc/alevinqc.html#generate-qc-report) | Alevin QC Report | Produces a QC (quality check) report from the `salmon alevin` output |
