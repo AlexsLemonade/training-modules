@@ -75,6 +75,7 @@ link_locs=(
   scRNA-seq/data/hodgkins/cellranger
   scRNA-seq/data/mouse-liver/normalized
   scRNA-seq/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
+  scRNA-seq/data/tabula-muris/TM_droplet_metadata.csv
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/data/tabula-muris/fastq
