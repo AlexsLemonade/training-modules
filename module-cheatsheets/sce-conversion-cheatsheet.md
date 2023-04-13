@@ -1,4 +1,4 @@
-# Converting between `SCE` and `Seurat` objects
+# Converting to/from `SCE` objects
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -7,7 +7,6 @@
 - [`SCE` vs `Seurat` objects](#sce-vs-seurat-objects)
 - [Converting from `Seurat` to `SCE`](#converting-from-seurat-to-sce)
 - [Converting from `SCE` to `Seurat`](#converting-from-sce-to-seurat)
-  - [Approaches from `ScPCA`](#approaches-from-scpca)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -93,12 +92,3 @@ seurat_object <- Seurat::as.Seurat(sce_object)
 #  contains a `counts` but not a `logcounts` assay
 seurat_object <- Seurat::as.Seurat(sce_object, data = NULL)
 ```
-
-<div style="page-break-after: always;"></div>
-
-### Approaches from `ScPCA`
-
-In addition, this [documentation from the `ScPCA`](https://scpca.readthedocs.io/en/latest/faq.html#what-if-i-want-to-use-seurat-instead-of-bioconductor) introduces how to convert `SCE` objects to `Seurat` objects.
-Although this documentation was written for `ScPCA` datasets, the steps generally apply to any `SCE` object.
-It's worth noting that the example code provided at that link will only retain a single assay (raw `"counts"`) in the new `SCE` object, and it will not retain reduced dimension representations (e.g., PCA or UMAP).
-Therefore, this example code is mostly useful at the early stages of processing before you have performed normalization and calculated reduced dimensions.
