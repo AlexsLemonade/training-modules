@@ -38,5 +38,7 @@ These cheatsheets can also be found in the folder named [module-cheatsheets](htt
 - [Intro to R tidyverse cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.md)
 - [RNA seq cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/RNA-seq-cheatsheet.md)
 - [scRNA-seq cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-cheatsheet.md)
+- [Advanced scRNA-seq cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-advanced-cheatsheet.md)
+- [Converting to/from `SCE` objects cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/sce-conversion-cheatsheet.md)
 - [Pathway analysis cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/pathway-analysis-cheatsheet.md)
 - [Machine learning cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/machine-learning-cheatsheet.md)
