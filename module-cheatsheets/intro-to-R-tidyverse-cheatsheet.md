@@ -116,7 +116,6 @@ Read the [`readr` package documentation](https://readr.tidyverse.org/) and a [vi
 Read the [`fs` package documentation](https://fs.r-lib.org/).
 Read the [`tibble` package documentation](https://tibble.tidyverse.org/) and a [vignette on its usage](https://tibble.tidyverse.org/articles/tibble.html).
 Read the [`tidyr` package documentation](https://tidyr.tidyverse.org/) and a [vignette on its usage](https://tidyr.tidyverse.org/articles/tidy-data.html).
-https://fs.r-lib.org/reference/index.html
 
 | Library/Package                      | Piece of code                                   | What it's called       | What it does                                                                                                                                                                                      |
 |--------------------------------------|-----------------------------------------------------|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------|

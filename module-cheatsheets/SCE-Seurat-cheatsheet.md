@@ -39,7 +39,7 @@ Always bear in mind that your object(s) may be named differently from the defaul
 | Feature (gene)-level metadata | `rowData(sce_object)` | `seurat_obj[["RNA"]]@meta.features`|
 | Miscellaneous additional metadata | `metadata(sce_object)` | `seurat_obj@misc`|
 
-Below, we provide some code examples below for how you can accomplish these conversions.
+We provide some code examples below for these conversions below.
 For all code examples below, it is assumed that the `SingleCellExperiment` library has been loaded into your R environment:
 
 ```r
