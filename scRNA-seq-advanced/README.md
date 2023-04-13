@@ -21,6 +21,6 @@ This directory also contains pathway analysis modules customized to these data:
 Additional exercise notebooks:
 
 - [Working with CITE-seq data](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_01-citeseq.Rmd)
-- [Cell type annotation](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_02-celltype.Rmd)
-- [Integration of multiple scRNA-seq libraries](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_03-integration.Rmd)
-- [Differential expression analysis](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_04-diffexp.Rmd)
+- [Integration of multiple scRNA-seq libraries](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_02-integration.Rmd)
+- [Differential expression analysis](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_03-diffexp.Rmd)
+- [Pathway analysis](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/exercise_04-scrna_pathway.Rmd)
