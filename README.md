@@ -15,16 +15,17 @@ The data files that we process in the course are too large to be stored on GitHu
 
 The accompanying slides for each module are linked below and briefly introduce the concepts underlying each module.
 
-- [Intro to RStudio](https://docs.google.com/presentation/d/1VwKLleg5RG4Ck_SWRgQhLOWmoguB9k5uhhmz1cdtea0/edit?usp=sharing)
+- [Intro to RStudio](https://docs.google.com/presentation/d/1q2f0dSePK65A6baJuupgnryX5OkGj1XnIGWzOP4Mqow/edit?usp=sharing)
 - [RNA-seq](https://docs.google.com/presentation/d/1WRDOHXFgJT5GikYIIzwmbzGLTIoclh-XhwtnMLFnmBc/edit?usp=sharing)
 - [Machine learning](https://docs.google.com/presentation/d/1o90uBTlQMx8qu3Jbhqe-ch-ykvLb3_vpi0O-6lBggRg/edit?usp=sharing)
 - Intro to scRNA-seq
   - [Intro to scRNA-seq](https://docs.google.com/presentation/d/1EGijSWUxcfjLpDU9QULYLHxsHMHlI6KPtR1Cs4QWy7A/edit?usp=sharing)
-    - [Cell type annotation](https://docs.google.com/presentation/d/16ivLdwm17jqHZKOnRGVjigIMAZtr9Xpc5kjspn9mIhQ/edit?usp=sharing)
+  - [Cell type annotation](https://docs.google.com/presentation/d/16ivLdwm17jqHZKOnRGVjigIMAZtr9Xpc5kjspn9mIhQ/edit?usp=sharing)
 - Advanced scRNA-seq
   - [scRNA-seq refresher](https://docs.google.com/presentation/d/1qjmx_C0P5feswxXvn6ezCRE5OObtB9iftQvI3ceUAa0/edit?usp=sharing)
   - [Integration](https://docs.google.com/presentation/d/1l1Nmj_OADnfZ6J8DaIj7ncetCo_cbLvOI-2xtpW_FrI/edit?usp=sharing)
   - [Differential expression](https://docs.google.com/presentation/d/1TFfq1NV9vYkzZqtifVPRHXUhPeYSQgv0KkLH5qy4yMA/edit?usp=sharing)
+  - [Intro to Pathway Analysis](https://docs.google.com/presentation/d/1ZEkifmVwiXx5GYJWb5nArktaEogrQkmgWRN5EHBohCU/edit?usp=sharing)
 
 
 ### Cheatsheets:
@@ -37,5 +38,7 @@ These cheatsheets can also be found in the folder named [module-cheatsheets](htt
 - [Intro to R tidyverse cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/intro-to-R-tidyverse-cheatsheet.md)
 - [RNA seq cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/RNA-seq-cheatsheet.md)
 - [scRNA-seq cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-cheatsheet.md)
+- [Advanced scRNA-seq cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/scRNA-seq-advanced-cheatsheet.md)
+- [Converting to/from `SCE` objects cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/sce-conversion-cheatsheet.md)
 - [Pathway analysis cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/pathway-analysis-cheatsheet.md)
 - [Machine learning cheatsheet](https://github.com/AlexsLemonade/training-modules/blob/master/module-cheatsheets/machine-learning-cheatsheet.md)
