@@ -33,7 +33,6 @@ sync_dirs=(
   scRNA-seq/data/hodgkins/cellranger
   # scRNA-seq/data/mouse-liver/normalized
   scRNA-seq/data/PBMC-TotalSeqB/normalized
-  scRNA-seq/data/tabula-muris/normalized
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P4_3
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/data/reference
