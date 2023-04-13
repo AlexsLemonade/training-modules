@@ -59,6 +59,7 @@ sync_files=(
   scRNA-seq/data/glioblastoma-darmanis/preprocessed/darmanis_metadata.tsv
   scRNA-seq/data/glioblastoma-10x/normalized/glioblastoma_normalized_sce.rds
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
+  scRNA-seq/data/tabula-muris/TM_droplet_metadata.csv
   scRNA-seq-advanced/analysis/mouse-liver/markers/cluster07_markers.tsv
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv
