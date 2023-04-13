@@ -15,9 +15,9 @@ If you have a different version of R or other R packages, the documentation may 
 
 - [Base `R`](#base-r)
 - [`tidyverse`](#tidyverse)
-      - [`dplyr`](#dplyr)
-      - [`ggplot2`](#ggplot2)
-      - [`readr`, `tibble` and `tidyr`](#readr-tibble-and-tidyr)
+  - [`dplyr`](#dplyr)
+  - [`ggplot2`](#ggplot2)
+  - [`readr`, `fs`, `tibble` `tidyr`](#readr-fs-tibble-tidyr)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -44,8 +44,7 @@ Read the [Base `R` documentation](https://rdrr.io/r/).
 | Base `R`          | [`sum(x)`](https://rdrr.io/r/base/sum.html)                            | Sum               | Returns the sum of all values (values must be integer, numeric, or logical) in object `x`.                                                           |
 | Base `R`          | [`mean(x)`](https://rdrr.io/r/base/mean.html)                            | Mean               | Returns the arithmetic mean of all values (values must be integer or numeric) in object `x` or logical vector `x`.                                                           |
 | Base `R`          | [`log(x)`](https://rdrr.io/r/base/Log.html)                            | Logarithm        | Gives the natural logarithm of object `x`. `log2(x)` can be used to give the logarithm of the object in base 2. Or the base can be specified as an argument.                                                            |
-| Base `R`          | [`head()`](https://rdrr.io/r/utils/head.html)             | Head                  | Returns the top 6 rows of an object in the environment by default. You can specify how many rows you want by including the `n = `argument.                                                        |
-| Base `R`          | [`tail()`](https://rdrr.io/r/utils/head.html)             | Tail                  | Returns the bottom 6 rows of an object in the environment by default. You can specify how many rows you want by including the `n =` argument.                                                                  |
+| Base `R`          | [`head()`; `tail()`](https://rdrr.io/r/utils/head.html)             | Head; Tail               | Returns the top 6 (`head()`) or bottom 6 (`tail()`) rows of an object in the environment by default. You can specify how many rows you want by including the `n = ` argument.                                                        |
 | Base `R`          | [`factor(x)` or `as.factor(x)`](https://rdrr.io/r/base/factor.html)       | Factor             | Coerces object x into a factor (which is used to represent categorical data). This function can be used to coerce object `x` into other data types, i.e., `as.character`, `as.numeric`, `as.data.frame`, `as.matrix`, etc. |
 | Base `R`          | [`levels(x)`](https://rdrr.io/r/base/levels.html)                | Levels attributes    | Returns or sets the value of the levels in an object `x`.                                                                                                                                                               |
 | Base `R`          | [`summary(x)`](https://rdrr.io/r/base/summary.html)                | Object summary    | Returns a summary of the values in object `x`.                                                                                                                                                               |
@@ -56,7 +55,7 @@ Read the [Base `R` documentation](https://rdrr.io/r/).
 | Base `R`          | [`getwd()`](https://rdrr.io/r/base/getwd.html)             | Get working directory | Finds the current working directory.                                                                                                                                                              |
 | Base `R`          | [`setwd()`](https://rdrr.io/r/base/getwd.html)             | Set working directory | Changes the current working directory.                                                                                                                                                            |
 | Base `R`          | [`dir.exists()`](https://rdrr.io/r/base/files2.html)         | Directory exists      | Checks the file path to see if the directory exists there.                                                                                                                                         |
-| Base `R`          | [`dir.create()`](https://rdrr.io/r/base/files2.html)             | Create directory      | Creates a directory at the specified file path.                                                                                                                                                   |
+| Base `R`          | [`dir.create()`](https://rdrr.io/r/base/files2.html)             | Create directory      | Creates a directory at the specified path.                                                                                                                                                   |
 | Base `R`          | [`apply()`](https://rdrr.io/r/base/apply.html)             | Apply                 | Returns a vector or list of values after applying a specified function to values in each row/column of an object.                                                                                  |
 | Base `R`          | [`round()`](https://rdrr.io/r/base/Round.html)             | Round                 | Rounds the values of an object to the specified number of decimal places (default is 0).                                                                                                          |
 | Base `R`          | [`names()`](https://rdrr.io/r/base/names.html)                       | Names                     | Gets or sets the names of an object.                                      |
@@ -87,6 +86,7 @@ Read the [`dplyr` package documentation](https://dplyr.tidyverse.org/), and a [v
 
 <div style="page-break-after: always;"></div>
 
+
 #### `ggplot2`
 Read the [`ggplot2` package documentation](https://ggplot2.tidyverse.org/), an [overall reference for `ggplot2` functions](https://ggplot2.tidyverse.org/reference/index.html), and a [vignette on the usage of the `ggplot2` aesthetics](https://ggplot2.tidyverse.org/articles/ggplot2-specs.html).
 Additional vignettes are available from the "Articles" dropdown menu on this webpage.
@@ -109,14 +109,18 @@ Additional vignettes are available from the "Articles" dropdown menu on this web
 | `ggplot2`               | [`last_plot()`](https://ggplot2.tidyverse.org/reference/last_plot.html)           | Last plot                                       | Returns the last plot produced.                                           |
 
 
-#### `readr`, `tibble` and `tidyr`
-Read the [`readr` package documentation](https://readr.tidyverse.org/) and a [vignette on its usage](https://readr.tidyverse.org/articles/readr.html). <br>
-Read the [`tibble` package documentation](https://tibble.tidyverse.org/) and a [vignette on its usage](https://tibble.tidyverse.org/articles/tibble.html). <br>
+<div style="page-break-after: always;"></div>
+
+#### `readr`, `fs`, `tibble` `tidyr`
+Read the [`readr` package documentation](https://readr.tidyverse.org/) and a [vignette on its usage](https://readr.tidyverse.org/articles/readr.html).
+Read the [`fs` package documentation](https://fs.r-lib.org/).
+Read the [`tibble` package documentation](https://tibble.tidyverse.org/) and a [vignette on its usage](https://tibble.tidyverse.org/articles/tibble.html).
 Read the [`tidyr` package documentation](https://tidyr.tidyverse.org/) and a [vignette on its usage](https://tidyr.tidyverse.org/articles/tidy-data.html).
 
 | Library/Package                      | Piece of code                                   | What it's called       | What it does                                                                                                                                                                                      |
 |--------------------------------------|-----------------------------------------------------|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | `readr`           | [`read_tsv()`](https://readr.tidyverse.org/reference/read_delim.html)           | Read TSV             | Reads in a TSV file from a specified file path. This function can be tailored to read in other common types of files, e.g. `read_csv()`, `read_rds()`, etc.                                          |
+| `fs`           | [`dir_create()`](https://fs.r-lib.org/reference/create.html)           | Create directory             | Create a directory, unless the directory already exists.
 | `tibble`          | [`column_to_rownames()`](https://tibble.tidyverse.org/reference/rownames.html) | Column to Rownames    | Transforms an existing column called by a string into the rownames.                            |
 | `tibble`          | [`rownames_to_column()`](https://tibble.tidyverse.org/reference/rownames.html)      | Rownames to Column    | Transforms the rownames of a data frame into a column (which is added to the start of the data frame).  The string supplied as an argument will be the name of the new column.            |
 | `tidyr`          | [`pivot_longer()`](https://tidyr.tidyverse.org/reference/pivot_longer.html)                  | Pivot Longer    | Lengthens a data frame by increasing the number of rows and decreasing the number of columns.              |
