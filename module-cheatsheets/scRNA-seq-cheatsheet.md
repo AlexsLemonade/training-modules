@@ -75,7 +75,7 @@ Read the [`DropletUtils` package documentation](https://rdrr.io/github/MarioniLa
 | `SingleCellExperiment`| [`reducedDimNames()`](https://rdrr.io/bioc/ExperimentSubset/man/reducedDimNames.html)| Reduced dim names| Returns a vector of the names of all reduced dimensions in a `SingleCellExperiment` object|
 | `S4Vectors` | [`DataFrame()`](https://rdrr.io/bioc/S4Vectors/man/DataFrame-class.html)| Data frame | Not to be confused with `data.frame()` from Base R. This is a slightly different data frame-like object needed for storing information in `SingleCellExperiment` object's `colData` slot.|
 | `tximeta` | [`tximeta()`](https://rdrr.io/bioc/tximeta/man/tximeta.html) | Transcript Quantification Import with Automatic Metadata | Load a directory of results produced by Salmon/or alevin output, including the associated metadata |
-| `DropletUtils` | [`read10xCounts()`](https://rdrr.io/github/MarioniLab/DropletUtils/man/read10xCounts.html) | Read 10x counts | Load data from a 10X Genomics experiment into R |
+| `DropletUtils` | [`read10xCounts()`](https://rdrr.io/github/MarioniLab/DropletUtils/man/read10xCounts.html) | Read 10x counts | Load data from a 10x Genomics experiment into R |
 | `DropletUtils` | [`emptyDrops()`](https://rdrr.io/github/MarioniLab/DropletUtils/man/emptyDrops.html) | Empty drops | Use the overall gene expression patterns in the sample to identify empty droplets |
 | `DropletUtils` | [`emptyDropsCellRanger()`](https://rdrr.io/github/MarioniLab/DropletUtils/man/emptyDropsCellRanger.html) | Empty drops Cell Ranger | Use an  approach analogous to Cell Ranger's algorithm to identify empty droplets |
 
