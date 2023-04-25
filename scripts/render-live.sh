@@ -25,6 +25,7 @@ files=(
   RNA-seq/04-nb_cell_line_tximeta.Rmd
   RNA-seq/05-nb_cell_line_DESeq2.Rmd
   RNA-seq/06-openpbta_heatmap.Rmd
+  scRNA-seq/00-scRNA_introduction.Rmd
   scRNA-seq/01-scRNA_quant_qc.Rmd
   scRNA-seq/02-filtering_scRNA.Rmd
   scRNA-seq/03-normalizing_scRNA.Rmd
@@ -53,3 +54,4 @@ done
 
 rm RNA-seq/01-qc_trim_quant-live.Rmd
 rm RNA-seq/04-nb_cell_line_tximeta-live.Rmd
+rm scRNA-seq/00-scRNA_introduction-live.Rmd
