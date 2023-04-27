@@ -1,0 +1,344 @@
+---
+title: "Pathway analysis: Gene Set Enrichment Analysis (GSEA)"
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+author: CCDL for ALSF
+date: 2021
+---
+
+## Objectives
+
+This notebook will demonstrate how to:
+
+- Prepare tabular data of gene-level statistics for use with Gene Set Enrichment Analysis (GSEA)
+- Access [Molecular Signatures Database gene set collections](https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp) via the `msigdbr` package
+- Perform GSEA with the `clusterProfiler` package
+- Visualize GSEA results with the `enrichplot` package
+
+---
+
+In this notebook, we'll analyze the marker genes from cluster 1, just as we did in the previous notebook.
+Unlike ORA, GSEA allows us to use the full list of genes we could reliably measure, rather than picking some cutoff ourselves.
+
+GSEA is a functional class scoring (FCS) approach to pathway analysis that was first introduced in [Subramanian _et al._ (2005)](https://doi.org/10.1073/pnas.0506580102).
+The rationale behind FCS approaches is that small changes in individual genes that participate in the same biological process or pathway can be significant and of biological interest.
+FCS methods are better suited for identifying these pathways that show coordinated changes than ORA.
+In ORA, we pick a cutoff that _typically_ only captures genes with large individual changes.
+
+There are 3 general steps in FCS methods ([Khatri _et al._ 2012]( https://doi.org/10.1371/journal.pcbi.1002375)):
+
+1. Calculate a gene-level statistic (here, we'll use the summary log fold changes in our marker genes table)
+2. Gene-level statistics are aggregated into a pathway-level statistic
+3. Assess the statistical significance of the pathway-level statistic
+
+We'll note here that GSEA was designed to detect small coordinated changes between _conditions_ in (necessarily bulk!) microarray data.
+It may be more difficult to suss out small coordinated changes when we assay individual cells, due to technical or biological dropout.
+
+Individual cells may also differently sized ([Blasi *et al.* 2017](https://doi.org/10.1088/1478-3975/aa609a)), be at different stages of the cell cycle ([Satija lab](https://satijalab.org/seurat/archive/v3.1/cell_cycle_vignette.html)), or experiencing different levels of cellular stress ([Luecken and Theis. 2019](https://doi.org/10.15252/msb.20188746)), some of which may be interesting in the context of cancer and therefore should not be corrected for.
+(In practice, it is common to correct for cell cycle stage but we have not done that upstream.)
+These aspects also have the potential to cloud our ability to detect small coordinated changes in other pathways.
+
+There is some literature that suggests that dropout (excessive zeros) observed in single cell data is a function of cell type heterogeneity ([Kim *et al.* 2020](https://doi.org/10.1186/s13059-020-02096-y)).
+We're using GSEA to compare clusters of cells, which we (ideally) expect to be different biological states and/or cell types.
+If many genes "drop out" between cell types, we may expect our statistics used as input to GSEA to be noisy.
+
+With all this in mind, it may be unsurprising that ORA, which generally captures genes with large individual changes and lower within-group variation (the most "statistically significant" genes), is well-suited to analyzing scRNA-seq data and the advantages of GSEA in a bulk analysis setting may not be fully available here.
+Nonetheless, GSEA is used for pathway analysis of scRNA-seq data.
+
+Methods specifically for pathway analysis of scRNA-seq (e.g., [Ma *et al.* 2020](https://doi.org/10.1038/s41467-020-15298-6)) are being developed, so stay tuned!
+
+#### Other resources
+
+* For another example using `clusterProfiler` for GSEA, see [_Intro to DGE: Functional Analysis._ from Harvard Chan Bioinformatics Core Training.](https://hbctraining.github.io/DGE_workshop/lessons/09_functional_analysis.html)
+* The way we'll use `clusterProfiler` here uses `fgsea` (Fast Gene Set Enrichment Analysis) under the hood.
+You can read more about fgsea in [Korotkevich _et al._ (2021)](https://doi.org/10.1101/060012).
+* [refine.bio examples Gene set enrichment analysis - RNA-seq](https://alexslemonade.github.io/refinebio-examples/03-rnaseq/pathway-analysis_rnaseq_02_gsea.html) from which this material has been adapted.
+
+## Set up
+
+### Libraries
+
+```{r libraries}
+# Package to run GSEA
+library(clusterProfiler)
+# Package that contains the MSigDB gene sets in tidy format
+library(msigdbr)
+```
+
+### Directories and Files
+
+#### Directories
+
+```{r create_dir, live = TRUE}
+# We'll use the marker genes as GSEA input
+
+# We'll create a directory to specifically hold the pathway results if it doesn't
+# exist yet
+
+```
+
+#### Input files
+
+We're going to use the version of the cluster 1 marker genes table that has gene symbols, so we don't have to do gene identifier conversion again!
+
+```{r input_files}
+input_file <- file.path(hodgkins_analysis_dir,
+                        "markers",
+                        "cluster01_markers_with_gene_symbols.tsv")
+```
+
+#### Output files
+
+We'll save our table of GSEA results as a TSV.
+
+```{r output_files}
+output_file <- file.path(results_dir,
+                         "cluster01_immunologic_gsea_results.tsv")
+```
+
+## Gene sets
+
+We will use gene sets from the [Molecular Signatures Database (MSigDB)](https://www.gsea-msigdb.org/gsea/msigdb/index.jsp) from the Broad Institute ([Subramanian, Tamayo *et al.* 2005](https://doi.org/10.1073/pnas.0506580102)).
+The [`msigdbr`](https://cran.r-project.org/web/packages/msigdbr/index.html) package contains MSigDB datasets already in the tidy format required by `clusterProfiler` and supports multiple organisms.
+
+Let's take a look at what organisms the package supports.
+
+```{r show_species}
+msigdbr_species()
+```
+
+MSigDB contains 8 different gene set collections.
+
+    H: hallmark gene sets
+    C1: positional gene sets
+    C2: curated gene sets
+    C3: motif gene sets
+    C4: computational gene sets
+    C5: GO gene sets
+    C6: oncogenic signatures
+    C7: immunologic signatures
+
+
+Because we're working with a sample that's partly comprised of immune cells, let's use the immunologic signatures to analyze our marker genes.
+These signatures are generally derived from gene expression experiments of a broad set of cell types, perturbations, and in some cases responses to specific vaccines ([Godec *et al.* 2016](https://doi.org/10.1016/j.immuni.2015.12.006)); they usually have an "up" and "down" component.
+You can [read more about the C7 collection at MSigDB](https://www.gsea-msigdb.org/gsea/msigdb/collection_details.jsp#C7).
+
+We might expect that analyzing our marker genes with this collection could give us some information not only about cell identity or type, but also phenotype or activation state.
+
+We can retrieve only the Immunologic gene sets by specifying `category = "C7"` to the `msigdbr()` function.
+Again, we only want human gene sets here so we specify with that with the `species` argument.
+
+```{r immunologic_sets, live = TRUE}
+
+```
+
+## Gene Set Enrichment Analysis
+
+_Adapted from [refine.bio examples](https://github.com/AlexsLemonade/refinebio-examples/blob/33cdeff66d57f9fe8ee4fcb5156aea4ac2dce07f/03-rnaseq/pathway-analysis_rnaseq_02_gsea.Rmd)_
+
+![](diagrams/subramanian_fig1.jpg)
+
+**Figure 1. [Subramanian _et al._ (2005)](https://doi.org/10.1073/pnas.0506580102).**
+
+GSEA calculates a pathway-level metric, called an enrichment score (sometimes abbreviated as ES), by ranking genes by a gene-level statistic.
+This score reflects whether or not a gene set or pathway is over-represented at the top or bottom of the gene rankings ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis))
+
+Specifically, all genes are ranked from most positive to most negative based on their statistic and a running sum is calculated:
+Starting with the most highly ranked genes, the running sum increases for each gene in the pathway and decreases for each gene not in the pathway.
+The enrichment score for a pathway is the running sum's maximum deviation from zero.
+GSEA also assesses statistical significance of the scores for each pathway through permutation testing.
+As a result, each input pathway will have a p-value associated with it that is then corrected for multiple hypothesis testing ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
+
+The implementation of GSEA we use in here examples requires a gene list ordered by some statistic and input gene sets.
+When you use previously computed gene-level statistics with GSEA, it is called GSEA pre-ranked.
+
+## Marker gene results
+
+```{r read_in_markers, live = TRUE}
+
+```
+
+```{r}
+head(markers_df)
+```
+
+Since this data frame of marker genes includes gene symbols, we do not need to perform any kind of gene identifier conversion.
+We do, however, need to check for duplicate gene symbols.
+We can accomplish this with `duplicated()`, which returns a logical vector (e.g., `TRUE` or `FALSE`).
+The function `sum()` will count `TRUE` values as 1s and `FALSE` as 0s, so using it with `duplicated()` will count the number of duplicate values.
+
+```{r any_duplicated, live = TRUE}
+
+```
+
+Luckily this number is very low, such that we do not expect it to impact our results much, but this will still cause a problem when we go to run GSEA.
+
+### Removing duplicates
+
+The GSEA approach requires on discriminating between genes that are in a gene set and those that are not.
+Practically speaking, gene sets are just collections of gene identifiers!
+When the function we use for GSEA pre-ranked gets a list with duplicated gene identifiers, it can produce unexpected results.
+
+Compared to the total number of genes that are in our results, there are not a lot of duplicates but we'll still need to make a decision about how to handle them.
+
+Let's get a vector of the duplicated gene symbols so we can use it to explore our filtering steps.
+
+```{r gene_dups, live = TRUE}
+
+```
+
+Now we'll look at the values for the duplicated gene symbols.
+
+```{r show_gene_dups}
+markers_df |>
+  dplyr::filter(gene_symbol %in% duplicated_gene_symbols) |>
+  dplyr::arrange(gene_symbol)
+```
+
+We can see that the associated values vary for each row.
+
+Let's keep the gene symbols associated with the higher absolute value of the gene-level statistic we'll use for GSEA (`summary.logFC`).
+
+Retaining the instance of the gene symbols with the higher absolute value of a gene-level statistic means that we will retain the value that is likely to be more highly- or lowly-ranked or, put another way, the values less likely to be towards the middle of the ranked gene list.
+We should keep this decision in mind when interpreting our results.
+For example, if all the duplicate identifiers happened to be in a particular gene set, we may get an overly optimistic view of how perturbed that gene set is because we preferentially selected instances of the identifier that have a higher absolute value of the statistic used for ranking.
+
+In the next chunk, we are going to filter out the duplicated rows using the `dplyr::distinct()` function after sorting by absolute value of the summary log fold change.
+This will keep the first row with the duplicated value thus keeping the row with the largest absolute value.
+
+```{r filter_dup_markers}
+filtered_markers_df <- markers_df |>
+  # Sort so that the highest absolute values of the summary log2 fold change are
+  # at the top
+  dplyr::arrange(dplyr::desc(abs(summary.logFC))) |>
+  # Filter out the duplicated rows using `dplyr::distinct()`
+  dplyr::distinct(gene_symbol, .keep_all = TRUE)
+```
+
+Let's see what happened to our duplicate identifiers.
+
+```{r show_filtered_markers, live = TRUE}
+# Subset to & arrange by gene symbols that were duplicated in the original
+# data frame of results
+
+```
+
+Now we're ready to prep our pre-ranked list for GSEA.
+
+### Pre-ranked list
+
+The `GSEA()` function takes a pre-ranked (sorted) named vector of statistics, where the names in the vector are gene identifiers.
+This is step 1 -- gene-level statistics.
+
+Here, we're using the summary log fold change, which summarizes of all of the log fold changes from the pairwise comparisons between cluster 1 and other clusters into a single value ([ref](https://rdrr.io/bioc/scran/man/combineMarkers.html)).
+As such, this statistic gives us information about the relative magnitude and directionality of each gene's expression in cluster 1 relative to all other clusters.
+
+```{r lfc_vector}
+lfc_vector <- filtered_markers_df |>
+  # Extract a vector of `summary.logFC` named by `gene_symbol`
+  dplyr::pull(summary.logFC, name = gene_symbol)
+lfc_vector <- sort(lfc_vector, decreasing = TRUE)
+```
+
+Let's look at the top ranked values.
+
+```{r head_lfc, live = TRUE}
+# Look at first entries of the log fold change vector
+
+```
+
+And the bottom of the list.
+
+```{r tail_lfc, live = TRUE}
+# Look at the last entries of the log fold change vector
+
+```
+
+## Run GSEA
+
+Now for the analysis!
+
+We can use the `GSEA()` function to perform GSEA with any generic set of gene sets, but there are several functions for using specific, commonly used gene sets (e.g., `gseKEGG()`).
+
+```{r run_gsea}
+gsea_results <- GSEA(geneList = lfc_vector,  # ordered ranked gene list
+                     minGSSize = 25,  # minimum gene set size
+                     maxGSSize = 500,  # maximum gene set set
+                     pvalueCutoff = 0.05,
+                     pAdjustMethod = "BH",  # correction for multiple hypothesis testing
+                     TERM2GENE = dplyr::select(hs_immunologic_df,
+                                               gs_name,
+                                               gene_symbol))
+```
+Let's take a look at the GSEA results.
+
+```{r view_gsea, live = TRUE, eval = FALSE}
+
+```
+
+Normalized enrichment scores (NES) are enrichment scores that are scaled to make gene sets that contain different number of genes comparable.
+
+Let's write these results to file.
+
+```{r write_gsea}
+gsea_results@result |> readr::write_tsv(output_file)
+```
+
+### Visualizing GSEA results
+
+We can visualize GSEA results for individual pathways or gene sets using `enrichplot::gseaplot()`.
+Let's take a look at 3 different pathways -- one with a highly positive NES, one with a highly negative NES, and one that was not a significant result -- to get more insight into how ES are calculated.
+
+#### Highly Positive NES
+
+Let's take look at a pathway with a highly positive NES (`GSE29618_BCELL_VS_PDC_UP`) using a GSEA plot.
+This gene set is comprised of ([ref](https://www.gsea-msigdb.org/gsea/msigdb/cards/GSE29618_BCELL_VS_PDC_UP)):
+
+> Genes up-regulated in comparison of B cells versus plasmacytoid dendritic cells (pDC) .
+
+```{r highly_pos}
+enrichplot::gseaplot(gsea_results,
+                     geneSetID = "GSE29618_BCELL_VS_PDC_UP",
+                     title = "GSE29618_BCELL_VS_PDC_UP",
+                     color.line = "#0066FF")
+```
+
+Notice how the genes that are in the gene set, indicated by the black bars, tend to be on the left side of the graph indicating that they have positive gene-level scores.
+
+#### Highly Negative NES
+
+The gene set `GSE29618_BCELL_VS_PDC_DAY7_FLU_VACCINE_DN` had a highly negative NES, and is comprised of ([ref](https://www.gsea-msigdb.org/gsea/msigdb/geneset_page.jsp?geneSetName=GSE29618_BCELL_VS_PDC_DAY7_FLU_VACCINE_DN))
+
+>  	Genes down-regulated in comparison of B cells from influenza vaccinee at day 7 post-vaccination versus plasmacytoid dendritic cells (pDC) at day 7 post-vaccination.
+
+This is the "down" signature that corresponds to one of the "up" pathways with a highly positive NES, so in a way this is not adding new information!
+
+```{r highly_neg}
+enrichplot::gseaplot(gsea_results,
+                     geneSetID = "GSE29618_BCELL_VS_PDC_DAY7_FLU_VACCINE_DN",
+                     title = "GSE29618_BCELL_VS_PDC_DAY7_FLU_VACCINE_DN",
+                     color.line = "#0066FF")
+```
+
+This gene set shows the opposite pattern -- genes in the pathway tend to be on the right side of the graph.
+
+#### A non-significant result
+
+The `@results` slot will only show gene sets that pass the `pvalueCutoff` threshold we supplied to `GSEA()`, but we can plot any gene set so long as we know its name.
+Let's look at [`GOLDRATH_EFF_VS_MEMORY_CD8_TCELL_DN`](http://www.gsea-msigdb.org/gsea/msigdb/geneset_page.jsp?geneSetName=GOLDRATH_EFF_VS_MEMORY_CD8_TCELL_UP&keywords=GOLDRATH), which examines the difference between effector CD8 T cells and memory CD8 T cells and was not in the results we viewed earlier.
+
+```{r nonsig, live = TRUE}
+
+```
+
+Genes in the pathway are distributed more evenly throughout the ranked list, resulting in a more "middling" score.
+
+*Note: The plots returned by `enrichplot::gseaplot` are ggplots, so we could use `ggplot2::ggsave()` to save them to file if we wanted to.*
+
+## Session Info
+
+```{r session_info}
+sessionInfo()
+```

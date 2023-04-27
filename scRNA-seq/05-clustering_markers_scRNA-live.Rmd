@@ -43,19 +43,18 @@ normalized_rds <- file.path(data_dir, "normalized", "normalized_hodgkins_sce.rds
 
 # Output directory for markers
 marker_dir <- file.path("analysis", "hodgkins", "markers")
-if (!dir.exists(marker_dir)) {
-  dir.create(marker_dir, recursive = TRUE)
-}
+fs::dir_create(marker_dir)
 ```
 
 ```{r read_data, live = TRUE}
 
 ```
 
-![**Status of the current dataset**](diagrams/cellranger_3.png)
 
 
 ## Assigning cell clusters
+
+![Roadmap: Cluster](diagrams/roadmap_single_cluster.png)
 
 When we performed dimensionality reduction on our single cell data, we could see visually that the cells tended cluster together into groups.
 To the extent that such clustering is a real biological phenomenon, representing cells with similar patterns of gene expression, we might like to identify distinct groups that we can name and assign a label to.
@@ -184,6 +183,8 @@ A recent review by [Kislev *et al.* (2019)](https://doi.org/10.1038/s41576-018-0
 
 ## Identifying marker genes
 
+![Roadmap: Find markers](diagrams/roadmap_single_findmarkers.png)
+
 Assigning clusters is nice for visualization, but we would also like to be able to move toward a biological interpretation of the clusters and identifying the cell types in each cluster.
 To that end, we can identify marker genes that are differentially expressed among clusters.
 
@@ -221,7 +222,7 @@ markers[[1]] |>
 You can see that this table includes values for all genes, so we would like to make a shorter list.
 
 Because we tend to like [tidy data](https://r4ds.had.co.nz/tidy-data.html), here we use a `tidyverse` function from the [`purrr` package](https://purrr.tidyverse.org) to apply the same operations as above to every element of the `markers` list.
-We will introduce `purrr` briefly here, but if you want more information and background, we recommend the [`purrr` cheatsheet (PDF)](https://github.com/rstudio/cheatsheets/raw/master/purrr.pdf) and Jenny Bryan's great [`purrr` tutorial](https://jennybc.github.io/purrr-tutorial/index.html) you might want to look at.
+We will introduce `purrr` briefly here, but if you want more information and background, we recommend the [`purrr` cheatsheet (PDF)](https://github.com/rstudio/cheatsheets/raw/main/purrr.pdf) and Jenny Bryan's great [`purrr` tutorial](https://jennybc.github.io/purrr-tutorial/index.html).
 
 
 The main functions in `purrr` are the `map()` functions, which take as their main arguments a **list** and a **function** to apply to each element of the list.
@@ -238,19 +239,28 @@ purrr::map(
 
 This returns a list of data frames, which isn't quite what we want.
 
-There is no built-in function that will give us just the first few _row names_, so we will have to define one, and `purrr` gives us a nice shorthand for doing that with `~` syntax.
-In this syntax we type a `~` followed by an expression (R code) that uses `.x` as a placeholder for a single element of the list.
-`purrr::map()` will then apply the expression to each element of the list, and return the results as a new list.
+There is no built-in function that will give us just the first few _row names_, so we will have to define one.
+As of version 4.1, R introduced a new approach to defining _anonymous functions_ - that is, functions you can quickly define "on-the-fly" without formally assigning them to a function name.
+They are handy when you need to do a very short task that requires a function, but it isn't really a function you need beyond this context.
+This new anonymous syntax looks like this: `\(x)...` (or for slightly longer code, use curly braces as in `\(x) {...}`).
+This defines a function that takes one argument, `x`, with `...` indicating where you would put the expression to calculate.
+
+`purrr::map()` will then apply the expression in our anonymous function to each element of the list, and return the results as a new list.
 
 ```{r head_markernames, live = TRUE}
 # Get the first few row names of each table with a purrr function.
+
+  # convert markers to a 'regular' list for purrr
+
+  # our custom function:
 
 ```
 
 Another variant is `purrr::imap()`, which allows us to use the names of the list elements in our function.
 (Try `names(markers)` to see the names for the list we are working with now.)
 We will use that here to name output files where we will print each of the marker tables, one for each cell type.
-We are again defining a custom function within the call to `purrr:imap()` using the `~` syntax, but this time we can use `.x` for the list elements and `.y` for their names.
+We are again defining a custom function within the call to `purrr:imap()` using the `\(x)` syntax, but this time we need two variables: we will use `table` for the list elements (each a table of results) and `id` for their names.
+So, we'll actually start by defining the function as `\(table, id)`, since there will be two input arguments.
 Because we don't know the identities of the clusters we identified, these are just the cluster numbers for now.
 
 Making file names from numbers can be a a bit fraught, as we really want them to sort in numerical order, but many systems will sort by alphabetical order.
@@ -269,16 +279,18 @@ In addition to writing the tables out, we are saving the data frames we created 
 ```{r write_tables}
 marker_df_list <- purrr::imap(
   as.list(markers), # convert markers to a 'regular' list for purrr
-  # purrr function: .x is the list element, .y is the element name (number here)
-  ~ as.data.frame(.x) |> # first convert to a data frame
-    tibble::rownames_to_column("gene") |> # make genes a column
-    dplyr::arrange(FDR) |> # sort to be sure small FDR genes are first
-    readr::write_tsv( # write each data frame to a file
+  # purrr function: x is the list element, y is the element name (number here)
+  \(table, id) {
+    as.data.frame(table) |> # first convert to a data frame
+      tibble::rownames_to_column("gene") |> # make genes a column
+      dplyr::arrange(FDR) |> # sort to be sure small FDR genes are first
+      readr::write_tsv( # write each data frame to a file
       file.path(marker_dir, # construct the output path
-                sprintf("cluster%02d_markers.tsv", as.integer(.y)) # format cluster numbers in file names with leading zeros
+                sprintf("cluster%02d_markers.tsv", as.integer(id)) # format cluster numbers in file names with leading zeros
                 )
       )
-  )
+  }
+)
 ```
 
 
@@ -315,20 +327,7 @@ Hopefully that expression pattern aligns at least in part with your expectations
 
 So far we have identified clusters of cells (if you believe them), and found some genes that are associated with each cluster.
 What you might want to know at this point is what *cell types* comprise each cluster.
-Setting aside the thorny question of "what is a cell type?", this is still a challenging problem!
-
-One approach would be to look at the marker genes that we have defined, and explore whether they correspond to known pathways or biological processes from KEGG or Gene Ontology.
-We will explore part of this approach in a later notebook.
-
-In some situations, you might have a well-annotated data set with single cell expression data from cells of each type that you are interested in.
-You could then compute some measure of similarity between the gene expression in your cells and the annotated cells, and then assign identity based on those measures.
-Here we will again refer you to the [Orchestrating Single-Cell Analysis  book chapter on cell annotation](https://bioconductor.org/books/3.14/OSCA.basic/cell-type-annotation.html) for some detailed explanations of potential next steps.
-It is a really good book!
-
-There are also some online tools that perform similar analyses for defined sets of annotated reference cells.
-One is [Azimuth](https://azimuth.hubmapconsortium.org/), part of the [NIH Human Biomolecular Atlas Project](https://commonfund.nih.gov/hubmap).
-While online tools like can be challenging from a reproducibility point of view, one nice feature of Azimuth is that it will allow you to download the `R` analysis code that it applied.
-This code uses the [`Seurat` package](https://satijalab.org/seurat/), with initial steps similar to the ones we have used here, though with function names and parameters specific to that package.
+Setting aside the thorny question of "what is a cell type?", this is still a challenging problem, and we'll explore some approaches to perform cell type annotation in the next notebook!
 
 
 ## Session Info
