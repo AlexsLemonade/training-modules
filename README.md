@@ -20,6 +20,7 @@ The accompanying slides for each module are linked below and briefly introduce t
 - [Machine learning](https://docs.google.com/presentation/d/1o90uBTlQMx8qu3Jbhqe-ch-ykvLb3_vpi0O-6lBggRg/edit?usp=sharing)
 - Intro to scRNA-seq
   - [Intro to scRNA-seq](https://docs.google.com/presentation/d/1EGijSWUxcfjLpDU9QULYLHxsHMHlI6KPtR1Cs4QWy7A/edit?usp=sharing)
+  - [Dimensionality reduction and Clustering](https://docs.google.com/presentation/d/1W1-rZ1xJROSUC7rOYDJhJ1q-Z9gvdIXS4CzPHluMHnk/edit?usp=sharing)
   - [Cell type annotation](https://docs.google.com/presentation/d/16ivLdwm17jqHZKOnRGVjigIMAZtr9Xpc5kjspn9mIhQ/edit?usp=sharing)
 - Advanced scRNA-seq
   - [scRNA-seq refresher](https://docs.google.com/presentation/d/1qjmx_C0P5feswxXvn6ezCRE5OObtB9iftQvI3ceUAa0/edit?usp=sharing)
