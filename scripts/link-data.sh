@@ -25,7 +25,6 @@ mkdir -p RNA-seq/QC/gastric-cancer/fastqc
 mkdir -p RNA-seq/data/open-pbta
 
 # scRNA-seq module directories
-mkdir -p scRNA-seq/data/glioblastoma-darmanis
 mkdir -p scRNA-seq/data/glioblastoma-10x
 mkdir -p scRNA-seq/data/tabula-muris/alevin-quant
 mkdir -p scRNA-seq/data/tabula-muris/normalized
@@ -70,7 +69,6 @@ link_locs=(
   RNA-seq/data/zebrafish-cortisol/salmon_quant
   RNA-seq/data/open-pbta/pbta-histologies-subset.tsv
   RNA-seq/data/open-pbta/pbta-rsem-expected_count-subset.rds
-  scRNA-seq/data/glioblastoma-darmanis/preprocessed
   scRNA-seq/data/glioblastoma-10x/normalized
   scRNA-seq/data/hodgkins/cellranger
   scRNA-seq/data/mouse-liver/normalized
