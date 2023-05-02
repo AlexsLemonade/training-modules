@@ -55,8 +55,6 @@ sync_files=(
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/leukemia/SRP049821_metadata.tsv
   RNA-seq/data/medulloblastoma/SRP150101_metadata.tsv
-  scRNA-seq/data/glioblastoma-darmanis/preprocessed/txi/count_matrix.tsv
-  scRNA-seq/data/glioblastoma-darmanis/preprocessed/darmanis_metadata.tsv
   scRNA-seq/data/glioblastoma-10x/normalized/glioblastoma_normalized_sce.rds
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/data/tabula-muris/TM_droplet_metadata.csv
