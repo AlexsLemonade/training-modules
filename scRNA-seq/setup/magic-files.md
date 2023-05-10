@@ -16,6 +16,7 @@ Files are listed below by the notebook that produces them:
 - `02-filtering_scRNA.Rmd`
   - `data/tabula-muris/filtered/filtered_sce.rds`
 - `03-normaling_scRNA.Rmd`
+  - `data/tabula-muris/normalized/scran_norm_gene_matrix.tsv`
   - `data/tabula-muris/normalized/normalized_bladder_sce.rds`
 - `04-dimension_reduction_scRNA.Rmd`
   - `data/hodgkins/normalized/normalized_hodgkins_sce.rds`
