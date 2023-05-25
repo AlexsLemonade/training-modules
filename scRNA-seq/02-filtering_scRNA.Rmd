@@ -88,13 +88,21 @@ Using the `coldata` data frame that we set up, we can now run the `tximeta()` to
 The first time you run `tximeta()` you may get a message about storing downloaded transcriptome data in a cache directory so that it can retrieve the data more quickly the next time.
 We recommend you use the cache, and accept the default location.
 
+
 ```{r read_data, live = TRUE}
 # Read in alevin results with tximeta
 bladder_sce <- tximeta(coldata, type = "alevin")
 ```
 
+A quick aside!
+When we ran `alevinQC` on this data in the last notebook, we saw that `salmon alevin` had identified a "whitelist" of barcodes that passed its quality control standards.
+We could use this filtered list directly, but `salmon alevin` can be quite strict, and methods for filtering quite variable.
+Instead, we will use the default behavior of `tximeta()` and read in all of the barcodes for which there is a non-zero UMI count (after barcode correction).
+If you wanted instead to include only only barcodes that passed `salmon alevin`'s filter, you could supply the additional argument `alevinArgs = list(filterBarcodes=TRUE)` to the `tximeta()` function. 
+Even if you do choose to read in pre-filtered data, it's still important to explore the data as we're about to do here and potentially filter further based on your observations, in particular since mapping software's quality control measures (spoilers!) don't always filter based on mitochondrial gene content. 
+
 In the intro-to-R-tidyverse module notebook, `01-intro-to-base_R.Rmd`, we discuss base R object types, but there are some 'special' object types that are package-specific.
-`tximeta` creates a `SummarizedExperiment` object (or more specifically a `RangedSummarizedExperiment` object.), which is used by many Bioconductor packages to store and process results from gene expression studies.
+`tximeta` creates a `SummarizedExperiment` object (or more specifically a `RangedSummarizedExperiment` object), which is used by many Bioconductor packages to store and process results from gene expression studies.
 
 ```{r view_scdata, live = TRUE}
 # Explore the SummarizedExperiment data
@@ -308,6 +316,7 @@ If a cell is dead or dying, its mRNA will tend to leak out of the cell, leaving 
 To look for this, we would like to calculate the fraction of mitochondrial expression for each cell as well.
 First, we will need a list of the mitochondrial genes, which we have prepared in a tsv file `mm_mitochondrial_genes.tsv` that we will now read in, and filter to just the genes that are found in the data set.
 
+
 ```{r read_mito}
 # read `mm_mitochondrial_genes.tsv` from ref_dir and
 # create from it a single vector containing only the gene ids
@@ -341,7 +350,7 @@ ggplot(mapping = aes(x = mito_fraction)) +
   theme_classic()
 ```
 Here, we want to keep cells with a low fraction of reads corresponding to mitochondrial genes and remove any cells with a high mitochondrial fraction.
-
+Again, it's important to take this step even if you started with filtered data, since mapping software like `salmon alevin` and Cell Ranger do not usually consider mitochondrial read percentages when filtering.
 
 ### Combining sample QC measures
 

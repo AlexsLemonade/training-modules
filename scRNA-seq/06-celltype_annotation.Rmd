@@ -159,9 +159,9 @@ This is a shortcut for `scater::plotReducedDim(dimred = "UMAP", ...)`, which can
 
 ```{r plot clusters}
 # plot clusters
-scater::plotUMAP(sce, colour_by = "nn_cluster") + 
+scater::plotUMAP(sce, color_by = "nn_cluster") + 
   # rename the legend
-  guides(colour = guide_legend(title = "Cluster"))
+  guides(color = guide_legend(title = "Cluster"))
 ```
 But what are these clusters, really? 
 Do they correspond to particular cell types that we are interested in?
@@ -180,11 +180,11 @@ The first marker we will look at is `CD3`, which is a protein complex that is fo
 We can again use the `plotUMAP()` function to color cells by `CD3` ADT levels. 
 
 Note that this function can plot data from the `colData` table (as we used it above when plotting clusters), in the main gene expression matrix (as we used it in the previous notebook), *AND* in `altExp` tables and matrices!
-So to color by the ADT levels (as normalized in the `logcounts` matrix) we only need to provide the tag name that we want to plot in the `colour_by` argument.
+So to color by the ADT levels (as normalized in the `logcounts` matrix) we only need to provide the tag name that we want to plot in the `color_by` argument.
 
 ```{r plot CD3, live=TRUE}
 # plot CD3 expression
-scater::plotUMAP(sce, colour_by = "CD3")
+scater::plotUMAP(sce, color_by = "CD3")
 ```
 
 It appears that we have a number of potential T cells down in the lower left!
@@ -200,13 +200,13 @@ Let's plot the ADT results for those two markers as well below:
 ```{r plot CD4, live=TRUE}
 # plot CD4 marker
 scater::plotUMAP(sce, 
-                 colour_by = "CD4")
+                 color_by = "CD4")
 ```
 
 ```{r plot CD8, live=TRUE}
 # plot CD8 marker
 scater::plotUMAP(sce, 
-                 colour_by = "CD8")
+                 color_by = "CD8")
 ```
 
 
@@ -308,7 +308,7 @@ Creating and assigning values to this column can be done with the `$` shortcut, 
 ```{r plot thresholds}
 sce$threshold_celltype <- adt_df$celltype
 scater::plotUMAP(sce, 
-                 colour_by = "threshold_celltype") + 
+                 color_by = "threshold_celltype") + 
   guides(color = guide_legend(title = "Cell type"))
 ```
 
@@ -458,9 +458,19 @@ sce$celltype_main <- singler_result$pruned.labels
 Now we can plot the cell type assignments onto our UMAP to see how they compare to the patterns we saw there before.
 
 ```{r plot celltype umap, live=TRUE}
-scater::plotUMAP(sce, colour_by = "celltype_main") 
+scater::plotUMAP(sce, color_by = "celltype_main") 
 ```
-Annoyingly, the `NA` and `T cells` labels are quite close in color, and the `scater` and `SingleR` packages don't agree on color choices, but this plot isn't a bad start!
+Annoyingly, the `NA` and `T cells` labels are quite close in color, and the `scater` and `SingleR` packages don't agree on color choices.
+Luckily, since `plotUMAP()` returns a `ggplot` object, we can modify the color palette using `ggplot2` functions.
+Still annoyingly, however, when we change the palette, the legend title defaults to the uninformative name `"colour_by"`, so we'll also specify a matching legend title with our new color palette.
+
+```{r plot celltype umap palette}
+scater::plotUMAP(sce, color_by = "celltype_main") +
+  scale_color_brewer(name = "Cell type", # legend title
+                     palette = "Dark2",      # color palette
+                     na.value = "gray80")    # use light gray for NA values
+```
+
 We seem to have a pretty good set of cell type assignments, with most falling into groupings consistent with what we see in the UMAP plot.
 
 We can thank the fact that this is a PBMC sample and that we have a good reference dataset for these cell types for the cleanliness of this plot.
@@ -537,7 +547,7 @@ table(singler_result_fine$pruned.labels, useNA = "ifany")
 # add fine labels to SCE
 sce$celltype_fine <- singler_result_fine$pruned.labels
 # plot UMAP with fine labels
-scater::plotUMAP(sce, colour_by = "celltype_fine")
+scater::plotUMAP(sce, color_by = "celltype_fine")
 ```
 
 That's a pretty messy plot.
@@ -603,7 +613,7 @@ Now that we have that set up, we can plot using our collapsed and ordered cell t
 ```{r plot collapsed, live=TRUE}
 sce$celltype_collapsed <- collapsed_labels
 scater::plotUMAP(sce, 
-                 colour_by = "celltype_collapsed")
+                 color_by = "celltype_collapsed")
 ```
 
 
@@ -704,7 +714,7 @@ sce$celltype_cluster <- singler_cluster[sce$nn_cluster, "pruned.labels"]
 Now we can plot these cluster-based cell type assignments using the now familiar `plotUMAP()` function.
 
 ```{r plot cluster celltypes, live=TRUE}
-scater::plotUMAP(sce, colour_by = "celltype_cluster")
+scater::plotUMAP(sce, color_by = "celltype_cluster")
 ```
 
 This sure looks nice and clean, but what have we really done here? 
@@ -753,7 +763,7 @@ sce$celltype_metacell <- metacell_singler[kclusters, "pruned.labels"]
 Now we can plot the results as we have done before.
 
 ```{r metacell umap}
-scater::plotUMAP(sce, colour_by = "celltype_metacell")
+scater::plotUMAP(sce, color_by = "celltype_metacell")
 ```
 
 What do you think of this plot? 
