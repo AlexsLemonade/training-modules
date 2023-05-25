@@ -95,10 +95,11 @@ bladder_sce <- tximeta(coldata, type = "alevin")
 ```
 
 A quick aside!
-When we ran `alevinQC` on this data in the last notebook, we saw that `salmon` had identified a "whitelist" of barcodes, i.e. barcodes that passed its quality control standards.
-Here, we are actually going to read in all barcodes, regardless of whether they are on the whitelist, so that we can explore different filtering thresholds ourselves (`salmon` can be very stringent when filtering out barcodes).
-But, if you wanted to read in the data considering only barcodes which passed `salmon`'s filter, you can supply the additional argument `alevinArgs = list(filterBarcodes=TRUE)` to the `tximeta()` function. 
-Even if you do choose to read in pre-filtered data approach, it's still important to explore the data as we're about to do here and potentially filter further based on your observations, in particular since mapping software's quality control measures (spoilers!) don't always filter based on mitochondrial gene content. 
+When we ran `alevinQC` on this data in the last notebook, we saw that `salmon alevin` had identified a "whitelist" of barcodes that passed its quality control standards.
+We could use this filtered list directly, but `salmon alevin` can be quite strict, and methods for filtering quite variable.
+Instead, we will use the default behavior of `tximeta()` and read in all of the barcodes for which there is a non-zero UMI count (after barcode correction).
+If you wanted instead to include only only barcodes that passed `salmon alevin`'s filter, you could supply the additional argument `alevinArgs = list(filterBarcodes=TRUE)` to the `tximeta()` function. 
+Even if you do choose to read in pre-filtered data, it's still important to explore the data as we're about to do here and potentially filter further based on your observations, in particular since mapping software's quality control measures (spoilers!) don't always filter based on mitochondrial gene content. 
 
 In the intro-to-R-tidyverse module notebook, `01-intro-to-base_R.Rmd`, we discuss base R object types, but there are some 'special' object types that are package-specific.
 `tximeta` creates a `SummarizedExperiment` object (or more specifically a `RangedSummarizedExperiment` object), which is used by many Bioconductor packages to store and process results from gene expression studies.
@@ -349,7 +350,8 @@ ggplot(mapping = aes(x = mito_fraction)) +
   theme_classic()
 ```
 Here, we want to keep cells with a low fraction of reads corresponding to mitochondrial genes and remove any cells with a high mitochondrial fraction.
-Again, it's important to take this step even if you have performed some initial filtering, since mapping software like `salmon`'s quality control does not consider mitochondrial read percentages.
+Again, it's important to take this step even if you are started with filtered data, since mapping software like `salmon alevin` and Cell Ranger do not usually consider mitochondrial read percentages when filtering.
+
 ### Combining sample QC measures
 
 Lets put all of the QC measures we have calculated into a single data frame, so we can look at how they might relate to one another.
