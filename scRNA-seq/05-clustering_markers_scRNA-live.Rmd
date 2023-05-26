@@ -1,5 +1,5 @@
 ---
-title: "Clustering cells and finding marker genes scRNA-seq data"
+title: "Clustering cells and finding marker genes from scRNA-seq data"
 author: CCDL for ALSF
 date: 2021
 output:
@@ -152,7 +152,7 @@ Here we will use `k` to specify the number of neighbors to use when building the
 - Despite sharing a letter, `k` here and the one from k-means clustering are not the same thing!
 In this case, we are telling the algorithm how many neighbor connections to make for each cell, not the final number of clusters, which will be determined by the algorithm we use for the cluster building step.
 
-- The options for `cluster.fun` describe the algorithm for the cluster building step described above. These include the default `walktrap` and `louvain`, which is used by default in [`Seurat`](https://satijalab.org/seurat/), another common package for single cell analysis that you may have seen.
+- The options for `cluster.fun` describe the algorithm for the cluster building step described above. These include `walktrap` (the default), `leiden`, and `louvain`, which is the default algorithm in [`Seurat`](https://satijalab.org/seurat/), another common package for single cell analysis that you may have seen.
 
 In the example below, we will use the default values for these two arguments.
 
@@ -285,9 +285,10 @@ marker_df_list <- purrr::imap(
       tibble::rownames_to_column("gene") |> # make genes a column
       dplyr::arrange(FDR) |> # sort to be sure small FDR genes are first
       readr::write_tsv( # write each data frame to a file
-      file.path(marker_dir, # construct the output path
-                sprintf("cluster%02d_markers.tsv", as.integer(id)) # format cluster numbers in file names with leading zeros
-                )
+        file.path(
+          marker_dir, # construct the output path
+          sprintf("cluster%02d_markers.tsv", as.integer(id)) # format cluster numbers in file names with leading zeros
+        )
       )
   }
 )
@@ -298,7 +299,7 @@ marker_df_list <- purrr::imap(
 
 One thing we can do with this list of marker genes is to see how they look across the cells and clusters.
 The `scater::plotReducedDim()` function makes this easy!
-We have earlier colored points by some cell statistic, like the number of expressed genes, but it is just as easy to color by the expression of a single gene by using the gene identifier as the `colour_by` argument.
+We have earlier colored points by some cell statistic, like the number of expressed genes, but it is just as easy to color by the expression of a single gene by using the gene identifier as the `color_by` argument.
 
 The first step is to get the gene information for the genes we might be interested in.
 
