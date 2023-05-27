@@ -148,9 +148,9 @@ This is a shortcut for `scater::plotReducedDim(dimred = "UMAP", ...)`, which can
 
 ```{r plot clusters}
 # plot clusters
-scater::plotUMAP(sce, colour_by = "nn_cluster") + 
+scater::plotUMAP(sce, color_by = "nn_cluster") + 
   # rename the legend
-  guides(colour = guide_legend(title = "Cluster"))
+  guides(color = guide_legend(title = "Cluster"))
 ```
 But what are these clusters, really? 
 Do they correspond to particular cell types that we are interested in?
@@ -169,7 +169,7 @@ The first marker we will look at is `CD3`, which is a protein complex that is fo
 We can again use the `plotUMAP()` function to color cells by `CD3` ADT levels. 
 
 Note that this function can plot data from the `colData` table (as we used it above when plotting clusters), in the main gene expression matrix (as we used it in the previous notebook), *AND* in `altExp` tables and matrices!
-So to color by the ADT levels (as normalized in the `logcounts` matrix) we only need to provide the tag name that we want to plot in the `colour_by` argument.
+So to color by the ADT levels (as normalized in the `logcounts` matrix) we only need to provide the tag name that we want to plot in the `color_by` argument.
 
 ```{r plot CD3, live=TRUE}
 # plot CD3 expression
@@ -291,7 +291,7 @@ Creating and assigning values to this column can be done with the `$` shortcut, 
 ```{r plot thresholds}
 sce$threshold_celltype <- adt_df$celltype
 scater::plotUMAP(sce, 
-                 colour_by = "threshold_celltype") + 
+                 color_by = "threshold_celltype") + 
   guides(color = guide_legend(title = "Cell type"))
 ```
 
@@ -438,7 +438,17 @@ Now we can plot the cell type assignments onto our UMAP to see how they compare 
 ```{r plot celltype umap, live=TRUE}
 
 ```
-Annoyingly, the `NA` and `T cells` labels are quite close in color, and the `scater` and `SingleR` packages don't agree on color choices, but this plot isn't a bad start!
+Annoyingly, the `NA` and `T cells` labels are quite close in color, and the `scater` and `SingleR` packages don't agree on color choices.
+Luckily, since `plotUMAP()` returns a `ggplot` object, we can modify the color palette using `ggplot2` functions.
+Still annoyingly, however, when we change the palette, the legend title defaults to the uninformative name `"colour_by"`, so we'll also specify a matching legend title with our new color palette.
+
+```{r plot celltype umap palette}
+scater::plotUMAP(sce, color_by = "celltype_main") +
+  scale_color_brewer(name = "Cell type", # legend title
+                     palette = "Dark2",      # color palette
+                     na.value = "gray80")    # use light gray for NA values
+```
+
 We seem to have a pretty good set of cell type assignments, with most falling into groupings consistent with what we see in the UMAP plot.
 
 We can thank the fact that this is a PBMC sample and that we have a good reference dataset for these cell types for the cleanliness of this plot.
@@ -470,7 +480,7 @@ We should note here that the reference dataset for `SingleR` does not need to be
 If you have any well-classified dataset that you want to use as a reference, you can, as long as you can create a gene by sample expression matrix and a vector of cell types for each sample. 
 You will want to ensure that the cell types you expect to see in your sample are present in the reference dataset, and data should be normalized, but otherwise the method can be quite flexible. 
 You can even use a previously-annotated `SingleCellExperiment` as a reference for a new dataset.
-For more details about custom references, see the [OSCA chapter on cell type annotation](http://bioconductor.org/books/3.13/OSCA.basic/cell-type-annotation.html#using-custom-references)
+For more details about custom references, see the [OSCA chapter on cell type annotation](http://bioconductor.org/books/3.16/OSCA.basic/cell-type-annotation.html#using-custom-references)
 
 We do want to be sure that the genes selected for the model will be among those present in our SCE object, so we will use the `restrict` argument with a vector of the genes in our SCE.
 This step would happen automatically with the `SingleR::SingleR()` function, but we need to add it manually for this use case.
@@ -719,7 +729,7 @@ sce$celltype_metacell <- metacell_singler[kclusters, "pruned.labels"]
 Now we can plot the results as we have done before.
 
 ```{r metacell umap}
-scater::plotUMAP(sce, colour_by = "celltype_metacell")
+scater::plotUMAP(sce, color_by = "celltype_metacell")
 ```
 
 What do you think of this plot? 
