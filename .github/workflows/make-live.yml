@@ -29,7 +29,6 @@ jobs:
           git config --local user.name "GitHub Actions"
 
       - name: Load 1Password secrets
-        if: github.event.inputs.rendering == 'TRUE'
         uses: 1password/load-secrets-action@v1
         with:
           export-env: true
@@ -37,6 +36,7 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.TRAINING_OP_SERVICE_ACCOUNT_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.OP_TRAINING_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.OP_TRAINING_SECRET_ACCESS_KEY }}
+          DOCS_BOT_GITHUB_TOKEN: ${{ secrets.OP_DOCS_BOT_GITHUB_TOKEN }}
 
       - name: Download data from S3
         if: github.event.inputs.rendering == 'TRUE'
@@ -54,7 +54,7 @@ jobs:
       - name: Create PR with rendered notebooks
         uses: peter-evans/create-pull-request@v3
         with:
-          token: ${{ secrets.DOCS_BOT_GITHUB_TOKEN }}
+          token: ${{ env.DOCS_BOT_GITHUB_TOKEN }}
           commit-message: Live and rendered notebooks
           signoff: false
           branch: auto_render_live
