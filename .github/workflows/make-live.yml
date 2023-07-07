@@ -28,16 +28,20 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
 
-      - name: Set up AWS credentials
-        if: github.event.inputs.rendering == 'TRUE'
-        uses: aws-actions/configure-aws-credentials@v1-node16
+      - name: Load 1Password secrets
+        uses: 1password/load-secrets-action@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.TRAINING_OP_SERVICE_ACCOUNT_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.OP_TRAINING_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.OP_TRAINING_SECRET_ACCESS_KEY }}
+          DOCS_BOT_GITHUB_TOKEN: ${{ secrets.OP_DOCS_BOT_GITHUB_TOKEN }}
 
       - name: Download data from S3
         if: github.event.inputs.rendering == 'TRUE'
+        env:
+          AWS_DEFAULT_REGION: us-east-1
         run: |
           aws s3 sync s3://ccdl-training-data/training-modules/ .
 
@@ -48,9 +52,9 @@ jobs:
 
       # Make changes to pull request here
       - name: Create PR with rendered notebooks
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.DOCS_BOT_GITHUB_TOKEN }}
+          token: ${{ env.DOCS_BOT_GITHUB_TOKEN }}
           commit-message: Live and rendered notebooks
           signoff: false
           branch: auto_render_live
