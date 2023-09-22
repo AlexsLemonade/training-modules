@@ -1,8 +1,8 @@
-# CCDL Training Modules
+# Data Lab Training Modules
 
 This repository is a collection of modules that are combined into 1-5 day workshops on computational topics for the childhood cancer research community.
 
-**If you are a childhood cancer researcher** and are interested attending a workshop go to the [CCDL's website](https://www.ccdatalab.org/projects-training) to learn more about our upcoming workshop locations and dates.
+**If you are a childhood cancer researcher** and are interested attending a workshop go to the [Data Lab's website](https://www.ccdatalab.org/data-science-workshops) to learn more about our upcoming workshop locations and dates.
 
 Here is a sample schedule [for the RNA-seq workshop](https://github.com/AlexsLemonade/RNA-Seq-Exercises/blob/master/schedule.md) if you'd like to see the order in which this material is presented.
 The data files that we process in the course are too large to be stored on GitHub so you will not be able to follow the material *exactly* as written without attending a workshop.
