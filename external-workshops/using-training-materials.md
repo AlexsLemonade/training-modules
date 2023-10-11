@@ -43,12 +43,12 @@ Downloading or forking this repository will provide you with the materials for e
 You can remove the files that are not relevant to the workshop you are teaching. 
 
 * Download a ZIP of the repository 
-* If you are familiar with GitHub and would prefer to create a remote copy of `training-modules`, you can also [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo).
+* If you are familiar with GitHub and would prefer to create your own copy of `training-modules`, you can also [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo).
 
 **2.) After you have made changes, our team will need a copy of the modified material so we can add it to the server.** 
 
 * If you downloaded a zip of the repository, send a zip file containing your version of the materials to `training@ccdatalab.org`. 
-* If you forked the repository, please give the Data Lab full access to your remote copy of the repository.
+* If you forked the repository, please give the Data Lab full access to the repository you created.
 
 **3.) The `training-modules` repository also contains the current version of the exercise notebooks that participants can use to practice what they learned during consultation periods and after the workshop.**
 
