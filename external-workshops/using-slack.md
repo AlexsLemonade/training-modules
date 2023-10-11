@@ -32,19 +32,19 @@ Someone from our team will always try to respond within 24 hours.
 
 ## Participant channel
 
-Before the workshop, use Slack to introduce the instructors, share reminders about the schedule, and post logistical information.
+**Before the workshop**, use Slack to introduce the instructors, share reminders about the schedule, and post logistical information.
 
 **During the workshop**, participants can use Slack to communicate with you and fellow participants. 
 This is a good place for attendees to post questions that don’t require an immediate response, so that instructors can address them when they have time. 
 
 * **Tip:** We also use this channel to ask for feedback from the group at the conclusion of each module. (You can use [Slack’s Polly app](https://www.polly.ai/help/slack/creating-polls) to create polls to share within the channel!)
 
+<img src="screenshots/polly-example.png" width=800>
+
 **After the workshop**, participants will have indefinite access to the training Slack channel. 
 (Note: We utilize a free Slack account, which means messages and attachments posted in your channel will disappear after 90 days.)
 
 ### Create your own CDS Slack channel
-
-You can use our CDS Slack community to create workshop specific channels for participant communication.
 
 **1.)** First, you must [join the Cancer Data Science Slack community](https://cancer-data-science.slack.com/join/shared_invite/enQtNzc4NTI2Nzg0ODY5LWQyODI0NmJmZDgzMzhiMzE1NGUyMmFhYzAxMWE0NmFkMTVjNWRhZDNlNGZhZDY5NzZmZWFjNzViNmFlOWIwMzE#/shared-invite/email).
 
