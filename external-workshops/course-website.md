@@ -6,7 +6,7 @@ At the Data Lab, we create a website for each course using our [`training-specif
 To do this, you must create a GitHub account if you do not already have one. 
 
 **1.)** First, create your own GitHub repository from `training-specific-template`, [using GitHub’s instructions for creating a repository from a template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template#creating-a-repository-from-a-template). 
-<img src="screenshots/training-specific-new-repo.png" width=800>
+<img src="screenshots/training-specific-new-template.png" width=800>
 
 **2.)** Make sure you select your own GitHub account as the owner of the new repository and choose to make your repository public, so your participants will have access. 
 <img src="screenshots/training-specific-new-repo-owner-1.png" width=800>

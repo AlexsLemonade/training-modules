@@ -1,4 +1,4 @@
-## Using Data Lab Training Materials
+# Using Data Lab Training Materials
 
 [All Data Lab training materials](https://github.com/AlexsLemonade/training-modules/tree/master), including lecture slides, reference documents, instruction notebooks, and exercise notebooks are [openly licensed](https://github.com/AlexsLemonade/training-modules/blob/master/LICENSE.md), modifiable, and freely available to download via GitHub. 
 Whether you are instructing in-person or virtually, you will need access to all of the materials that apply to your workshop topic and infrastructure for hosting the materials. 
@@ -33,15 +33,30 @@ The Data Lab allows training participants to have access to our RStudio server f
 
 **Training materials** 
 
-**1.) If you plan to modify any training materials, you must download our [`training-modules`](https://github.com/AlexsLemonade/training-modules/tree/master) repository or [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo) on GitHub.** 
+**1.) If you plan to modify any training materials, you must download our [`training-modules`](https://github.com/AlexsLemonade/training-modules/tree/master) repository or fork the repository on GitHub.** 
 If you do not plan to make modifications, you can skip to step 3 and the Data Lab will upload the current version of the materials you are using to the RStudio server. 
 
 Downloading or forking this repository will provide you with the materials for every Data Lab workshop. 
 You can remove the files that are not relevant to the workshop you are teaching. 
 
-* Download a ZIP of the repository 
+**Download a ZIP of the repository**
+
+* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click the `<>Code` button.
+* Click `Download ZIP` in the dropdown.
 <img src="screenshots/training-modules-download-zip.png" width=800>
-* Or, if you are familiar with GitHub and would prefer to create your own copy of `training-modules`, you can [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo) instead.
+
+* Now you can open a file that contains all materials from this repository on your own computer.
+
+**Or, if you are familiar with GitHub and would prefer to create your own copy of `training-modules`, you can fork the repository instead.**
+
+* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click `Fork`.
+<img src="screenshots/training-modules-fork-1.png" width=800>
+
+* Make sure you are the owner of the new repository and click `Create Fork`.
+<img src="screenshots/training-modules-fork-2.png" width=800>
+
+You can now interact with the materials on your own GitHub account. 
+We recommend that you also clone your new repository to your own computer.
 
 **2.) After you have made changes, our team will need a copy of the modified materials so we can install them on the server.** 
 
@@ -74,13 +89,27 @@ Please see the instructions for pre-workshop set-up meetings to learn more.
 If you are *not* using the Data Lab's server and will install the training materials on your own infrastructure, follow these instructions for obtaining the files you need from GitHub and receiving data from Amazon S3. 
 
 **1.) Download our [`training-modules`](https://github.com/AlexsLemonade/training-modules/tree/master) repository or [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo) on GitHub to obtain the training materials and make any modifications.**
-
 Downloading or forking this repository will provide you with the materials for every Data Lab workshop. 
 You can remove the files that are not relevant to the workshop you are teaching. 
 
-* Download a ZIP of the repository 
+**Download a ZIP of the repository**
+
+* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click the `<>Code` button.
+* Click `Download ZIP` in the dropdown.
 <img src="screenshots/training-modules-download-zip.png" width=800>
-* Or, if you are familiar with GitHub and would prefer to create your own copy of `training-modules`, you can [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo) instead.
+
+* Now you can open a file that contains all materials from this repository on your own computer.
+
+**Or, if you are familiar with GitHub and would prefer to create your own copy of `training-modules`, you can fork the repository instead.**
+
+* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click `Fork`.
+<img src="screenshots/training-modules-fork-1.png" width=800>
+
+* Make sure you are the owner of the new repository and click `Create Fork`.
+<img src="screenshots/training-modules-fork-2.png" width=800>
+
+You can now interact with the materials on your own GitHub account. 
+We recommend that you also clone your new repository to your own computer.
 
 **2.) Data that you need for the workshop lives on Amazon S3.**
 The Data Lab will securely transfer the files to you ahead of the workshop. 
