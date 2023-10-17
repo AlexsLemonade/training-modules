@@ -79,7 +79,7 @@ At the end of the workshop, download a zip file with the exercise notebook answe
 [A set of instructions](https://github.com/AlexsLemonade/training-specific-template/blob/main/virtual-setup/rstudio-login.md) to help participants get set up on the server can be found in our `training-specific-template` repo. 
 
 **6.) Please inform participants that their server access will be revoked after 6 months.** 
-We suggest taking note of this timeframe and planning to remind your participants when the time comes.
+We suggest taking note of this time frame and planning to remind your participants when the time comes.
 
 **7.) If participants plan to work with their own data during your workshop,** we have to ensure that it does not contain any personal health information (PHI) or personally identifiable information (PII), before they can upload it to the server.
 Please see the instructions for pre-workshop set-up meetings to learn more.

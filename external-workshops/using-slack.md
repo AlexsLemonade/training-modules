@@ -1,6 +1,6 @@
 # Using Cancer Data Science Slack
 
-We maintain a Slack community called Cancer Data Science (CDS) Slack, which is used for communication purposes before, during, and after in-person and virtual workshops. 
+We maintain a Slack community called Cancer Data Science Slack, which is used for communication purposes before, during, and after in-person and virtual workshops. 
 The admin channel is required. 
 The participant channel is optional, but recommended. 
 
@@ -44,7 +44,7 @@ This is a good place for attendees to post questions that don’t require an imm
 **After the workshop**, participants will have indefinite access to the training Slack channel. 
 (Note: We utilize a free Slack account, which means messages and attachments posted in your channel will disappear after 90 days.)
 
-### Create your own CDS Slack channel
+### Create your own Slack channel
 
 **1.)** First, you must [join the Cancer Data Science Slack community](https://cancer-data-science.slack.com/join/shared_invite/enQtNzc4NTI2Nzg0ODY5LWQyODI0NmJmZDgzMzhiMzE1NGUyMmFhYzAxMWE0NmFkMTVjNWRhZDNlNGZhZDY5NzZmZWFjNzViNmFlOWIwMzE#/shared-invite/email).
 
