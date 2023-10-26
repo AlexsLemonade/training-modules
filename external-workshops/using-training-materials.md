@@ -1,6 +1,6 @@
 # Using Data Lab Training Materials
 
-[All Data Lab training materials](https://github.com/AlexsLemonade/training-modules/tree/master), including lecture slides, reference documents, instruction notebooks, and exercise notebooks are [openly licensed](https://github.com/AlexsLemonade/training-modules/blob/master/LICENSE.md), modifiable, and freely available to download via GitHub. 
+[All Data Lab training materials](https://github.com/AlexsLemonade/training-modules), including lecture slides, reference documents, instruction notebooks, and exercise notebooks are [openly licensed](https://github.com/AlexsLemonade/training-modules/blob/master/LICENSE.md), modifiable, and freely available to download via GitHub. 
 Whether you are instructing in-person or virtually, you will need access to all of the materials that apply to your workshop topic and infrastructure for hosting the materials. 
 
 **All workshop participants must sign the Data Lab’s training waiver before participating in a workshop that uses our materials. 
