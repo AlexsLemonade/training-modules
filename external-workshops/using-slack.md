@@ -22,7 +22,7 @@ This channel will mainly be used to answer questions while you are getting set u
 Please only add members who are acting as helpers during your workshop, and not participants.**
 
 **Before your workshop**, use Slack to ask us questions as you get set up with tools and prepare for instruction. 
-Someone from our team will always try to respond within 24 hours.
+Someone from our team will always try to respond within 1 business day.
 
 **During the workshop**, you can use this channel to ask us any troubleshooting questions. 
 
