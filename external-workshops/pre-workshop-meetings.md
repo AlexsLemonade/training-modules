@@ -18,7 +18,7 @@ If applicable, this is also a good time to get familiar with using our RStudio s
 [Please schedule a meeting using this link](https://meetings.hubspot.com/jen-omalley/external-workshop-onboarding-meeting). 
 Remember, you can also reach out to us on [Slack](https://cancer-data-science.slack.com/) any time, and we will respond as soon as possible.
 
-## Participant set up meetings
+## Participant setup meetings
 
 ### Pre-workshop set up meetings
 
