@@ -88,7 +88,7 @@ Please see the instructions for pre-workshop setup meetings to learn more.
 
 If you are *not* using the Data Lab's server and will install the training materials on your own infrastructure, follow these instructions for obtaining the files you need from GitHub and receiving data from Amazon S3. 
 
-**1.) Download our [`training-modules`](https://github.com/AlexsLemonade/training-modules/tree/master) repository or [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo) on GitHub to obtain the training materials and make any modifications.**
+**1.) Download our [`training-modules`](https://github.com/AlexsLemonade/training-modules) repository or [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo) on GitHub to obtain the training materials and make any modifications.**
 Downloading or forking this repository will provide you with the materials for every Data Lab workshop. 
 You can remove the files that are not relevant to the workshop you are teaching. 
 
