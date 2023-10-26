@@ -22,7 +22,7 @@ Remember, you can also reach out to us on [Slack](https://cancer-data-science.sl
 
 ### Pre-workshop setup meetings
 
-**Optional, but recommended: To help your workshop run smoothly, we suggest offering pre-workshop set up meetings** to make sure participants and their computers are prepared ahead of time. 
+**Optional, but recommended: To help your workshop run smoothly, we suggest offering pre-workshop setup meetings** to make sure participants and their computers are prepared ahead of time. 
 If you have the capacity, you can schedule brief individual meetings with participants. 
 You can also consider holding open office hours during a video meeting or on Slack.
 
