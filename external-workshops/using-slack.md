@@ -1,8 +1,6 @@
 # Using Cancer Data Science Slack
 
 We maintain a Slack community called Cancer Data Science Slack, which is used for communication purposes before, during, and after in-person and virtual workshops. 
-The admin channel is required. 
-The participant channel is optional, but recommended. 
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -15,7 +13,8 @@ The participant channel is optional, but recommended.
 
 ## Admin channel
 
-We require external instructors to [join our Slack community](https://cancer-data-science.slack.com/) so we can add you to an admin channel with our team. 
+> We require external instructors to [join our Slack community](https://ccdatalab.org/slack) so we can add you to an admin channel with our team. 
+
 This channel will mainly be used to answer questions while you are getting set up and for troubleshooting during your workshop if you are using the Data Lab’s RStudio server. 
 
 **This channel is meant for instructors and Data Lab team members. 
@@ -32,7 +31,9 @@ Someone from our team will always try to respond within 1 business day.
 
 ## Participant channel
 
-**Before the workshop**, use Slack to introduce the instructors, share reminders about the schedule, and post logistical information.
+> Creating a channel for participant communications is not required, but we have found is useful.
+
+**Before the workshop**, you can use Slack to introduce the instructors, share reminders about the schedule, and post logistical information.
 
 **During the workshop**, participants can use Slack to communicate with you and fellow participants. 
 This is a good place for attendees to post questions that don’t require an immediate response, so that instructors can address them when they have time. 
@@ -46,7 +47,7 @@ This is a good place for attendees to post questions that don’t require an imm
 
 ### Create your own Slack channel
 
-**1.)** First, you must [join the Cancer Data Science Slack community](https://cancer-data-science.slack.com/join/shared_invite/enQtNzc4NTI2Nzg0ODY5LWQyODI0NmJmZDgzMzhiMzE1NGUyMmFhYzAxMWE0NmFkMTVjNWRhZDNlNGZhZDY5NzZmZWFjNzViNmFlOWIwMzE#/shared-invite/email).
+**1.)** First, you must [join the Cancer Data Science Slack community](https:/ccdatalab.org/slack).
 
 **2.)** Follow Slack’s instructions for [creating a channel](https://slack.com/help/articles/201402297-Create-a-channel). 
 

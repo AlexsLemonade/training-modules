@@ -21,7 +21,7 @@ Whether you are instructing in-person or virtually, you will need access to all 
 
 ### How the Data Lab uses the RStudio Server
 
-For both in-person and virtual workshops, we utilize [our RStudio server](https://rstudio.ccdatalab.org/auth-sign-in?appUri=%2F).
+For both in-person and virtual workshops, we utilize [our RStudio server](https://rstudio.ccdatalab.org/).
 For each workshop, we set up accounts and home directories for participants and pre-install the tools (R packages, command line tools), data (raw and processed files), and notebook files that will be used during the workshop. 
 Instructors can live code and walk participants through each notebook in real-time. 
 
@@ -29,34 +29,16 @@ Each participant will be able to log in to their account using their own web bro
 Once logged in, participants can code alongside instructors and complete their own copy of each exercise notebook.
 The Data Lab allows training participants to have access to our RStudio server for 6 months after the workshop ends.
 
+[Read more about RStudio here](https://posit.co/products/open-source/rstudio-server/).
+
 ### Using the Data Lab RStudio server for your workshop
 
 **Training materials** 
 
-**1.) If you plan to modify any training materials, you must download our [`training-modules`](https://github.com/AlexsLemonade/training-modules) repository or fork the repository on GitHub.** 
+**1.) If you plan to modify any training materials, you must obtain your own copy of the materials.** To do so, download our [`training-modules`](https://github.com/AlexsLemonade/training-modules) repository or fork the repository on GitHub.
+Follow these instructions for [downloading or forking a repository](./downloading-forking-repository.md).
+
 If you do not plan to make modifications, you can skip to step 3 and the Data Lab will upload the current version of the materials you are using to the RStudio server. 
-
-Downloading or forking this repository will provide you with the materials for every Data Lab workshop. 
-You can remove the files that are not relevant to the workshop you are teaching. 
-
-**Download a ZIP of the repository**
-
-* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click the `<>Code` button.
-* Click `Download ZIP` in the dropdown.
-<img src="screenshots/training-modules-download-zip.png" width=800>
-
-* Now you can open a file that contains all materials from this repository on your own computer.
-
-**Or, if you are familiar with GitHub and would prefer to create your own copy of `training-modules`, you can fork the repository instead.**
-
-* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click `Fork`.
-<img src="screenshots/training-modules-fork-1.png" width=800>
-
-* Make sure you are the owner of the new repository and click `Create Fork`.
-<img src="screenshots/training-modules-fork-2.png" width=800>
-
-You can now interact with the materials on your own GitHub account. 
-We recommend that you also clone your new repository to your own computer.
 
 **2.) After you have made changes, our team will need a copy of the modified materials so we can install them on the server.** 
 
@@ -67,6 +49,8 @@ We recommend that you also clone your new repository to your own computer.
 
 We will provide you with access to a repository that contains exercise answer keys. 
 At the end of the workshop, download a zip file with the exercise notebook answers that apply to your workshop and distribute them to participants via email and Slack (if you are using it).
+
+*FYI: We have a [helper script](https://github.com/AlexsLemonade/exercise-notebook-answers/blob/master/scripts/prepare-solutions-to-post.sh) to prepare solutions for distribution, which you may find useful!*
 
 **RStudio**
 
@@ -88,28 +72,8 @@ Please see the instructions for pre-workshop setup meetings to learn more.
 
 If you are *not* using the Data Lab's server and will install the training materials on your own infrastructure, follow these instructions for obtaining the files you need from GitHub and receiving data from Amazon S3. 
 
-**1.) Download our [`training-modules`](https://github.com/AlexsLemonade/training-modules) repository or [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo) on GitHub to obtain the training materials and make any modifications.**
-Downloading or forking this repository will provide you with the materials for every Data Lab workshop. 
-You can remove the files that are not relevant to the workshop you are teaching. 
-
-**Download a ZIP of the repository**
-
-* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click the `<>Code` button.
-* Click `Download ZIP` in the dropdown.
-<img src="screenshots/training-modules-download-zip.png" width=800>
-
-* Now you can open a file that contains all materials from this repository on your own computer.
-
-**Or, if you are familiar with GitHub and would prefer to create your own copy of `training-modules`, you can fork the repository instead.**
-
-* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click `Fork`.
-<img src="screenshots/training-modules-fork-1.png" width=800>
-
-* Make sure you are the owner of the new repository and click `Create Fork`.
-<img src="screenshots/training-modules-fork-2.png" width=800>
-
-You can now interact with the materials on your own GitHub account. 
-We recommend that you also clone your new repository to your own computer.
+**1.) To obtain the materials you need from GitHub, download our [`training-modules`](https://github.com/AlexsLemonade/training-modules) repository or fork the repository.** 
+Follow these instructions for [downloading or forking a repository](./downloading-forking-repository.md).
 
 **2.) Data that you need for the workshop lives on Amazon S3.**
 The Data Lab will securely transfer the files to you ahead of the workshop. 

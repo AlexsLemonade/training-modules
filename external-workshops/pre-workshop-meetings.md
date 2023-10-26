@@ -28,8 +28,13 @@ You can also consider holding open office hours during a video meeting or on Sla
 
 ### Data pre-processing meetings
 
-**Required in some cases: We also advise holding data pre-processing meetings for participants who plan to work with their own data, need help removing personal health information (PHI) or personally identifiable information (PII), or are working with sequencing data from samples from human subjects before uploading it to a server.**
+**Required in some cases: You may need to hold data pre-processing meetings for participants who plan to work with their own data.** 
 
-Removing PHI/PII is required if you are using the Data Lab’s RStudio server. 
+We recommend offering these meetings when:
+
+* Participants need help removing personal health information (PHI) or personally identifiable information (PII) from their data.
+* Participants are working with sequencing data from samples from human subjects.
+
+Removing any PHI/PII is *always required* if you are using the Data Lab’s RStudio server. 
 A [set of instructions](https://github.com/AlexsLemonade/training-specific-template/blob/main/workshop/working-with-your-own-data.md) to help participants upload their own data and work with it on RStudio (after it has been de-identified) can be found in our `training-specific-template` repo. 
 

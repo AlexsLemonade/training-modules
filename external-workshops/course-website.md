@@ -1,19 +1,24 @@
-# Creating a course website
+# Course website
 
-We strongly recommend creating a course website for your workshop. 
-Course websites ([example](https://alexslemonade.github.io/2023-june-training/)) are a centralized place for attendees to find information necessary for participating in the workshop. 
-At the Data Lab, we create a website for each course using our [`training-specific-template`](https://github.com/AlexsLemonade/training-specific-template) repository, which you may use as a template for your own website.
-To do this, you must create a GitHub account if you do not already have one. 
+At the Data Lab, we create a new repository and associated GitHub Pages course website for each individual workshop using our `training-specific-template` repository.
+We strongly recommend creating a course website for your workshop as a centralized place for attendees to find information necessary for participating in the workshop. 
 
-**1.)** First, create your own GitHub repository from `training-specific-template` [using GitHub’s instructions for creating a repository from a template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template#creating-a-repository-from-a-template). 
+## Create a new repository
+
+**1.)** To use our template to create your own repository and associated GitHub Pages website, navigate to [`training-specific-template`](https://github.com/AlexsLemonade/training-specific-template). Click `Use this template` > [`Create a new repository`](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template#creating-a-repository-from-a-template). 
 <img src="screenshots/training-specific-new-template.png" width=800>
 
-**2.)** Make sure you select your own GitHub account as the owner of the new repository and choose to make your repository public, so your participants will have access. 
-<img src="screenshots/training-specific-new-repo-owner-1.png" width=800>
+**2.)** Refer to the instructions found in the [`training-specific-template` README](https://github.com/AlexsLemonade/training-specific-template#readme) for:
 
-**3.)** Once you have created the new repository, you can update the content for your own workshop and remove irrelevant files. Reference the Data Lab’s instructions for customizing this repository.
+* more [information on creating a repository](https://github.com/AlexsLemonade/training-specific-template#creating-a-repository-for-an-individual-training-workshop)
+* to [customize a new repository for an individual training workshop
+](https://github.com/AlexsLemonade/training-specific-template#customizing-the-new-repository-for-an-individual-training-workshop)
+
+## Website Content 
 
 Web content will vary depending on the topic, whether the workshop will be held in-person or virtually, among other factors. 
+See an ([example](https://alexslemonade.github.io/2023-june-training/)) from a previous Data Lab workshop.
+
 Some key information to consider including on your course website:
 
 * Workshop description and structure
