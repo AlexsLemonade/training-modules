@@ -70,7 +70,7 @@ At the end of the workshop, download a zip file with the exercise notebook answe
 
 **RStudio**
 
-**4.) You will provide a .csv file with a list of training participants, so we can create usernames and passwords for logging into RStudio.**
+**4.) You must create a `.csv` file with a list of training participants, so we can create usernames and passwords for logging into RStudio.**
 
 * Please create two columns, one for `First name` and one for `Last name`. 
 * Send this file to `training@ccdatalab.org` or post it on the admin Slack channel you have been added to. 
