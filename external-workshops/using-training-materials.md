@@ -76,7 +76,7 @@ At the end of the workshop, download a zip file with the exercise notebook answe
 * Send this file to `training@ccdatalab.org` or post it on the admin Slack channel you have been added to. 
 	
 **5.) You will distribute individual RStudio credentials to each participant before your workshop begins and instruct them to log in and change their passwords.** 
-[A set of instructions](https://github.com/AlexsLemonade/training-specific-template/blob/main/virtual-setup/rstudio-login.md) to help participants get set up on the server can be found in our `training-specific-template` repo. 
+[A set of instructions](https://github.com/AlexsLemonade/training-specific-template/blob/main/software-setup/rstudio-login.md) to help participants get set up on the server can be found in our `training-specific-template` repo. 
 
 **6.) Please inform participants that their server access will be revoked after 6 months.** 
 We suggest taking note of this time frame and planning to remind your participants when the time comes.
