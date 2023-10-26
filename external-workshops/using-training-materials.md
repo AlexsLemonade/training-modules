@@ -65,7 +65,7 @@ We recommend that you also clone your new repository to your own computer.
 
 **3.) The `training-modules` repository also contains the current version of the exercise notebooks that participants can use to practice what they learned during consultation periods and after the workshop.**
 
-We will provide you with access to a repository that contains the answer key for the exercises. 
+We will provide you with access to a repository that contains exercise answer keys. 
 At the end of the workshop, download a zip file with the exercise notebook answers that apply to your workshop and distribute them to participants via email and Slack (if you are using it).
 
 **RStudio**
