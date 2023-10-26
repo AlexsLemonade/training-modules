@@ -5,7 +5,7 @@ Course websites ([example](https://alexslemonade.github.io/2023-june-training/))
 At the Data Lab, we create a website for each course using our [`training-specific-template`](https://github.com/AlexsLemonade/training-specific-template) repository, which you may use as a template for your own website.
 To do this, you must create a GitHub account if you do not already have one. 
 
-**1.)** First, create your own GitHub repository from `training-specific-template`, [using GitHub’s instructions for creating a repository from a template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template#creating-a-repository-from-a-template). 
+**1.)** First, create your own GitHub repository from `training-specific-template` [using GitHub’s instructions for creating a repository from a template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template#creating-a-repository-from-a-template). 
 <img src="screenshots/training-specific-new-template.png" width=800>
 
 **2.)** Make sure you select your own GitHub account as the owner of the new repository and choose to make your repository public, so your participants will have access. 
