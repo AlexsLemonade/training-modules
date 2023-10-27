@@ -47,7 +47,7 @@ This is a good place for attendees to post questions that don’t require an imm
 
 ### Create your own Slack channel
 
-**1.)** First, you must [join the Cancer Data Science Slack community](https:/ccdatalab.org/slack).
+**1.)** First, you must [join the Cancer Data Science Slack community](https://ccdatalab.org/slack).
 
 **2.)** Follow Slack’s instructions for [creating a channel](https://slack.com/help/articles/201402297-Create-a-channel). 
 
