@@ -20,6 +20,6 @@ Some key information to consider including on your course website:
 
 * Workshop description and structure
 * A course schedule
-* Overview of and instructions for installing the tools, materials, and software that will be used (ex. RStudio, Slack, video conferencing software) 
+* Overview of and instructions for installing the tools, materials, and software that will be used (ex. RStudio or RStudio Server, Slack, video conferencing software) 
 * Optional preparation materials (ex. Resources for getting familiar with R)
 * Logistical information, such as the workshop location 
