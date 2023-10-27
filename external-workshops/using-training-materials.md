@@ -33,7 +33,7 @@ The Data Lab allows training participants to have access to our RStudio Server f
 
 ### Using the Data Lab RStudio server for your workshop
 
-**Training materials** 
+#### Preparing training materials
 
 **1.) If you plan to modify any training materials, you must obtain your own copy of the materials.** To do so, download our [`training-modules`](https://github.com/AlexsLemonade/training-modules) repository or fork the repository on GitHub.
 Follow these instructions for [downloading or forking a repository](./downloading-forking-repository.md).
