@@ -52,7 +52,7 @@ At the end of the workshop, download a zip file with the exercise notebook answe
 
 *FYI: We have a [helper script](https://github.com/AlexsLemonade/exercise-notebook-answers/blob/master/scripts/prepare-solutions-to-post.sh) to prepare solutions for distribution, which you may find useful!*
 
-**RStudio**
+#### Using RStudio Server
 
 **4.) You must create a `.csv` file with a list of training participants, so we can create usernames and passwords for logging into RStudio.**
 
