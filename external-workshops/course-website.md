@@ -14,7 +14,7 @@ We strongly recommend creating a course website for your workshop as a centraliz
 ## Website Content 
 
 Web content will vary depending on the topic, whether the workshop will be held in-person or virtually, among other factors. 
-See an ([example](https://alexslemonade.github.io/2023-june-training/)) from a previous Data Lab workshop.
+See an [example](https://alexslemonade.github.io/2023-june-training/) from a previous Data Lab workshop.
 
 Some key information to consider including on your course website:
 
