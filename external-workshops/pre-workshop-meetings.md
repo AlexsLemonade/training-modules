@@ -13,7 +13,7 @@
 
 We strongly recommend that all external workshop instructors schedule an onboarding meeting with the Data Lab after their workshop has been confirmed. 
 You will virtually meet with our team and ask any questions about our materials, getting set up, and instructing. 
-If applicable, this is also a good time to get familiar with using our RStudio server, while we are there to help!  
+If applicable, this is also a good time to get familiar with using our RStudio Server, while we are there to help!  
 
 [Please schedule a meeting using this link](https://meetings.hubspot.com/jen-omalley/external-workshop-onboarding-meeting). 
 Remember, you can also reach out to us on [Slack](https://cancer-data-science.slack.com/) any time, and we will respond as soon as possible.
