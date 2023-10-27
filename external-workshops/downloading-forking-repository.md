@@ -5,7 +5,7 @@ You can remove the files that are not relevant to the workshop you are teaching.
 
 **Download a ZIP of the repository**
 
-* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click the `<>Code` button.
+* Navigate to the [`training-modules` repository](https://github.com/AlexsLemonade/training-modules) and click the `<> Code` dropdown button.
 * Click `Download ZIP` in the dropdown.
 <img src="screenshots/training-modules-download-zip.png" width=800>
 
