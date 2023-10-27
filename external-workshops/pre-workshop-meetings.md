@@ -5,7 +5,7 @@
 **Table of Contents**
 
 * [Instructor onboarding meeting](#instructor-onboarding-meeting)
-* [Participant set up meetings](#participant-set-up-meetings)
+* [Participant setup meetings](#participant-setup-meetings)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
