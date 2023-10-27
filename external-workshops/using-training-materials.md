@@ -8,7 +8,7 @@ Whether you are instructing in-person or virtually, you will need access to all 
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+**Table of Contents**
 
 * [Data Lab RStudio Server](#data-lab-rstudio-server)
 	* [How the Data Lab uses the RStudio server](#how-the-data-lab-uses-the-rstudio-server)
