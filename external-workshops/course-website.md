@@ -9,11 +9,7 @@ We strongly recommend creating a course website for your workshop as a centraliz
 
 <img src="screenshots/training-specific-new-template.png" width=800>
 
-**2.)** Refer to the instructions found in the [`training-specific-template` README](https://github.com/AlexsLemonade/training-specific-template#readme) for:
-
-* more [information on creating a repository](https://github.com/AlexsLemonade/training-specific-template#creating-a-repository-for-an-individual-training-workshop)
-* to [customize a new repository for an individual training workshop
-](https://github.com/AlexsLemonade/training-specific-template#customizing-the-new-repository-for-an-individual-training-workshop)
+**2.)** Refer to the instructions found in the [`training-specific-template` README](https://github.com/AlexsLemonade/training-specific-template#readme) to create and customize your website repository.
 
 ## Website Content 
 
