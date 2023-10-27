@@ -29,7 +29,7 @@ Each participant will be able to log in to their account using their own web bro
 Once logged in, participants can code alongside instructors and complete their own copy of each exercise notebook.
 The Data Lab allows training participants to have access to our RStudio server for 6 months after the workshop ends.
 
-[Read more about RStudio here](https://posit.co/products/open-source/rstudio-server/).
+[Read more about RStudio Server here](https://posit.co/products/open-source/rstudio-server/).
 
 ### Using the Data Lab RStudio server for your workshop
 
