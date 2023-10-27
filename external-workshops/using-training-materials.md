@@ -21,7 +21,7 @@ Whether you are instructing in-person or virtually, you will need access to all 
 
 ### How the Data Lab uses the RStudio Server
 
-For both in-person and virtual workshops, we utilize [our RStudio server](https://rstudio.ccdatalab.org/).
+For both in-person and virtual workshops, we utilize [our RStudio Server](https://rstudio.ccdatalab.org/).
 For each workshop, we set up accounts and home directories for participants and pre-install the tools (R packages, command line tools), data (raw and processed files), and notebook files that will be used during the workshop. 
 Instructors can live code and walk participants through each notebook in real-time. 
 
