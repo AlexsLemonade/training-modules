@@ -6,6 +6,7 @@ We strongly recommend creating a course website for your workshop as a centraliz
 ## Create a new repository
 
 **1.)** To use our template to create your own repository and associated GitHub Pages website, navigate to [`training-specific-template`](https://github.com/AlexsLemonade/training-specific-template). Click `Use this template` > [`Create a new repository`](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template#creating-a-repository-from-a-template). 
+
 <img src="screenshots/training-specific-new-template.png" width=800>
 
 **2.)** Refer to the instructions found in the [`training-specific-template` README](https://github.com/AlexsLemonade/training-specific-template#readme) for:
