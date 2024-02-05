@@ -1,40 +1,20 @@
-FROM rocker/tidyverse:4.2.3
+FROM bioconductor/bioconductor_docker:RELEASE_3_18
 LABEL maintainer="ccdl@alexslemonade.org"
+
 WORKDIR /rocker-build/
 
-RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
-RUN apt-get install dialog apt-utils -y
+RUN apt-get update -qq
 
-RUN apt-get update -qq && apt-get -y --no-install-recommends install \
-    autoconf \
-    build-essential \
-    ca-certificates \
-    curl \
-    g++ \
-    gcc \
-    git \
-    groff \
-    less \
-    libboost-all-dev \
-    libbz2-dev \
-    libfftw3-dev \
-    libglpk-dev \
-    liblzma-dev \
-    libmagick++-dev \
-    libmariadb-dev-compat \
-    libmariadbd-dev \
-    libpq-dev \
-    libproj-dev \
-    libsqlite-dev \
-    libssh2-1-dev \
-    libxml2 \
-    libxml2-dev \
-    make \
-    pandoc \
-    python3-pip \
-    time \
-    unzip \
-    zlib1g-dev
+RUN apt-get install -y --no-install-recommends \
+    less
+#     build-essential \
+#     groff \
+#     libboost-all-dev \
+#     libglpk-dev \
+#     libmariadb-dev-compat \
+#     libmariadbd-dev \
+#     libsqlite-dev \
+
 
 # AWS
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
@@ -42,23 +22,20 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     ./aws/install
 
 # FastQC
-RUN apt-get update && apt-get install -y fastqc
+RUN apt-get install -y --no-install-recommends fastqc
 
 # fastp
-ENV FASTP_VERSION 0.20.1
-RUN git clone https://github.com/OpenGene/fastp.git
-RUN cd fastp && \
-    git checkout tags/v${FASTP_VERSION} -b v${FASTP_VERSION} && \
-    make && \
-    make install
+ENV FASTP_VERSION 0.23.4
+RUN curl -o /usr/local/bin/fastp http://opengene.org/fastp/fastp.${FASTP_VERSION} && \
+    chmod +x /usr/local/bin/fastp
 
 # MultiQC
-ENV MULTIQC_VERSION 1.9
-RUN pip3 install multiqc==${MULTIQC_VERSION}
+ENV MULTIQC_VERSION 1.19
+RUN pip install multiqc==${MULTIQC_VERSION}
 
 # Snakemake
-ENV SNAKEMAKE_VERSION 7.25.0
-RUN pip3 install snakemake==${SNAKEMAKE_VERSION}
+ENV SNAKEMAKE_VERSION 7.32.4
+RUN pip install snakemake==${SNAKEMAKE_VERSION}
 
 # Salmon
 ENV SALMON_VERSION 1.10.0
