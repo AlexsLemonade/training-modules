@@ -6,7 +6,8 @@ WORKDIR /rocker-build/
 RUN apt-get update -qq
 
 RUN apt-get install -y --no-install-recommends \
-    less
+    less \
+    libboost-all-dev
 #     build-essential \
 #     groff \
 #     libboost-all-dev \
@@ -38,20 +39,21 @@ ENV SNAKEMAKE_VERSION 7.32.4
 RUN pip install snakemake==${SNAKEMAKE_VERSION}
 
 # Salmon
-ENV SALMON_VERSION 1.10.0
+ENV SALMON_VERSION 1.10.1
 WORKDIR /usr/local/src
-RUN wget --quiet https://github.com/COMBINE-lab/salmon/releases/download/v${SALMON_VERSION}/salmon-${SALMON_VERSION}_linux_x86_64.tar.gz
-RUN tar xzf salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
-    rm -f salmon-${SALMON_VERSION}_linux_x86_64.tar.gz && \
-    ln -s /usr/local/src/salmon-latest_linux_x86_64/bin/salmon /usr/local/bin/salmon
+RUN curl -LO https://github.com/COMBINE-lab/salmon/archive/refs/tags/v${SALMON_VERSION}.tar.gz && \
+    tar xzf v${SALMON_VERSION}.tar.gz && \
+    cd salmon-${SALMON_VERSION} && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/bin && \
+    make
+RUN make install
 
 # Use renv for R packages
 ENV RENV_CONFIG_CACHE_ENABLED FALSE
-RUN R -e "install.packages('renv')"
-
 WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
-RUN R -e 'renv::consent(provided = TRUE); renv::restore()' && rm -rf ~/.local/share/renv
+RUN R -e "install.packages('renv')"
+RUN R -e "renv::restore()" && rm -rf ~/.local/share/renv
 
 
 WORKDIR /home/rstudio
