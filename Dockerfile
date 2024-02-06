@@ -33,10 +33,6 @@ RUN apt-get update -qq
 RUN apt-get install -y --no-install-recommends \
     less
 
-# copy salmon and fastp binaries from the build image
-COPY --from=build /usr/local/salmon/ /usr/local/
-COPY --from=build /usr/local/bin/fastp /usr/local/bin/fastp
-
 # AWS
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
@@ -59,5 +55,9 @@ WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
 RUN R -e "install.packages('renv')"
 RUN MAKEFLAGS=-j$(nproc) R -e "renv::restore()" && rm -rf ~/.local/share/renv
+
+# copy salmon and fastp binaries from the build image
+COPY --from=build /usr/local/salmon/ /usr/local/
+COPY --from=build /usr/local/bin/fastp /usr/local/bin/fastp
 
 WORKDIR /home/rstudio
