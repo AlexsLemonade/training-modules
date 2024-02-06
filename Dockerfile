@@ -1,14 +1,11 @@
 # Build salmon from source in a separate image
 FROM ubuntu:22.04 as build
 
-RUN apt-get update -qq
-
 ENV PACKAGES gcc g++ make cmake curl unzip ca-certificates \
     libboost-all-dev liblzma-dev libbz2-dev libcurl4-openssl-dev libdeflate-dev libisal-dev zlib1g-dev
-
+RUN apt-get update -qq
 RUN apt-get install -y --no-install-recommends ${PACKAGES}
 WORKDIR /usr/local/src
-
 
 # Build salmon
 ENV SALMON_VERSION 1.10.1
