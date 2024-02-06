@@ -12,9 +12,6 @@ on:
   push:
     branches:
       - jashapiro/docker-update
-    paths:
-      - Dockerfile
-      - renv.lock
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -28,6 +25,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load 1Password secrets
+        uses: 1password/load-secrets-action@v1
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.TRAINING_OP_SERVICE_ACCOUNT_TOKEN }}
+          DOCKER_USER: ${{ secrets.OP_DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.OP_DOCKER_PASSWORD }}
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USER }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -40,7 +52,6 @@ jobs:
           push: false
           context: .
           file: Dockerfile
-          tags: ccdl/training_dev:latest
-          platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          cache-from: type=registry,ref=ccdl/training_rstudio:buildcache
+          cache-to: type=registry,ref=ccdl/training_rstudio:buildcache,mode=max
