@@ -31,10 +31,14 @@ WORKDIR /rocker-build/
 
 RUN apt-get update -qq
 RUN apt-get install -y --no-install-recommends \
-    less
+    glibc-source \
+    groff \
+    less \
+    libisal2
 
 # AWS
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+RUN ARCH=$(arch) && \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-${ARCH}.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install
 
@@ -47,7 +51,8 @@ RUN pip install multiqc==${MULTIQC_VERSION}
 
 # Snakemake
 ENV SNAKEMAKE_VERSION 7.32.4
-RUN pip install snakemake==${SNAKEMAKE_VERSION}
+# need older pulp for snakemake
+RUN pip install pulp==2.7.0 snakemake==${SNAKEMAKE_VERSION}
 
 # Use renv for R packages
 ENV RENV_CONFIG_CACHE_ENABLED FALSE
