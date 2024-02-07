@@ -1,14 +1,20 @@
 # Build salmon from source in a separate image
 FROM ubuntu:22.04 as build
 
-ENV PACKAGES gcc g++ make cmake curl unzip ca-certificates \
-    libboost-all-dev liblzma-dev libbz2-dev libcurl4-openssl-dev libdeflate-dev libisal-dev zlib1g-dev
+ARG PACKAGES="gcc g++ make cmake curl unzip ca-certificates \
+    libboost-all-dev liblzma-dev libbz2-dev libcurl4-openssl-dev \
+    libdeflate-dev libisal-dev zlib1g-dev"
 RUN apt-get update -qq
 RUN apt-get install -y --no-install-recommends ${PACKAGES}
 WORKDIR /usr/local/src
 
+# Get AWS CLI
+RUN curl -o awscliv2.zip "https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip"
+RUN unzip awscliv2.zip
+RUN ./aws/install
+
 # Build salmon
-ENV SALMON_VERSION 1.10.1
+ARG SALMON_VERSION=1.10.1
 RUN curl -LO https://github.com/COMBINE-lab/salmon/archive/refs/tags/v${SALMON_VERSION}.tar.gz
 RUN tar xzf v${SALMON_VERSION}.tar.gz
 RUN mkdir salmon-${SALMON_VERSION}/build
@@ -17,7 +23,7 @@ RUN cd salmon-${SALMON_VERSION}/build && \
     make && make install
 
 # Build fastp
-ENV FASTP_VERSION 0.23.4
+ARG FASTP_VERSION=0.23.4
 RUN curl -LO https://github.com/OpenGene/fastp/archive/refs/tags/v${FASTP_VERSION}.tar.gz
 RUN tar xzf v${FASTP_VERSION}.tar.gz
 RUN cd fastp-${FASTP_VERSION} && \
@@ -29,40 +35,29 @@ LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
 
+ARG PACKAGES="glibc-source groff less libisal2"
 RUN apt-get update -qq
-RUN apt-get install -y --no-install-recommends \
-    glibc-source \
-    groff \
-    less \
-    libisal2
-
-# AWS
-RUN ARCH=$(arch) && \
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-${ARCH}.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    ./aws/install
+RUN apt-get install -y --no-install-recommends ${PACKAGES} \
+    && apt-get clean
 
 # FastQC
 RUN apt-get install -y --no-install-recommends fastqc
 
-# MultiQC
-ENV MULTIQC_VERSION 1.19
-RUN pip install multiqc==${MULTIQC_VERSION}
-
-# Snakemake
-ENV SNAKEMAKE_VERSION 7.32.4
-# need older pulp for snakemake
-RUN pip install pulp==2.7.0 snakemake==${SNAKEMAKE_VERSION}
+# Python packages
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
 
 # Use renv for R packages
-ENV RENV_CONFIG_CACHE_ENABLED FALSE
+ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
 RUN R -e "install.packages('renv')"
 RUN MAKEFLAGS=-j$(nproc) R -e "renv::restore()" && rm -rf ~/.local/share/renv
 
-# copy salmon and fastp binaries from the build image
+# copy aws salmon and fastp binaries from the build image
+COPY --from=build /usr/local/bin/aws /usr/local/bin/aws
 COPY --from=build /usr/local/salmon/ /usr/local/
 COPY --from=build /usr/local/bin/fastp /usr/local/bin/fastp
 
 WORKDIR /home/rstudio
+
