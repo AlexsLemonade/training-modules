@@ -1,9 +1,10 @@
 # Build salmon from source in a separate image
 FROM ubuntu:22.04 as build
 
+# Build dependencies
 ARG PACKAGES="gcc g++ make cmake curl unzip ca-certificates \
     libboost-all-dev liblzma-dev libbz2-dev libcurl4-openssl-dev \
-    libdeflate-dev libisal-dev zlib1g-dev"
+    libdeflate-dev libisal-dev pkg-config zlib1g-dev"
 RUN apt-get update -qq
 RUN apt-get install -y --no-install-recommends ${PACKAGES}
 WORKDIR /usr/local/src
@@ -30,11 +31,12 @@ RUN cd fastp-${FASTP_VERSION} && \
     make && make install
 
 # Main image with Biocconductor and other tools
-FROM bioconductor/bioconductor_docker:RELEASE_3_18
+FROM bioconductor/bioconductor_docker:RELEASE_3_18 as final
 LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
 
+# Additonal dependencies for AWS runtime
 ARG PACKAGES="glibc-source groff less libisal2"
 RUN apt-get update -qq
 RUN apt-get install -y --no-install-recommends ${PACKAGES} \
@@ -54,8 +56,10 @@ COPY renv.lock renv.lock
 RUN R -e "install.packages('renv')"
 RUN MAKEFLAGS=-j$(nproc) R -e "renv::restore()" && rm -rf ~/.local/share/renv
 
-# copy aws salmon and fastp binaries from the build image
-COPY --from=build /usr/local/bin/aws /usr/local/bin/aws
+# copy aws, salmon, and fastp binaries from the build image
+COPY --from=build /usr/local/aws-cli/ /usr/local/aws-cli/
+RUN ln -s /usr/local/aws-cli/v2/current/bin/aws /usr/local/bin/aws
+RUN ln -s /usr/local/aws-cli/v2/current/bin/aws_completer /usr/local/bin/aws_completer
 COPY --from=build /usr/local/salmon/ /usr/local/
 COPY --from=build /usr/local/bin/fastp /usr/local/bin/fastp
 
