@@ -1,12 +1,26 @@
 # Build salmon from source in a separate image
-FROM ubuntu:22.04 as build
+FROM ubuntu:22.04 AS build
 
 # Build dependencies
-ARG PACKAGES="gcc g++ make cmake curl unzip ca-certificates \
-    libboost-all-dev liblzma-dev libbz2-dev libcurl4-openssl-dev \
-    libdeflate-dev libisal-dev pkg-config zlib1g-dev"
 RUN apt-get update -qq
-RUN apt-get install -y --no-install-recommends ${PACKAGES}
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    ca-certificates \
+    cmake \
+    curl \
+    g++ \
+    gcc \
+    libboost-all-dev \
+    libbz2-dev \
+    libcurl4-openssl-dev \
+    libdeflate-dev \
+    libisal-dev \
+    liblzma-dev \
+    make \
+    pkg-config \
+    unzip \
+    zlib1g-dev \
+    && apt-get clean
+
 WORKDIR /usr/local/src
 
 # Get AWS CLI
@@ -31,30 +45,35 @@ RUN cd fastp-${FASTP_VERSION} && \
     make && make install
 
 # Main image with Biocconductor and other tools
-FROM bioconductor/bioconductor_docker:RELEASE_3_18 as final
+FROM bioconductor/bioconductor_docker:RELEASE_3_18 AS final
 LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
 
 # Additonal dependencies for AWS runtime
-ARG PACKAGES="glibc-source groff less libisal2"
 RUN apt-get update -qq
-RUN apt-get install -y --no-install-recommends ${PACKAGES} \
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    glibc-source \
+    groff \
+    less \
+    libisal2 \
     && apt-get clean
 
 # FastQC
-RUN apt-get install -y --no-install-recommends fastqc
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    fastqc \
+    && apt-get clean
 
 # Python packages
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
 # Use renv for R packages
-ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 WORKDIR /usr/local/renv
+ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 COPY renv.lock renv.lock
 RUN R -e "install.packages('renv')"
-RUN MAKEFLAGS=-j$(nproc) R -e "renv::restore()" && rm -rf ~/.local/share/renv
+RUN R -e "renv::restore()" && rm -rf ~/.local/share/renv
 
 # copy aws, salmon, and fastp binaries from the build image
 COPY --from=build /usr/local/aws-cli/ /usr/local/aws-cli/
