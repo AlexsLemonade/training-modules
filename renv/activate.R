@@ -2,7 +2,7 @@
 local({
 
   # the requested version of renv
-  version <- "1.0.6"
+  version <- "1.0.7"
   attr(version, "sha") <- NULL
 
   # the project directory
@@ -128,6 +128,21 @@ local({
   
     tail <- paste(rep.int(suffix, n), collapse = "")
     paste0(prefix, " ", label, " ", tail)
+  
+  }
+  
+  heredoc <- function(text, leave = 0) {
+  
+    # remove leading, trailing whitespace
+    trimmed <- gsub("^\\s*\\n|\\n\\s*$", "", text)
+  
+    # split into lines
+    lines <- strsplit(trimmed, "\n", fixed = TRUE)[[1L]]
+  
+    # compute common indent
+    indent <- regexpr("[^[:space:]]", lines)
+    common <- min(setdiff(indent, -1L)) - leave
+    paste(substring(lines, common), collapse = "\n")
   
   }
   
