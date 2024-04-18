@@ -73,7 +73,10 @@ WORKDIR /usr/local/renv
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 COPY renv.lock renv.lock
 RUN R -e "install.packages('renv')"
-RUN R -e "renv::restore()" && rm -rf ~/.local/share/renv
+RUN R -e "renv::restore()" \
+    rm -rf ~/.cache/R/renv && \
+    rm -rf /tmp/downloaded_packages && \
+    rm -rf /tmp/Rtmp*
 
 # copy aws, salmon, and fastp binaries from the build image
 COPY --from=build /usr/local/aws-cli/ /usr/local/aws-cli/
