@@ -74,7 +74,10 @@ RUN R -e "install.packages('renv')"
 
 WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
-RUN R -e 'renv::consent(provided = TRUE); renv::restore()' && rm -rf ~/.local/share/renv
+RUN R -e 'renv::restore()' && \
+    rm -rf ~/.cache/R/renv && \
+    rm -rf /tmp/downloaded_packages && \
+    rm -rf /tmp/Rtmp*
 
 
 WORKDIR /home/rstudio
