@@ -24,7 +24,7 @@
   - [Developing within the Docker container](#developing-within-the-docker-container)
   - [Testing Docker image builds via GitHub Actions](#testing-docker-image-builds-via-github-actions)
   - [Pushing to Dockerhub via GitHub Actions](#pushing-to-dockerhub-via-github-actions)
-- [Automated Testing & Rendering](#automated-testing--rendering)
+- [Automated Testing \& Rendering](#automated-testing--rendering)
   - [Spell check](#spell-check)
   - [Rendering Test](#rendering-test)
   - [Generation of live notebooks and rendering](#generation-of-live-notebooks-and-rendering)
@@ -185,7 +185,7 @@ In practice, this means that you will not need to add individual R packages to t
 To use the Docker image for development, pull from Dockerhub with:
 
 ```
-docker pull ccdl/training_dev:latest
+docker pull ccdl/training_rstudio:edge
 ```
 
 To run the container and mount a local volume, use the following from the root of this repository:
@@ -195,7 +195,7 @@ docker run \
   --mount type=bind,target=/home/rstudio/training-modules,source=$PWD \
   -e PASSWORD=<PASSWORD> \
   -p 8787:8787 \
-  ccdl/training_dev:latest
+  ccdl/training_rstudio:edge
 ```
 
 Replacing `<PASSWORD>` with the password of your choice.
@@ -209,8 +209,12 @@ When a pull request changes either the `Dockerfile` or `renv.lock`, a GitHub Act
 
 ### Pushing to Dockerhub via GitHub Actions
 
-When a pull request is merged into `master`, the `build-and-push-docker.yml` GitHub Actions workflow will be triggered.
-The project Docker image will be rebuilt and pushed as `ccdl/training_dev:latest`.
+When a pull request is merged into `master`, the `build-docker.yml` GitHub Actions workflow will be triggered.
+The project Docker image will be rebuilt and pushed as `ccdl/training_rstudio:edge`.
+
+When a new Git tag is created, the `build-docker.yml` GitHub Actions workflow will also be triggered, and will push a version of the image to DockerHub as `ccdl/training_rstudio:<tag>`.
+
+The most recent tagged version of the image will also be tagged as as `ccdl/training_rstudio:latest`.
 
 ## Automated Testing & Rendering
 
