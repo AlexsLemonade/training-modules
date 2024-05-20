@@ -1,42 +1,43 @@
-
 name: Spell check R Markdown and Markdown files
 
-# Controls when the action will run.
-# Pull requests to master only.
 on:
   pull_request:
     branches:
       - master
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+concurrency:
+  # only one run per branch at a time
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # This workflow contains a single job called "spell check"
-  spell-check:
+  spellcheck:
     runs-on: ubuntu-latest
-    container:
-      image: rocker/tidyverse:4.2.3
+    name: Spell check files
+    permissions:
+      contents: read
+      issues: write
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install packages
-        run: Rscript --vanilla -e "install.packages(c('spelling'), repos = c(CRAN = '$CRAN'))"
-
-      - name: Run spell check
-        id: spell_check_run
-        run: |
-          results=$(Rscript --vanilla "scripts/spell-check.R")
-          echo "sp_chk_results=$results" >> $GITHUB_OUTPUT
-          cat spell_check_errors.tsv
-
-      - name: Archive spelling errors
-        uses: actions/upload-artifact@v3
+      - name: Spell check action
+        uses: alexslemonade/spellcheck@v0
+        id: spell
         with:
-          name: spell-check-results
+          dictionary: components/dictionary.txt
+
+      - name: Upload spell check errors
+        uses: actions/upload-artifact@v4
+        id: artifact-upload-step
+        with:
+          name: spell_check_errors
           path: spell_check_errors.tsv
 
-      # If there are too many spelling errors, this will stop the workflow
-      - name: Check spell check results - fail if too many errors
-        if: ${{ steps.spell_check_run.outputs.sp_chk_results > 0 }}
-        run: exit 1
+      - name: Fail if there are spelling errors
+        if: steps.spell.outputs.error_count > 0
+        run: |
+          echo "There were ${{ steps.spell.outputs.error_count }} errors"
+          column -t spell_check_errors.tsv
+          exit 1
