@@ -212,13 +212,53 @@ dim(filtered_sce)
 Now we will perform the same normalization steps we did in a previous dataset, using `scran::computeSumFactors()` and `scater::logNormCounts()`.
 You might recall that there is a bit of randomness in some of these calculations, so we should be sure to have used `set.seed()` earlier in the notebook for reproducibility.
 
-```{r normalize}
+```{r sumfactors}
 # Cluster similar cells
 qclust <- scran::quickCluster(filtered_sce)
 
 # Compute sum factors for each cell cluster grouping.
-filtered_sce <- scran::computeSumFactors(filtered_sce, clusters = qclust)
+filtered_sce <- scran::computeSumFactors(filtered_sce, clusters = qclust, positive = FALSE)
+```
 
+It turns out in this case we end up with some negative size factors.
+This is usually an indication that our filtering was not stringent enough, and there remain a number of cells or genes with nearly zero counts.
+This probably happened when some cells had many UMIs from the genes we removed in the last filtering.
+
+To account for this, we will recalculate the per-cell stats and filter out low counts.
+Unfortunately, to do this, we need to first remove the previously calculated statistics, which we will do by setting them to `NULL`
+
+```{r reQC}
+# remove previous calculations
+filtered_sce$sum <- NULL
+filtered_sce$detected <- NULL
+filtered_sce$total <- NULL
+filtered_sce$subsets_mito_sum <- NULL
+filtered_sce$subsets_mito_detected <- NULL
+filtered_sce$subsets_mito_sum <- NULL
+
+# recalculate cell stats
+filtered_sce <- scater::addPerCellQC(filtered_sce, subsets = list(mito = mito_genes))
+
+# print the number of cells with fewer than 500 UMIs
+sum(filtered_sce$sum < 500)
+```
+
+Now we can filter again.
+In this case, we will keep cells with at least 500 UMIs after removing the lowly expressed genes.
+Then we will redo the size factor calculation, hopefully with no more warnings.
+
+
+```{r refilter}
+filtered_sce <- filtered_sce[, filtered_sce$sum >= 500]
+
+qclust <- scran::quickCluster(filtered_sce)
+
+filtered_sce <- scran::computeSumFactors(filtered_sce, clusters = qclust, positive = FALSE)
+```
+
+Looks good! Now we'll do the normalization.
+
+```{r normalize}
 # Normalize and log transform.
 normalized_sce <- scater::logNormCounts(filtered_sce)
 ```
