@@ -146,6 +146,10 @@ One way to determine whether our normalization yields biologically relevant resu
 Because plotting expression for thousands genes together isn't practical, we will reduce the dimensions of our data using Principal Components Analysis (PCA).
 
 We will also make the same plot with our *unnormalized* data, to visualize the effect of normalization on our sample.
+We'll do this comparison twice:
+
+- Once coloring the points by their total UMI count
+- Once coloring the points based on their cell labels
 
 Before plotting the unnormalized data, we will log transform the raw counts to make their scaling more comparable to the normalized data.
 To do this we will use the `log1p()` function, which is specifically designed for the case where we want to add 1 to all of our values before taking the log, as we do here.
@@ -166,27 +170,29 @@ log_pca <- counts(bladder_sce) |> # get the raw counts
 Note that we are using `scater::calculatePCA()` two different ways here: once on the full `bladder_sce` object, and once on just the `counts` matrix.
 When we use `calculatePCA()` on the object, it automatically uses the log normalized matrix from inside the object.
 
-Next we will arrange the PCA scores for plotting, adding a column with the cell-type data so we can color each point of the plot.
+Next we will arrange the PCA scores for plotting, adding a column for each of the total UMI counts and the cell type labels so we can color each point of the plot.
 
 ```{r pca_df}
 # Set up the PCA scores for plotting
 norm_pca_scores <- data.frame(norm_pca,
                               geo_accession = rownames(norm_pca),
+                              total_umi = bladder_sce$sum,
                               cell_type = bladder_sce$cell_ontology_class)
 log_pca_scores <- data.frame(log_pca,
                              geo_accession = rownames(log_pca),
+                             total_umi = bladder_sce$sum,
                              cell_type = bladder_sce$cell_ontology_class)
 ```
 
-Now we will plot the unnormalized PCA scores with their cell labels:
+First, we will plot the unnormalized PCA scores with their total UMI counts:
 
 ```{r pca_plot}
 # Now plot counts pca
-ggplot(log_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+ggplot(log_pca_scores, aes(x = PC1, y = PC2, color = total_umi)) +
   geom_point() +
   labs(title = "Log counts (unnormalized) PCA scores",
-       color = "Cell Type") +
-  scale_color_brewer(palette = "Dark2", na.value = "grey70") + # add a visually distinct color palette
+       color = "Total UMI count")  +
+  scale_color_viridis_c() +
   theme_bw()
 ```
 
@@ -200,7 +206,31 @@ Let's plot the `norm_pca_scores` data:
 
 ```
 
-Do you see an effect from the normalization in the comparison between these plots?
+Do you see an effect from the normalization when comparing these plots?
+
+
+
+Now, let's plot these two sets of PCA scores again, but colored by cell type.
+Do you see an effect from the normalization when comparing these plots?
+
+```{r celltype_pca_plots}
+# First, plot the normalized pca
+ggplot(norm_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+  geom_point() +
+  labs(title = "Normalized log counts PCA scores",
+       color = "Cell Type") +
+  scale_color_brewer(palette = "Dark2", na.value = "grey70") + # add a visually distinct color palette
+  theme_bw()
+
+# Next, plot log count pca
+ggplot(log_pca_scores, aes(x = PC1, y = PC2, color = cell_type)) +
+  geom_point() +
+  labs(title = "Log counts (unnormalized) PCA scores",
+       color = "Cell Type") +
+  scale_color_brewer(palette = "Dark2", na.value = "grey70") + # add a visually distinct color palette
+  theme_bw()
+```
+
 
 
 ## Save the normalized data to tsv file
