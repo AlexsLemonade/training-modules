@@ -73,13 +73,13 @@ RUN pip install -r requirements.txt
 # Use renv for R packages
 WORKDIR /usr/local/renv
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
-RUN R -e "install.packages('renv')"
+RUN Rscript -e "install.packages('renv')"
 
 # Temporary fix for broken(?) RSamtools package
-RUN R -e "install.packages('BiocManager'); BiocManager::install('Rsamtools')"
+RUN Rscript -e "install.packages('BiocManager'); BiocManager::install('Rsamtools')"
 
 COPY renv.lock renv.lock
-RUN R -e "renv::restore()" \
+RUN Rscript -e "renv::restore()" \
     rm -rf ~/.cache/R/renv && \
     rm -rf /tmp/downloaded_packages && \
     rm -rf /tmp/Rtmp*
