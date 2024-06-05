@@ -7,7 +7,7 @@ library(markdown)
 library(magick)
 
 # Recommended by tximport
-library(fishpond)
+library(eds)
 
 # Required for DESeq2::lfcShrink()
 library(apeglm)
