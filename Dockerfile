@@ -68,6 +68,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
+
+
 # Use renv for R packages
 WORKDIR /usr/local/renv
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
