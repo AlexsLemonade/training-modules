@@ -76,7 +76,7 @@ ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 RUN R -e "install.packages('renv')"
 
 # Temporary fix for broken(?) RSamtools package
-RUN R -e "install.packages('BiocManager'); BiocManager::install('RSamtools')"
+RUN R -e "install.packages('BiocManager'); BiocManager::install('Rsamtools')"
 
 COPY renv.lock renv.lock
 RUN R -e "renv::restore()" \
