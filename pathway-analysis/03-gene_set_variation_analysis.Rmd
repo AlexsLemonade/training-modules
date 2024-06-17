@@ -5,7 +5,7 @@ output:
     toc: true
     toc_float: true
 author: CCDL for ALSF
-date: 2020
+date: 2024
 ---
 
 ## Objectives
@@ -148,20 +148,24 @@ The output is a gene set by sample matrix of GSVA scores.
 ### Perform GSVA
 
 ```{r run_gsva}
-gsva_results <- gsva(rnaseq_mat,
-                     hallmarks_list,
-                     method = "gsva",
-                     # Appropriate for our transformed data on log2-like scale
-                     kcdf = "Gaussian",
-                     # Minimum gene set size
-                     min.sz = 15,
-                     # Maximum gene set size
-                     max.sz = 500,
-                     # Compute Gaussian-distributed scores
-                     mx.diff = TRUE)
+gsva_results <- gsva(
+  gsvaParam(
+    exprData = rnaseq_mat,
+    geneSets = hallmarks_list,
+    # Minimum gene set size
+    minSize = 15,
+    # Maximum gene set size
+    maxSize = 500,
+    # Kernel for estimation 
+    # Gaussian for our transformed data on log2-like scale
+    kcdf = "Gaussian",
+    # enrichment score is the difference between largest positive and negative
+    maxDiff = TRUE
+  )
+)
 ```
 
-**Note: the `gsva()` documentation says we can use `kcdf = "Gaussian"` if we had RNA-seq log-CPMs, log-RPKMs or log-TPMs, but we would use `kcdf = "Poisson"` on integer counts.**
+**Note: the `gsvaParam()` documentation says we can use `kcdf = "Gaussian"` if we had RNA-seq log-CPMs, log-RPKMs or log-TPMs, but we would use `kcdf = "Poisson"` on integer counts.**
 
 ```{r gsva_peek}
 # Let's explore what the output of gsva() looks like
@@ -230,18 +234,16 @@ random_gene_sets <- random_gene_sets |>
 Run GSVA on our dataset with the same parameters as before, but now with random gene sets.
 
 ```{r random_gsva, live = TRUE}
-random_gsva_results <- gsva(rnaseq_mat,
-                            random_gene_sets,
-                            method = "gsva",
-                            # Appropriate for our transformed data on
-                            # log2-like scale
-                            kcdf = "Gaussian",
-                            # Minimum gene set size
-                            min.sz = 15,
-                            # Maximum gene set size
-                            max.sz = 500,
-                            # Compute Gaussian-distributed scores
-                            mx.diff = TRUE)
+random_gsva_results <- gsva(
+  gsvaParam(
+    exprData = rnaseq_mat,
+    geneSets = random_gene_sets,
+    minSize = 15,
+    maxSize = 500,
+    kcdf = "Gaussian",
+    maxDiff = TRUE
+  )
+)
 ```
 
 Now let's make a plot to look at the distribution of scores from random gene sets.
@@ -254,9 +256,11 @@ random_long_df <- random_gsva_results |>
   # Gene set names are rownames
   tibble::rownames_to_column("gene_set") |>
   # Get into long format
-  tidyr::pivot_longer(cols = -gene_set,
-                      names_to = "Kids_First_Biospecimen_ID",
-                      values_to = "gsva_score") |>
+  tidyr::pivot_longer(
+    cols = -gene_set,
+    names_to = "Kids_First_Biospecimen_ID",
+    values_to = "gsva_score"
+  ) |>
   # Remove the .version added by make.names()
   dplyr::mutate(gene_set = stringr::str_remove(gene_set, "\\..*")) |>
   # Add a column that keeps track of the gene set size
