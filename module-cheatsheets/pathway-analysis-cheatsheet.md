@@ -32,11 +32,11 @@ Read the [`msigdbr` documentation](https://rdrr.io/cran/msigdbr/f/README.md).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
-| `msigdbr`| [`msigdbr()`](https://rdrr.io/cran/msigdbr/man/msigdbr.html)| geom vertical line| Retrieves the specified MSigDB dataset |
+| `msigdbr`| [`msigdbr()`](https://rdrr.io/cran/msigdbr/man/msigdbr.html)| TODO | Retrieves the specified MSigDB dataset |
 
 ### AnnotationDbi
 
-Read the [`AnnotationDbi` package vignette](http://bioconductor.org/packages/release/bioc/vignettes/AnnotationDbi/inst/doc/IntroToAnnotationPackages.pdf).
+Read the [`AnnotationDbi` package vignette (PDF)](http://bioconductor.org/packages/release/bioc/vignettes/AnnotationDbi/inst/doc/IntroToAnnotationPackages.pdf).
 
 | Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
 |-----------------------------------------|---------------------------------------------|-------------------------|------------------------------------------------------------------------|
@@ -55,7 +55,7 @@ Read the [Base `R` documentation](https://rdrr.io/r/).
 
 ### `DESeq2`
 
-Read the [`DESeq2` package documentation](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf), and the [package vignette by Love, Anders, and Huber](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
+Read the [`DESeq2` package documentation (PDF)](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf), and the [package vignette by Love, Anders, and Huber](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
@@ -65,7 +65,7 @@ Read the [`DESeq2` package documentation](https://www.bioconductor.org/packages/
 
 ### `enrichplot`
 
-Read the [`enrichplot` package documentation](https://bioconductor.org/packages/devel/bioc/manuals/enrichplot/man/enrichplot.pdf).
+Read the [`enrichplot` package documentation (PDF)](https://bioconductor.org/packages/devel/bioc/manuals/enrichplot/man/enrichplot.pdf).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
@@ -75,7 +75,7 @@ Read the [`enrichplot` package documentation](https://bioconductor.org/packages/
 
 ### `clusterProfiler`
 
-Read the [`clusterProfiler` package documentation](https://www.bioconductor.org/packages/release/bioc/manuals/clusterProfiler/man/clusterProfiler.pdf).
+Read the [`clusterProfiler` package documentation (PDF)](https://www.bioconductor.org/packages/release/bioc/manuals/clusterProfiler/man/clusterProfiler.pdf).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
@@ -91,7 +91,7 @@ Read the [`GSVA` package documentation](https://www.bioconductor.org/packages/re
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `GSVA`                | [`gsva()`](https://rdrr.io/github/rcastelo/GSVA/man/gsva.html)             | Gene Set Variation Analysis (GSVA)                                         | Estimates gene set variation analysis enrichment scores on given gene expression matrix                       |
-| `GSVA`                | [`gsvaParam()`](https://rdrr.io/github/rcastelo/GSVA/man/gsvaParam-class.html)             | Gene Set Variation Analysis (GSVA)                                         | Estimates gene set variation analysis enrichment scores on given gene expression matrix                       |
+| `GSVA`                | [`gsvaParam()`](https://rdrr.io/github/rcastelo/GSVA/man/gsvaParam-class.html)             | Gene Set Variation Analysis (GSVA)                                         | Specify parameters to use with `gsva()`               |
 
 
 ### `qusage`

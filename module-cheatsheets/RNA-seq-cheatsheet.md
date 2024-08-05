@@ -45,7 +45,7 @@ Read the [Base `R` package documentation](https://rdrr.io/r/).
 
 ### `DESeq2`
 
-Read the [`DESeq2` package documentation](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf), and the [package vignette by Love, Anders, and Huber](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
+Read the [`DESeq2` package documentation (PDF)](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf), and the [package vignette by Love, Anders, and Huber](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
@@ -67,7 +67,7 @@ Read the [`FastQC` documentation](https://www.bioinformatics.babraham.ac.uk/proj
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `fastp`                 | [`fastp`](https://github.com/OpenGene/fastp)                    | FASTQ preprocessor                              | Preprocesses FASTQ files through adapter trimming, quality filtering, length filtering, and a number of additional options  |
-| `FastQC`                | [`fastqc`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)                   | FASTQC (Quality Control)                        | Performs quality control checks on raw sequence data and outputs a QC(quality control) report   |
+| `FastQC`                | [`fastqc`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)                   | FASTQC (Quality Control)                        | Performs quality control checks on raw sequence data and outputs a QC (quality control) report   |
 
 ### `ggplot2`
 
@@ -86,7 +86,7 @@ Additional vignettes are available from the "Articles" dropdown menu on this web
 
 ### `tximeta` and `SummarizedExperiment`
 
-Read the [`tximeta` package documentation](https://bioconductor.org/packages/release/bioc/manuals/tximeta/man/tximeta.pdf), and the [package vignette by Love _et al._](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html).
+Read the [`tximeta` package documentation (PDF)](https://bioconductor.org/packages/release/bioc/manuals/tximeta/man/tximeta.pdf), and the [package vignette by Love _et al._](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html).
 Read the [`SummarizedExperiment` package documentation](http://bioconductor.org/packages/release/bioc/manuals/SummarizedExperiment/man/SummarizedExperiment.pdf), and the [package vignette by Morgan _et al._](https://www.bioconductor.org/packages/release/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
@@ -94,8 +94,8 @@ Read the [`SummarizedExperiment` package documentation](http://bioconductor.org/
 | `tximeta`| [`tximeta()`](https://rdrr.io/bioc/tximeta/man/tximeta.html)           | tximeta           | Imports transcript-level estimates, attaches transcriptome annotation, and returns a `SummarizedExperiment` object  |
 | `tximeta`| [`makeLinkedTxome()`](https://rdrr.io/bioc/tximeta/man/linkedTxome.html)| Make Linked Transcriptome | Sets up transcriptome annotation to be used by the `tximeta()` function (Only necessary if `tximeta()` fails to find annotation, like for non-human, non-mouse species data) |
 | `tximeta`| [`summarizeToGene()`](https://rdrr.io/bioc/tximeta/man/summarizeToGene.html)| Summarize to Gene | Takes a `SummarizedExperiment` that was set up by `tximeta` and summarizes transcript data to the gene-level |
-| `SummarizedExperiment`| [`rowData()` `colData()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Col/Row Data| Accesses the row or column data from a `SummarizedExperiment` object|
-| `SummarizedExperiment`| [`assay()` `assayNames()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Assay or AssayNames| Accesses the assay data or the names of the assays from `SummarizedExperiment` object|
+| `SummarizedExperiment`| [`rowData()` `colData()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Row/Col Data| Accesses the row or column data from a `SummarizedExperiment` object|
+| `SummarizedExperiment`| [`assay()` `assayNames()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Assay or Assay Names| Accesses the assay data or the names of the assays from `SummarizedExperiment` object|
 
 
 ### `stringr`, `readr`, `dplyr`, `pheatmap`
