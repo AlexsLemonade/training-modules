@@ -87,15 +87,15 @@ Additional vignettes are available from the "Articles" dropdown menu on this web
 ### `tximeta` and `SummarizedExperiment`
 
 Read the [`tximeta` package documentation (PDF)](https://bioconductor.org/packages/release/bioc/manuals/tximeta/man/tximeta.pdf), and the [package vignette by Love _et al._](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html).
-Read the [`SummarizedExperiment` package documentation](http://bioconductor.org/packages/release/bioc/manuals/SummarizedExperiment/man/SummarizedExperiment.pdf), and the [package vignette by Morgan _et al._](https://www.bioconductor.org/packages/release/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
+Read the [`SummarizedExperiment` package documentation (PDF)](http://bioconductor.org/packages/release/bioc/manuals/SummarizedExperiment/man/SummarizedExperiment.pdf), and the [package vignette by Morgan _et al._](https://www.bioconductor.org/packages/release/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `tximeta`| [`tximeta()`](https://rdrr.io/bioc/tximeta/man/tximeta.html)           | tximeta           | Imports transcript-level estimates, attaches transcriptome annotation, and returns a `SummarizedExperiment` object  |
 | `tximeta`| [`makeLinkedTxome()`](https://rdrr.io/bioc/tximeta/man/linkedTxome.html)| Make Linked Transcriptome | Sets up transcriptome annotation to be used by the `tximeta()` function (Only necessary if `tximeta()` fails to find annotation, like for non-human, non-mouse species data) |
 | `tximeta`| [`summarizeToGene()`](https://rdrr.io/bioc/tximeta/man/summarizeToGene.html)| Summarize to Gene | Takes a `SummarizedExperiment` that was set up by `tximeta` and summarizes transcript data to the gene-level |
-| `SummarizedExperiment`| [`rowData()` `colData()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Row/Col Data| Accesses the row or column data from a `SummarizedExperiment` object|
-| `SummarizedExperiment`| [`assay()` `assayNames()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Assay or Assay Names| Accesses the assay data or the names of the assays from `SummarizedExperiment` object|
+| `SummarizedExperiment`| [`rowData()`; `colData()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Row/Col Data| Accesses the row or column data from a `SummarizedExperiment` object|
+| `SummarizedExperiment`| [`assay()`; `assayNames()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Assay or Assay Names| Accesses the assay data or the names of the assays from `SummarizedExperiment` object|
 
 
 ### `stringr`, `readr`, `dplyr`, `pheatmap`
