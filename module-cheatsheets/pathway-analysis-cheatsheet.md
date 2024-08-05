@@ -5,6 +5,24 @@
 > Please note that these tables are not intended to tell you all the information you need to know about each command.
 >
 > The hyperlinks found in each piece of code will take you to the documentation for further information on the usage of each command.
+Please be aware that the documentation will generally provide information about the given function's most current version (or a recent version, depending on how often the documentation site is updated).
+This will usually (but not always!) match what you have installed on your machine.
+If you have a different version of R or other R packages, the documentation may differ from what you have installed.
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [`msigdbr`](#msigdbr)
+- [AnnotationDbi](#annotationdbi)
+- [Base `R`](#base-r)
+- [`DESeq2`](#deseq2)
+- [`enrichplot`](#enrichplot)
+- [`clusterProfiler`](#clusterprofiler)
+- [`GSVA`](#gsva)
+- [`qusage`](#qusage)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 <div style="page-break-after: always;"></div>
 
@@ -17,6 +35,7 @@ Read the [`msigdbr` documentation](https://rdrr.io/cran/msigdbr/f/README.md).
 | `msigdbr`| [`msigdbr()`](https://rdrr.io/cran/msigdbr/man/msigdbr.html)| geom vertical line| Retrieves the specified MSigDB dataset |
 
 ### AnnotationDbi
+
 Read the [`AnnotationDbi` package vignette](http://bioconductor.org/packages/release/bioc/vignettes/AnnotationDbi/inst/doc/IntroToAnnotationPackages.pdf).
 
 | Library/Package                                  | Piece of Code                               | What it's called                               | What it does                                                                                                                                   |
