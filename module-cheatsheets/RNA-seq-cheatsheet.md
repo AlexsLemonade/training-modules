@@ -79,7 +79,7 @@ Additional vignettes are available from the "Articles" dropdown menu on this web
 | `ggplot2`               | [`ggsave()`](https://ggplot2.tidyverse.org/reference/ggsave.html)                 | GG Save                                         | Saves the last plot in working directory                                 |
 | `ggplot2`               | [`last_plot()`](https://ggplot2.tidyverse.org/reference/last_plot.html)           | Last plot                                       | Returns the last plot produced                                           |
 | `ggplot2`               | [`geom_point()`](https://ggplot2.tidyverse.org/reference/geom_point.html)         | Geom point                                      | Creates a scatterplot (when added to the `ggplot()` function)            |
-| `ggplot2`               | [`labs(); `xlab()`; `ylab()`](https://ggplot2.tidyverse.org/reference/labs.html)           | X Axis Labels; Y Axis Labels                    | Modifies the plot labels, with specific functions for the x axis and y axis, respectively        |
+| `ggplot2`               | [`labs()`; `xlab()`; `ylab()`](https://ggplot2.tidyverse.org/reference/labs.html)           | X Axis Labels; Y Axis Labels                    | Modifies the plot labels, with specific functions for the x axis and y axis, respectively        |
 | `ggplot2`               | [`coord_fixed()`](https://ggplot2.tidyverse.org/reference/coord_fixed.html)       | Cartesian Coordinates with Fixed Aspect Ratio   | Coerces the coordinates on the plot to represent a fixed specified ratio |
 
 <div style="page-break-after: always;"></div>
