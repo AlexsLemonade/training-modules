@@ -21,18 +21,18 @@ quant_files <- list.files(file.path(data_dir, "salmon_quant"),
 sample_names <- stringr::word(quant_files, -2, sep = "/")
 names(quant_files) <- sample_names
 
-coldata <- data.frame(files = quant_files, 
+coldata <- data.frame(files = quant_files,
                       names = sample_names)
 
-## read in metadata 
+## read in metadata
 metadata <- readr::read_tsv(meta_file)
 
-coldata <- dplyr::inner_join(coldata, metadata, 
+coldata <- dplyr::inner_join(coldata, metadata,
                              by = c("names" = "Run"))
 
 # tximeta + save to file
 txi <- tximeta::tximeta(coldata)
-gene_txi <- tximeta::summarizeToGene(txi) 
-readr::write_rds(gene_txi, 
-                 file = file.path(output_directory, "leukemia_stem_cell_txi.RDS"),
+gene_txi <- tximeta::summarizeToGene(txi)
+readr::write_rds(gene_txi,
+                 file = file.path(output_directory, "leukemia_stem_cell_txi.rds"),
                  compress = "gz")
