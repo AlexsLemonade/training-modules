@@ -2,16 +2,19 @@ name: Test render notebooks
 # Before merging notebooks, check that they render
 
 on:
+  push:
+    branches:
+      - "test/*"
   pull_request:
     branches:
       - master
     paths:
-      - '**.Rmd'
-      - '!**-live.Rmd' # don't trigger for live-only changes
-      - '!**/exercise*.Rmd' # or exercise notebooks
-      - '!**/setup/**.Rmd' # or setup notebooks
-      - 'scripts/make-live.R'
-      - 'scripts/render-live.sh'
+      - "**.Rmd"
+      - "!**-live.Rmd" # don't trigger for live-only changes
+      - "!**/exercise*.Rmd" # or exercise notebooks
+      - "!**/setup/**.Rmd" # or setup notebooks
+      - "scripts/make-live.R"
+      - "scripts/render-live.sh"
 
 jobs:
   test-render:
@@ -20,6 +23,15 @@ jobs:
       image: ccdl/training_rstudio:edge
 
     steps:
+      - name: Clear disk space
+        id: clear-space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -37,7 +49,6 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
         run: |
           aws s3 sync s3://ccdl-training-data/training-modules/ .
-
 
       - name: Render notebooks
         run: bash scripts/render-live.sh
