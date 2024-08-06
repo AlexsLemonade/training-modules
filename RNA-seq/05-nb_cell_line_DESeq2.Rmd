@@ -50,7 +50,7 @@ library(EnhancedVolcano)
 ```{r input-files}
 # directory with the tximeta processed data
 txi_dir <- file.path("data", "NB-cell", "txi")
-txi_file <- file.path(txi_dir, "NB-cell_tximeta.RDS")
+txi_file <- file.path(txi_dir, "NB-cell_tximeta.rds")
 ```
 
 
@@ -61,9 +61,7 @@ We'll create a results directory to hold our results.
 ```{r results-dir}
 # Create a results directory if it doesn't already exist
 results_dir <- file.path("results", "NB-cell")
-if (!dir.exists(results_dir)) {
-  dir.create(results_dir, recursive = TRUE)
-}
+fs::dir_create(results_dir)
 ```
 
 We will also need a directory to store our plots.
@@ -71,16 +69,14 @@ We will also need a directory to store our plots.
 ```{r plots-dir, live = TRUE}
 # Create a plots directory if it doesn't already exist
 plots_dir <- file.path("plots", "NB-cell")
-if (!dir.exists(plots_dir)) {
-  dir.create(plots_dir, recursive = TRUE)
-}
+fs::dir_create(plots_dir)
 ```
 
 
 ```{r output-files}
 # RDS for the output of DESeq analysis
 deseq_file <- file.path(results_dir,
-                        "NB-cell_DESeq_amplified_v_nonamplified.RDS")
+                        "NB-cell_DESeq_amplified_v_nonamplified.rds")
 
 # DESeq2 results table
 deseq_df_file <- file.path(results_dir,
@@ -144,7 +140,7 @@ levels(gene_summarized$status)
 # Create a DESeq2 dataset from `gene_summarized`
 # remember that `status` is the variable of interest here
 ddset <- DESeqDataSet(gene_summarized,
-                      design = ~ status)
+                      design = ~status)
 ```
 
 ## Differential expression analysis
@@ -155,8 +151,11 @@ Genes that have very low counts are not likely to yield reliable differential ex
 We will keep only genes with total counts of at least 10 across all samples.
 
 ```{r filter_ddset}
+# create a vector of TRUE and FALSE values where
+# TRUE corresponds to genes with counts of at least 10 
 genes_to_keep <- rowSums(counts(ddset)) >= 10
-ddset <- ddset[genes_to_keep, ]
+# use which() to prevent any NAs sneaking through
+ddset <- ddset[which(genes_to_keep), ]
 ```
 
 
@@ -214,11 +213,9 @@ So for this data set we will be using `ashr` ([Stephens 2017](https://doi.org/10
 ```{r lfc_shrink}
 # calculate shrunken log2 fold change estimates
 deseq_shrunken <- lfcShrink(deseq_object,
-                            # the coefficient we want to reestimate
-                            coef = 2,
-                            # We will use `ashr` for estimation
-                            type = "ashr"
-                            )
+  coef = 2, # the coefficient we want to reestimate
+  type = "ashr" # We will use `ashr` for estimation
+)
 ```
 
 Let's compare the log2 fold change estimates from the two results tables by creating a plot.
