@@ -51,9 +51,7 @@ We'll create a directory to hold our plots.
 ```{r plots-dir, live = TRUE}
 # Create a plots directory if it does not exist yet
 plots_dir <- file.path("plots", "gastric-cancer")
-if (!dir.exists(plots_dir)) {
-  dir.create(plots_dir, recursive = TRUE)
-}
+fs::dir_create(plots_dir)
 ```
 
 **Output**
@@ -80,8 +78,7 @@ gene_summarized <- readr::read_rds(txi_file)
 We use the tissue of origin in the design formula because that will allow us to model this variable of interest.
 
 ```{r ddset}
-ddset <- DESeqDataSet(gene_summarized,
-                      design = ~ tissue)
+ddset <- DESeqDataSet(gene_summarized, design = ~tissue)
 ```
 
 ### Variance stabilizing transformation
@@ -94,7 +91,7 @@ Since different samples are usually sequenced to different depths, we want to tr
 We also want to deal with the fact that genes with low counts are also likely to have higher variance (on the log2 scale), as that could bias our clustering.
 To handle both of these considerations, we can calculate a Variance Stabilizing Transformation of the count data, and work with that transformed data for our analysis.
 
-See [this section of the `DESeq2` vignette](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization) for more on this topic.
+See [this section of the `DESeq2` vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization) for more on this topic.
 
 ```{r vst}
 vst_data <- vst(ddset)
@@ -115,15 +112,16 @@ Visualizing PC1 and PC2 can give us insight into how different variables (e.g., 
 
 
 ```{r plotPCA, live = TRUE}
-# DESeq2 built in function is called plotPCA and we want to color points by
-# tissue
+# DESeq2 built in function is called plotPCA and we want to 
+# color points by tissue
 plotPCA(vst_data, intgroup = "tissue")
 ```
 
 Save the most recent plot to file with `ggsave` from `ggplot2`
 
 ```{r save-pdf}
-# Save the PDF file
+# Save plot as a PDF file
+# Note that `last_plot()` is the default, but we are making it explicit here
 ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
 ```
 
@@ -144,8 +142,8 @@ Now we can add a new column with toy batch information and re-store the `colData
 
 ```{r add-batch}
 # Add batch information
-sample_info$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2",
-                       "batch1", "batch2", "batch1")
+sample_info$batch <- c("batch1", "batch1", "batch1", "batch1",
+                       "batch2", "batch1", "batch2", "batch1")
 ```
 
 If this batch information were real we would have included it with the sample metadata when we made the original `SummarizedExperiment` object with `tximeta`.
@@ -153,16 +151,18 @@ We would then include it in the model stored in our DESeq2 object using the `des
 Here we will take a bit of a shortcut and add it directly to the `colData()` for our `vst()`-transformed data.
 
 ```{r coldata-vst, live = TRUE}
-# Add coldata() with batch info to vst_data
+# Add updated colData() with batch info to vst_data
 colData(vst_data) <- sample_info
 ```
 
 ```{r plotPCA-2, live = TRUE}
 # PCA plot - tissue *and* batch
 # We want plotPCA to return the data so we can have more control about the plot
-pca_data <- plotPCA(vst_data,
-                    intgroup = c("tissue", "batch"),
-                    returnData = TRUE)
+pca_data <- plotPCA(
+  vst_data,
+  intgroup = c("tissue", "batch"),
+  returnData = TRUE
+)
 ```
 
 ```{r percent_var}
@@ -174,12 +174,17 @@ Let's use ggplot to visualize the first two principal components.
 
 ```{r color-by-batch, live = TRUE}
 # Color points by "batch" and use shape to indicate the tissue of origin
-ggplot2::ggplot(pca_data, ggplot2::aes(PC1, PC2,
-                                       color = batch,
-                                       shape = tissue)) +
+ggplot2::ggplot(pca_data,
+  ggplot2::aes(
+    x = PC1, 
+    y = PC2,
+    color = batch,
+    shape = tissue
+  )
+) +
   ggplot2::geom_point(size = 3) +
-  ggplot2::xlab(paste0("PC1: ", percent_var[1],"% variance")) +
-  ggplot2::ylab(paste0("PC2: ", percent_var[2],"% variance")) +
+  ggplot2::xlab(paste0("PC1: ", percent_var[1], "% variance")) +
+  ggplot2::ylab(paste0("PC2: ", percent_var[2], "% variance")) +
   ggplot2::coord_fixed()
 ```
 
