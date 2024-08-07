@@ -32,7 +32,7 @@ This tells the computer to execute this as a [Bash](https://en.wikipedia.org/wik
 You could paste all the commands you wanted to run into this shell script.
 (Feel free to use `scripts/run_SRR585570.sh` as a reference.)
 
-If you wanted to run the commands and you named your shell script `rnaseq.sh`, you would type `bash rnaseq.sh` (ensuring you are currently in the `kitematic` directory).
+If you wanted to run the commands and you named your shell script `rnaseq.sh`, you would type `bash rnaseq.sh` (ensuring you are currently in the directory where the script is saved).
 This would run the script, and hopefully each step would complete successfully!
 
 #### Advanced topics

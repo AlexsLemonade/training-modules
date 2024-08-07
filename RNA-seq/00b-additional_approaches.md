@@ -13,7 +13,7 @@ We present them in order of increasing difficulty and/or departure from what is 
 
 ## MultiQC
 
-[MultiQC](https://multiqc.info/) is a tool that aggregates output from many tools (80 are currently supported; see the list [here](https://multiqc.info/docs/#multiqc-modules)) into a single HTML report ([Ewels et al. _Bioinformatics._ 2016.](http://dx.doi.org/10.1093/bioinformatics/btw354)).
+[MultiQC](https://multiqc.info/) is a tool that aggregates output from many tools (nearly 150 are currently supported; see the list [here](https://multiqc.info/modules/)) into a single HTML report ([Ewels et al. _Bioinformatics._ 2016.](http://dx.doi.org/10.1093/bioinformatics/btw354)).
 It can be used to combine information, such as FastQC reports, for multiple RNA-seq samples in a project.
 This can be helpful to get an overall picture of the samples in your experiment.
 For example, fastp reports statistics before and after it processes samples.
@@ -42,17 +42,18 @@ cd ~/training-modules/RNA-seq
 
 **Now you're ready to run MultiQC.**
 Because we're only interested in a report for the gastric cancer samples, we'll specify what directories QC and Salmon output can be found in.
+We are using data and QC that was prepared previously by your instructors.
 
 Run the following command:
 
 ```bash
 multiqc \
   ~/shared-data/training-modules/RNA-seq/QC/gastric-cancer \
-  data/gastric_cancer/salmon_quant/ \
-  --outdir QC/gastric_cancer
+  ~/shared-data/training-modules/RNA-seq/data/gastric-cancer/salmon_quant/ \
+  --outdir QC/gastric-cancer
 ```
 
-Once this completes, you should have a report at `QC/gastric_cancer/multiqc_report.html`.
+Once this completes, you should have a report at `QC/gastric-cancer/multiqc_report.html`.
 
 ## Decoy sequence-aware selective alignment with Salmon
 
