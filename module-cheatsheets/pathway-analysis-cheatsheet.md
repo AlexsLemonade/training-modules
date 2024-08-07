@@ -32,7 +32,7 @@ Read the [`msigdbr` documentation](https://rdrr.io/cran/msigdbr/f/README.md).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
-| `msigdbr`| [`msigdbr()`](https://rdrr.io/cran/msigdbr/man/msigdbr.html)| TODO | Retrieves the specified MSigDB dataset |
+| `msigdbr`| [`msigdbr()`](https://rdrr.io/cran/msigdbr/man/msigdbr.html)| Retrieve the MSigDB gene sets data frame | Retrieves the specified MSigDB dataset |
 
 ### AnnotationDbi
 
