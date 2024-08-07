@@ -95,7 +95,7 @@ Read the [`GSVA` package documentation](https://www.bioconductor.org/packages/re
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `GSVA`                | [`gsva()`](https://rdrr.io/github/rcastelo/GSVA/man/gsva.html)             | Gene Set Variation Analysis (GSVA)                                         | Estimates gene set variation analysis enrichment scores on given gene expression matrix                       |
-| `GSVA`                | [`gsvaParam()`](https://rdrr.io/github/rcastelo/GSVA/man/gsvaParam-class.html)             | Gene Set Variation Analysis (GSVA)                                         | Specify parameters to use with `gsva()`               |
+| `GSVA`                | [`gsvaParam()`](https://rdrr.io/github/rcastelo/GSVA/man/gsvaParam-class.html)             | Gene Set Variation Analysis (GSVA)  Parameters                                       | Specify parameters to use with `gsva()`               |
 
 
 ### `qusage`
