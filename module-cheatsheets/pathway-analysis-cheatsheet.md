@@ -50,6 +50,7 @@ Read the [Base `R` documentation](https://rdrr.io/r/).
 |Library/Package|Piece of Code|What it's called| What it does|
 |---------------|-------------|----------------|-------------|
 | Base `R`| [`fisher.test()`](https://rdrr.io/r/stats/fisher.test.html)| Fisher's Exact Test | Performs the Fisher's exact test for testing the null of independence of rows and columns for a given matrix or data.frame with count data |
+| Base `R` | [`setdiff()`](https://rdrr.io/cran/probs/man/setdiff.html) | Set difference | Returns the difference of two sets (e.g., vectors) |
 
 <div style="page-break-after: always;"></div>
 
