@@ -54,6 +54,7 @@ Read the [Base `R` documentation](https://rdrr.io/r/).
 
 <div style="page-break-after: always;"></div>
 
+<!--
 ### `DESeq2`
 
 Read the [`DESeq2` package documentation (PDF)](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf), and the [package vignette by Love, Anders, and Huber](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
@@ -63,6 +64,8 @@ Read the [`DESeq2` package documentation (PDF)](https://www.bioconductor.org/pac
 | `DESeq2`                | [`lfcShrink()`](https://rdrr.io/bioc/DESeq2/man/lfcShrink.html)            | Shrink Log Fold Changes                                        | Adds shrunken log2 fold changes to the results of a `DESeqDataSet` object                         |
 | `DESeq2`                | [`results()`](https://rdrr.io/bioc/DESeq2/man/results.html)             | Results                                         | Returns the results table from a DESeq2 analysis                         |
 | `DESeq2`                | [`resultsNames()`](https://rdrr.io/bioc/DESeq2/man/results.html)            | Results Names                                        | Returns the names of the estimated effects or coefficients of the `DESeq` model                         |
+
+-->
 
 ### `enrichplot`
 
