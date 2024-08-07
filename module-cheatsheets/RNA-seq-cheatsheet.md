@@ -127,7 +127,7 @@ Read the [`matrixStats` package documentation (PDF)](https://cran.r-project.org/
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `matrixStats`                 | [`rowVars()`](https://www.rdocumentation.org/packages/matrixStats/versions/1.3.0/topics/rowVars) | Row variance                   | Estimates the variance for each row in a matrix |
-| `matrixStats`                 | [`rowSds()`](https://search.r-project.org/CRAN/refmans/matrixStats/html/rowSds.html) | Row standard devations | Estimates the standard deviations for each row in a matrix |
+| `matrixStats`                 | [`rowSds()`](https://search.r-project.org/CRAN/refmans/matrixStats/html/rowSds.html) | Row standard deviations | Estimates the standard deviations for each row in a matrix |
 
 
 ### Salmon
