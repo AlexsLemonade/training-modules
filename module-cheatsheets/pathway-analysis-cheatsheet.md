@@ -16,7 +16,6 @@ If you have a different version of R or other R packages, the documentation may 
 - [`msigdbr`](#msigdbr)
 - [AnnotationDbi](#annotationdbi)
 - [Base `R`](#base-r)
-- [`DESeq2`](#deseq2)
 - [`enrichplot`](#enrichplot)
 - [`clusterProfiler`](#clusterprofiler)
 - [`GSVA`](#gsva)

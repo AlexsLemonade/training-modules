@@ -18,7 +18,9 @@ If you have a different version of R or other R packages, the documentation may 
 - [`FastQC` and `fastp`](#fastqc-and-fastp)
 - [`ggplot2`](#ggplot2)
 - [`tximeta` and `SummarizedExperiment`](#tximeta-and-summarizedexperiment)
-- [`stringr`, `readr`, `dplyr`, `pheatmap`](#stringr-readr-dplyr-pheatmap)
+- [`stringr`, `readr`, `dplyr`](#stringr-readr-dplyr)
+- [`ComplexHeatmap`](#complexheatmap)
+- [`matrixStats`](#matrixstats)
 - [Salmon](#salmon)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
