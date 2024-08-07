@@ -99,7 +99,7 @@ Read the [`SummarizedExperiment` package documentation (PDF)](http://bioconducto
 | `SummarizedExperiment`| [`assay()`; `assayNames()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Assay or Assay Names| Accesses the assay data or the names of the assays from `SummarizedExperiment` object|
 
 
-### `stringr`, `readr`, `dplyr`, `pheatmap`
+### `stringr`, `readr`, `dplyr`
 
 Documentation for each of these packages can be accessed by clicking the package name in the table below.
 
@@ -108,7 +108,16 @@ Documentation for each of these packages can be accessed by clicking the package
 | [`stringr`](https://stringr.tidyverse.org/index.html)            |[`word()`](https://stringr.tidyverse.org/reference/word.html)       | Word                            | Extracts words from a character vector                         |
 | [`readr`](https://readr.tidyverse.org/index.html)                 |[`write_rds()`](https://readr.tidyverse.org/reference/read_rds.html) | Write RDS                      | Writes data to a .RDS output file                                 |
 | [`dplyr`](https://dplyr.tidyverse.org/)                 | [`pull()`](https://dplyr.tidyverse.org/reference/pull.html)                      | Pull                              | Extracts a variable (column) as a vector                                          |
-| [`pheatmap`](https://rdrr.io/cran/pheatmap/)              | [`pheatmap()`](https://rdrr.io/cran/pheatmap/man/pheatmap.html)          | Pretty heatmap                          | Plots clustered heatmaps                                                 |
+
+### `ComplexHeatmap`
+
+Read the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/).
+
+| Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
+|-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
+| `ComplexHeatmap`              | [`Heatmap()`](https://rdrr.io/bioc/ComplexHeatmap/man/Heatmap.html) | Heatmap constructor | Constructs a `Heatmap` class object that can then be used to plot a heatmap    |
+| `ComplexHeatmap`              | [`HeatmapAnnotation()`](https://rdrr.io/bioc/ComplexHeatmap/man/HeatmapAnnotation.html) | Heatmap annotation constructor | Constructs a `HeatmapAnnotation` class object that can be used to annotate a heatmap |
+
 ### `matrixStats`
 
 Read the [`matrixStats` package documentation (PDF)](https://cran.r-project.org/web/packages/matrixStats/matrixStats.pdf) and [summary of functions](https://cran.r-project.org/web/packages/matrixStats/vignettes/matrixStats-methods.html).
