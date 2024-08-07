@@ -42,17 +42,18 @@ cd ~/training-modules/RNA-seq
 
 **Now you're ready to run MultiQC.**
 Because we're only interested in a report for the gastric cancer samples, we'll specify what directories QC and Salmon output can be found in.
+We are using data and QC that was prepared previously by your instructors.
 
 Run the following command:
 
 ```bash
 multiqc \
   ~/shared-data/training-modules/RNA-seq/QC/gastric-cancer \
-  data/gastric_cancer/salmon_quant/ \
-  --outdir QC/gastric_cancer
+  ~/shared-data/training-modules/RNA-seq/data/gastric-cancer/salmon_quant/ \
+  --outdir QC/gastric-cancer
 ```
 
-Once this completes, you should have a report at `QC/gastric_cancer/multiqc_report.html`.
+Once this completes, you should have a report at `QC/gastric-cancer/multiqc_report.html`.
 
 ## Decoy sequence-aware selective alignment with Salmon
 
