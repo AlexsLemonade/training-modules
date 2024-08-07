@@ -13,7 +13,7 @@ We present them in order of increasing difficulty and/or departure from what is 
 
 ## MultiQC
 
-[MultiQC](https://multiqc.info/) is a tool that aggregates output from many tools (80 are currently supported; see the list [here](https://multiqc.info/docs/#multiqc-modules)) into a single HTML report ([Ewels et al. _Bioinformatics._ 2016.](http://dx.doi.org/10.1093/bioinformatics/btw354)).
+[MultiQC](https://multiqc.info/) is a tool that aggregates output from many tools (nearly 150 are currently supported; see the list [here](https://multiqc.info/modules/)) into a single HTML report ([Ewels et al. _Bioinformatics._ 2016.](http://dx.doi.org/10.1093/bioinformatics/btw354)).
 It can be used to combine information, such as FastQC reports, for multiple RNA-seq samples in a project.
 This can be helpful to get an overall picture of the samples in your experiment.
 For example, fastp reports statistics before and after it processes samples.
