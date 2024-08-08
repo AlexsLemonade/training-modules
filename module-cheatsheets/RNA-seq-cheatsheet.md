@@ -19,8 +19,8 @@ If you have a different version of R or other R packages, the documentation may 
 - [`ggplot2`](#ggplot2)
 - [`tximeta` and `SummarizedExperiment`](#tximeta-and-summarizedexperiment)
 - [`stringr`, `readr`, `dplyr`](#stringr-readr-dplyr)
-- [`ComplexHeatmap`](#complexheatmap)
 - [`matrixStats`](#matrixstats)
+- [`ComplexHeatmap` and `EnhancedVolcano`](#complexheatmap-and-enhancedvolcano)
 - [Salmon](#salmon)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -111,14 +111,6 @@ Documentation for each of these packages can be accessed by clicking the package
 | [`readr`](https://readr.tidyverse.org/index.html)                 |[`write_rds()`](https://readr.tidyverse.org/reference/read_rds.html) | Write RDS                      | Writes data to a .RDS output file                                 |
 | [`dplyr`](https://dplyr.tidyverse.org/)                 | [`pull()`](https://dplyr.tidyverse.org/reference/pull.html)                      | Pull                              | Extracts a variable (column) as a vector                                          |
 
-### `ComplexHeatmap`
-
-Read the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/).
-
-| Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
-|-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
-| `ComplexHeatmap`              | [`Heatmap()`](https://rdrr.io/bioc/ComplexHeatmap/man/Heatmap.html) | Heatmap constructor | Constructs a `Heatmap` class object that can then be used to plot a heatmap    |
-| `ComplexHeatmap`              | [`HeatmapAnnotation()`](https://rdrr.io/bioc/ComplexHeatmap/man/HeatmapAnnotation.html) | Heatmap annotation constructor | Constructs a `HeatmapAnnotation` class object that can be used to annotate a heatmap |
 
 ### `matrixStats`
 
@@ -128,6 +120,19 @@ Read the [`matrixStats` package documentation (PDF)](https://cran.r-project.org/
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `matrixStats`                 | [`rowVars()`](https://www.rdocumentation.org/packages/matrixStats/versions/1.3.0/topics/rowVars) | Row variance                   | Estimates the variance for each row in a matrix |
 | `matrixStats`                 | [`rowSds()`](https://search.r-project.org/CRAN/refmans/matrixStats/html/rowSds.html) | Row standard deviations | Estimates the standard deviations for each row in a matrix |
+
+<div style="page-break-after: always;"></div>
+
+### `ComplexHeatmap` and `EnhancedVolcano`
+
+Read the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/).
+Read the [`EnhancedVolcano` manual](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html)
+
+| Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
+|-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
+| `ComplexHeatmap`              | [`Heatmap()`](https://rdrr.io/bioc/ComplexHeatmap/man/Heatmap.html) | Heatmap constructor | Constructs a `Heatmap` class object that can then be used to plot a heatmap    |
+| `ComplexHeatmap`              | [`HeatmapAnnotation()`](https://rdrr.io/bioc/ComplexHeatmap/man/HeatmapAnnotation.html) | Heatmap annotation constructor | Constructs a `HeatmapAnnotation` class object that can be used to annotate a heatmap |
+| `EnhancedVolcano`             | [`EnhancedVolcano()`](https://rdrr.io/bioc/EnhancedVolcano/man/EnhancedVolcano.html) | Enhanced volcano plot | Constructs a highly customizable volcano plot with colored and labeled points |
 
 
 ### Salmon
