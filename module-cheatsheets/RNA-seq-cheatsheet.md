@@ -126,7 +126,7 @@ Read the [`matrixStats` package documentation (PDF)](https://cran.r-project.org/
 ### `ComplexHeatmap` and `EnhancedVolcano`
 
 Read the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/).
-Read the [`EnhancedVolcano` manual](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html)
+Read the [`EnhancedVolcano` manual](https://bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html).
 
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
