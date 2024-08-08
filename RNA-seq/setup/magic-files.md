@@ -8,8 +8,20 @@ The sub-path for each file should be the same as that for `training-modules/RNA-
 
 Files are listed below by the notebook that produces them:
 
+- `02-gastric_cancer_tximeta.Rmd`
+  - `data/gastric-cancer/txi/gastric-cancer_tximeta.rds`
 - `setup/ref_notebooks/04-nb_cell_line_tximeta.Rmd` (participants create their own notebook for this step)
   - `data/NB-cell/txi/NB-cell_tximeta.rds`
 - `05-nb_cell_line_DESeq2.Rmd`
   - `results/NB-cell/NB-cell_DESeq_amplified_v_nonamplified.rds`
   - `results/NB-cell/NB-cell_DESeq_amplified_v_nonamplified_results.tsv`
+
+
+
+Note that the output files from `scripts/run_SRR585570.sh` script are already present at:
+
+- `/shared/data/training-modules/RNA-seq/data/salmon-quant/SRR585570/`
+- `/shared/data/training-modules/RNA-seq/QC/gastric-cancer/fastp/SRR585570/`
+- `/shared/data/training-modules/RNA-seq/QC/gastric-cancer/fastqc/SRR585570/`
+
+so do not need to be added to the `training-data` directory, could be needed during training.
