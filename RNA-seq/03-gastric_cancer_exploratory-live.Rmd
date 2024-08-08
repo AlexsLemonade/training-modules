@@ -43,7 +43,7 @@ data_dir <- file.path("data", "gastric-cancer")
 
 # directory with the tximeta processed data
 txi_dir <- file.path(data_dir, "txi")
-txi_file <- file.path(txi_dir, "gastric-cancer_tximeta.RDS")
+txi_file <- file.path(txi_dir, "gastric-cancer_tximeta.rds")
 ```
 
 We'll create a directory to hold our plots.
@@ -77,8 +77,7 @@ First, let's read in the data we processed with `tximeta`.
 We use the tissue of origin in the design formula because that will allow us to model this variable of interest.
 
 ```{r ddset}
-ddset <- DESeqDataSet(gene_summarized,
-                      design = ~ tissue)
+ddset <- DESeqDataSet(gene_summarized, design = ~tissue)
 ```
 
 ### Variance stabilizing transformation
@@ -91,7 +90,7 @@ Since different samples are usually sequenced to different depths, we want to tr
 We also want to deal with the fact that genes with low counts are also likely to have higher variance (on the log2 scale), as that could bias our clustering.
 To handle both of these considerations, we can calculate a Variance Stabilizing Transformation of the count data, and work with that transformed data for our analysis.
 
-See [this section of the `DESeq2` vignette](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization) for more on this topic.
+See [this section of the `DESeq2` vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization) for more on this topic.
 
 ```{r vst}
 vst_data <- vst(ddset)
@@ -112,15 +111,16 @@ Visualizing PC1 and PC2 can give us insight into how different variables (e.g., 
 
 
 ```{r plotPCA, live = TRUE}
-# DESeq2 built in function is called plotPCA and we want to color points by
-# tissue
+# DESeq2 built in function is called plotPCA and we want to 
+# color points by tissue
 
 ```
 
 Save the most recent plot to file with `ggsave` from `ggplot2`
 
 ```{r save-pdf}
-# Save the PDF file
+# Save plot as a PDF file
+# Note that `last_plot()` is the default, but we are making it explicit here
 ggplot2::ggsave(pca_plot_file, plot = ggplot2::last_plot())
 ```
 
@@ -140,8 +140,8 @@ Now we can add a new column with toy batch information and re-store the `colData
 
 ```{r add-batch}
 # Add batch information
-sample_info$batch <- c("batch1", "batch1", "batch1", "batch1", "batch2",
-                       "batch1", "batch2", "batch1")
+sample_info$batch <- c("batch1", "batch1", "batch1", "batch1",
+                       "batch2", "batch1", "batch2", "batch1")
 ```
 
 If this batch information were real we would have included it with the sample metadata when we made the original `SummarizedExperiment` object with `tximeta`.
@@ -149,7 +149,7 @@ We would then include it in the model stored in our DESeq2 object using the `des
 Here we will take a bit of a shortcut and add it directly to the `colData()` for our `vst()`-transformed data.
 
 ```{r coldata-vst, live = TRUE}
-# Add coldata() with batch info to vst_data
+# Add updated colData() with batch info to vst_data
 
 ```
 

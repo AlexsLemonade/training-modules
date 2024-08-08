@@ -50,7 +50,7 @@ library(EnhancedVolcano)
 ```{r input-files}
 # directory with the tximeta processed data
 txi_dir <- file.path("data", "NB-cell", "txi")
-txi_file <- file.path(txi_dir, "NB-cell_tximeta.RDS")
+txi_file <- file.path(txi_dir, "NB-cell_tximeta.rds")
 ```
 
 
@@ -61,9 +61,7 @@ We'll create a results directory to hold our results.
 ```{r results-dir}
 # Create a results directory if it doesn't already exist
 results_dir <- file.path("results", "NB-cell")
-if (!dir.exists(results_dir)) {
-  dir.create(results_dir, recursive = TRUE)
-}
+fs::dir_create(results_dir)
 ```
 
 We will also need a directory to store our plots.
@@ -77,7 +75,7 @@ We will also need a directory to store our plots.
 ```{r output-files}
 # RDS for the output of DESeq analysis
 deseq_file <- file.path(results_dir,
-                        "NB-cell_DESeq_amplified_v_nonamplified.RDS")
+                        "NB-cell_DESeq_amplified_v_nonamplified.rds")
 
 # DESeq2 results table
 deseq_df_file <- file.path(results_dir,
@@ -151,8 +149,11 @@ Genes that have very low counts are not likely to yield reliable differential ex
 We will keep only genes with total counts of at least 10 across all samples.
 
 ```{r filter_ddset}
+# create a vector of TRUE and FALSE values where
+# TRUE corresponds to genes with counts of at least 10 
 genes_to_keep <- rowSums(counts(ddset)) >= 10
-ddset <- ddset[genes_to_keep, ]
+# use which() to prevent any NAs sneaking through
+ddset <- ddset[which(genes_to_keep), ]
 ```
 
 
@@ -210,11 +211,9 @@ So for this data set we will be using `ashr` ([Stephens 2017](https://doi.org/10
 ```{r lfc_shrink}
 # calculate shrunken log2 fold change estimates
 deseq_shrunken <- lfcShrink(deseq_object,
-                            # the coefficient we want to reestimate
-                            coef = 2,
-                            # We will use `ashr` for estimation
-                            type = "ashr"
-                            )
+  coef = 2, # the coefficient we want to reestimate
+  type = "ashr" # We will use `ashr` for estimation
+)
 ```
 
 Let's compare the log2 fold change estimates from the two results tables by creating a plot.
@@ -226,20 +225,23 @@ comparison_df <- data.frame(
   lfc_original = deseq_results$log2FoldChange,
   lfc_shrunken = deseq_shrunken$log2FoldChange,
   logmean = log10(deseq_results$baseMean)
-  )
+)
 ```
 
 Now we can plot the original and shrunken log2 fold change values to see what happened after shrinkage.
 
 ```{r plot_comparison}
 ggplot(comparison_df,
-       aes(x = lfc_original,
-           y = lfc_shrunken,
-           color = logmean)) +
+  aes(
+    x = lfc_original,
+    y = lfc_shrunken,
+    color = logmean
+  )
+) +
   geom_point(alpha = 0.1) +
   theme_bw() +
   scale_color_viridis_c() +
-  coord_cartesian(xlim = c(-10,10), ylim = c(-10,10)) # zoom in on the middle
+  coord_cartesian(xlim = c(-10, 10), ylim = c(-10, 10)) # zoom in on the middle
 ```
 
 We will now do a bit of manipulation to store the results in a data frame and add the gene symbols.
@@ -279,16 +281,16 @@ Even better, it outputs a `ggplot2` object, so if we want to customize it furthe
 
 ```{r volcano}
 EnhancedVolcano(deseq_df,
-                x = 'log2FoldChange', # fold change statistic to plot
-                y = 'pvalue', # significance values
-                lab = deseq_df$gene_symbol, # labels for points
-                pCutoff = 1e-05, # The p value cutoff we will use (default)
-                FCcutoff = 1, # The fold change cutoff (default)
-                title = NULL, # no title
-                subtitle = NULL, # or subtitle
-                caption = NULL, # or caption
-                labSize = 3  # smaller labels
-                ) +
+  x = "log2FoldChange", # fold change statistic to plot
+  y = "pvalue", # significance values
+  lab = deseq_df$gene_symbol, # labels for points
+  pCutoff = 1e-05, # The p value cutoff we will use (default)
+  FCcutoff = 1, # The fold change cutoff (default)
+  title = NULL, # no title
+  subtitle = NULL, # or subtitle
+  caption = NULL, # or caption
+  labSize = 3 # smaller labels
+) +
   # change the overall theme
   theme_classic() +
   # move the legend to the bottom
