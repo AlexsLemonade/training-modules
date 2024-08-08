@@ -18,7 +18,9 @@ If you have a different version of R or other R packages, the documentation may 
 - [`FastQC` and `fastp`](#fastqc-and-fastp)
 - [`ggplot2`](#ggplot2)
 - [`tximeta` and `SummarizedExperiment`](#tximeta-and-summarizedexperiment)
-- [`stringr`, `readr`, `dplyr`, `pheatmap`](#stringr-readr-dplyr-pheatmap)
+- [`stringr`, `readr`, `dplyr`](#stringr-readr-dplyr)
+- [`ComplexHeatmap`](#complexheatmap)
+- [`matrixStats`](#matrixstats)
 - [Salmon](#salmon)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -37,6 +39,7 @@ Read the [Base `R` package documentation](https://rdrr.io/r/).
 | Base `R`                | [`all.equal()`](https://rdrr.io/r/base/all.equal.html)               | All equal                 | Checks if two R objects are nearly equal                                 |
 | Base `R`                | [`attr()`](https://rdrr.io/r/base/attr.html)                         | Object Attributes         | Gets or sets the attributes of an object                                 |
 | Base `R`                | [`rowSums()`](https://rdrr.io/r/base/colSums.html)                   | Row Sums                  | Returns the sum of the rows in a numeric matrix-like object (i.e.. a matrix, data.frame, etc.) |
+| Base `R`                | [`rowMeans()`](https://rdrr.io/r/base/colSums.html)                  | Row Means                 | Returns the mean of the rows in a number matrix-like object (i.e.. a matrix, data.frame, etc.) |
 | Base `R`                | [`relevel()`](https://rdrr.io/r/stats/relevel.html)                  | Relevel                   | Reorders the levels of a factor as specified                             |
 | Base `R`                | [`summary()`](https://rdrr.io/r/base/summary.html)                   | Object Summary            | Returns a result summary of an object                                    |
 | Base `R`                | [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)       | Data Frame                | Checks if an object is a data.frame, and transforms the object into one, if possible |
@@ -98,7 +101,7 @@ Read the [`SummarizedExperiment` package documentation (PDF)](http://bioconducto
 | `SummarizedExperiment`| [`assay()`; `assayNames()`](https://rdrr.io/bioc/SummarizedExperiment/man/SummarizedExperiment-class.html)| Assay or Assay Names| Accesses the assay data or the names of the assays from `SummarizedExperiment` object|
 
 
-### `stringr`, `readr`, `dplyr`, `pheatmap`
+### `stringr`, `readr`, `dplyr`
 
 Documentation for each of these packages can be accessed by clicking the package name in the table below.
 
@@ -107,7 +110,25 @@ Documentation for each of these packages can be accessed by clicking the package
 | [`stringr`](https://stringr.tidyverse.org/index.html)            |[`word()`](https://stringr.tidyverse.org/reference/word.html)       | Word                            | Extracts words from a character vector                         |
 | [`readr`](https://readr.tidyverse.org/index.html)                 |[`write_rds()`](https://readr.tidyverse.org/reference/read_rds.html) | Write RDS                      | Writes data to a .RDS output file                                 |
 | [`dplyr`](https://dplyr.tidyverse.org/)                 | [`pull()`](https://dplyr.tidyverse.org/reference/pull.html)                      | Pull                              | Extracts a variable (column) as a vector                                          |
-| [`pheatmap`](https://rdrr.io/cran/pheatmap/)              | [`pheatmap()`](https://rdrr.io/cran/pheatmap/man/pheatmap.html)          | Pretty heatmap                          | Plots clustered heatmaps                                                 |
+
+### `ComplexHeatmap`
+
+Read the [`ComplexHeatmap` Complete Reference](https://jokergoo.github.io/ComplexHeatmap-reference/book/).
+
+| Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
+|-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
+| `ComplexHeatmap`              | [`Heatmap()`](https://rdrr.io/bioc/ComplexHeatmap/man/Heatmap.html) | Heatmap constructor | Constructs a `Heatmap` class object that can then be used to plot a heatmap    |
+| `ComplexHeatmap`              | [`HeatmapAnnotation()`](https://rdrr.io/bioc/ComplexHeatmap/man/HeatmapAnnotation.html) | Heatmap annotation constructor | Constructs a `HeatmapAnnotation` class object that can be used to annotate a heatmap |
+
+### `matrixStats`
+
+Read the [`matrixStats` package documentation (PDF)](https://cran.r-project.org/web/packages/matrixStats/matrixStats.pdf) and [summary of functions](https://cran.r-project.org/web/packages/matrixStats/vignettes/matrixStats-methods.html).
+
+| Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
+|-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
+| `matrixStats`                 | [`rowVars()`](https://www.rdocumentation.org/packages/matrixStats/versions/1.3.0/topics/rowVars) | Row variance                   | Estimates the variance for each row in a matrix |
+| `matrixStats`                 | [`rowSds()`](https://search.r-project.org/CRAN/refmans/matrixStats/html/rowSds.html) | Row standard deviations | Estimates the standard deviations for each row in a matrix |
+
 
 ### Salmon
 

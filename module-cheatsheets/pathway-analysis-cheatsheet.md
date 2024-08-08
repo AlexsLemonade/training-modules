@@ -16,7 +16,6 @@ If you have a different version of R or other R packages, the documentation may 
 - [`msigdbr`](#msigdbr)
 - [AnnotationDbi](#annotationdbi)
 - [Base `R`](#base-r)
-- [`DESeq2`](#deseq2)
 - [`enrichplot`](#enrichplot)
 - [`clusterProfiler`](#clusterprofiler)
 - [`GSVA`](#gsva)
@@ -32,7 +31,7 @@ Read the [`msigdbr` documentation](https://rdrr.io/cran/msigdbr/f/README.md).
 
 | Library/Package| Piece of Code| What it's called| What it does |
 |----------------|--------------|-----------------|--------------|
-| `msigdbr`| [`msigdbr()`](https://rdrr.io/cran/msigdbr/man/msigdbr.html)| TODO | Retrieves the specified MSigDB dataset |
+| `msigdbr`| [`msigdbr()`](https://rdrr.io/cran/msigdbr/man/msigdbr.html)| Retrieve the MSigDB gene sets data frame | Retrieves the specified MSigDB dataset |
 
 ### AnnotationDbi
 
@@ -50,9 +49,11 @@ Read the [Base `R` documentation](https://rdrr.io/r/).
 |Library/Package|Piece of Code|What it's called| What it does|
 |---------------|-------------|----------------|-------------|
 | Base `R`| [`fisher.test()`](https://rdrr.io/r/stats/fisher.test.html)| Fisher's Exact Test | Performs the Fisher's exact test for testing the null of independence of rows and columns for a given matrix or data.frame with count data |
+| Base `R` | [`setdiff()`](https://rdrr.io/cran/probs/man/setdiff.html) | Set difference | Returns the difference of two sets (e.g., vectors) |
 
 <div style="page-break-after: always;"></div>
 
+<!--
 ### `DESeq2`
 
 Read the [`DESeq2` package documentation (PDF)](https://www.bioconductor.org/packages/release/bioc/manuals/DESeq2/man/DESeq2.pdf), and the [package vignette by Love, Anders, and Huber](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
@@ -62,6 +63,8 @@ Read the [`DESeq2` package documentation (PDF)](https://www.bioconductor.org/pac
 | `DESeq2`                | [`lfcShrink()`](https://rdrr.io/bioc/DESeq2/man/lfcShrink.html)            | Shrink Log Fold Changes                                        | Adds shrunken log2 fold changes to the results of a `DESeqDataSet` object                         |
 | `DESeq2`                | [`results()`](https://rdrr.io/bioc/DESeq2/man/results.html)             | Results                                         | Returns the results table from a DESeq2 analysis                         |
 | `DESeq2`                | [`resultsNames()`](https://rdrr.io/bioc/DESeq2/man/results.html)            | Results Names                                        | Returns the names of the estimated effects or coefficients of the `DESeq` model                         |
+
+-->
 
 ### `enrichplot`
 
@@ -91,7 +94,7 @@ Read the [`GSVA` package documentation](https://www.bioconductor.org/packages/re
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `GSVA`                | [`gsva()`](https://rdrr.io/github/rcastelo/GSVA/man/gsva.html)             | Gene Set Variation Analysis (GSVA)                                         | Estimates gene set variation analysis enrichment scores on given gene expression matrix                       |
-| `GSVA`                | [`gsvaParam()`](https://rdrr.io/github/rcastelo/GSVA/man/gsvaParam-class.html)             | Gene Set Variation Analysis (GSVA)                                         | Specify parameters to use with `gsva()`               |
+| `GSVA`                | [`gsvaParam()`](https://rdrr.io/github/rcastelo/GSVA/man/gsvaParam-class.html)             | Gene Set Variation Analysis (GSVA)  Parameters                                       | Specify parameters to use with `gsva()`               |
 
 
 ### `qusage`
