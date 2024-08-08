@@ -20,8 +20,22 @@ Files are listed below by the notebook that produces them:
 
 Note that the output files from `scripts/run_SRR585570.sh` script are already present at:
 
-- `/shared/data/training-modules/RNA-seq/data/salmon-quant/SRR585570/`
+- `/shared/data/training-modules/RNA-seq/data/gastric-cancer/salmon_quant/SRR585570/`
 - `/shared/data/training-modules/RNA-seq/QC/gastric-cancer/fastp/SRR585570/`
 - `/shared/data/training-modules/RNA-seq/QC/gastric-cancer/fastqc/SRR585570/`
 
-so do not need to be added to the `training-data` directory, could be needed during training.
+
+
+To make sure all of these directories are in uniform locations for "magic files", run the following commands (or similar) to create links (replacing `<date>`):
+
+```
+data_dir=/shared/data/training-data/<date>/RNA-seq/data/gastric-cancer
+qc_dir=/shared/data/training-data/<date>/RNA-seq/QC
+
+mkdir -p $data_dir
+mkdir -p $qc_dir
+
+ln -s /shared/data/training-modules/RNA-seq/data/gastric-cancer/salmon_quant ${data_dir}/salmon_quant
+ln -s /shared/data/training-modules/RNA-seq/QC/gastric-cancer ${qc_dir}/gastric-cancer
+```
+
