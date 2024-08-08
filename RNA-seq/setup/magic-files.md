@@ -17,16 +17,13 @@ Files are listed below by the notebook that produces them:
   - `results/NB-cell/NB-cell_DESeq_amplified_v_nonamplified_results.tsv`
 
 
-
 Note that the output files from `scripts/run_SRR585570.sh` script are already present at:
 
 - `/shared/data/training-modules/RNA-seq/data/gastric-cancer/salmon_quant/SRR585570/`
 - `/shared/data/training-modules/RNA-seq/QC/gastric-cancer/fastp/SRR585570/`
 - `/shared/data/training-modules/RNA-seq/QC/gastric-cancer/fastqc/SRR585570/`
 
-
-
-To make sure all of these directories are in uniform locations for "magic files", run the following commands (or similar) to create links (replacing `<date>`):
+To make sure all of these directories can be found in uniform locations for "magic files", run the following commands (or similar) to create links (replacing `<date>`):
 
 ```
 data_dir=/shared/data/training-data/<date>/RNA-seq/data/gastric-cancer
