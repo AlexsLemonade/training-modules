@@ -34,7 +34,7 @@ For this analysis, we will go back to the expression data from the PDX medullobl
 
 ```{r input_file}
 input_dir <- file.path("..", "RNA-seq", "data", "medulloblastoma")
-rnaseq_file <- file.path(input_dir, "txi", "medulloblastoma_txi.RDS")
+rnaseq_file <- file.path(input_dir, "txi", "medulloblastoma_txi.rds")
 ```
 
 Let's save the GSVA results to `results/medulloblastoma`.
@@ -48,9 +48,7 @@ We'll also save a heatmap at the end of the notebook, so we'll set up the direct
 
 ```{r plot_output}
 plots_dir <- "plots"
-if (!dir.exists(plots_dir)) {
-  dir.create(plots_dir)
-}
+fs::dir_create(plots_dir)
 
 heatmap_file <- file.path(plots_dir, "gsva_heatmap.png")
 ```
@@ -122,10 +120,10 @@ In the block below, find the minimum TPM value _that isn't zero_ and save it to 
 If the value you got was `0.5`, then you probably extracted the `counts` matrix rather than TPM!
 (Not all of the counts are integers, because of the estimation procedures that Salmon uses.)
 
-Now we can take the log of the TPM values plus `min_tmp`.
+Now we can take the `log2()` of the TPM values plus `min_tmp`.
 
 ```{r log_tpm}
-rnaseq_logtpm <- log(rnaseq_tpm + min_tpm)
+rnaseq_logtpm <- log2(rnaseq_tpm + min_tpm)
 ```
 
 ### Convert gene identifiers
@@ -143,11 +141,11 @@ For GSVA, we'll use Entrez IDs, so we will now convert the IDs we had
 ```{r convert_rnaseq}
 rnaseq_df <- rnaseq_df |>
   dplyr::mutate(entrez_id = mapIds(org.Hs.eg.db,
-                                   keys = rnaseq_df$gene_id,
-                                   column = "ENTREZID",
-                                   keytype = "ENSEMBL",
-                                   multiVals = "first")
-  ) |>
+    keys = rnaseq_df$gene_id,
+    column = "ENTREZID",
+    keytype = "ENSEMBL",
+    multiVals = "first"
+  )) |>
   # Remove genes that do not have Entrez IDs
   dplyr::filter(!is.na(entrez_id)) |>
   # This step puts the Entrez IDs as the first column and selects all the
