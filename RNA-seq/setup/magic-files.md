@@ -12,6 +12,7 @@ Files are listed below by the notebook that produces them:
   - `data/gastric-cancer/txi/gastric-cancer_tximeta.rds`
 - `setup/ref_notebooks/04-nb_cell_line_tximeta.Rmd` (participants create their own notebook for this step)
   - `data/NB-cell/txi/NB-cell_tximeta.rds`
+  - For convenience, we should also copy `setup/ref_notebooks/04-nb_cell_line_tximeta.Rmd` to `/shared/data/training-data/<date>/RNA-seq/nb_cell_tximeta.Rmd`, to match the activity instructions for notebook name.
 - `05-nb_cell_line_DESeq2.Rmd`
   - `results/NB-cell/NB-cell_DESeq_amplified_v_nonamplified.rds`
   - `results/NB-cell/NB-cell_DESeq_amplified_v_nonamplified_results.tsv`
