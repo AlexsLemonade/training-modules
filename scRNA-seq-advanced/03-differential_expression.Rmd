@@ -79,9 +79,7 @@ sample_metadata_file <- file.path(data_dir,
 
 # directory to store output
 deseq_dir <- file.path("analysis", "rms", "deseq")
-if(!dir.exists(deseq_dir)){
-  dir.create(deseq_dir, recursive = TRUE)
-}
+fs::dir_create(deseq_dir)
 
 # results file to output from DE analysis
 deseq_output_file <- file.path(deseq_dir, 
@@ -208,7 +206,7 @@ In the chunk below we will start by taking a look at our integration results and
 # UMAP of all samples, separating by diagnosis group
 scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
-                       colour_by = "diagnosis_group",
+                       color_by = "diagnosis_group",
                        point_size= 0.5,
                        point_alpha = 0.2) 
 ```
@@ -230,7 +228,7 @@ The samples which could be further classified have a mix of `Tumor_Mesoderm`, `T
 scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
                        # color each point by cell type
-                       colour_by = "celltype_broad",
+                       color_by = "celltype_broad",
                        point_size= 0.5, 
                        point_alpha = 0.4)
 ```
@@ -250,7 +248,7 @@ In the below plot we will color our cells by cell type while also using `facet_g
 scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
                        # color each point by cell type
-                       colour_by = "celltype_broad",
+                       color_by = "celltype_broad",
                        point_size= 0.5, 
                        point_alpha = 0.4,
                        # tell scater to use diagnosis_group for plotting
@@ -277,6 +275,7 @@ ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
       y = "Proportion of cells", 
       fill = "Cell type"
     ) +
+  scale_fill_brewer(palette = "Dark2") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
   # facet by diagnosis group 
@@ -681,7 +680,7 @@ myoblast_combined_sce <- rms_sce[, which(rms_sce$celltype_broad == "Tumor_Myobla
 # plot PTPRT (ENSG00000196090) expression in ARMS vs. ERMS
 scater::plotReducedDim(myoblast_combined_sce,
                        dimred = "fastmnn_UMAP",
-                       colour_by = "ENSG00000196090", #PTPRT
+                       color_by = "ENSG00000196090", #PTPRT
                        point_size= 0.5,
                        point_alpha = 0.4,
                        other_fields = "diagnosis_group") +
@@ -720,7 +719,7 @@ scater::plotExpression(tumor_sce,
                        # a vector of genes to plot
                        features = genes_to_plot, 
                        x = "diagnosis_group", 
-                       colour_by = "diagnosis_group",
+                       color_by = "diagnosis_group",
                        other_fields = "celltype_broad",
                        point_size = 0.1) +
   # each celltype is its own column
@@ -729,7 +728,7 @@ scater::plotExpression(tumor_sce,
              rows = vars(Feature)) + 
   # change the font size of the facet labels
   theme(strip.text = element_text(size = 7)) + 
-  guides(colour = guide_legend(
+  guides(color = guide_legend(
     title = "Subtype", # update the legend title
     # change the size of the legend colors
     override.aes = list(size = 3, alpha = 1))
