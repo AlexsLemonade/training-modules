@@ -1,46 +1,81 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Pathway Analysis: AUCell"
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+author: CCDL for ALSF
+date: 2024
 ---
 
-```{r}
-library(AUCell)
-library(GSEABase)
-library(msigdbr)
+## Objectives
 
+
+
+---
+
+https://bioconductor.org/packages/release/bioc/vignettes/AUCell/inst/doc/AUCell.html
+
+## Set up
+
+### Libraries
+
+```{r libraries}
+# We will
 suppressPackageStartupMessages({
   library(SingleCellExperiment)
 })
+
+# Gene sets
+library(AUCell)
+library(GSEABase)
+library(msigdbr)
+```
+### Directories and files
+
+#### Directories
+
+```{r setup_directories}
+
 ```
 
-# Set up gene sets
+#### Files
 
-```{r show_species}
-msigdbr_species()
+```{r setup_files}
+sce_file <- "data/ewing-sarcoma/processed/SCPCS000490/SCPCL000822_processed.rds"
 ```
 
-MSigDB contains 8 different gene set collections.
+### Functions
 
-    H: hallmark gene sets
-    C1: positional gene sets
-    C2: curated gene sets
-    C3: motif gene sets
-    C4: computational gene sets
-    C5: GO gene sets
-    C6: oncogenic signatures
-    C7: immunologic signatures
-    
-EWS gene sets are in C2.
+```{r source_functions}
 
-```{r}
+```
+
+
+## Set up gene sets
+
+We are going to use two gene sets pertaining to Ewing Sarcoma.
+
+
+```{r genesets}
 ewing_gene_set_names <- c("ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
                           "RIGGI_EWING_SARCOMA_PROGENITOR_UP")
+```
 
+These gene sets come from the C2 gene set collection from MSigDB.
+Let's retrieve them using `msigdbr()`.
+
+```{r extract_genesets, live = TRUE}
 ewing_gene_sets_df <- msigdbr(species = "Homo sapiens",
                               category = "C2",
                               subcategory = "CGP") |>
   dplyr::filter(gs_name %in% ewing_gene_set_names)
+```
 
+`AUCell` uses gene sets in a particular format that comes from the `GSEABase` package.
+We need to create a `GeneSetCollection`.
+
+```{r}
 ewing_gene_set_collection <- ewing_gene_set_names |>
   purrr::map(
     \(gene_set_name) ewing_gene_sets_df |>
@@ -50,34 +85,34 @@ ewing_gene_set_collection <- ewing_gene_set_names |>
               geneIdType = ENSEMBLIdentifier())
   ) |>
   GeneSetCollection()
-
-
-
 ```
 
 
+## Read in and prepare SingleCellExperiment
 
-# Read in data
-
-```{r}
-sce <- readr::read_rds("data/ewing-sarcoma/processed/SCPCS000490/SCPCL000822_processed.rds")
+```{r read_in_sce, live = TRUE}
+sce <- readr::read_rds(sce_file)
 ```
 
-```{r}
-head(colData(sce))
-```
+The `AUCell` functions takes an expression matrix with genes as rows and cells as column.
+We can save a counts matrix in sparse format for use with `AUCell`.
 
-```{r}
+```{r sparse_matrix}
+# Extract counts matrix and save in sparse format
 counts_matrix <- counts(sce) |>
   as("dgCMatrix")
 ```
 
-```{r}
+There may be genes in our gene set that do not appear in the SingleCellExperiment object.
+We can remove them using the `subsetGeneSets()` function.
+
+```{r subset_gene_sets, live = TRUE}
 # Remove genes from gene sets if they are not in the SCE
 ewing_gene_set_collection <- subsetGeneSets(ewing_gene_set_collection,
                                             rownames(counts_matrix))
 ```
 
+## AUCell
 
 ```{r}
 set.seed(2024)
@@ -85,39 +120,28 @@ cell_rankings <- AUCell_buildRankings(counts_matrix)
 ```
 
 ```{r}
+plot_AUC(cell_rankings,
+         ewing_gene_set_collection,
+         gene_set_name = "ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
+         barcode = "CTGAGCGGTCTTTATC",
+         top_threshold = 0.05) 
+```
+```{r}
+plot_AUC(cell_rankings,
+         ewing_gene_set_collection,
+         gene_set_name = "ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
+         barcode = "AGATAGAGTCACAATC",
+         top_threshold = 0.05) 
+```
+
+
+```{r}
 cell_auc <- AUCell_calcAUC(ewing_gene_set_collection, cell_rankings)
 
 ```
 
 ```{r}
-# Adapted from https://github.com/aertslab/AUCell/blob/91753b327a39dc7a4bbed46408ec2271c485f2f0/vignettes/AUCell.Rmd#L295-L316
-zhang_gene_set_ranks <- cell_rankings[geneIds(ewing_gene_set_collection)[["ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION"]], ]
 
-positive_example_barcode <- "CTGAGCGGTCTTTATC"  # 1 
-negative_example_barcode <- "AGATAGAGTCACAATC" # 7
-
-par(mfrow=c(1,2))
-set.seed(222)
-aucMaxRank <- nrow(cell_rankings)*0.05
-na <- sapply(c(1, 7), function(i){
-  x <- sort(getRanking(zhang_gene_set_ranks[,i]))
-  aucCurve <- cbind(c(0, x, nrow(cell_rankings)), c(0:length(x), length(x)))
-  op <- par(mar=c(5, 6, 4, 2) + 0.5)
-  plot(aucCurve, 
-       type="s", col="darkblue", lwd=1, 
-       xlab="Gene rank", ylab="# genes in the gene set", 
-       xlim=c(0, aucMaxRank*2), ylim=c(0, nGenes(ewing_gene_set_collection[["ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION"]])), 
-       main="Recovery curve", 
-       sub=paste("Cell:", colnames(zhang_gene_set_ranks)[i]))
-  aucShade <- aucCurve[which(aucCurve[,1] < aucMaxRank),]
-  aucShade <- rbind(aucShade, c(aucMaxRank, nrow(aucShade)))
-  aucShade[,1] <-  aucShade[,1]-1
-  aucShade <- rbind(aucShade, c(max(aucShade),0))
-  polygon(aucShade, col="#0066aa40", border=FALSE)
-  
-  abline(v=aucMaxRank, lty=2)
-  text(aucMaxRank-50, 5, "AUC")
-})
 
 ```
 
