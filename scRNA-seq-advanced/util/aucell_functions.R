@@ -1,10 +1,10 @@
 
-plot_AUC <- function(cell_rankings,
-                     gene_set_collection,
-                     gene_set_name,
-                     barcode,
-                     top_threshold = 0.05,
-                     seed = 2024) {
+plot_recovery_curve <- function(cell_rankings,
+                                gene_set_collection,
+                                gene_set_name,
+                                barcode,
+                                auc_max_rank,
+                                seed = 2024) {
 
   # Adapted from https://github.com/aertslab/AUCell/blob/91753b327a39dc7a4bbed46408ec2271c485f2f0/vignettes/AUCell.Rmd#L295-L316
 
@@ -18,14 +18,13 @@ plot_AUC <- function(cell_rankings,
   # Index of the cell with the barcode
   barcode_index <- which(colnames(gene_set_ranks) == barcode)
 
-  # The max rank for computing the AUC will be determined by the threshold
-  aucMaxRank <- nrow(cell_rankings) * top_threshold
+  aucMaxRank <- auc_max_rank
   sorted_ranks <- sort(getRanking(gene_set_ranks[, barcode_index]))
   aucCurve <- cbind(c(0, sorted_ranks, nrow(cell_rankings)), c(0:length(sorted_ranks), length(sorted_ranks)))
   plot(aucCurve,
        type="s", col="darkblue", lwd=1,
        xlab="Gene rank", ylab="# genes in the gene set",
-       xlim=c(0, aucMaxRank*2), ylim=c(0, nGenes(gene_set)),
+       xlim=c(0, aucMaxRank*3), ylim=c(0, nGenes(gene_set)),
        main="Recovery curve",
        sub=paste("Cell:", colnames(gene_set_ranks)[barcode_index]))
   aucShade <- aucCurve[which(aucCurve[,1] < aucMaxRank),]
