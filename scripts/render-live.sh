@@ -36,6 +36,7 @@ files=(
   scRNA-seq-advanced/02-dataset_integration.Rmd
   scRNA-seq-advanced/03-differential_expression.Rmd
   scRNA-seq-advanced/04-gene_set_enrichment_analysis.Rmd
+  scRNA-seq-advanced/05-aucell.Rmd
   # machine-learning/01-openpbta_heatmap.Rmd
   # machine-learning/02-openpbta_consensus_clustering.Rmd
   # machine-learning/03-openpbta_PLIER.Rmd
