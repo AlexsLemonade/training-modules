@@ -35,6 +35,8 @@ mkdir -p scRNA-seq/data/PBMC-TotalSeqB/normalized/
 # scRNA-seq-advanced module directories
 mkdir -p scRNA-seq-advanced/analysis/mouse-liver
 mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
+mkdir -p scRNA-seq-advanced/data/ewing-sarcoma/annotations
+mkdir -p scRNA-seq-advanced/data/ewing-sarcoma/processed
 mkdir -p scRNA-seq-advanced/data/glioblastoma-10x
 mkdir -p scRNA-seq-advanced/data/rms/integrated
 mkdir -p scRNA-seq-advanced/data/rms/annotations
@@ -83,6 +85,8 @@ link_locs=(
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
   scRNA-seq-advanced/data/glioblastoma-10x/raw_feature_bc_matrix
+  scRNA-seq-advanced/data/ewing-sarcoma/annotations/ewing_sarcoma_sample_metadata.tsv
+  scRNA-seq-advanced/data/ewing-sarcoma/processed
   scRNA-seq-advanced/data/hodgkins/markers
   scRNA-seq-advanced/data/reference
   scRNA-seq-advanced/data/rms/processed
