@@ -37,6 +37,7 @@ sync_dirs=(
   scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12
   scRNA-seq/data/reference
   scRNA-seq/index/Mus_musculus
+  scRNA-seq-advanced/data/ewing-sarcoma/processed
   scRNA-seq-advanced/data/glioblastoma-10x/raw_feature_bc_matrix
   scRNA-seq-advanced/data/hodgkins/markers
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
@@ -59,6 +60,7 @@ sync_files=(
   scRNA-seq/data/tabula-muris/normalized/TM_normalized.rds
   scRNA-seq/data/tabula-muris/TM_droplet_metadata.csv
   scRNA-seq-advanced/analysis/mouse-liver/markers/cluster07_markers.tsv
+  scRNA-seq-advanced/data/ewing-sarcoma/annotations/ewing_sarcoma_sample_metadata.tsv
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv
 )
