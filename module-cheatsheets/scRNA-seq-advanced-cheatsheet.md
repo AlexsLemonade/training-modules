@@ -29,6 +29,10 @@ If you have a different version of R or other R packages, the documentation may 
   - [`purrr` functions](#purrr-functions)
   - [`ggplot2` functions](#ggplot2-functions)
   - [`dplyr`, `tidyr`,`stringr`, and `tibble` functions](#dplyr-tidyrstringr-and-tibble-functions)
+- [Pathway analysis](#pathway-analysis)
+  - [`msigdbr`](#msigdbr)
+  - [`clusterProfiler` and `enrichplot`](#clusterprofiler-and-enrichplot)
+  - [`AUCell` and `GSEABase`](#aucell-and-gseabase)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -186,3 +190,37 @@ Read the full documentation and download cheatsheets (where available) for these
 | `tibble`| [`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html) | As tibble | Convert an object to a tibble |
 | `stringr`| [`str_detect()`](https://stringr.tidyverse.org/reference/str_detect.html) | String detect | Returns `TRUE`/`FALSE` if a string contains a given substring|
 | `stringr`| [`str_starts()`](https://stringr.tidyverse.org/reference/str_starts.html) | String starts | Returns `TRUE`/`FALSE` if a string starts with a given substring|
+
+## Pathway analysis
+
+### `msigdbr`
+
+Read the [`msigdbr` package documentation](https://cran.r-project.org/web/packages/msigdbr/msigdbr.pdf) and [its vignette](https://cran.r-project.org/web/packages/msigdbr/vignettes/msigdbr-intro.html).
+
+| Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
+|-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
+| `msigdbr` | `msigdbr_species()` | List `msigdbr`-supported species | Lists the species `msigdbr` supports |
+| `msigdbr` | [`msigdbr()`](https://rdrr.io/github/dekanglv/RpacEx/man/msigdbr.html) | Retrieve gene set | Retrieves gene sets and member genes in long data frame format |
+
+### `clusterProfiler` and `enrichplot`
+
+Read the [`clusterProfiler` package documentation (PDF)](https://www.bioconductor.org/packages/release/bioc/manuals/clusterProfiler/man/clusterProfiler.pdf).
+
+| Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
+|-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
+| `clusterProfiler`                | [`GSEA()`](https://rdrr.io/bioc/clusterProfiler/man/GSEA.html)             | Gene Set Enrichment Analysis (GSEA)                                         | Performs a universal gene set enrichment analysis on given preranked (sorted) named vector of statistics, where the names in the vector are gene identifiers of gene sets                     |
+| `enrichplot`                | [`gseaplot()`](https://yulab-smu.github.io/clusterProfiler-book/chapter12.html#running-score-and-preranked-list-of-gsea-result)             | GSEA plot                                       | Produces a plot visualization displaying the distribution of gene set and enrichment score                      |
+
+### `AUCell` and `GSEABase`
+
+Read the [`AUCell` package documentation](https://bioconductor.org/packages/release/bioc/manuals/AUCell/man/AUCell.pdf) and [its vignette](https://bioconductor.org/packages/release/bioc/vignettes/AUCell/inst/doc/AUCell.html).
+
+| Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
+|-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
+| `GSEABase` | [`GeneSet()`](https://rdrr.io/bioc/GSEABase/man/GeneSet-class.html) | Gene set | Constructs a gene set as a `GeneSet` object for use with `AUCell` |
+| `GSEABase` | [`GeneSetCollection()`](https://rdrr.io/bioc/GSEABase/man/GeneSetCollection-class.html) | Gene set collection | Constructs a collection of gene sets as a `GeneSetCollection` object for use with `AUCell`
+| `AUCell` | [`AUCell_buildRankings()`](https://rdrr.io/bioc/AUCell/man/AUCell_buildRankings.html) | Build cell rankings | Builds a ranking of genes for each cell that is used to calculate the recovery curve | 
+| `AUCell` | [`AUCell_calcAUC()`](https://rdrr.io/bioc/AUCell/man/AUCell_calcAUC.html) | Calculate AUC | Calculates the area under the recovery curve (AUC) for each gene set in each cell |
+| `AUCell` | [`AUCell_exploreThresholds()`](https://rdrr.io/bioc/AUCell/man/AUCell_exploreThresholds.html) | Explore thresholds | Calculates thresholds in AUC values that can be used to assign cells; optionally makes assignments and produces histograms |
+
+
