@@ -5,7 +5,7 @@ set -euo pipefail
 # Profile to use with the download script
 PROFILE=${PROFILE:-openscpca}
 # Release to download
-RELEASE=${RELEASE:-2024-08-22}
+RELEASE=${RELEASE:-2024-11-25}
 
 # Set the working directory to the directory of this file
 cd "$(dirname "${BASH_SOURCE[0]}")"
