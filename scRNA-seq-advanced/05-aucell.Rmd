@@ -157,15 +157,11 @@ sce <- readr::read_rds(sce_file)
 ```
 
 The `AUCell` functions takes an expression matrix with genes as rows and cells as column.
+We can extract a counts matrix in sparse format for use with `AUCell`.
 
-We can save a counts matrix in sparse format for use with `AUCell`.
-If tools can take sparse matrices directly, saving matrices in sparse format can help us save on memory if that's a concern.
-If we were truly concerned about memory, we could remove `sce` from the environment with `rm()` after this step.
-
-```{r sparse_matrix}
-# Extract counts matrix and save in sparse format
-counts_matrix <- counts(sce) |>
-  as("dgCMatrix")
+```{r counts_matrix}
+# Extract counts matrix
+counts_matrix <- counts(sce)
 ```
 
 There may be genes in our gene set that do not appear in the SingleCellExperiment object.
@@ -197,7 +193,7 @@ set.seed(2024)
 The first step in AUCell is to rank genes for each cell from highest to lowest expression value.
 We can do this using the `AUCell_buildRankings()` function, which will output a visualization showing the distribution of the number of genes detected in the cells in our SingleCellExperiment object.
 
-```{r cell_rankings, live=TRUE}
+```{r cell_rankings, live = TRUE}
 cell_rankings <- AUCell_buildRankings(counts_matrix)
 ```
 
@@ -279,7 +275,7 @@ This function returns an `aucellResults` object.
 str(cell_auc)
 ```
 
-To save this to a file, we'll likely want this in a tabular format.
+It can be much more convenient to work with this in a tabular format.
 
 ```{r auc_to_table}
 # Extract AUC
@@ -293,16 +289,6 @@ auc_df <- cell_auc@assays@data$AUC |>
 
 # Look at first few rows
 head(auc_df)
-```
-
-Let's write this table to the output file.
-
-```{r write_auc_df, live = TRUE}
-auc_df |>
-  # Use shorter names to save to file
-  dplyr::rename(zhang_auc = ewing_gene_set_names[["zhang"]],
-                riggi_auc = ewing_gene_set_names[["riggi"]]) |>
-  readr::write_tsv(file = output_file)
 ```
 
 ### Assignments
@@ -326,7 +312,8 @@ auc_plotting_df <- auc_df |>
   dplyr::mutate(
     # Create a new logical column called assigned
     assigned = dplyr::case_when(
-      # For Zhang gene set rows, set to TRUE when the barcode is in the assignment list
+      # For Zhang gene set rows, set to TRUE when the barcode is in the 
+      # assignment list
       gene_set == ewing_gene_set_names[["zhang"]] & 
         barcodes %in% auc_assignments[[ewing_gene_set_names[["zhang"]]]]$assignment ~ TRUE,
       # For Riggi gene set rows, set to TRUE when the barcode is in the 
@@ -353,6 +340,7 @@ auc_threshold_df <- data.frame(
 
 auc_threshold_df
 ```
+
 Now let's make a density plot, plotting the density of the assigned and unassigned cells separately and drawing a vertical line for the threshold.
 
 ```{r auc_density_plot}
@@ -377,6 +365,13 @@ auc_plotting_df |>
 
 For these particular gene sets, the AUC values appear to be bimodally distributed, and we can easily identify cells where the genes are highly expressed.
 
+Let's write this table to the output file.
+
+```{r}
+auc_plotting_df |> 
+  readr::write_tsv(output_file)
+```
+
 ### UMAPs
 
 #### Adding AUC to `colData`
@@ -384,16 +379,25 @@ For these particular gene sets, the AUC values appear to be bimodally distribute
 We can also add the AUC values back into the SingleCellExperiment for convenience, e.g., for plotting.
 We'll add it to the existing `colData`.
 
+First, let's rename the gene set columns to something more easily typed.
+
+```{r rename_gene_set}
+auc_df <- auc_df |>
+  # Use shorter names
+  dplyr::rename(zhang_auc = ewing_gene_set_names[["zhang"]],
+                riggi_auc = ewing_gene_set_names[["riggi"]])
+
+```
+
+And join it to the existing `colData`.
+
 ```{r coldata, live = TRUE}
 # Extract the existing colData, and left join it with the AUC values by the
 # barcodes
 coldata_df <- colData(sce) |>
   as.data.frame() |>
   dplyr::left_join(
-    auc_df |> 
-      # Use shorter names
-      dplyr::rename(zhang_auc = ewing_gene_set_names[["zhang"]],
-                    riggi_auc = ewing_gene_set_names[["riggi"]]),
+    auc_df,
     by = "barcodes"
   )
 ```
