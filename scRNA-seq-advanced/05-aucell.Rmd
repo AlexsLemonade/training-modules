@@ -18,9 +18,24 @@ date: 2024
 
 ---
 
-In this notebook, we'll demonstrate how to use the AUCell method, introduced in [Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463), to calculate numeric values that estimate the activity of a gene set in an individual cell.
+In this notebook, we'll demonstrate how to use the AUCell method, introduced in [Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463).
+
+We can use AUCell when we are interested in a gene set's relative expression or activity in an individual cell.
+Gene sets can come from a curated collection of prior knowledge, like the Hallmark collection we used in the last notebook, or we can use our own custom gene sets (e.g., a set of marker genes for a cell type of interest).
+
+A nice feature of AUCell is that it is based on ranking genes from highest to lowest expression value in an individual cell, which is helpful in the following ways ([AUCell vignette](https://bioconductor.org/packages/release/bioc/vignettes/AUCell/inst/doc/AUCell.html)):
+
+- It can take a number of different values as input (e.g., raw counts, TPM) 
+- It compensates for differences in library size, where something like averaging raw count values of genes in a gene set would not 
+- It scales to larger datasets, since creating rankings is not as resource-intensive as something like permutation testing, and we could split up the object into subsets of cells if needed
 
 AUCell calculates the area under the recovery curve (AUC), which "represents the proportion of expressed genes in the signature and their relative expression value compared to the other genes within the cell" ([Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463)).
+We will visualize some recovery curves in the notebook to give you a better intuition about the AUC and its meaning.
+
+The AUC values we get out of AUCell can be used in a number of ways ([Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463)):
+
+- As continuous values we can use for visualization or clustering
+- For binary assignment (i.e., "on" and "off" or "expressed" and "not expressed") if we pick a threshold either automatically using built-in functionality or manually by inspecting the distribution of scores ourselves
 
 We will use an snRNA-seq of a Ewing sarcoma sample from the [`SCPCP000015` project](https://scpca.alexslemonade.org/projects/SCPCP000015) on the Single-cell Pediatric Cancer Atlas Portal and two relevant gene sets from the Molecular Signatures Database (MSigDB) to demonstrate this method.
 
@@ -29,8 +44,7 @@ We will use an snRNA-seq of a Ewing sarcoma sample from the [`SCPCP000015` proje
 ### Libraries
 
 ```{r libraries}
-# We will be loading a SingleCellExperiment object into our environment but 
-# don't need to see the startup messages
+# We will be loading a SingleCellExperiment object into our environment but don't need to see the startup messages
 suppressPackageStartupMessages({
   library(SingleCellExperiment)
 })
@@ -42,6 +56,7 @@ library(AUCell)
 library(GSEABase)
 library(msigdbr)
 ```
+
 ### Directories and files
 
 #### Directories
@@ -96,8 +111,11 @@ We are going to use two gene sets pertaining to Ewing sarcoma.
 We would expect both of these gene sets to have high expression in tumor cells.
 
 ```{r genesets}
-ewing_gene_set_names <- c("ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
-                          "RIGGI_EWING_SARCOMA_PROGENITOR_UP")
+# Create a named vector with the relevant gene set names
+ewing_gene_set_names <- c(zhang = "ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
+                          riggi = "RIGGI_EWING_SARCOMA_PROGENITOR_UP")
+
+ewing_gene_set_names
 ```
 
 These gene sets come from the C2 gene set collection from MSigDB.
@@ -118,15 +136,15 @@ ewing_gene_set_collection <- ewing_gene_set_names |>
   purrr::map(
     # For each gene set
     \(gene_set_name) {
-    ewing_gene_sets_df |>
-      # Subset to the rows in that gene set
-      dplyr::filter(gs_name == gene_set_name) |>
-      # Grab the Ensembl gene identifiers
-      dplyr::pull(ensembl_gene) |>
-      # Create a GeneSet object
-      GeneSet(setName = gene_set_name,
-              geneIdType = ENSEMBLIdentifier())
-              }
+      ewing_gene_sets_df |>
+        # Subset to the rows in that gene set
+        dplyr::filter(gs_name == gene_set_name) |>
+        # Grab the Ensembl gene identifiers
+        dplyr::pull(ensembl_gene) |>
+        # Create a GeneSet object
+        GeneSet(setName = gene_set_name,
+                geneIdType = ENSEMBLIdentifier())
+    }
   ) |>
   # Turn the list of GeneSet objects into a GeneSet collection
   GeneSetCollection()
@@ -139,7 +157,10 @@ sce <- readr::read_rds(sce_file)
 ```
 
 The `AUCell` functions takes an expression matrix with genes as rows and cells as column.
+
 We can save a counts matrix in sparse format for use with `AUCell`.
+If tools can take sparse matrices directly, saving matrices in sparse format can help us save on memory if that's a concern.
+If we were truly concerned about memory, we could remove `sce` from the environment with `rm()` after this step.
 
 ```{r sparse_matrix}
 # Extract counts matrix and save in sparse format
@@ -158,10 +179,14 @@ ewing_gene_set_collection <- subsetGeneSets(ewing_gene_set_collection,
 
 ## AUCell
 
-AUCell relies on gene rankings, but we expect a proportion of genes are not detected.
+AUCell relies on ranking genes from highest to lowest expression value to calculate the AUC.
+The AUC is the area under the recovery curve, which captures the number of genes in a gene set that are present in the rankings above some threshold (i.e., it is the area under the curve to the left of this gene rank).
+By default, the top 5% of genes are used as the threshold.
+
+Some genes will not be detected (i.e., have 0 counts).
 Genes can also have the same expression level (i.e., ties).
-These undetected genes and ties will be randomly ordered.
-To make our results reproducible, we will set a seed.
+These undetected genes and ties will be randomly ordered in our ranking.
+To make our rankings – and therefore results – reproducible, we will set a seed.
 
 ```{r set_seed, live = TRUE}
 set.seed(2024)
@@ -169,12 +194,18 @@ set.seed(2024)
 
 ### Cell ranking
 
-The first step in AUCell is to rank genes for each cell from highest to lowest values.
+The first step in AUCell is to rank genes for each cell from highest to lowest value.
+We can do this using the `AUCell_buildRankings()` function, which will output a visualization the distribution of the number of genes detected in the cells in our SingleCellExperiment object.
 
 ```{r cell_rankings}
 cell_rankings <- AUCell_buildRankings(counts_matrix)
 ```
-We want to make sure most cells have at least the number of genes we will use to calculate the AUC.
+
+The AUCell authors recommend making sure most cells have at least the number of genes we will use as the max rank to calculate the AUC.
+
+The AUC max rank value tells AUCell the cutoff in the gene rankings to use for calculating AUC; we will visualize this curve and max rank in just a moment.
+If we picked a max rank higher than the number of genes detected in most cells, the non-detected genes that are randomly ordered would play an outsized role in our AUC values.
+
 By default, the max rank is the top 5% highest expressed genes.
 We can calculate the default max rank by taking into account the number of genes.
 
@@ -182,7 +213,8 @@ We can calculate the default max rank by taking into account the number of genes
 nrow(cell_rankings) * 0.05
 ```
 
-This number is probably too high, given the distribution of the number of genes detected by cell.
+This number is probably too high, given the distribution of the number of genes detected by cell we visualized with `AUCell_buildRankings()`.
+
 What if we chose a 1% threshold?
 
 ```{r lower_max_rank, live = TRUE}
@@ -190,6 +222,7 @@ nrow(cell_rankings) * 0.01
 ```
 
 That is probably a more reasonable choice for this dataset.
+
 We can use a function called `ceiling()` to round this and save it to a variable for later use.
 
 ```{r auc_max_rank, live = TRUE}
@@ -198,7 +231,7 @@ auc_max_rank <- ceiling(nrow(cell_rankings) * 0.01)
 
 ### Plotting AUC
 
-The scores or values we get out of AUCell are the area under a recovery curve and estimate the proportion of genes in the gene set that are highly expressed (i.e., highly ranked).
+The AUC values we get out of AUCell are the area under a recovery curve and estimate the proportion of genes in the gene set that are highly expressed (i.e., highly ranked).
 
 Let's make two plots to get a better intuition about AUC values.
 Earlier, we loaded a custom function we adapted from [the AUCell vignette](https://github.com/aertslab/AUCell/blob/91753b327a39dc7a4bbed46408ec2271c485f2f0/vignettes/AUCell.Rmd) called `plot_recovery_curve()` with `source()`.
@@ -215,7 +248,7 @@ plot_recovery_curve(cell_rankings,
 ```
 
 The x-axis is the gene ranks for all genes.
-The y-axis is the number of genes in the signature at a given point in the gene ranking -- the line will rise when a gene in the gene set is encountered in the ranking from highest to lowest.
+The y-axis is the number of genes in the signature at a given point in the gene ranking – the line will rise when a gene in the gene set is encountered in the ranking from highest to lowest.
 The AUC is the area under this recovery curve at the max rank threshold chosen for this dataset.
 
 Now, let's look at an example with a low AUC.
@@ -267,14 +300,14 @@ Let's write this table to the output file.
 ```{r write_auc_df, live = TRUE}
 auc_df |>
   # Use shorter names to save to file
-  dplyr::rename(zhang_auc = ewing_gene_set_names[1],
-                riggi_auc = ewing_gene_set_names[2]) |>
+  dplyr::rename(zhang_auc = ewing_gene_set_names[["zhang"]],
+                riggi_auc = ewing_gene_set_names[["riggi"]]) |>
   readr::write_tsv(file = output_file)
 ```
 
 ### Assignments
 
-AUCell can assign cells as having an active gene set or not by picking a threshold.
+AUCell can assign cells as having an active gene set or not by picking a threshold automatically.
 We'll explore these in a later plot, but for now, let's calculate the threshold and assign cells with `AUCell_exploreThresholds()`.
 
 ```{r auc_assignments, live = TRUE}
@@ -294,12 +327,12 @@ auc_plotting_df <- auc_df |>
     # Create a new logical column called assigned
     assigned = dplyr::case_when(
       # For Zhang gene set rows, set to TRUE when the barcode is in the assignment list
-      gene_set == ewing_gene_set_names[1] & 
-        barcodes %in% auc_assignments[[ewing_gene_set_names[1]]]$assignment ~ TRUE,
+      gene_set == ewing_gene_set_names[["zhang"]] & 
+        barcodes %in% auc_assignments[[ewing_gene_set_names[["zhang"]]]]$assignment ~ TRUE,
       # For Riggi gene set rows, set to TRUE when the barcode is in the 
       # assignment list
-      gene_set == ewing_gene_set_names[2] & 
-        barcodes %in% auc_assignments[[ewing_gene_set_names[2]]]$assignment ~ TRUE,
+      gene_set == ewing_gene_set_names[["riggi"]] & 
+        barcodes %in% auc_assignments[[ewing_gene_set_names[["riggi"]]]]$assignment ~ TRUE,
       # Otherwise, set to FALSE
       .default = FALSE
     )
@@ -314,8 +347,8 @@ To draw vertical lines representing the automatically chosen threshold, we can c
 auc_threshold_df <- data.frame(
   gene_set = ewing_gene_set_names,
   # Grab thresholds associated with each gene set from assignements object
-  threshold = c(auc_assignments[[ewing_gene_set_names[1]]]$aucThr$selected, 
-                auc_assignments[[ewing_gene_set_names[2]]]$aucThr$selected)
+  threshold = c(auc_assignments[[ewing_gene_set_names["zhang"]]]$aucThr$selected, 
+                auc_assignments[[ewing_gene_set_names["riggi"]]]$aucThr$selected)
 )
 
 auc_threshold_df
@@ -359,8 +392,8 @@ coldata_df <- colData(sce) |>
   dplyr::left_join(
     auc_df |> 
       # Use shorter names
-      dplyr::rename(zhang_auc = ewing_gene_set_names[1],
-                    riggi_auc = ewing_gene_set_names[2]),
+      dplyr::rename(zhang_auc = ewing_gene_set_names[["zhang"]],
+                    riggi_auc = ewing_gene_set_names[["riggi"]]),
     by = "barcodes"
   )
 ```
@@ -382,7 +415,7 @@ We can use the `plotUMAP()` function from the `scater` package to plot a UMAP wi
 ```{r plot_umap_zhang}
 scater::plotUMAP(sce, colour_by = "zhang_auc") +
   # Use the gene set name, replacing underscores with spaces
-  ggplot2::ggtitle(stringr::str_replace_all(ewing_gene_set_names[1], 
+  ggplot2::ggtitle(stringr::str_replace_all(ewing_gene_set_names[["zhang"]], 
                                             "\\_", 
                                             " "))
 ```
@@ -391,7 +424,7 @@ Let's color the points by the AUC values for the other gene set.
 
 ```{r plot_umap_riggi, live = TRUE}
 scater::plotUMAP(sce, colour_by = "riggi_auc") + 
-  ggplot2::ggtitle(stringr::str_replace_all(ewing_gene_set_names[2], 
+  ggplot2::ggtitle(stringr::str_replace_all(ewing_gene_set_names[["riggi"]], 
                                             "\\_", 
                                             " "))
 ```
