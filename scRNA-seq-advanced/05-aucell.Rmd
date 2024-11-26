@@ -117,7 +117,8 @@ We need to create a `GeneSetCollection`.
 ewing_gene_set_collection <- ewing_gene_set_names |>
   purrr::map(
     # For each gene set
-    \(gene_set_name) ewing_gene_sets_df |>
+    \(gene_set_name) {
+    ewing_gene_sets_df |>
       # Subset to the rows in that gene set
       dplyr::filter(gs_name == gene_set_name) |>
       # Grab the Ensembl gene identifiers
@@ -125,6 +126,7 @@ ewing_gene_set_collection <- ewing_gene_set_names |>
       # Create a GeneSet object
       GeneSet(setName = gene_set_name,
               geneIdType = ENSEMBLIdentifier())
+              }
   ) |>
   # Turn the list of GeneSet objects into a GeneSet collection
   GeneSetCollection()
@@ -196,7 +198,7 @@ auc_max_rank <- ceiling(nrow(cell_rankings) * 0.01)
 
 ### Plotting AUC
 
-The scores or values we get out of AUCell are the area under a recovery curve and estimate the proportion of genes in the gene set are highly expressed (i.e., highly ranked).
+The scores or values we get out of AUCell are the area under a recovery curve and estimate the proportion of genes in the gene set that are highly expressed (i.e., highly ranked).
 
 Let's make two plots to get a better intuition about AUC values.
 Earlier, we loaded a custom function we adapted from [the AUCell vignette](https://github.com/aertslab/AUCell/blob/91753b327a39dc7a4bbed46408ec2271c485f2f0/vignettes/AUCell.Rmd) called `plot_recovery_curve()` with `source()`.
