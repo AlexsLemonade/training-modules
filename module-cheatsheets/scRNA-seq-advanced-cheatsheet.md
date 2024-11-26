@@ -209,7 +209,7 @@ Read the [`clusterProfiler` package documentation (PDF)](https://www.bioconducto
 | Library/Package               | Piece of Code                                                 | What it's called      | What it does                                                             |
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `clusterProfiler`                | [`GSEA()`](https://rdrr.io/bioc/clusterProfiler/man/GSEA.html)             | Gene Set Enrichment Analysis (GSEA)                                         | Performs a universal gene set enrichment analysis on given preranked (sorted) named vector of statistics, where the names in the vector are gene identifiers of gene sets                     |
-| `enrichplot`                | [`gseaplot()`](https://yulab-smu.github.io/clusterProfiler-book/chapter12.html#running-score-and-preranked-list-of-gsea-result)             | GSEA plot                                       | Produces a plot visualization displaying the distribution of gene set and enrichment score                      |
+| `enrichplot`                | [`gseaplot()`](https://yulab-smu.github.io/clusterProfiler-book/chapter12.html#running-score-and-preranked-list-of-gsea-result)             | GSEA plot                                       | Produces a plot displaying the distribution of gene set and enrichment score                      |
 
 ### `AUCell` and `GSEABase`
 
