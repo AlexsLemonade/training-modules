@@ -22,6 +22,7 @@ If you have a different version of R or other R packages, the documentation may 
 
 - [`scater`](#scater)
 - [`miQC`](#miqc)
+- [`batchelor` and `harmony`](#batchelor-and-harmony)
 - [`SingleR`](#singler)
 - [`pheatmap` and `EnhancedVolcano`](#pheatmap-and-enhancedvolcano)
 - [`DESeq2` and pseudo-bulking functions](#deseq2-and-pseudo-bulking-functions)
@@ -33,6 +34,7 @@ If you have a different version of R or other R packages, the documentation may 
   - [`msigdbr`](#msigdbr)
   - [`clusterProfiler` and `enrichplot`](#clusterprofiler-and-enrichplot)
   - [`AUCell` and `GSEABase`](#aucell-and-gseabase)
+- [`bluster`](#bluster)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -219,8 +221,23 @@ Read the [`AUCell` package documentation](https://bioconductor.org/packages/rele
 |-------------------------------|--------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------|
 | `GSEABase` | [`GeneSet()`](https://rdrr.io/bioc/GSEABase/man/GeneSet-class.html) | Gene set | Constructs a gene set as a `GeneSet` object for use with `AUCell` |
 | `GSEABase` | [`GeneSetCollection()`](https://rdrr.io/bioc/GSEABase/man/GeneSetCollection-class.html) | Gene set collection | Constructs a collection of gene sets as a `GeneSetCollection` object for use with `AUCell`
-| `AUCell` | [`AUCell_buildRankings()`](https://rdrr.io/bioc/AUCell/man/AUCell_buildRankings.html) | Build cell rankings | Builds a ranking of genes for each cell that is used to calculate the recovery curve | 
+| `AUCell` | [`AUCell_buildRankings()`](https://rdrr.io/bioc/AUCell/man/AUCell_buildRankings.html) | Build cell rankings | Builds a ranking of genes for each cell that is used to calculate the recovery curve |
 | `AUCell` | [`AUCell_calcAUC()`](https://rdrr.io/bioc/AUCell/man/AUCell_calcAUC.html) | Calculate AUC | Calculates the area under the recovery curve (AUC) for each gene set in each cell |
 | `AUCell` | [`AUCell_exploreThresholds()`](https://rdrr.io/bioc/AUCell/man/AUCell_exploreThresholds.html) | Explore thresholds | Calculates thresholds in AUC values that can be used to assign cells; optionally makes assignments and produces histograms |
 
 
+
+## `bluster`
+
+Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and vignettes on its usage:
+
+* [Flexible clustering for Bioconductor](https://rdrr.io/bioc/bluster/f/vignettes/clusterRows.Rmd)
+* [Assorted clustering diagnostics](https://rdrr.io/bioc/bluster/f/vignettes/diagnostics.Rmd)
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `bluster`| [`clusterRows()`](https://rdrr.io/bioc/bluster/man/clusterRows.html)| Cluster rows of a matrix | Perform clustering using a variety of algorithms on a matrix-like object |
+| `bluster`| [`approxSilhouette()`](https://rdrr.io/bioc/bluster/man/approxSilhouette.html)| Approximate silhouette width | Calculate an approximate silhouette width for each cell given a set of clusters |
+| `bluster`| [`neighborPurity()`](https://rdrr.io/bioc/bluster/man/neighborPurity.html)| Compute neighborhood purity | Calculate neighborhood purity for each cell given a set of clusters |
+| `bluster`| [`bootstrapStability()`](https://rdrr.io/bioc/bluster/man/bootstrapStability.html)| Assess cluster stability by bootstrapping  | Generate cluster bootstrap replicates to estimate cluster robustness to sampling noise  |
