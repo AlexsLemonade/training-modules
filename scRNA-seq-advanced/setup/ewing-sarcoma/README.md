@@ -2,7 +2,7 @@ The shell script in this directory downloads processed `SingleCellExperiment` ob
 
 You may want to run it with your OpenScPCA conda environment activated.
 
-By default, it will use an AWS profile called `openscpca` and download data from the `2024-08-22` OpenScPCA release.
+By default, it will use an AWS profile called `openscpca` and download data from the `2024-11-25` OpenScPCA release.
 
 You can alter the AWS profile or release with the following:
 
