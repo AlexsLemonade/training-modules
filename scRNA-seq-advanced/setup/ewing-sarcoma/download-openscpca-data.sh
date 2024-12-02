@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-# Profile to use with the download script
-PROFILE=${PROFILE:-openscpca}
+# AWS profile to use with the download script
+AWS_PROFILE=${AWS_PROFILE:-openscpca}
 # Release to download
 RELEASE=${RELEASE:-2024-11-25}
 
@@ -31,7 +31,7 @@ chmod +x download-data.py
     --format SCE \
     --release ${RELEASE} \
     --data-dir ${ewing_data_dir} \
-    --profile ${PROFILE}
+    --profile ${AWS_PROFILE}
 
 # # Download Ewing sarcoma metadata
 ./download-data.py \
@@ -39,7 +39,7 @@ chmod +x download-data.py
     --metadata-only \
     --release ${RELEASE} \
     --data-dir ${ewing_data_dir} \
-    --profile ${PROFILE}
+    --profile ${AWS_PROFILE}
 
 # Remove existing files from processed directory
 if [ -z "$( ls -A ${processed_dir} )" ]; then

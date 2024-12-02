@@ -1,4 +1,4 @@
-The shell script in this directory downloads processed `SingleCellExperiment` objects and metadata from tumor samples in `SCPCP000015` using the data download mechanism from OpenScPCA.
+The shell script in this directory downloads processed `SingleCellExperiment` object for the `SCPCS000203` sample from `SCPCP000006` (Wilms tumor) using the data download mechanism from OpenScPCA.
 
 You may want to run it with your OpenScPCA conda environment activated.
 

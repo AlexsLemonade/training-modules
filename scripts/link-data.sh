@@ -42,6 +42,7 @@ mkdir -p scRNA-seq-advanced/data/rms/integrated
 mkdir -p scRNA-seq-advanced/data/rms/annotations
 mkdir -p scRNA-seq-advanced/data/pancreas
 mkdir -p scRNA-seq-advanced/data/hodgkins
+mkdir -p scRNA-seq-advanced/data/wilms-tumor/processed
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -94,6 +95,7 @@ link_locs=(
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/pancreas/processed
   scRNA-seq-advanced/gene-sets
+  scRNA-seq-advanced/data/wilms-tumor/processed
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma

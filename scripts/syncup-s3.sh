@@ -45,6 +45,7 @@ sync_dirs=(
   scRNA-seq-advanced/data/rms/integrated
   scRNA-seq-advanced/data/pancreas/processed
   scRNA-seq-advanced/gene-sets
+  scRNA-seq-advanced/data/wilms-tumor/processed
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
