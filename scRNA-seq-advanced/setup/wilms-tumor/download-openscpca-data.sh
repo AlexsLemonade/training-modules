@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Profile to use with the download script
-PROFILE=${PROFILE:-openscpca}
+PROFILE=${AWS_PROFILE:-openscpca}
 # Release to download
 RELEASE=${RELEASE:-2024-11-25}
 
