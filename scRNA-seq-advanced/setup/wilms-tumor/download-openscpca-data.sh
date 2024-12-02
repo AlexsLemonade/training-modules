@@ -47,4 +47,4 @@ mv ${wilms_data_dir}/${RELEASE}/${project_id}/* ${processed_dir}
 # Clean up download data script
 rm download-data.py
 # Clean up the remnants of download structure
-rm -r ${wilms_data_dir}/${AWS_PROFILE}
+rm -r ${wilms_data_dir}/${RELEASE}
