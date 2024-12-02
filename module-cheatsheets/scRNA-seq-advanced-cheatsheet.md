@@ -238,6 +238,8 @@ Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and vi
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|--------------------|---------------------|---------------|
 | `bluster`| [`clusterRows()`](https://rdrr.io/bioc/bluster/man/clusterRows.html)| Cluster rows of a matrix | Perform clustering using a variety of algorithms on a matrix-like object |
+| `bluster`| [`KGraphParam()`](https://rdrr.io/bioc/bluster/man/KmeansParam-class.html)| K-means clustering | Run k-means clustering using `kmeans()` when provided to `bluster::clusterRows()` |
+| `bluster`| [`NNGraphParam()`](https://rdrr.io/bioc/bluster/man/NNGraphParam-class.html)| Graph-based clustering | Run community detection algorithms on a nearest-neighbor (NN) graph when provided to `bluster::clusterRows()` |
 | `bluster`| [`approxSilhouette()`](https://rdrr.io/bioc/bluster/man/approxSilhouette.html)| Approximate silhouette width | Calculate an approximate silhouette width for each cell given a set of clusters |
 | `bluster`| [`neighborPurity()`](https://rdrr.io/bioc/bluster/man/neighborPurity.html)| Compute neighborhood purity | Calculate neighborhood purity for each cell given a set of clusters |
 | `bluster`| [`bootstrapStability()`](https://rdrr.io/bioc/bluster/man/bootstrapStability.html)| Assess cluster stability by bootstrapping  | Generate cluster bootstrap replicates to estimate cluster robustness to sampling noise  |

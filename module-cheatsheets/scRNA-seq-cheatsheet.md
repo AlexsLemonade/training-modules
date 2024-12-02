@@ -18,6 +18,7 @@ If you have a different version of R or other R packages, the documentation may 
 - [`SingleCellExperiment`, `txmimeta`, and `DropletUtils`](#singlecellexperiment-txmimeta-and-dropletutils)
 - [`scran` and `scater`](#scran-and-scater)
 - [`purrr`, `stringr`, and `tibble`](#purrr-stringr-and-tibble)
+- [`bluster`](#bluster)
 - [`SingleR`](#singler)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -153,6 +154,20 @@ purrr::map(
 ```
 
 <div style="page-break-after: always;"></div>
+
+
+### `bluster`
+
+Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and [this vignette](https://rdrr.io/bioc/bluster/f/vignettes/clusterRows.Rmd) on its usage.
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `bluster`| [`clusterRows()`](https://rdrr.io/bioc/bluster/man/clusterRows.html)| Cluster rows of a matrix | Perform clustering using a variety of algorithms on a matrix-like object |
+| `bluster`| [`KGraphParam()`](https://rdrr.io/bioc/bluster/man/KmeansParam-class.html)| K-means clustering | Run k-means clustering using `kmeans()` when provided to `bluster::clusterRows()` |
+| `bluster`| [`NNGraphParam()`](https://rdrr.io/bioc/bluster/man/NNGraphParam-class.html)| Graph-based clustering | Run community detection algorithms on a nearest-neighbor (NN) graph when provided to `bluster::clusterRows()` |
+
+
 
 ### `SingleR`
 
