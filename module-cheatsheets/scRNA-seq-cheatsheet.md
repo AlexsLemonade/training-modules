@@ -165,7 +165,7 @@ Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and [t
 |----------------------|--------------------|---------------------|---------------|
 | `bluster`| [`clusterRows()`](https://rdrr.io/bioc/bluster/man/clusterRows.html)| Cluster rows of a matrix | Perform clustering using a variety of algorithms on a matrix-like object |
 | `bluster`| [`KmeansParam()`](https://rdrr.io/bioc/bluster/man/KmeansParam-class.html)| K-means clustering parameters | Set up parameters to run clustering using `kmeans()` within `bluster::clusterRows()` |
-| `bluster`| [`NNGraphParam()`](https://rdrr.io/bioc/bluster/man/NNGraphParam-class.html)| Graph-based clustering parameters | Set up parameters for nearest-neighbor (NN) graph-based clustering algorithms to be applied within `bluster::clusterRows()` |
+| `bluster`| [`NNGraphParam()`](https://rdrr.io/bioc/bluster/man/NNGraphParam-class.html)| Graph-based clustering parameters | Set up parameters for nearest-neighbor (NN) graph-based clustering algorithms within `bluster::clusterRows()` |
 
 
 
