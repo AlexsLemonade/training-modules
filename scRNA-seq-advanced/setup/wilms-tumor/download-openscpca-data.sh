@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-# Profile to use with the download script
-PROFILE=${AWS_PROFILE:-openscpca}
+# AWS profile to use with the download script
+AWS_PROFILE=${AWS_PROFILE:-openscpca}
 # Release to download
 RELEASE=${RELEASE:-2024-11-25}
 
@@ -32,7 +32,7 @@ chmod +x download-data.py
     --format SCE \
     --release ${RELEASE} \
     --data-dir ${wilms_data_dir} \
-    --profile ${PROFILE}
+    --profile ${AWS_PROFILE}
 
 # Remove existing files from processed directory
 if [ -z "$( ls -A ${processed_dir} )" ]; then
@@ -47,4 +47,4 @@ mv ${wilms_data_dir}/${RELEASE}/${project_id}/* ${processed_dir}
 # Clean up download data script
 rm download-data.py
 # Clean up the remnants of download structure
-rm -r ${wilms_data_dir}/${RELEASE}
+rm -r ${wilms_data_dir}/${AWS_PROFILE}
