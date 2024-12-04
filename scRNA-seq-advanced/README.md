@@ -13,7 +13,7 @@ The notebooks that comprise this module are:
 
 This directory also contains pathway analysis modules customized to these data:
 
-- [Gene-set enrichment analysis](04-gene_set_enrichment_analysis.nb.html)
+- [Gene Set Enrichment Analysis](04-gene_set_enrichment_analysis.nb.html)
 - [Pathway analysis with AUCell](05-aucell.nb.html)
 
 Additional exercise notebooks:
