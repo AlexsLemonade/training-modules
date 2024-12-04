@@ -1,4 +1,6 @@
-#! /bin/bash
+#!/bin/bash
+
+set -euo pipefail
 
 # This script is used to establish symlinks for training modules to use data
 # stored in a shared directory.
