@@ -94,3 +94,33 @@ snakemake -j2
 ```
 
 This will place the downloaded files in `/shared/data/training-modules/scRNA-seq-advanced/data/pancreas`
+
+
+### Ewing Sarcoma
+
+The data for these samples comes from project `SCPCP000015` in the [ScPCA Portal](https://scpca.alexslemonade.org/projects/SCPCP000015).
+
+The included script uses the [`download-data.py` from the `OpenScPCA-analysis` repository](https://github.com/AlexsLemonade/OpenScPCA-analysis/blob/main/download-data.py) to download a set of processed library files.
+
+To produce the files, change directories to the `setup/ewing-sarcoma` directory and run:
+
+```sh
+./download-openscpca-data.sh
+```
+
+For additional script options, refer to `ewing-sarcoma/README.md`.
+
+
+### Wilms tumor
+
+The data for this sample comes from project `SCPCP000006` in the [ScPCA Portal](https://scpca.alexslemonade.org/projects/SCPCP000006).
+
+The included script uses the [`download-data.py` from the `OpenScPCA-analysis` repository](https://github.com/AlexsLemonade/OpenScPCA-analysis/blob/main/download-data.py) to download a set of processed library files.
+
+To produce the files, change directories to the `setup/wilms-tumor` directory and run:
+
+```sh
+./download-openscpca-data.sh
+```
+
+For additional script options, refer to `wilms-tumor/README.md`.
