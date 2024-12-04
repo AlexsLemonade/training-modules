@@ -26,7 +26,7 @@ In this notebook, we will work with multiple samples to identify differentially 
 ![Single-cell roadmap: Differential expression](diagrams/roadmap_differential_expression.png)
 
 We will continue working with samples from the [`SCPCP000005` project](https://scpca.alexslemonade.org/projects/SCPCP000005), an investigation of pediatric solid tumors led by the Dyer and Chen labs at St. Jude Children's Research Hospital.
-This particular dataset contains 10 different samples that have been integrated using `fastMNN`, following the same procedure we outlined in `03-dataset_integration.Rmd`.
+This particular dataset contains 10 different samples that have been integrated using `fastMNN`, following the same procedure we outlined in `02-dataset_integration.Rmd`.
 These 10 samples represent two different types of rhabdomyosarcoma (RMS): embryonal rhabdomyosarcoma (ERMS) and alveolar rhabdomyosarcoma (ARMS).
 These two subtypes are distinguished by the presence of the `PAX3/PAX7-FOXO1` fusion gene, which is present only in ARMS patients.
 Additionally, cells found in ARMS tumors tend to have an increased mutational burden with cells in a more differentiated state compared to ERMS tumor cells ([Shern _et al._ 2014](https://doi.org/10.1158/2159-8290.CD-13-0639); [Stewart _et al._ 2018](https://doi.org/10.1016/j.ccell.2018.07.012)).
@@ -79,9 +79,7 @@ sample_metadata_file <- file.path(data_dir,
 
 # directory to store output
 deseq_dir <- file.path("analysis", "rms", "deseq")
-if(!dir.exists(deseq_dir)){
-  dir.create(deseq_dir, recursive = TRUE)
-}
+fs::dir_create(deseq_dir)
 
 # results file to output from DE analysis
 deseq_output_file <- file.path(deseq_dir, 
@@ -223,7 +221,7 @@ The samples which could be further classified have a mix of `Tumor_Mesoderm`, `T
 scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
                        # color each point by cell type
-                       colour_by = "celltype_broad",
+                       color_by = "celltype_broad",
                        point_size= 0.5, 
                        point_alpha = 0.4)
 ```
@@ -267,6 +265,7 @@ ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
       y = "Proportion of cells", 
       fill = "Cell type"
     ) +
+  scale_fill_brewer(palette = "Dark2") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
   # facet by diagnosis group 
@@ -694,7 +693,7 @@ scater::plotExpression(tumor_sce,
                        # a vector of genes to plot
                        features = genes_to_plot, 
                        x = "diagnosis_group", 
-                       colour_by = "diagnosis_group",
+                       color_by = "diagnosis_group",
                        other_fields = "celltype_broad",
                        point_size = 0.1) +
   # each celltype is its own column
@@ -703,7 +702,7 @@ scater::plotExpression(tumor_sce,
              rows = vars(Feature)) + 
   # change the font size of the facet labels
   theme(strip.text = element_text(size = 7)) + 
-  guides(colour = guide_legend(
+  guides(color = guide_legend(
     title = "Subtype", # update the legend title
     # change the size of the legend colors
     override.aes = list(size = 3, alpha = 1))

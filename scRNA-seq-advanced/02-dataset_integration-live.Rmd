@@ -525,13 +525,12 @@ Now, let's see how this new `merged_UMAP` looks compared to the `UMAP` calculate
 # UMAPs scaled together when calculated from the merged SCE
 scater::plotReducedDim(merged_sce,
                        dimred = "merged_UMAP",
-                       colour_by = "sample",
+                       color_by = "sample",
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.2) +
-  # Modify the legend key so its points are larger and easier to see
-  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
-  # Add a plot title
+  scale_color_brewer(palette = "Dark2", name = "sample") +
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP calculated on merged_sce")
 ```
 
@@ -596,13 +595,12 @@ scater::plotReducedDim(merged_sce,
                        # plot the fastMNN coordinates
                        dimred = "fastmnn_UMAP",
                        # color by sample
-                       colour_by = "sample",
+                       color_by = "sample",
                        # Some styling to help us see the points:
                        point_size = 0.5,
                        point_alpha = 0.2) +
-  # Modify legend so they key is larger and easier to see
-  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
-  # add plot title
+  scale_color_brewer(palette = "Dark2", name = "sample") +
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with fastMNN")
 ```
 
@@ -642,10 +640,12 @@ Let's re-plot this UMAP to highlight cell types:
 scater::plotReducedDim(merged_sce,
                        dimred = "fastmnn_UMAP",
                        # color by broad celltypes
-                       colour_by = "celltype_broad",
+                       color_by = "celltype_broad",
                        point_size = 0.5,
                        point_alpha = 0.2) +
-  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  # include argument to specify color of NA values
+  scale_color_brewer(palette = "Dark2", name = "Broad celltype", na.value = "grey80") +
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with fastMNN")
 ```
 
@@ -658,12 +658,13 @@ One way we can see all the points a bit better is to facet the plot by sample, u
 ```{r plot fastmnn umap celltypes faceted}
 scater::plotReducedDim(merged_sce,
                        dimred = "fastmnn_UMAP",
-                       colour_by = "celltype_broad",
+                       color_by = "celltype_broad",
                        point_size = 0.5,
                        point_alpha = 0.2,
                        # Allow for faceting by a variable using `other_fields`:
                        other_fields = "sample") +
-  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  scale_color_brewer(palette = "Dark2", name = "Broad celltype", na.value = "grey80") +
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with fastMNN") +
   # Facet by sample
   facet_wrap(vars(sample)) +
@@ -743,11 +744,12 @@ Let's see how the `harmony` UMAP, colored by sample, looks compared to the `fast
 ```{r plot harmony umap batches}
 scater::plotReducedDim(merged_sce,
                        dimred = "harmony_UMAP",
-                       colour_by = "sample",
+                       color_by = "sample",
                        point_size = 0.5,
                        point_alpha = 0.2) +
-  ggtitle("UMAP after integration with harmony") +
-  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1)))
+  scale_color_brewer(palette = "Dark2", name = "sample") +
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  ggtitle("UMAP after integration with harmony")
 ```
 
 How do you think this `harmony` UMAP compares to that from `fastMNN` integration?
@@ -757,19 +759,19 @@ Let's see how this UMAP looks colored by cell type, and faceted for visibility:
 ```{r plot harmony umap celltypes}
 scater::plotReducedDim(merged_sce,
                        dimred = "harmony_UMAP",
-                       colour_by = "celltype_broad",
+                       color_by = "celltype_broad",
                        point_size = 0.5,
                        point_alpha = 0.2,
                        # Specify variable for faceting
                        other_fields = "sample") +
+  scale_color_brewer(palette = "Dark2", name = "Broad celltype", na.value = "grey80") +
+  guides(color = guide_legend(override.aes = list(size = 3))) +
   ggtitle("UMAP after integration with harmony") +
-  guides(colour = guide_legend(override.aes = list(size = 3))) +
   facet_wrap(vars(sample))
 ```
 
-With the faceted view, we can now see that the small amounts of `Tumor_Myocyte` from other samples are "pulled" towards those cells in `SCPCL000481`.
-
-What other patterns do you see that are similar or different from the `fastMNN` UMAP?
+What do you now notice in this faceted view that wasn't clear previously?
+Are there other patterns you see that are similar or different from the `fastMNN` UMAP?
 How do you think `fastMNN` vs. `harmony` performed in integrating these samples?
 
 ### Export
