@@ -1,0 +1,632 @@
+---
+title: "Single Cell Exercise: Evaluating clustering results"
+output:
+  html_notebook:
+    toc: true
+---
+
+Calculating clusters is very a common analysis step in scRNA-seq analysis.
+When using clusters in downstream analyses such as cell type annotation, we rely on the assumptions that cells in given cluster have meaningful shared biology and those cells are sufficiently distinct from cells in other clusters.
+Evaluating cluster quality is therefore crucial before heading into downstream steps.
+
+Often, clustering results are assessed using visualization, e.g., coloring a UMAP by informative marker genes and exploring whether certain expected biological patterns are present.
+You may also have some specific biological intuition about how heterogeneous you expect your data to be, which may point towards fewer or more clusters.
+
+Besides these non-quantitative approaches, there are also specific metrics you can use to explore cluster quality, including how tightly connected clusters are and how robust they are to variation in the data.
+These metrics are also useful for choosing a set of clustering parameters.
+For example, one can calculate clusters across a set of parameter values and then interrogate the quality of each clustering result to determine an "optimal" set of parameters to use for the clustering the data.
+The main goal of this exercise notebook will be to explore how to calculate and interpret these metrics.
+
+In this notebook, we'll use the `bluster` package to perform and evaluate clustering results with different parameterizations for a Wilms tumor sample from [the ScPCA Portal](https://scpca.alexslemonade.org/projects/SCPCP000006) (`SCPCS000203`).
+We'll introduce three metrics for evaluating cluster quality:
+
+* Silhouette width
+* Neighborhood purity
+* Stability as measured with the Adjusted Rand Index
+
+These quantities are explained more in depth when they are introduced, but you can also refer to the following as general resources:
+
+- The `bluster` package vignette on cluster evaluation: <https://www.bioconductor.org/packages/3.19/bioc/vignettes/bluster/inst/doc/diagnostics.html>
+- The "Clustering Redux" chapter in _Orchestrating Single Cell Analysis_: <https://bioconductor.org/books/3.19/OSCA.advanced/clustering-redux.html>
+
+
+Before we dive in, it's important to bear some language caveats in mind:
+We sometimes use phrasing like "the best clusters" or "the optimal clusters," but the truth is, it's quite hard (if even possible) to know which clustering assignments are truly _the best._
+This is because, in reality, there is no such thing as a "correct" cluster.
+When we use these terms, what we really mean is, "a set of cluster assignments which we think is both mathematically well-defined and biologically meaningful."
+
+In this exercise notebook you will:
+
+- Part A: Calculate clusters across a set of parameter values
+- Part B: Evaluate cluster quality using several metrics 
+
+## Setup
+
+### Libraries
+
+First, we'll load libraries needed for this notebook.
+
+```{r setup}
+suppressPackageStartupMessages({
+  library(SingleCellExperiment)
+  library(ggplot2)
+})
+```
+
+
+We'll also be making plots in this notebook, so we'll set up some plot styling we'd like to use.
+As part of this, we'll define a list of settings for the UMAPs we'll make, which includes (among other settings) removing axis text and ticks, since specific UMAP coordinates aren't meaningful.
+
+```{r set up ggplot theme}
+# Use the theme_bw() plot for all plots
+theme_set(theme_bw())
+
+# Define plot settings specifically for UMAP plots
+# We can directly add this to UMAP plots to update their appearance
+umap_plot_settings <- list(
+  coord_fixed(),
+  theme_classic(),
+  theme(
+    legend.key.spacing = unit(0.025, "cm"),
+    legend.position = "bottom",
+    axis.ticks = element_blank(),
+    axis.text = element_blank()
+  )
+)
+```
+
+### Random seed
+
+Set the random seed in the chunk below to ensure reproducibility:
+
+```{r set seed, solution = TRUE}
+
+```
+
+
+### File paths 
+
+The data file we'll be using is named `SCPCL000240_processed.rds` and is stored in the following directory:
+
+```
+data/wilms-tumor/processed/SCPCS000203
+```
+
+In the chunk below, use `file.path()` to define a variable `data_file` with the path to the input data file.
+
+```{r define data_file, solution = TRUE}
+
+```
+
+At the end of this notebook, we'll export an updated SCE file containing new cluster assignments (`SCPCL000240_clustered.rds`), as well as a TSV file with some of the metrics we will calculate when evaluating clusters (`SCPCL000240_cluster_metrics.tsv`).
+We'll save results to this directory:
+
+```
+analysis/wilms-tumor/SCPCS000203
+```
+
+In the chunk below, use `file.path()` to define variables `output_path`, `output_rds`, and `output_tsv` to set up for eventual export.
+
+```{r define output, solution = TRUE}
+
+```
+
+You'll also need to make sure the `output_dir` directory exists.
+Use the chunk below to create it if it doesn't exist.
+
+```{r create output_dir, solution = TRUE}
+
+```
+
+
+### Read the data
+
+Read in the SCE object below from `data_file`, and name it `sce`:
+
+```{r read sce, solution = TRUE}
+
+```
+
+
+## Part A: Calculate clusters across a set of parameters
+
+Previously in this workshop, we used the Louvain algorithm to estimate clusters (note that this is also the default algorithm that Seurat uses).
+Over the past few years, a newer algorithm called Leiden has become increasingly popular as an alternative to Louvain.
+The Leiden algorithm is a modified version of the Louvain algorithm which includes additional refinements to increase connectedness among cluster communities.
+
+In this notebook, we'll focus on Leiden clustering for a change of pace!
+We'll begin by performing clustering with `bluster`.
+
+The Leiden algorithm optimizes clusters using what `bluster` (which uses [`igraph`](https://igraph.org/) under the hood) refers to as an "objective function."
+There are two options for which metric to use for the objective function:
+
+* `CPM` ("Constant Potts Model"). This is the default value in `bluster`.
+* `modularity`. This metric tends to yield clusters somewhat more similar to Louvain compared to `CPM`.
+
+Both of these objective functions use a `resolution` parameter, where higher resolutions tend to lead to more clusters.
+
+We will begin by calculating clusters using different values of the `resolution` parameter with the `modularity` objective function.
+Then, we'll compare results to one another with the ultimate goal of identifying a reasonable `resolution` parameter to achieve reliable clusters.
+To specifically explore the effect of different `resolution` parameters, we won't vary any other parameters; we'll also use 20 nearest neighbors and Jaccard weighting for all clusterings.
+
+To begin, extract the PCA matrix from the SCE using the `reducedDim()` function, and save it to a variable called `pca_matrix`.
+You'll need to provide two arguments to this function: The SCE object, and the name of the reduced dimension we'd like to pull out; here, it's `"PCA"`.
+
+We'll need this matrix to both perform and evaluate clusters.
+
+```{r extract pca matrix, solution = TRUE}
+
+```
+
+We'll define our vector of values to try out for the `resolution` parameter.
+For the `modularity` objective function, `resolution` values around 1 tend to perform well, so we'll explore a range of values around 1:
+
+```{r define res_params}
+res_params <- seq(0.25, 1.5, 0.25)
+res_params
+```
+
+Now, we're going to use `purrr::map()` to perform clustering for each of these values using `bluster::clusterRows()`.
+
+The result will be a list of vectors containing cluster assignments for each cell.
+Before we do this, we'll name our `res_params` vector with the `resolution` values themselves. 
+This will ensure the output from `purrr::map()` is also named according to these resolution parameters, which will help us keep track of which clustering is which!
+
+
+```{r name res_params}
+names(res_params) <- res_params
+```
+
+Time to cluster!
+To make this code a bit easier to follow, we'll define our clustering parameters first using `bluster::NNGraphParam()`, and then we'll call `bluster::clusterRows()`.
+
+```{r perform clustering}
+cluster_list <- res_params |>
+  # Perform clustering for each resolution parameter value
+  purrr::map(
+    \(res_param) {
+      # Define clustering parameters
+      cluster_params <- bluster::NNGraphParam(
+        k = 20,
+        type = "jaccard",
+        cluster.fun = "leiden",
+        # We use the cluster.args argument to specify additional
+        #  parameters to the clustering algorithm
+        cluster.args = list(
+          objective_function = "modularity",
+          # Here, we provide this iteration's resolution parameter
+          resolution = res_param
+        )
+      )
+
+      # Perform clustering
+      bluster::clusterRows(pca_matrix, cluster_params)
+    }
+  )
+```
+
+How many clusters were created for each `resolution` parameter?
+The cluster vector created by `bluster::clusterRows()` is a factor, so we can answer this by finding the length of each clustering's levels using `purrr::map()`.
+
+In the chunk below, use `purrr::map()` to get, for each clustering, the `length()` of its `levels()`.
+
+```{r calculate number of clusters, solution = TRUE}
+
+```
+
+What do you notice about the relationship between the `resolution` parameter and the number of clusters?
+What does this tell you about the effect of the `resolution` parameter in the Leiden algorithm?
+
+
+### Visualize clusters with UMAP
+
+Before we quantitatively evaluate these different clustering options, let's plot UMAPs colored by the different clusters to get a sense of how they look.
+
+Previously, we've mostly plotted UMAPs with `scater::plotUMAP()` (or similarly, `scater::plotReducedDim()`), which requires a column with clusters in the `colData` slot.
+Since we have several clustering results here, this time we'll directly plot the UMAP using `ggplot2` and color by each cluster set.
+
+For this, we'll first create get a data frame of UMAP coordinates.
+```{r create umap_df}
+umap_df <- reducedDim(sce, "UMAP") |>
+  as.data.frame()
+
+head(umap_df)
+```
+
+Now, we'll use this data frame to plot the UMAP each time colored by a different clustering result.
+We'll use `purrr::imap()` this time so we can also capture the `resolution` value (recall, we made sure these are the `cluster_list` names) for the given clusters, and we'll assign that to the plot title so we know which UMAP is which.
+
+We'll also use the awesome package [`patchwork`](https://patchwork.data-imaginist.com/) to combine each individual UMAP plot into an overall set of panels.
+Specifically, we'll use [`patchwork::wrap_plots()`](https://patchwork.data-imaginist.com/reference/wrap_plots.html) to plot the list of UMAPs we created by iterating with `purrr::imap()`.
+
+```{r plot all umaps, fig.width = 12}
+# First, create a list of UMAP plots
+cluster_plots <- cluster_list |>
+  purrr::imap(
+    \(clusters, res_param) {
+      # Add a column with clusters to the data frame
+      umap_df_plot <- umap_df |>
+        dplyr::mutate(clusters = clusters)
+
+      # Plot the UMAP, colored by the new cluster variable
+      ggplot(umap_df_plot, aes(x = UMAP1, y = UMAP2, color = clusters)) +
+        geom_point(alpha = 0.6) +
+        # Add an informative title to tell us which resolution value the plot is of
+        labs(title = paste("resolution:", res_param)) +
+        # Add on our UMAP-specific theme elements
+        umap_plot_settings
+    }
+  )
+
+# Now, print the plots with patchwork::wrap_plots()
+patchwork::wrap_plots(cluster_plots)
+```
+
+On their face, each clustering result looks different, but not unreasonable!
+How does one choose among these potential results?
+
+
+## Part B: Evaluate and compare clustering results
+
+In this section, we'll walk through several metrics to evaluate cluster quality and their interpretations.
+
+
+### Silhouette width
+
+Silhouette width is a common metric that measures how well separated clusters are.
+For each cell, we compare the average distance to the other cells in the same cluster to the average distance to cells in different clusters.
+This value ranges from -1 to 1.
+Cells in well-separated clusters should have high silhouette values closer to 1.
+You can read more about silhouette width purity from the [_Orchestrating Single Cell Analysis with Bioconductor_ book](https://bioconductor.org/books/3.19/OSCA.advanced/clustering-redux.html#silhouette-width).
+
+We'll use the function [`bluster::approxSilhouette()`](https://rdrr.io/github/LTLA/bluster/man/approxSilhouette.html) to calculate the silhouette width for each cell.
+This function takes two arguments:
+
+* The PCA matrix clusters were built from
+* A vector of cluster assignments
+
+This function returns a capital-D `DataFrame` with one row per cell and the following columns:
+
+* `cluster`, the assigned cluster for the given cell
+* `width`, the silhouette width for the given cell (this is the value we care most about!)
+* `other`, which cluster the cell is closest to other than the one it was assigned
+
+We'll use `purrr::map()` to calculate the silhouette widths on each vector of clusters.
+For each iteration, we'll coerce the output into a small-d `data.frame`,
+Then, we'll combine it all into one data frame for visualization, grabbing the `resolution` value from the list names we're combining. 
+
+
+```{r calculate silhouette width}
+cluster_silhouette_df <- cluster_list |>
+  purrr::map(
+    \(clusters) {
+      bluster::approxSilhouette(pca_matrix, clusters) |>
+        # coerce to data frame
+        as.data.frame() |>
+        # store barcodes as a column, not row names
+        tibble::rownames_to_column(var = "barcode")
+    }
+  ) |>
+  # combine all data frames into one, storing the resolution for each in a new column
+  dplyr::bind_rows(.id = "resolution")
+```
+
+
+In the following chunk, print out the resulting `cluster_silhouette_df` to see what we have created:
+
+```{r print cluster_silhouette_df, solution = TRUE}
+
+```
+
+
+In the next chunk, use `ggplot2` to make violin plots (`geom_violin()`) of the silhouette width distributions for each `resolution` parameter.
+
+To help compare the distributions, we also recommend adding a boxplot layer with `geom_boxplot()` to show each distribution's quartiles.
+To make these fit boxplots _inside_ the violins, you'll want to specify a `width` value to `geom_boxplot()`; you may need some trial and error to determine a good width value.
+You may also wish to specify `outlier.size = 0` to remove boxplot outlier points.
+
+
+```{r silhouette plot, solution = TRUE}
+# Plot violin plot of silhouette width across resolution values
+
+```
+
+
+Recall that higher silhouette width indicates that clusters are more tightly connected, which is a desirable property we'd like our clusters to have.
+As such, these plots suggest that a resolution of `0.25` may, at least according to the silhouette width, provide clusters with the most distinct separation.
+
+But before we get too far ahead of ourselves, let's also recall that this resolution value produced only two clusters.
+In fact, we expect silhouette width to be higher when there are fewer clusters.
+When there are fewer clusters, it is more likely that clusters overlap less with one another just because there aren't many clusters in the first place.
+A result with only two clusters, therefore, will usually yield a higher silhouette width even if it is not "the best"!
+
+This tells us that when interpreting cluster quality metrics, we should be careful to take more context about the data into consideration and not only rely on the metric value.
+
+Leaving aside the result for `resolution = 0.25`, how do the other distributions compare to one another?
+Do you see silhouette width consistently decrease with resolution, or are there are other patterns you detect?
+
+
+### Neighborhood purity
+
+Next, we'll calculate a metric called neighborhood purity, which is a per-cell metric like silhouette width.
+For each cell, purity is defined as the proportion of neighboring cells that are assigned to the same cluster.
+Neighborhood purity ranges from 0 to 1.
+Cells in well-separated clusters should have high purity values closer to 1, since there should be minimal overlap between member and neighboring cells.
+You can read more about neighborhood purity from the [_Orchestrating Single Cell Analysis with Bioconductor_ book](https://bioconductor.org/books/3.19/OSCA.advanced/clustering-redux.html#cluster-purity).
+
+As with silhouette width, neighborhood purity values will tend to be higher when there are very few clusters - when there aren't many clusters, it's much more likely that neighboring cells will be in the same cluster as one another, regardless of whether the clustering itself is optimal.
+
+We'll use the function [`bluster::neighborPurity()`](https://rdrr.io/github/LTLA/bluster/man/neighborPurity.html) to calculate the neighborhood purity for each cell.
+This function takes two arguments:
+
+* The PCA matrix clusters were built from
+* A vector of cluster assignments
+
+This function returns a capital-D `DataFrame` with one row per cell and the following columns:
+
+* `purity`, the purity for the given cell (this is the value we care most about!)
+* `maximum`, which other cluster has the highest proportion of neighbors to the given cell
+
+In the chunk below, use `purrr::map()` to calculate the neighborhood purity on each vector of clusters.
+Just like we did for calculating silhouette width, you'll want to coerce the `bluster::neighborPurity()` output into a small-d `data.frame` with row names moved into a new column `barcodes`, and finally bind (hint!) all rows together, specifying `.id = "resolution"`, to create one data frame with all results.
+Save this result to `cluster_purity_df`, and print the data frame once you have created it.
+
+```{r calculate neighborhood purity, solution = TRUE}
+# Calculate neighborhood purity for each set of clusters
+
+# Print the data frame
+
+```
+
+
+In the chunk below, plot the distributions of the `purity` values for each resolution value.
+We recommend a boxplot for this one!
+
+```{r plot purity, solution = TRUE}
+# Plot boxplots of purity across resolution values
+
+```
+
+
+Do you think neighborhood purity tells the same or different story from silhouette width?
+Do you see any trends that you expected? Any that differ?
+
+
+### Stability
+
+
+Another approach to exploring cluster quality is how stable the clusters themselves are using bootstrapping:
+
+* Sample PCA rows (aka, cells) with replacement to create a bootstrapped PCA matrix 
+* Perform clustering on this bootstrapped PCA matrix
+* Compare the bootstrapped clusters to the original ones
+
+If clusters are stable, we expect that cells clustered together in the original clusters are also grouped together in the bootstrapped clusters.
+
+We'll use the function [`bluster::bootstrapStability()`](https://rdrr.io/github/LTLA/bluster/man/bootstrapStability.html) to explore cluster stability.
+This function uses the Adjusted Rand Index (ARI), which measures the similarity of two data clusterings, to compare results.
+ARI asks whether cells grouped together in one clustering (here, the original clusters) are still grouped together in a different clustering (here, a set of bootstrapped clusters).
+ARI itself is the proportion of pairs of cells which have the same status (e.g., clustered together or separately) in both clusterings being compared.
+ARI ranges from -1 to 1, where:
+
+* A value of 1 indicates clusterings are completely overlapping
+* A value of -1 indicates clusterings are completely distinct
+* A value of 0 indicates a random relationship
+
+We expect that highly stable clusterings have average ARI values closer to 1 across a set of bootstrap replicates.
+
+You can read more about the Adjusted Rand Index from the [_Orchestrating Single Cell Analysis with Bioconductor_ book](https://bioconductor.org/books/release/OSCA.advanced/clustering-redux.html#adjusted-rand-index).
+
+
+The `bluster::bootstrapStability()` function takes the following arguments:
+
+* The PCA matrix clusters were built from
+* A vector of cluster assignments, specified with `clusters`
+* `BLUSPARAM`: A specification of clustering parameters to use for each bootstrap iteration, aka the output from `bluster::NNGraphParam()`
+  * These parameters should be the same as those we used for the original clusters
+  * This means we'll need to provide the given `resolution` parameter when calculating stability for each of our clusterings
+* `mode`: Which of two modes to run the function in:
+  * `mode = "index"` reports the overall mean ARI for each bootstrapped clustering
+  * `mode = "ratio"` (default) provides a more fine-grained view of the single mean ARI reported from `mode = "index"` and helps you see which clusters are more or less stable
+* `iterations`: The number of bootstrap replicates to perform, by default 20
+
+
+In the chunk below, we'll calculate stability setting `mode = "index"` and `iterations = 50`. 
+
+This time, we'll use `purrr::imap()`, since we'll need to actually use the resolution parameter as part of `bluster::NNGraphParam()`.
+These values are conveniently stored as the names of `cluster_list` (good job, past us!), so we can grab them with `purrr::imap()`.
+
+```{r calculate stability index, warning = FALSE}
+stability_index <- cluster_list |>
+  purrr::imap(
+    \(clusters, res_param) {
+      # First, define the clustering parameters
+      cluster_params <- bluster::NNGraphParam(
+        k = 20,
+        type = "jaccard",
+        cluster.fun = "leiden",
+        cluster.args = list(
+          objective_function = "modularity",
+          # Make sure the resolution value we pass in is numeric!
+          resolution = as.numeric(res_param)
+        )
+      )
+
+      # Perform bootstrapping and calculate stability
+      bluster::bootstrapStability(
+        pca_matrix,
+        clusters = clusters,
+        BLUSPARAM = cluster_params,
+        # Perform 50 bootstrap iterations
+        iterations = 50,
+        # Calculate the mean ARI
+        mode = "index"
+      )
+    }
+  )
+
+# Print the resulting stability values
+stability_index
+```
+
+What trends do you see from the resulting values?
+
+Even though we ran this with 50 bootstrap replicates, these averages may not be fully representative of a full distribution.
+Feel free to run this code again with the same (or more!) iterations - do you see any different trends, or do results follow a similar pattern?
+
+#### Stability at the individual cluster level
+
+Let's wade a bit deeper in: Pick your favorite resolution value and run `bluster::bootstrapStability()` but specify `mode = "ratio"` instead of `"index"`.
+
+First, use indexing extract a stand-alone vector called `clusters` from `cluster_list` with the cluster assignments for your chosen resolution value.
+We'll provide this vector to `bluster::bootstrapStability()` next.
+
+Hint: To index lists, you need to use double brackets `[[]]`.
+In addition, you'll want to use quotes around the name (aka, `resolution` value) you're indexing (this matters quite a bit if the values are numbers as they are here!).
+
+```{r create clusters vector, solution = TRUE}
+# Create clusters vector
+
+```
+
+
+Calculate stability below:
+
+- First, define `cluster_params` with `bluster::NNGraphParam()` using your chosen resolution value and our other clustering parameters
+- Second, run `bluster::bootstrapStability()`.
+We again recommend using 50 iterations
+- Finally, save the result to a variable called `stability_ratio`, and print the result
+
+
+```{r calculate stability ratio, solution = TRUE, warning = FALSE}
+# Define cluster_params
+
+# Calculate stability with "ratio" mode and save to `stability_ratio`
+
+# Print the `stability_ratio` result
+
+```
+
+The output from running with `mode = "ratio"` is an upper-triangular matrix.
+Values in the matrix represent the an average of ARI-based ratio values across bootstrap replicates, calculated for each pair of clusters.
+
+We'd like to see the following trends (adapted from the [`bluster` documentation](https://rdrr.io/github/LTLA/bluster/man/bootstrapStability.html)):
+
+- High on-diagonal values, which indicate that cells that start in the same cluster tend to stay in the same clusters across bootstrap replicates
+- High off-diagonal values, which indicate that pairs of clusters tend to remain well-separated across bootstrap replicates
+
+These values can be a bit tricky to interpret, especially because the cluster numbers are randomly assigned and so essentially meaningless on their own.
+So to help us out, we'll plot the results as a heatmap, _and_ we'll plot a UMAP colored by the same clusters.
+To view both plots simultaneously, it might help to "pop out" the plot outputs into a separate window.
+
+We'll plot the heatmap for you using the `pheatmap` package:
+
+
+```{r stability heatmap}
+pheatmap::pheatmap(
+  stability_ratio,
+  color = viridis::magma(100), # set color scale
+  breaks = seq(-1, 1, length.out = 101), # set the range for the color scale
+  na_col = "white", # set NA values as white
+  border_color = NA, # remove grid lines
+  # do not arrange the rows and columns by similarity; leave them in order
+  cluster_rows = FALSE,
+  cluster_cols = FALSE
+)
+```
+
+Now, plot the UMAP below.
+To accomplish this, you can start with the `umap_df` we previously created, and add a column containing your `clusters` vector.
+Then use `ggplot2` to plot your UMAP colored by cluster.
+Don't forget to add on our `umap_plot_settings` to your `ggplot2` code!
+
+```{r cluster umap, solution = TRUE}
+# Create a data frame for your plot starting from umap_df
+
+# Plot the UMAP colored by cluster
+
+```
+
+
+When interpreting the heatmap, let's first consider the stability values along the diagonal, where each cluster is compared to itself.
+Are there any clusters that don't seem stable from run to run, based on the scores on the diagonal? 
+Which clusters seem most stable?
+
+Now, let's consider the off-diagonal scores: 
+Do you see any relationship between the stability score for a pair of clusters and how well-separated those clusters are in the UMAP?
+
+Overall, we might expect comparisons between similar or heavily overlapping clusters to have relatively _lower_ stability, because cells may be _more_ likely to switch clusters across bootstrapping replicates.
+By contrast, we might expect comparisons between highly distinct clusters to have relatively _higher_ stability, because cells may be _less_ likely to switch clusters across bootstrapping replicates.
+Do you see those trends reflected here?
+Be careful not to over-interpret UMAP layout when drawing your conclusions!
+
+Feel free to explore stability for other resolution parameter values as well!
+
+
+### Export clustering results
+
+We'll conclude this section by exporting an SCE with clusters for your chosen `resolution` value (the solution notebook will show `resolution = 0.75`, as an example), as well as a table of all silhouette width and neighborhood purity results. 
+
+In the chunk below, add your chosen clusters to the SCE object's `colData` slot, and export the SCE to `output_rds` which we defined at the start of the notebook.
+Note that there is an existing column called `cluster` in the `colData` with automated clusters from the ScPCA pipeline.
+To avoid overwriting that column, name the new column `cluster_leiden`.
+
+
+```{r update export sce, solution = TRUE}
+# Add your new clusters to the colData
+
+# Export the SCE object to output_rds
+
+```
+
+Next, prepare a table for export to `output_tsv` by joining our silhouette width and neighborhood purity data frames, `cluster_silhouette_df` and `cluster_purity_df`.
+Before we go about joining these data frames, let's remind ourselves what's in them so we know how to join them properly.
+
+In the chunk below, look at the `head()` of each table.
+
+```{r compare tables, solution = TRUE}
+
+```
+
+Both data frames have `resolution` and `barcode` columns and columns for their respective metrics, and the `cluster_silhouette_df` data frame also has all the cluster assignments!
+All of this information is useful to keep around, so good thing we're exporting it!
+
+Since both data frames contain per-cell metrics across the same sets of clusters, we expect they have the same number of rows, too.
+Use the next chunk to confirm they have the same number of rows:
+
+```{r compare rows, solution = TRUE}
+
+```
+
+These data frames indeed have a 1:1 row relationship, so all of the ["mutating" join functions from `dplyr`](https://dplyr.tidyverse.org/reference/mutate-joins.html) should work the same to combine them.
+To avoid duplicating columns when joining, you'll want to specify joining by both of their shared columns, `resolution` and `barcode`.
+
+Use the chunk below to join data frames and export to `output_tsv`.
+
+```{r prepare export tsv, solution = TRUE}
+# Join silhouette and purity tables, here using full_join
+
+# Export the table to output_tsv
+
+```
+
+## Explore on your own!
+
+Now, it's your turn to be in the driver's seat and evaluate a set of clusterings results across parameter values of your choosing.
+Here are some ideas to get you going:
+
+* Explore other data sets we have explored during this workshop, or a data set of your own
+* Look at the silhouette width and purity distributions split up by clusters
+* Explore more clustering parameters:
+  * Compare Leiden clustering to the previous standard Louvain algorithm
+  * Vary the number of nearest neighbors used  (`k` parameter in `NNGraphParam()`)
+  * Try the `"CPM"` objective function for Leiden clustering (which is actually the default) rather than `"modularity"`
+    * Caution! This option will require much lower `resolution` parameters, two or three orders of magnitude below what we explored above
+
+Feel free to add chunks directly to this notebook, or apply some of the lessons you learned in this notebook to other parts of your code.
+
+## Session Info
+
+```{r sessioninfo}
+sessionInfo()
+```
