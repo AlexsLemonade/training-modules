@@ -1,8 +1,8 @@
 # scRNA-Seq Training Module
 
-This CCDL-designed module covers the analysis of single-cell RNA-seq data using [Salmon's Alevin](https://salmon.readthedocs.io/en/latest/alevin.html) and [scater/scran](https://bioconductor.org/packages/devel/bioc/vignettes/scran/inst/doc/scran.html) packages.
+This Childhood Cancer Data Lab-designed module covers the analysis of single-cell RNA-seq data using [Salmon's Alevin](https://salmon.readthedocs.io/en/latest/alevin.html) and [scater/scran](https://bioconductor.org/packages/devel/bioc/vignettes/scran/inst/doc/scran.html) packages.
 
-It depends on knowledge gained in the [Intro to R](https://github.com/AlexsLemonade/training-modules/tree/master/intro-to-R-tidyverse) and analyses are performed within a [Docker container](https://github.com/AlexsLemonade/training-modules/tree/master/docker-install) or on the CCDL RStudio server.
+It depends on knowledge gained in the [Intro to R](https://github.com/AlexsLemonade/training-modules/tree/master/intro-to-R-tidyverse) module, and analyses are performed within a [Docker container](https://github.com/AlexsLemonade/training-modules/blob/master/Dockerfile) or on the Data Lab RStudio server.
 It covers normalization and dimension reduction methods that can be used for both tag-based and full-length single-cell data, as well as the quantification of tag-based scRNA-seq data.
 
 The notebooks that comprise this module are:
