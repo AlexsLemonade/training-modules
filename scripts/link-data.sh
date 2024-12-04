@@ -1,4 +1,6 @@
-#! /bin/bash
+#!/bin/bash
+
+set -euo pipefail
 
 # This script is used to establish symlinks for training modules to use data
 # stored in a shared directory.
@@ -36,13 +38,12 @@ mkdir -p scRNA-seq/data/PBMC-TotalSeqB/normalized/
 mkdir -p scRNA-seq-advanced/analysis/mouse-liver
 mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
 mkdir -p scRNA-seq-advanced/data/ewing-sarcoma/annotations
-mkdir -p scRNA-seq-advanced/data/ewing-sarcoma/processed
 mkdir -p scRNA-seq-advanced/data/glioblastoma-10x
 mkdir -p scRNA-seq-advanced/data/rms/integrated
 mkdir -p scRNA-seq-advanced/data/rms/annotations
 mkdir -p scRNA-seq-advanced/data/pancreas
 mkdir -p scRNA-seq-advanced/data/hodgkins
-mkdir -p scRNA-seq-advanced/data/wilms-tumor/processed
+mkdir -p scRNA-seq-advanced/data/wilms-tumor
 
 # Machine learning module directory
 mkdir -p machine-learning/data
