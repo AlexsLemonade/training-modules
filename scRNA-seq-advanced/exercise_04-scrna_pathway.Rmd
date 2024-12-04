@@ -1,312 +1,398 @@
 ---
-title: "Exercise: Pathway analysis of scRNA-seq marker genes"
+title: "Exercise: Pathway analysis with AUCell"
+author: Childhood Cancer Data Lab for ALSF
+date: 2024
 output:
   html_notebook:
     toc: true
     toc_float: true
 ---
 
-## Introduction to the data set
+In this notebook, we will use AUCell with a custom gene set of tumor marker genes for Ewing sarcoma, as well as a collection from the Molecular Signatures Database (MSigDB) of your choosing.
+Because AUCell will assign cells as expressing (or not expressing) a gene set, it can be used as part of a strategy for cell typing or identifying malignant cells when a high quality marker gene set is available.
+Once tumor cells are identified using an automatically selected threshold, we can visualize that information or even use it in tandem with AUC values from other gene sets.
 
-In this exercise, we'll be working with a dataset that assays liver cirrhosis from [Ramachandran *et al.* (2019)](https://doi.org/10.1038/s41586-019-1631-3).
-Specifically, we're going to use the murine data, which consists of hepatic macrophages from mice that were treated with an agent that causes fibrosis and from healthy mice.
+Our goal in this notebook is to explore gene sets from MSigDB that may have different relative expression (i.e., AUC values) between malignant and non-malignant cells.
+We will do this by visualizing the AUC values.
+In practice, if we were to publish these results, we would want to explicitly test for significant differences in values, but that is beyond the scope of this notebook.
 
-You can see how we downloaded, processed, and clustered the data in [this notebook](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/setup/mouse-liver/prepare_mouse_liver_markers.Rmd).
+In this notebook, you will:
 
-Running the chunk below will bring up a UMAP plot that includes cluster labels.
+- Part A: Read in and prepare the data
+- Part B: Run AUCell with tumor marker genes
+- Part C: Run AUCell with an MSigDB collection
+- Part D: Visualize the results
 
-```{r include_umap}
-knitr::include_graphics(file.path("figures", "mouse_liver_umap.png"))
+There are multiple Ewing sarcoma samples you can choose for your analysis, available in the following directory:
+
+```
+data/ewing-sarcoma/processed
 ```
 
-We've prepared the tables of marker genes for you.
-If there's one cluster in this plot that piques your interest, use it to practice over-representation analysis and gene set enrichment analysis below!
+The _solved version_ of this notebook will use the same sample that we used during instruction: `data/ewing-sarcoma/processed/SCPCS000490/SCPCL000822_processed.rds`
+But we encourage you to pick any sample you are interested in, perhaps by browsing the metadata located at: `data/ewing-sarcoma/annotations/ewing_sarcoma_sample_metadata.tsv`
 
 ## Setup
 
 ### Libraries
 
 ```{r libraries}
-library(org.Mm.eg.db)
-library(clusterProfiler)
+# We will be loading a SingleCellExperiment object into our environment but don't need to see the startup messages
+suppressPackageStartupMessages({
+  library(SingleCellExperiment)
+})
+
+# Library we'll use for the gene set analysis itself
+library(AUCell)
+
+# Libraries for accessing and working with gene sets
+library(GSEABase)
+library(msigdbr)
 ```
 
-## What cluster looks interesting to you?
+### Set a seed
 
-Take a look at the UMAP plot above, where samples are colored and labeled by cluster identity.
+Some genes sharing expression values or that are not detected will be randomly ordered in the AUCell rankings, so we need to set a seed using `set.seed()`.
 
-Does any cluster look particularly interesting to you?
-
-We've identified marker genes for you (`scran::findMarkers(..., pval.type = "all")`) and saved the results in `analysis/mouse-liver/markers`.
-(You can see how we did that and how we generated that plot in our [setup notebook](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq-advanced/setup/mouse-liver/prepare_mouse_liver_markers.Rmd)!)
-
-Take a look at the files available in `analysis/mouse-liver/markers`.
-Read in the marker genes for the cluster you're interested in analyzing in the chunk below and assign them to `markers_df`.
-
-*We'll use cluster 7 in the solved version, but you don't have to!*
-
-```{r read_in_markers, solution = TRUE}
-# Read in the marker genes for your favorite cluster and assign to `markers_df`
-
-```
-
-Use the next chunk to explore what the markers table looks like and what gene identifiers are already in the table.
-
-```{r peek_at_markers, solution = TRUE}
-# Make sure you can see what kind of identifier is in the gene column
+```{r set_seed, solution = TRUE}
 
 ```
 
-The values in the `gene` column are gene symbols.
+### Directories and files
 
-## What gene sets do you want to use?
+#### Directories
 
-Our choice of gene sets will be influenced by the experimental design of the data assays, our upstream analytical steps, and what we hope to learn about our data.
+Set up the directories to read in a Ewing sarcoma SingleCellExperiment and output pathway analysis results.
 
-We're going to be analyzing marker genes (e.g., genes that distinguish clusters) from an experiment examining hepatic macrophages in the context of liver fibrosis.
+```{r set_up_directories, solution = TRUE}
+# Input data 
 
-### Molecular Signatures Database (MSigDB)
+# Directory for holding pathway analysis results
 
-MSigDB contains multiple collections of gene sets that we can access via the `msigdbr` package.
-To see what collections are available, we can run the following chunk:
+# Create if it doesn't exist yet
+
+```
+
+#### Files
+
+`readr::read_tsv()` can read files from the internet directly if you provide it with a URL. 
+This URL points to a table of marker genes in [the Open Single-cell Pediatric Cancer Atlas project](https://openscpca.readthedocs.io/en/latest/).
+You can view the current version of analysis module it comes from here: <https://github.com/AlexsLemonade/OpenScPCA-analysis/tree/main/analyses/cell-type-ewings>.
+This notebook is generally adapted from that material!
+
+We are using what is called a permalink by including the commit information (`37423e7f42b597ae0402503e0c9ca464d8eb9ac1`), which guarantees we will always get the same version of the table.
+This can be a good practice for reproducibility.
+
+```{r marker_genes_url} 
+marker_genes_url <- "https://raw.githubusercontent.com/AlexsLemonade/OpenScPCA-analysis/37423e7f42b597ae0402503e0c9ca464d8eb9ac1/analyses/cell-type-ewings/references/visser-all-marker-genes.tsv"
+```
+
+Choose a Ewing sarcoma sample you'd like to read in and save the path to that file as a variable called `sce_file`.
+
+```{r sce_file, solution = TRUE}
+
+```
+
+Save the path to the output file (give it a descriptive name!) to a variable.
+You may want to come back to this filename after you've chosen a collection from MSigDB.
+
+```{r output_file, solution = TRUE}
+
+```
+
+## Part A: Read in and prepare data
+
+### Prepare the gene set 
+
+Read in the marker genes table using the URL defined above to a variable called `marker_genes_df`.
+
+```{r read_in_marker_genes, solution = TRUE}
+
+```
+
+Let's take a look at what `marker_genes_df` contains.
+
+```{r display_marker_genes}
+marker_genes_df
+```
+
+You can use the information in the `source` column to review the publication a marker gene's inclusion is supported by.
+
+Now we need to get the gene set ready for use with AUCell. 
+You're going to save the gene set to a vector called `ensg_tumor_markers`.
+Here are some things to keep in mind when preparing the gene set:
+
+- You are only interested in the _tumor_ gene set
+- The SingleCellExperiment object uses Ensembl gene identifiers
+- You'll want to remove any duplicate genes in the gene set
+
+```{r format_marker_genes, solution = TRUE}
+# create a vector named `ensg_tumor_markers` with just the tumor gene set
+
+```
+
+Next, convert the vector of Ensembl ids to a `GeneSet` object for use with AUCell:
+
+```{r GeneSet}
+ensg_tumor_markers <- GeneSet(ensg_tumor_markers,
+                              setName = "tumor_marker_genes",
+                              geneIdType = ENSEMBLIdentifier())
+```
+
+### Prepare the single-nuclei data
+
+Now that we have our gene set prepared, let's prepare the data.
+First, we will read in the SingleCellExperiment from the file we chose earlier.
+
+```{r read_in_sce}
+sce <- readr::read_rds(sce_file)
+```
+
+We will mostly be using the raw counts, so save the counts matrix to a separate variable.
+
+```{r counts_matrix, solution = TRUE}
+
+```
+
+## Part B: Run AUCell with tumor marker genes
+
+Calculate the gene rankings for individual cells.
+
+```{r cell_rankings, solution = TRUE}
+
+```
+
+Using the distribution of the number of genes detected in a cell, pick an appropriate AUC max rank and save it to `auc_max_rank`.
+Remember, you want most cells to be expressing at least the number of genes you pick as the AUC max rank so that non-detected genes won't affect the AUC values.
+
+```{r max_rank, solution = TRUE}
+
+```
+
+Use the following to calculate the AUC values:
+
+- Tumor marker genes
+- Gene rankings for cells
+- AUC max rank
+
+Save the output to `cell_auc`.
+
+```{r calculate_marker_gene_auc, solution = TRUE}
+
+```
+
+Automatically calculate a threshold for the AUC values using `AUCell_exploreThresholds()`.
+You'll want to set `assignCells = TRUE`, which tells AUCell to assign tumor cell labels to cells above the automatically chosen threshold.
+
+Save the output to `auc_assignments`.
+
+```{r thresholds_assignments, solution = TRUE}
+
+```
+
+### Wrangle data for plotting
+
+We will create a data frame that holds the barcodes, AUC values, and a column called `tumor_cell` that indicates whether or not AUCell classified the cell as a tumor cell using the AUC values for the marker gene set.
+
+```{r auc_df}
+auc_df <- cell_auc@assays@data$AUC |> # start with the internal AUC table
+  # Transpose
+  t() |>
+  # Convert to data frame
+  as.data.frame() |>
+  # Make the barcodes a column
+  tibble::rownames_to_column("barcodes") |> 
+  # If the barcode is in the list of assigned barcodes, set the value in the
+  # column called tumor_cell to TRUE, and set it to FALSE otherwise
+  dplyr::mutate(
+    tumor_cell = barcodes %in% auc_assignments$tumor_marker_genes$assignment
+  )
+```
+
+We will extract the automatically selected threshold from `auc_assignments` to use in our density plot.
+
+```{r threshold_to_plot}
+auc_threshold <- auc_assignments[[1]]$aucThr$selected
+```
+
+Using `ggplot2`, make a density plot that distinguishes AUC values between cells that were assigned as tumor cells and those that were not.
+Add a vertical line representing the threshold that was automatically selected and applied.
+
+```{r density_plot, solution = TRUE}
+
+  # Draw a vertical dotted line showing the threshold
+
+  # Use a built-in theme
+
+```
+
+## Part C: Run AUCell with an MSigDB collection
+
+Now, let's run AUCell using a collection from the Molecular Signatures Database (MSigDB).
+
+We can use the results to explore if there are gene sets that have different expression in tumor cells vs. other cells in the sample, using the labels from AUCell.
+
+Let's look at what collections are available as part of the `msigdbr` package:
 
 ```{r show_collections}
-msigdbr::msigdbr_collections()
+msigdbr_collections()
 ```
 
-This table could definitely be more helpful!
-You can read more about individual collections [here](https://www.gsea-msigdb.org/gsea/msigdb/collection_details.jsp).
+It may be helpful to cross-reference this with the MSigDB website: <https://www.gsea-msigdb.org/gsea/msigdb/human/collections.jsp>
 
-We'll briefly summarize some information about collections you may want to use below.
+Pick a category or subcategory that is biologically relevant to Ewing sarcoma, and extract it for use with AUC via `msigdbr()` and save it to a data frame called `collection_df`.
 
-##### C2 Sub-collection: Canonical pathways
+The _solved version_ of this notebook is going to use the Hallmarks gene set (`"H"`), but feel free to pick whatever interests you!
+Just keep in mind that the more gene sets in the collection, the longer AUCell will take to run.
 
-The canonical pathways sub-collection of C2 (prefixed with `CP:` in `gs_subcat`) are generally popular for pathway analysis.
-These are curated gene sets assembled by experts.
-You may already be familiar with [KEGG (Kyoto Encyclopedia of Genes and Genomes)](https://www.genome.jp/kegg/) or [Reactome](https://reactome.org/) pathways.
-
-These gene sets often capture things like signaling pathways, which may be of interest here!
-
-##### C5 Sub-collection: Gene Ontology
-
-During instruction, we used `enrichGO()` to perform ORA with biological process (BP) terms from the Gene Ontology, but we could have used `enricher()` with just the `GO:BP` subcategory gene sets from `msigdbr` just as well.
-
-GO terms have a wide range in terms of their specificity.
-Some of the BP terms were specific enough to give us an idea about the cell type identity of clusters we examined during instruction.
-
-In this context, it might be interesting to understand if a particular cluster expresses genes that are indicative of a biological process that is considered pro-fibrotic.
-
-##### C7
-
-During instruction, we used the C7 immunologic signature gene sets to analyze a dataset that was comprised in part of immune cells with GSEA.
-Because of the experimental design, we might expect that gene sets that tell us about myeloid cell phenotypes could be useful in this context.
-
-##### H
-
-Hallmark gene sets, which were assembled for specific use with GSEA, are derived by identifying overlaps between existing, often redundant gene sets.
-
-From the [collection description](https://www.gsea-msigdb.org/gsea/msigdb/collection_details.jsp#H):
-
-> Hallmark gene sets summarize and represent specific well-defined biological states or processes and display coherent expression.
-
-From the table above, we can see that there are only 50 Hallmark gene sets.
-The more gene sets we test, the higher our multiple hypothesis testing burden will be.
-
-#### `msigdbr()` supported species
-
-Beyond multiple collections, the `msigdbr()` package also supports multiple organisms.
-(Run the next chunk to see which ones!)
-
-```{r show_species}
-msigdbr::msigdbr_species()
-```
-
-We're working with a mouse dataset, so we would need to set `species = "Mus musculus"` in our call to `msigdbr()` to return only the mouse gene sets.
-
-### CellMarker
-
-[CellMarker](http://bio-bigdata.hrbmu.edu.cn/CellMarker/) is a manually curated database of cell marker data for human and mouse ([Zhang *et al.* 2018](https://doi.org/10.1093/nar/gky900)).
-Studies/evidence of the following nature were included in the manual curation process ([Zhang *et al.* 2018](https://doi.org/10.1093/nar/gky900)):
-
-* scRNA-seq
-* Flow cytometry
-* Immunostaining
-
-There are both gene and protein markers.
-If there are CellMarker gene sets that distinguish different macrophage phenotypes, that information may be really useful here!
-
-### Obtain your gene sets data frame
-
-Depending on what you think is most interesting, you'll either need to obtain relevant gene sets from `msigdbr` or to read in the TSV of CellMarker data.
-(The CellMarker _mouse_ data is available at `gene-sets/CellMarker_cleaned_mouse_markers.tsv`.)
-
-As a reminder, `msigdbr()` will return _lots_ of gene sets; we recommend only working with the collection or subcategory that you are interested in.
-To obtain the KEGG gene sets, for example, you would use the arguments `category = "C2"` and `subcategory = "CP:KEGG"` when calling `msigdbr()` or filter (e.g., use `dplyr::filter()`) your data frame from `msigdbr()` to `gs_subcat == "CP:KEGG"` after the fact.
-
-*We're going to use KEGG gene sets from `msigdbr` in the solved version, but you don't have to!*
-
-```{r setup_gene_sets, solution = TRUE}
-# Call msigdbr() or read in the TSV to obtain the gene sets you want to use!
-# Make sure you're using mouse gene sets
-
-# Do you need to use `dplyr::filter()` here to subset to specific MSigDB
-# collections?
-```
-
-Take a look at the first few rows of `gene_sets_df`.
-
-```{r view_gene_sets_df}
-head(gene_sets_df)
-```
-
-Does this data frame have two columns, where the first one contains a gene set identifier or name and the second column contains gene symbols (the gene identifier we have in `markers_df`)?
-
-If not, use the next chunk to subset `gene_sets_df` to only the gene set name and gene symbol columns.
-
-```{r select_gene_set_columns, solution = TRUE}
-# dplyr::select() will select columns based on their names
-# Call the updated data frame `gene_sets_df`
+```{r collection_df, solution = TRUE}
 
 ```
 
-## ORA
+Turn the data frame into a `GeneSetCollection` for use with AUCell.
 
-Let's perform over-representation analysis on the marker genes from the cluster you're interested in!
+```{r gene_set_collection}
+collection_list <- unique(collection_df$gs_name) |>
+  purrr::map(
+    # For each gene set
+    \(gene_set_name) {
+      collection_df |>
+        # Subset to the rows in that gene set
+        dplyr::filter(gs_name == gene_set_name) |>
+        # Grab the Ensembl gene identifiers
+        dplyr::pull(ensembl_gene) |>
+        # Create a GeneSet object
+        GeneSet(setName = gene_set_name,
+                geneIdType = ENSEMBLIdentifier())
+    }
+  ) |>
+  # Turn the list of GeneSet objects into a GeneSet collection
+  GeneSetCollection()
+```
 
-### Genes of interest
+AUCell provides a wrapper function that runs the ranking and AUC calculation steps called `AUCell_run()`.
+Because we're using the same sample as we did with the tumor marker genes, we can use the same AUC max rank value we used earlier (`auc_max_rank`).
 
-First, we need to identify the genes we want to use as the genes of interest.
-If we'd like to use ORA to help interpret our clusters, we generally want to find genes with high expression in our cluster of interest and with small FDR values.
-As a reminder, these FDR values shouldn't be used to determine statistical significance because of the circularity involved in calculating them.
-Nonetheless, we can use them for ranking!
+You may need to change the names of the variables passed to the `exprsMat` and `aucMaxRank` arguments below depending on what you used earlier!
 
-Use the next chunk to get top ranked genes to use as input to ORA and call that vector `genes_of_interest`.
+```{r collection_auc}
+# Change the variable names as needed
+collection_cell_auc <- AUCell_run(exprMat = counts_matrix,
+                                  geneSets = collection_list,
+                                  aucMaxRank = auc_max_rank)
+```
 
-```{r goi_list, solution = TRUE}
-# Get a vector of genes called `genes_of_interest`
-# You'll probably want to filter by summary log fold change, sort by FDR, and
-# pick some number of genes
+Create a data frame that contains the AUC values for all gene sets, where the first column is called `barcodes` and contains the cell barcodes.
+Call it `collection_auc_df`.
+
+```{r collection_auc_df, solution = TRUE}
+
+  # Transpose
+
+  # Convert to data frame
+
+  # Make the barcodes a column
 
 ```
 
-### Background set
+Join the data frame that contains the tumor marker gene AUC values and assignments to the data frame that contains the AUC values for the gene sets in the MSigDB collection.
 
-The background set we use for ORA should include all genes that we could reliably measure.
-The marker gene tables we created include all of the genes that passed the pre-normalization filtering in our single cell analysis, so we will want to include all of these genes as our background set.
+```{r join_auc}
+auc_df <- auc_df |>
+  dplyr::inner_join(
+    collection_auc_df,
+    by = "barcodes"
+  )
+```
 
-Use the next chunk to get a vector of genes to use as a background set called `background_set`.
+Write this data frame to the output file you saved as a variable earlier.
 
-```{r background_set, solution = TRUE}
-# Create a vector of all gene symbols in the marker genes table called
-# `background_set`
+```{r save_output, solution = TRUE}
 
 ```
 
-### Perform ORA
+## Part D: Visualize the results
 
-Now we're ready to perform ORA using the `clusterProfiler` package.
-The `enricher()` function will take any generic set of gene sets, provided they are in the correct format!
-Earlier, we checked to make sure `gene_sets_df` contained 2 columns: gene set name/ID and gene symbol, so we should be all set on the formatting front.
-You will pass this data frame to the `TERM2GENE` argument of `enricher()`.
+### Plot UMAPs
 
-*In the solved version, we'll use the data frame of KEGG gene sets from `msigdbr` we extracted above!*
+We can use the data in `auc_df` to make UMAP visualizations once we add it to the SingleCellExperiment object.
 
-In the next chunk, run ORA with your function and gene sets of choice.
-Assign the results to `ora_results`.
+#### Add AUC values to `colData`
 
-```{r enrich, solution = TRUE}
-# Run ORA using enricher() from the clusterProfiler package
-# Pass your gene sets data frame to the TERM2GENE argument
-# Save as ora_results
+To prepare for use with `scater::plotUMAP`, let's add the `auc_df` to the `colData` of the SingleCellExperiment.
+Don't forget to provide the `row.names` argument when converting back to a `DataFrame`.
 
-```
+```{r add_to_col_data, solution = TRUE}
+# Extract colData and join with AUC data frame
 
-### Visualizing ORA results
-
-Let's use the next chunk to visualize the results.
-We can use `enrichplot::dotplot()`, `barplot()`, or check out [the `clusterProfiler` chapter on visualizations](http://yulab-smu.top/clusterProfiler-book/chapter12.html).
-
-Note that these visualizations will only work if you have significant results!
-Run the next chunk to view the results table.
-
-```{r view_ora, eval = FALSE}
-View(ora_results@result)
-```
-
-Are there significant results?
-If so, use the next chunk for the visualization itself!
-
-```{r viz_ora, solution = TRUE}
-# Visualize `ora_results`
+# Add a DataFrame back to colData
 
 ```
 
-## GSEA
+#### Plot tumor cell assignments (UMAP)
 
-Let's run Gene Set Enrichment Analysis (GSEA) next!
+First, plot a UMAP, coloring cells by whether or not they are a tumor cell according to AUCell.
 
-### Prep ranked statistics
-
-First, let's use the chunk below to check if we have any duplicated gene identifiers in the data frame of marker genes.
-
-```{r check_dups}
-any(duplicated(markers_df$gene))
-```
-
-Since there are no duplicate identifiers, we can go ahead and use the next chunk to prep the sorted vector of statistics (`summary.logFC`).
-
-We'll note here that summary log fold change values have some _limitations_.
-Summary log fold change is collapsing the effect sizes into a single (summarized!) value.
-When we use `pval.type = "all"` like we did upstream, this value will reflect the fold change value of the pairwise comparison with the largest p-value (e.g., weakest differential expression) ([ref](https://rdrr.io/bioc/scran/man/combineMarkers.html)).
-In practice, these values may reflect the fold change for a gene relative to the cluster that is _most similar_ to the cluster we are analyzing.
-This also means the summary log fold change values are sensitive to the cluster assignments and are likely to change between runs if clustering results are unstable.
-
-```{r lfc_vector, solution = TRUE}
-# Grab a named vector of summary log fold changes
-
-# Order the vector
+```{r plot_tumor_cell, solution = TRUE}
 
 ```
 
-### Run GSEA
+What do you think of these results?
 
-Now we're ready to perform GSEA using the `clusterProfiler` package with `GSEA()`.
-`GSEA()` will take any generic set of gene sets, provided they are in the correct format (the same format used for `enricher()`).
+#### Plot AUC values for a gene set (UMAP)
 
-Use the next chunk to run GSEA and assign the results to `gsea_results`.
+Now, let's try plotting a UMAP with the cells colored by AUC value for a particular gene set and use shape to indicate whether or not a cell is classified as a tumor cell.
 
-```{r run_gsea, solution = TRUE}
-# Run GSEA using from the clusterProfiler package
-# Pass your gene sets data frame to the TERM2GENE argument
-# Save as `gsea_results`
+To figure out how to accomplish this, review the documentation for `plotReducedDim()`, which is the function underlying `plotUMAP()`.
+
+```{r plot_umap_help}
+?scater::plotReducedDim
+```
+
+First, save the pathway you'll be plotting the AUC values of to a variable called `pathway_to_plot`.
+The _solved version_ will use `"HALLMARK_TGF_BETA_SIGNALING"`.
+
+```{r pathway_to_plot, solution = TRUE}
 
 ```
 
-### Visualizing GSEA results
+Now make your UMAP!
 
-First, check and see if you got any significant results by running the chunk below and looking at the results table.
-
-```{r view_gsea, eval = FALSE}
-View(gsea_results@result)
-```
-
-Next, choose a gene set to plot using `enrichplot::gseaplot()`.
-Even if there were no significant results, you can still create a plot by passing the gene set `ID` to `geneSetID` argument (don't forget to use quotes!) and you'll probably want to pass something descriptive to the `title` argument of `enrichplot::gseaplot()`.
-
-*In the solved version, we'll use `geneSetID = "KEGG_CELL_ADHESION_MOLECULES_CAMS"`.*
-
-```{r gseaplot, solution = TRUE}
-# Use enrichplot::gseaplot() to visualize gsea_results
+```{r plot_auc_umap, solution = TRUE}
 
 ```
 
-## Wrapping up & exploring more!
+Sometimes using shape alone can make it difficult to see, so we can also facet based on `tumor_cell`:
 
-* Did the pathway analysis you performed give you any insight into the potential cell type or phenotype of the cluster you analyzed?
-* Did you get similar results for ORA and GSEA? Why do you think that may or may not be?
+```{r shape_and_facet}
+scater::plotUMAP(sce,
+                 shape_by = "tumor_cell",
+                 colour_by = pathway_to_plot, 
+                 other_fields = "tumor_cell") + 
+  ggplot2::facet_wrap(ggplot2::vars(tumor_cell), ncol = 1) +
+  ggplot2::coord_fixed()  # Keep the plots square
+```
 
-If you're interested in working with this dataset more, we've made the `SingleCellExperiment`-compatible object, complete with PCA and UMAP available in `data/mouse-liver/normalized/healthy_cirrhotic_mouse_liver_normalized.rds`.
-You'll need to use `readr::read_rds()` to read in this file!
+What is your interpretation of this plot?
+
+### Plot AUC distribution tumor vs. non-tumor cells
+
+If we want to focus solely on the difference in AUC values between tumor vs. other cells in the sample, we may not necessarily need a UMAP for that.
+
+We can use a density plot similar to the one we created to explore the AUC threshold for assigning cells using the tumor gene set.
+All the data we need is already in `auc_df`!
+
+In this plot, we still want the color and fill to be based on tumor cell assignment, but we want a specific pathway's AUC values on the x-axis.
+The _solved version_ will continue to use `"HALLMARK_TGF_BETA_SIGNALING"`.
+
+Use the next chunk to make a new density plot comparing AUC values between tumor and other cells for one gene set.
+
+```{r density, solution = TRUE}
+
+```
+
+Is your interpretation of this plot similar to the UMAP, or is this different from your expectations?
+Why or why not?
 
 ## Session Info
 

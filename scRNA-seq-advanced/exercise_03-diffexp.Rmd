@@ -63,11 +63,10 @@ data_dir <- file.path("data", "rms")
 #  as created during instruction
 rms_sce_file <- file.path(data_dir, "integrated",  "rms_subset_sce.rds")
 
-# analysis results directory, which should exist from instruction
+# ensure analysis results directory has been created
+# it should exist already from instruction
 deseq_dir <- file.path("analysis", "rms", "deseq")
-if(!dir.exists(deseq_dir)){
-  dir.create(deseq_dir, recursive = TRUE)
-}
+fs::dir_create(deseq_dir)
 
 # File where we will output results from mesoderm DE analysis
 deseq_mesoderm_file <- file.path(deseq_dir, "rms_mesoderm_deseq_results.tsv")
@@ -396,7 +395,7 @@ Let's do the same with the gene that is upregulated in ERMS, and again think abo
 # Plot UMAP showing ENSG00000115762 expression across diagnosis groups
 scater::plotReducedDim(mesoderm_sce,
                        dimred = "fastmnn_UMAP",
-                       colour_by = "ENSG00000115762",
+                       color_by = "ENSG00000115762",
                        other_fields = "diagnosis_group") +
   facet_wrap(vars(diagnosis_group)) +
   theme_bw()
@@ -580,7 +579,7 @@ deseq_results_all |>
 ```
 
 Something you'll see in these results are some pretty different P-values between cell types (also note that the `NA` genes here are lncRNAs with no formally assigned gene symbol).
-Specifically, the myoblast P-values are all 3-15 orders of magnitude lower than their mesoderm counterparts, which _may_ be a result of the relatively higher sample size for myoblast tests - larger sample sizes lead to more extreme P-values.
+Specifically, the myoblast P-values are all 3-7 orders of magnitude lower than their mesoderm counterparts, which _may_ be a result of the relatively higher sample size for myoblast tests - larger sample sizes lead to more extreme P-values.
 Importantly, we do _not_ want to compare these P-values directly and conclude that a given gene was "more or less significant" in one cell type or another, since P-values cannot be compared across tests (again, for a more robust assessment of differential expression, use a multivariate model that accounts for cell types!).
 
 To wrap up, feel free to perform some quick visualization of some of these genes!
