@@ -77,7 +77,8 @@ Read the [`harmony` package documentation](https://rdrr.io/github/immunogenomics
 |----------------------|--------------------|---------------------|---------------|
 | `batchelor`| [`MultiBatchPCA()`](https://rdrr.io/bioc/batchelor/man/multiBatchPCA.html)| Multi-batch PCA | Perform PCA across multiple gene expression matrices, weighted by batch size |
 | `batchelor`| [`fastMNN()`](https://rdrr.io/bioc/batchelor/man/fastMNN.html)| Fast mutual nearest neighbors correction | Perform integration on an SCE object with mutual nearest neighbors using the `fastMNN` algorithm, returning an SCE object with batch-corrected principal components |
-| `harmony`| [`HarmonyMatrix()`](https://rdrr.io/github/immunogenomics/harmony/man/HarmonyMatrix.html)| Perform `harmony` integration on a matrix | Perform integration with `harmony` on either a matrix of principle components or gene expression, returning a matrix of batch-corrected principal components  |
+| `harmony`| [`RunHarmony()`](https://rdrr.io/github/immunogenomics/harmony/man/RunHarmony.html)| Run the `harmony` algorithm | Perform integration with the `harmony` algorithm on a matrix of single-cell genomics cell embeddings, returning a matrix of batch-corrected principal components  |
+
 
 ## `SingleR`
 
