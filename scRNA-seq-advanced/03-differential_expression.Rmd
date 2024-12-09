@@ -381,15 +381,16 @@ counts_mtx
 ```
 
 Next we will create a pseudo-bulked version of this matrix with only 2 columns: 1 for group `A` and 1 for group `B`.
-To do this we will use the `DelayedArray::colsum()` function, which allows us to sum the counts for each row across groups of columns.
+To do this we will use the `S4Arrays::colsum()` function, which allows us to sum the counts for each row across groups of columns.
+(Interestingly enough, there is a base R function called `rowsum()`, but not an equivalent for columns.)
 
 ```{r pseudobulk matrix, live=TRUE}
 # define the group that each column belongs to
 groups <- c("A", "A", "B", "B")
 
 # sum counts across cells (columns) by group label
-pb_counts <- DelayedArray::colsum(counts_mtx, 
-                                  groups)
+pb_counts <- S4Arrays::colsum(counts_mtx, 
+                              groups)
 pb_counts  
 ```
 
@@ -452,7 +453,7 @@ Here we will use 10, but the threshold you use for your dataset can vary dependi
 
 ```{r filter pseudobulk, live=TRUE}
 # remove any groups with fewer than 10 cells
-filter_pb_sce <- pb_sce[, pb_sce$ncells >= 10]
+filter_pb_sce <- pb_sce[, which(pb_sce$ncells >= 10)]
 ```
 
 We can then take a look and see how many cell type-sample columns we removed, if any.
@@ -668,7 +669,7 @@ EnhancedVolcano::EnhancedVolcano(deseq_results,
 ```
 
 
-We can also return back to the SCE object that we used to create our pseudo-bulked SCE and look at gene expression of some of the significant genes. 
+We can also return to the SCE object that we used to create our pseudo-bulked SCE and look at gene expression of some of the significant genes. 
 We can create UMAP plots as we did previously, but instead of labeling each cell with metadata, we can color cells by a specified gene's expression levels.
 We will also use some of the `ggplot2` skills we picked up earlier, like `facet_grid()` to plot cells from different RMS subtypes separately.
 This can help us validate the `DESeq2` results so that we can visualize gene expression changes across our cell type of interest on a single-cell level. 
@@ -732,7 +733,7 @@ scater::plotExpression(tumor_sce,
     title = "Subtype", # update the legend title
     # change the size of the legend colors
     override.aes = list(size = 3, alpha = 1))
-    )
+  )
 ```
 
 How do the expression of these genes change across cell types and RMS subtypes?
