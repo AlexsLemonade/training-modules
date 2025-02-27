@@ -34,7 +34,7 @@ To learn about integration, we'll have a look at four samples from the [`SCPCP00
 The particular libraries we'll integrate come from two rhabdomyosarcoma (RMS) patients, with two samples from each of two patients, all sequenced with 10x Chromium v3 technology.
 Each library is from a separate biological sample.
 
-We'll be integrating these samples with two different tools, [`fastMNN`](http://www.bioconductor.org/packages/3.16/bioc/html/batchelor.html) ([Haghverdi _et al._ 2018](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ 2019](https://doi.org/10.1038/s41592-019-0619-0)).
+We'll be integrating these samples with two different tools, [`fastMNN`](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html) ([Haghverdi _et al._ 2018](https://doi.org/10.1038/nbt.4091)) and [`harmony`](https://portals.broadinstitute.org/harmony/) ([Korsunsky _et al._ 2019](https://doi.org/10.1038/s41592-019-0619-0)).
 Integration corrects for batch effects that arise from different library preparations, genetic backgrounds, and other sample-specific factors, so that datasets can be jointly analyzed at the cell level.
 `fastMNN` corrects for batch effects using a faster variant of the mutual-nearest neighbors algorithm, the technical details of which you can learn more about from this [vignette by Lun (2019)](https://marionilab.github.io/FurtherMNN2018/theory/description.html).
 `harmony`, on the other hand, corrects for batch effects using an iterative clustering approach, and unlike `fastMNN`, it is also able to consider additional covariates beyond just the batch groupings.
@@ -573,7 +573,7 @@ What similarities do you think the integrated UMAP will have to this plot?
 ### Integration with `fastMNN`
 
 Finally, we're ready to integrate!
-To start, we'll use the `fastMNN` approach from the Bioconductor [`batchelor` package](http://www.bioconductor.org/packages/3.16/bioc/html/batchelor.html).
+To start, we'll use the `fastMNN` approach from the Bioconductor [`batchelor` package](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html).
 
 `fastMNN` takes as input the `merged_sce` object to integrate, and the first step it performs is actually to run `batchelor::multiBatchPCA()` on that SCE.
 It then uses that batch-weighted PCA matrix to perform the actual batch correction.
@@ -602,7 +602,7 @@ There are couple pieces of information here of interest:
 
 - The `corrected` reduced dimension represents the batch-corrected PCA that `fastMNN` calculated.
 - The `reconstructed` assay represents the batch-corrected normalized expression values, which `fastMNN` "back-calculated" from the batch-corrected PCA (`corrected`).
-Generally speaking, these expression values are not stand-alone values that you should use for other applications like differential gene expression, as described in [_Orchestrating Single Cell Analyses_](http://bioconductor.org/books/3.16/OSCA.multisample/using-corrected-values.html).
+Generally speaking, these expression values are not stand-alone values that you should use for other applications like differential gene expression, as described in [_Orchestrating Single Cell Analyses_](http://bioconductor.org/books/3.19/OSCA.multisample/using-corrected-values.html).
 If the `subset.row` argument is provided (as it was here), only genes present in `subset.row` will be included in these reconstructed expression values, but this setting can be overridden so that all genes have reconstructed expression with the argument `correct.all = TRUE`.
 
 We're mostly interested in the PCA that `fastMNN` calculated, so let's save that information (with an informative and unique name) into our `merged_sce` object:
@@ -625,7 +625,7 @@ merged_sce <- scater::runUMAP(
 
 First, let's plot the integrated UMAP highlighting the different batches.
 A well-integrated dataset will show batch mixing, but a poorly-integrated dataset will show more separation among batches, similar to the uncorrected UMAP.
-Note that this is a more qualitative way to assess the success of integration, but there are formal metrics one can use to assess batch mixing, which you can read more about in [this chapter of OSCA](http://bioconductor.org/books/3.16/OSCA.multisample/correction-diagnostics.html).
+Note that this is a more qualitative way to assess the success of integration, but there are formal metrics one can use to assess batch mixing, which you can read more about in [this chapter of OSCA](http://bioconductor.org/books/3.19/OSCA.multisample/correction-diagnostics.html).
 
 ```{r plot fastmnn umap batches}
 scater::plotReducedDim(merged_sce,

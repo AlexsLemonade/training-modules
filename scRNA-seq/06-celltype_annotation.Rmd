@@ -3,7 +3,7 @@ title: "Annotating cell types from scRNA-seq data"
 author: Data Lab for ALSF
 date: 2023
 output:
-  html_notebook: 
+  html_notebook:
     toc: true
     toc_float: true
 ---
@@ -21,18 +21,18 @@ This notebook will demonstrate how to:
 
 In this notebook, we will attempt to annotate cell types to each of the cells in a dataset, using some of the automated tools that are available within the Bioconductor universe.
 
-Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/3.16/OSCA/). 
+Much of the material in this notebook is directly inspired by, and draws heavily on, material presented in the book [_Orchestrating Single Cell Analysis with Bioconductor_](http://bioconductor.org/books/release/OSCA/).
 
 The data we will use for this notebook is derived from a [10x Genomics dataset of human peripheral blood mononuclear cells (PBMCs)](https://software.10xgenomics.com/single-cell-gene-expression/datasets/6.0.0/10k_PBMCs_TotalSeq_B_3p).
-These data include both single cell RNA-seq counts and quantification of antibody-derived tags (ADTs) performed by sequencing short DNA barcodes attached to specific antibodies. 
-This type of ADT sequencing with single cells is commonly known as CITE-seq, after the protocol developed by [Stoeckius _et al._ (2017)](https://doi.org/10.1038/nmeth.4380).  
+These data include both single cell RNA-seq counts and quantification of antibody-derived tags (ADTs) performed by sequencing short DNA barcodes attached to specific antibodies.
+This type of ADT sequencing with single cells is commonly known as CITE-seq, after the protocol developed by [Stoeckius _et al._ (2017)](https://doi.org/10.1038/nmeth.4380).
 The antibodies used here are the [The TotalSeq™-B Human TBNK Cocktail](https://www.biolegend.com/en-us/products/totalseq-b-human-tbnk-cocktail-19043), a set of antibodies designed to react with immune cell surface markers.
 
 ![Single-cell roadmap: Cell type](diagrams/roadmap_single_celltype.png)
 
 The data here have already been filtered, normalized, and had dimension reductions calculated for the single-cell RNA-seq data.
 The ADT data has also been separately filtered and normalized.
-For details about how to perform these tasks with data that has been processed with Cell Ranger, you may want to look at the ["Integrating with protein abundance" chapter](http://bioconductor.org/books/3.16/OSCA.advanced/integrating-with-protein-abundance.html#setting-up-the-data) of OSCA.
+For details about how to perform these tasks with data that has been processed with Cell Ranger, you may want to look at the ["Integrating with protein abundance" chapter](http://bioconductor.org/books/3.19/OSCA.advanced/integrating-with-protein-abundance.html#setting-up-the-data) of OSCA.
 
 The processed gene expression and ADT data were saved into a combined `SingleCellExperiment` (SCE) object, and we will start with that object for our exploration here.
 
@@ -53,7 +53,7 @@ set.seed(12345)
 
 ### Directories and files
 
-As mentioned, our input file here is a single normalized and processed SCE object, stored as an `rds` file. 
+As mentioned, our input file here is a single normalized and processed SCE object, stored as an `rds` file.
 That should be all we need to read in!
 
 Our output will be a table of per-cell information, which will include the cell type assignments we have made throughout this notebook.
@@ -61,30 +61,30 @@ We aren't planning any significant modifications of the underlying data, so we w
 
 ```{r filepaths, live=TRUE}
 # directory for the input data
-data_dir <- file.path("data", 
-                      "PBMC-TotalSeqB", 
+data_dir <- file.path("data",
+                      "PBMC-TotalSeqB",
                       "normalized")
 
 # the input file itself
-sce_file <- file.path(data_dir, 
+sce_file <- file.path(data_dir,
                       "PBMC_TotalSeqB_normalized_sce.rds")
 
 # A directory to store outputs
-analysis_dir <- file.path("analysis", 
+analysis_dir <- file.path("analysis",
                           "PBMC-TotalSeqB")
 
 # Create directory if it doesn't exist
 fs::dir_create(analysis_dir)
 
 # output table path
-cellinfo_file <- file.path(analysis_dir, 
+cellinfo_file <- file.path(analysis_dir,
                            "PBMC_TotalSeqB_cellinfo.tsv")
 ```
 
 
 ## Exploring a CITE-seq `SingleCellExperiment`
 
-Now that the preliminary setup is out of the way, we can get started. 
+Now that the preliminary setup is out of the way, we can get started.
 First we will read in the `SingleCellExperiment` from the input file we defined earlier.
 
 ```{r read SCE, live=TRUE}
@@ -101,7 +101,7 @@ But where are the data from the ADTs?
 We wouldn't necessarily want those stored in the main data matrices, as the characteristics of ADT barcode data is going to be quite different from gene expression data.
 
 To keep the ADT data separate from the RNA gene expression data, we have split this data off into an _alternative experiment_ (`altExp`) slot.
-You can see the name of this `altExp` on the line `altExpNames` above. 
+You can see the name of this `altExp` on the line `altExpNames` above.
 We _could_ have more than one type of alternative experiment (such as spike-in or ATAC-seq), but in this case, just the one.
 
 To access the contents of the `altExp` slot, we can use the `altExp()` function.
@@ -112,16 +112,16 @@ Let's look at what we have in that slot:
 altExp(sce, "ADT")
 ```
 
-It is another `SingleCellExperiment`! 
+It is another `SingleCellExperiment`!
 Inception!
 Let's look at that embedded SCE more closely.
 
-The first thing to note is that this `altExp` has the same number of columns as did the main SCE object. 
+The first thing to note is that this `altExp` has the same number of columns as did the main SCE object.
 Those corresponded to the individual cells before, and still do!
 
-There are only 10 rows, however, and these correspond to the ADTs that were assayed by this particular experiment. 
+There are only 10 rows, however, and these correspond to the ADTs that were assayed by this particular experiment.
 Just as we did with the full SCE, we can use `rowData()` to view the table containing metadata associated with each of these rows.
-We'll add the `altExp()` function to point it to the embedded object we are interested in. 
+We'll add the `altExp()` function to point it to the embedded object we are interested in.
 Since there is only one `altExp`, we don't need the second (name) argument (`"ADT"`) that we used above; the default behavior of `altExp()` is to just give us the first `altExp`, and that is the one (and only) that we need.
 
 ```{r adt rows, live=TRUE}
@@ -130,7 +130,7 @@ rowData(altExp(sce))
 ```
 
 You can see here the names and symbols of the tags used, along with the designation that all have an "Antibody Capture" type (as opposed to "Gene Expression" for the RNA data).
-One you might note looks different is the `IgG1` control, which is actually a mouse antibody used as a negative control. 
+One you might note looks different is the `IgG1` control, which is actually a mouse antibody used as a negative control.
 
 
 ### Clustering redux
@@ -145,7 +145,7 @@ While we have the ADT data, it is _not_ being used for this stage of the analysi
 # perform clustering
 nn_clusters <- bluster::clusterRows(
   # PCA input
-  reducedDim(sce, "PCA"), 
+  reducedDim(sce, "PCA"),
   # graph clustering & parameters
   bluster::NNGraphParam()
 )
@@ -154,16 +154,16 @@ nn_clusters <- bluster::clusterRows(
 sce$nn_cluster <- nn_clusters
 ```
 
-Now we can plot the clusters we have identified with `scater::plotUMAP()`. 
+Now we can plot the clusters we have identified with `scater::plotUMAP()`.
 This is a shortcut for `scater::plotReducedDim(dimred = "UMAP", ...)`, which can save us a lot of typing as we do this repeatedly!
 
 ```{r plot clusters}
 # plot clusters
-scater::plotUMAP(sce, color_by = "nn_cluster") + 
+scater::plotUMAP(sce, color_by = "nn_cluster") +
   # rename the legend
   guides(color = guide_legend(title = "Cluster"))
 ```
-But what are these clusters, really? 
+But what are these clusters, really?
 Do they correspond to particular cell types that we are interested in?
 
 Does it bother you that we just used the default nearest-neighbor graph clustering parameters?
@@ -177,7 +177,7 @@ The first way we will identify cell types of individual cells is to use the ADT 
 These antibody markers were (hopefully) chosen for their relevance to the sequenced cell population.
 
 The first marker we will look at is `CD3`, which is a protein complex that is found on the surface of T cells.
-We can again use the `plotUMAP()` function to color cells by `CD3` ADT levels. 
+We can again use the `plotUMAP()` function to color cells by `CD3` ADT levels.
 
 Note that this function can plot data from the `colData` table (as we used it above when plotting clusters), in the main gene expression matrix (as we used it in the previous notebook), *AND* in `altExp` tables and matrices!
 So to color by the ADT levels (as normalized in the `logcounts` matrix) we only need to provide the tag name that we want to plot in the `color_by` argument.
@@ -199,13 +199,13 @@ Let's plot the ADT results for those two markers as well below:
 
 ```{r plot CD4, live=TRUE}
 # plot CD4 marker
-scater::plotUMAP(sce, 
+scater::plotUMAP(sce,
                  color_by = "CD4")
 ```
 
 ```{r plot CD8, live=TRUE}
 # plot CD8 marker
-scater::plotUMAP(sce, 
+scater::plotUMAP(sce,
                  color_by = "CD8")
 ```
 
@@ -216,15 +216,15 @@ Plotting the levels of the ADTs provides a nice visual representation, but what 
 Such classification could be considered as analogous to a cell-sorter assay, where we would set up some rules to look at a few markers for each cell and use those to assign a cell type.
 The simplest type of rule might be one where we use a threshold to call a marker as present or absent, and then use the presence of a marker to indicate a specific cell type.
 
-To do this, we will need to make some decisions, such as the thresholds we should use to determine whether a cell is or is not expressing a particular marker. 
+To do this, we will need to make some decisions, such as the thresholds we should use to determine whether a cell is or is not expressing a particular marker.
 In general, markers that are useful for this cell-typing approach will have a bimodal distribution of expression levels which can be used to separate the population into two groups of cells.
 One group of cells will have only a background level signal for each marker (due to non-specific binding or other factors), while the other group, those that express the protein, will have a much higher level of binding and higher counts.
 
 To assess whether the ADTs we have chosen have a useful distribution of expression values, and to identify thresholds we might use, we would like to plot each ADT tag.
-To do this, we will pull out the expression values for these markers from the SCE object and do some data wrangling. 
+To do this, we will pull out the expression values for these markers from the SCE object and do some data wrangling.
 
 We are interested in the normalized counts for the ADT tags, which are stored in the `logcounts` assay of the `altExp`.
-If you recall, this matrix is stored with the columns as cells and rows as markers, but we really want it with each row a cell and each column a marker. 
+If you recall, this matrix is stored with the columns as cells and rows as markers, but we really want it with each row a cell and each column a marker.
 So we will first transpose the data, then convert it to a data frame for our next steps.
 Because the SCE object stores the assay data matrices in a specialized format, we have to do one extra step convert it first to a "regular" R matrix or R won't know how to convert it to a data frame.
 
@@ -242,7 +242,7 @@ head(adt_df)
 If we just wanted to plot one of these tags, we could do so right away, but with a bit more data wrangling, we can convert these results into a "tidier" format, that will allow us to take full advantage of `tidyverse` tools!
 In particular, it will let us plot them all at once with `ggplot2` faceting.
 
-Right now the data is in a "wide" format, such that each column is a different tag. 
+Right now the data is in a "wide" format, such that each column is a different tag.
 But the data in all of the columns is the same type, and measures something similar: the normalized count of an ADT.
 One could even argue that each row contains 10 different observations, where the "tidy" data ideal, as espoused by [Wickham (2014)](https://doi.org/10.18637/jss.v059.i10), requires a single observation per row, a "long" format.
 This long format will have one column that tells us which ADT was measured and a second column with the measurement value itself.
@@ -270,7 +270,7 @@ Now we can make a density plot with `ggplot2` for all three ADTs we are interest
 
 ```{r plot ADTs, live=TRUE}
 # plot logcounts by ADT
-ggplot(adt_df_long, aes(x = logcount, fill = ADT)) + 
+ggplot(adt_df_long, aes(x = logcount, fill = ADT)) +
   geom_density() + # density plot
   facet_grid(rows = vars(ADT)) + # facet by ADT
   theme_bw() + # nicer theme
@@ -281,8 +281,8 @@ These look pretty good!
 Each of these markers has a bimodal distribution: A lower peak consisting of cells that do not express the protein but which still have a background level of antibody binding, and an upper peak of cells that do express the protein of interest.
 The background level does vary by antibody marker, so we will need a different threshold value for each one.
 
-We can now use the values from these plots to construct a set of rules to classify the T cells. 
-We will do this using the "wide" data frame from earlier. 
+We can now use the values from these plots to construct a set of rules to classify the T cells.
+We will do this using the "wide" data frame from earlier.
 
 The thresholds we are using here were identified just "by eye", so this is not a particularly principled method of cell type assignment, but it can be fairly effective.
 Here we are assigning only three cell types; cells that do not fit any of these criteria will be set as `NA`.
@@ -307,24 +307,24 @@ Creating and assigning values to this column can be done with the `$` shortcut, 
 
 ```{r plot thresholds}
 sce$threshold_celltype <- adt_df$celltype
-scater::plotUMAP(sce, 
-                 color_by = "threshold_celltype") + 
+scater::plotUMAP(sce,
+                 color_by = "threshold_celltype") +
   guides(color = guide_legend(title = "Cell type"))
 ```
 
-How did we do? 
+How did we do?
 
 Note that while we applied this technique to assign cell types using the ADT data, we could use the same type of procedure using gene expression data alone, or a combination of gene expression data and tag data.
 
 However, what we did here was very ad-hoc and quite manual!
 We didn't calculate any statistics, and we had to look at every tag we were interested in to pick thresholds.
-A different dataset might have different background levels, which would require different thresholds. 
+A different dataset might have different background levels, which would require different thresholds.
 
 While this technique might be good for some simple experiments, and can be useful for manual curation, it might not translate well to more complex datasets with multiple samples.
 We also looked at each marker separately, which might not be the most efficient or robust method of analysis.
 
-For a more principled approach that allows identification of cell types by looking at the expression of sets of genes that are known to characterize each cell type, you might look at the [`AUCell` package](https://bioconductor.org/packages/3.16/bioc/html/AUCell.html).
-For more on that method, the OSCA section [Assigning cell labels from gene sets](http://bioconductor.org/books/3.16/OSCA.basic/cell-type-annotation.html#assigning-cell-labels-from-gene-sets) is a very good reference.
+For a more principled approach that allows identification of cell types by looking at the expression of sets of genes that are known to characterize each cell type, you might look at the [`AUCell` package](https://bioconductor.org/packages/release/bioc/html/AUCell.html).
+For more on that method, the OSCA section [Assigning cell labels from gene sets](http://bioconductor.org/books/3.19/OSCA.basic/cell-type-annotation.html#assigning-cell-labels-from-gene-sets) is a very good reference.
 
 
 ## Cell type annotation with `SingleR`
@@ -332,9 +332,9 @@ For more on that method, the OSCA section [Assigning cell labels from gene sets]
 An alternative approach to using known marker genes for classification is to instead classify cells by comparing them to a reference expression dataset.
 To do this, we will find a well-curated gene expression dataset that contains samples with known cell types.
 We can then train a model based on this dataset and look at each of the cells in our new dataset to determine which (if any) of the known cell types has the most similar expression pattern.
-The details of how such a model may be constructed and trained will vary by the specific method, but this overall approach is widely applied. 
+The details of how such a model may be constructed and trained will vary by the specific method, but this overall approach is widely applied.
 
-For this section, we will focus on the `SingleR` package and its methods, which are described in detail in [_The SingleR Book_](https://bioconductor.org/books/3.16/SingleRBook/).
+For this section, we will focus on the `SingleR` package and its methods, which are described in detail in [_The SingleR Book_](https://bioconductor.org/books/release/SingleRBook/).
 
 ### Reference datasets
 
@@ -343,11 +343,11 @@ At the most basic level, if the reference dataset does not include the types of 
 So we will want a reference dataset that has as many as possible of the cell types that we expect to find in our dataset, at a level of granularity that aligns with our goals.
 
 For `SingleR` that reference data can be from bulk RNA sequencing or from other single-cell experiments.
-`SingleR` is also fairly robust to the method used for gene expression quantification, which means that we can use either RNA-seq datasets or microarrays, if those are more readily available. 
+`SingleR` is also fairly robust to the method used for gene expression quantification, which means that we can use either RNA-seq datasets or microarrays, if those are more readily available.
 
 One convenient source of cell reference data is the `celldex` package, which is what we will use here.
-This package includes functions to download a variety of well-annotated reference datasets in a common format.  
-For more information on the datasets available, you will want to refer to [the `celldex` summary vignette](https://bioconductor.org/packages/3.16/data/experiment/vignettes/celldex/inst/doc/userguide.html).
+This package includes functions to download a variety of well-annotated reference datasets in a common format.
+For more information on the datasets available, you will want to refer to [the `celldex` summary vignette](https://bioconductor.org/packages/release/data/experiment/vignettes/celldex/inst/doc/userguide.html).
 
 We will start by using a reference dataset of sorted immune cells from [GSE107011 (Monaco _et al._ 2019)](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE107011).
 This particular reference was chosen because it is well-suited to PBMC datasets, with a good level of granularity.
@@ -358,7 +358,7 @@ The `celldex` functions also have a convenient option to convert gene symbols to
 # Bioconductor "Hub" packages provide the option to cache
 #   downloads, but the interactive prompt can be annoying
 #   when working with notebooks.
-# These options disable the prompt by giving permission 
+# These options disable the prompt by giving permission
 #   to create the cache automatically
 ExperimentHub::setExperimentHubOption("ASK", FALSE)
 AnnotationHub::setAnnotationHubOption("ASK", FALSE)
@@ -385,37 +385,37 @@ colData(monaco_ref)
 
 There are three main columns for the sample data:
 
-- `label.main` is a more general cell type assignment.  
+- `label.main` is a more general cell type assignment.
 
 - `label.fine` is a fine-level cell type with more specific labels.
 The exact level of granularity of these `main` and `fine` designations (and indeed the label names themselves) will vary among datasets, so it is important to look at the reference to see whether it is suitable for your application.
 
-- `label.ont` is a standardized [Cell Ontology](https://www.ebi.ac.uk/ols/ontologies/cl) identifier. 
-Using the cell ontology can allow for more complex representations of the relationships among different cell types, but investigating that is beyond the scope of this workshop. 
+- `label.ont` is a standardized [Cell Ontology](https://www.ebi.ac.uk/ols/ontologies/cl) identifier.
+Using the cell ontology can allow for more complex representations of the relationships among different cell types, but investigating that is beyond the scope of this workshop.
 
-Another component we would like to explore is how many of each of these cell types we have in the reference dataset. 
+Another component we would like to explore is how many of each of these cell types we have in the reference dataset.
 A bit of quick `dplyr` wrangling can give us the answer.
 
 ```{r count cell types}
-colData(monaco_ref) |> 
+colData(monaco_ref) |>
   as.data.frame() |>
   dplyr::count(label.main, label.fine)
 ```
 
-This is pretty good! 
+This is pretty good!
 Most cell types have 4 replicates, which is more replicates than we often find.
 
 ### What does `SingleR` do?
 
 As mentioned earlier, `SingleR` builds a model from a set of training data, and then uses that model to classify cells (or groups of cells) in new datasets.
 
-`SingleR` works by first identifying a set of marker genes that can be used to differentiate among the cell types in the reference dataset. 
+`SingleR` works by first identifying a set of marker genes that can be used to differentiate among the cell types in the reference dataset.
 It does this by performing pairwise comparisons among all of the cell types, and retaining the top set of genes differentiating each pair.
 The idea is that this set of genes will be the most informative for differentiating cell types.
 
 Then, for each cell, `SingleR` calculates the Spearman correlation between expression of that cell and each cell type (using the only the genes chosen earlier).
 Notably, this is a non-parametric correlation, so the scaling and normalization that we apply (or don't) should not matter!
-Note that if you used a single-cell technology that produces full-length transcripts (i.e., SMART-seq), you will probably want to convert your counts to Transcripts per Million (TPM), to allow more consistent ranking among transcripts of different lengths. 
+Note that if you used a single-cell technology that produces full-length transcripts (i.e., SMART-seq), you will probably want to convert your counts to Transcripts per Million (TPM), to allow more consistent ranking among transcripts of different lengths.
 
 The reference cell type with the highest correlation is then chosen as the cell type assignment for that cell.
 If there are multiple cell types with high scores, an optional fine-tuning step repeats the process using only the most relevant genes for those cell types.
@@ -428,7 +428,7 @@ For this we need only supply three main arguments: Our SCE object, a reference m
 We also need to be sure that our sample and the reference data use the same gene IDs, which is why we requested the Ensembl IDs when getting the reference dataset.
 
 Because this function is doing many repetitive calculations (lots of correlations!), we can speed it up by including the `BPPARAM` argument.
-This is a common argument in `Bioconductor` packages where `BP` stands for the `BiocParallel` package, which provides multiprocessing capabilities to many Bioconductor functions. 
+This is a common argument in `Bioconductor` packages where `BP` stands for the `BiocParallel` package, which provides multiprocessing capabilities to many Bioconductor functions.
 In this case, we will use the argument `BiocParallel::MulticoreParam(4)` to specify we want to use local multicore processing with 4 "workers".
 
 ```{r simple SingleR, live=TRUE}
@@ -458,7 +458,7 @@ sce$celltype_main <- singler_result$pruned.labels
 Now we can plot the cell type assignments onto our UMAP to see how they compare to the patterns we saw there before.
 
 ```{r plot celltype umap, live=TRUE}
-scater::plotUMAP(sce, color_by = "celltype_main") 
+scater::plotUMAP(sce, color_by = "celltype_main")
 ```
 Annoyingly, the `NA` and `T cells` labels are quite close in color, and the `scater` and `SingleR` packages don't agree on color choices.
 Luckily, since `plotUMAP()` returns a `ggplot` object, we can modify the color palette using `ggplot2` functions.
@@ -485,13 +485,13 @@ table(singler_result$pruned.labels, useNA = "ifany")
 
 ### Exploring finer labels
 
-In the previous cell typing, we used the `label.main` column, but we also had `label.fine`, so let's use that to explore the dataset in a bit more detail. 
+In the previous cell typing, we used the `label.main` column, but we also had `label.fine`, so let's use that to explore the dataset in a bit more detail.
 
-We will also take this time to dive a bit deeper into the steps that `SingleR` performed. 
+We will also take this time to dive a bit deeper into the steps that `SingleR` performed.
 As mentioned, the first step is training the model, during which we identify the genes that will be used for the correlation analysis later.
 While this step is not particularly slow, if we were classifying multiple samples, we would not want to have to repeat it for every sample.
 
-To do the training, we will use the `trainSingleR()` function. 
+To do the training, we will use the `trainSingleR()` function.
 For this we will start with our reference and the labels we want to train the model with.
 
 We can then specify the method used to select the genes that will be used for classification.
@@ -499,10 +499,10 @@ The default method is `"de"`, which performs a differential expression analysis 
 If we want to get really fancy, we could even provide a specific list of genes to use.
 
 We should note here that the reference dataset for `SingleR` does not need to be from a compendium like `celldex`!
-If you have any well-classified dataset that you want to use as a reference, you can, as long as you can create a gene by sample expression matrix and a vector of cell types for each sample. 
-You will want to ensure that the cell types you expect to see in your sample are present in the reference dataset, and data should be normalized, but otherwise the method can be quite flexible. 
+If you have any well-classified dataset that you want to use as a reference, you can, as long as you can create a gene by sample expression matrix and a vector of cell types for each sample.
+You will want to ensure that the cell types you expect to see in your sample are present in the reference dataset, and data should be normalized, but otherwise the method can be quite flexible.
 You can even use a previously-annotated `SingleCellExperiment` as a reference for a new dataset.
-For more details about custom references, see the [OSCA chapter on cell type annotation](http://bioconductor.org/books/3.16/OSCA.basic/cell-type-annotation.html#using-custom-references)
+For more details about custom references, see the [OSCA chapter on cell type annotation](http://bioconductor.org/books/3.19/OSCA.basic/cell-type-annotation.html#using-custom-references)
 
 We do want to be sure that the genes selected for the model will be among those present in our SCE object, so we will use the `restrict` argument with a vector of the genes in our SCE.
 This step would happen automatically with the `SingleR::SingleR()` function, but we need to add it manually for this use case.
@@ -514,7 +514,7 @@ singler_finemodel <- SingleR::trainSingleR(
   monaco_ref, # reference dataset
   labels = monaco_ref$label.fine, # labels for training dataset
   # use DE to select genes (default)
-  genes = "de", 
+  genes = "de",
   # only use genes in the sce object
   restrict = rownames(sce),
   # parallel processing
@@ -556,7 +556,7 @@ The `NA` cells also got taken off completely, which is not ideal.
 
 One thing we can do is to use some functions from the `tidyverse` package [`forcats`](https://forcats.tidyverse.org), which can be very handy for dealing with categorical variables like these cell types.
 
-We will use two of these functions in the chunk below: 
+We will use two of these functions in the chunk below:
 First we will use `fct_collapse` to take some of the finer labels that we might not be as interested in and collapse them into logical groupings (in this case, the `main` label that they were part of).
 After that, we will use `fct_relevel` to put the remaining factor levels in the order we would like them to appear for plotting.
 
@@ -564,8 +564,8 @@ After that, we will use `fct_relevel` to put the remaining factor levels in the 
 collapsed_labels <- singler_result_fine$pruned.labels |>
   forcats::fct_collapse(
     "Monocytes" = c(
-        "Classical monocytes", 
-        "Intermediate monocytes", 	
+        "Classical monocytes",
+        "Intermediate monocytes",
         "Non classical monocytes"),
     "Dendritic cells" = c(
         "Myeloid dendritic cells",
@@ -576,8 +576,8 @@ collapsed_labels <- singler_result_fine$pruned.labels |>
         "Vd2 gd T cells"),
     "Helper T cells" = c(
         "Th1 cells",
-        "Th1/Th17 cells", 
-        "Th17 cells", 
+        "Th1/Th17 cells",
+        "Th17 cells",
         "Th2 cells",
         "Follicular helper T cells"),
     "B cells" = c(
@@ -585,7 +585,7 @@ collapsed_labels <- singler_result_fine$pruned.labels |>
         "Switched memory B cells",
         "Non-switched memory B cells",
         "Exhausted B cells",
-        "Plasmablasts"		
+        "Plasmablasts"
     )
   ) |>
   # order for plotting
@@ -612,7 +612,7 @@ Now that we have that set up, we can plot using our collapsed and ordered cell t
 
 ```{r plot collapsed, live=TRUE}
 sce$celltype_collapsed <- collapsed_labels
-scater::plotUMAP(sce, 
+scater::plotUMAP(sce,
                  color_by = "celltype_collapsed")
 ```
 
@@ -621,7 +621,7 @@ scater::plotUMAP(sce,
 
 Let's look at how the cell type assignments we obtained using `SingleR` compare to the clusters that we found using the unsupervised clustering at the start of this notebook.
 
-To do this, we will again use the `table()` function, but now with two vectors as input, to build a contingency table of the cell types and clusters that each cell was classified with. 
+To do this, we will again use the `table()` function, but now with two vectors as input, to build a contingency table of the cell types and clusters that each cell was classified with.
 
 ```{r type cluster table}
 # create a table of clusters & cell type counts
@@ -633,20 +633,20 @@ type_cluster_tab[1:5, 1:5]
 
 As you can see, this produced a table with rows for each cell type and columns for each cluster number.
 The values are the count of cells for each cluster/cell type combination.
-However, these raw counts are not quite what we'll want for visualization. 
+However, these raw counts are not quite what we'll want for visualization.
 Since the total number of cells differs across clusters, we'd like to convert these counts into the _proportions_ of each cell type in each cluster.
 
 We'll do this by going through the table column by column and dividing each value by the sum for that cluster.
 This will give us normalized values where the values in each column now sum to 1.
 To do that, we will use the `apply` function, which allows us to operate on a matrix row by row or column by column, applying a function to each "slice".
-Since the function we want to apply is very short, we will use R's new (as of  version 4.1) anonymous function shorthand: 
+Since the function we want to apply is very short, we will use R's new (as of  version 4.1) anonymous function shorthand:
 `\(x) ...` can be used to define a function that that takes as input values `x` (where the `...` is where you would put the expression to calculate).
 Here we will apply the expression `x/sum(x)`, which will divide each element of a vector `x` by the sum of its values.
 
 ```{r normalize by column}
 # normalize by the number of cells in each cluster (columns)
 type_cluster_tab <- apply(
-  type_cluster_tab, 
+  type_cluster_tab,
   2, # apply function to columns
   \(x) x/sum(x) # function to apply
 )
@@ -654,7 +654,7 @@ type_cluster_tab <- apply(
 type_cluster_tab[1:5, 1:5]
 ```
 
-Now we can plot these results as a heatmap, using the `pheatmap` package. 
+Now we can plot these results as a heatmap, using the `pheatmap` package.
 There is a lot of customization we could do here, but `pheatmap` (pretty heatmap) has good defaults, so we won't spend too much time on it for now.
 
 ```{r cluster heatmap, live=TRUE}
@@ -667,11 +667,11 @@ There are also some places where single cell types are spread across a few diffe
 
 ### Classifying by clusters
 
-While most of the time we will want to classify single cells, sometimes the sparseness of the data may mean that individual cells do not provide reliable estimates of cell types. 
+While most of the time we will want to classify single cells, sometimes the sparseness of the data may mean that individual cells do not provide reliable estimates of cell types.
 
 An alternative approach is to classify the clusters as a whole, assuming that the clusters we have identified represent a single cell state.
-If that is the case, then we should be able to combine the data for all cells across each cluster, then apply our cell typing method to this group of cells. 
-This is similar to an approach we will return to later in the context of differential expression. 
+If that is the case, then we should be able to combine the data for all cells across each cluster, then apply our cell typing method to this group of cells.
+This is similar to an approach we will return to later in the context of differential expression.
 
 The first step here is to create a new matrix where we sum the counts across cells that are from the same type according to our clustering.
 Because `SingleR` is a non-parametric approach, we can perform this step with the raw counts matrix.
@@ -703,7 +703,7 @@ head(singler_cluster)
 ```
 
 The result is a fairly small table of results, but we are most interested in the labels, which we would like to associate with each cell in our SCE object for visualization.
-Since the cluster labels are the row names of that table, we can perform a cute little trick to assign labels back to each cell based on the name of the cluster that it was assigned to. 
+Since the cluster labels are the row names of that table, we can perform a cute little trick to assign labels back to each cell based on the name of the cluster that it was assigned to.
 (In this case the cluster names are all numbers, but that might not always be the case.)
 We'll select values repeatedly from the `singler_cluster` table, using the cluster assignment to pick a row, and then always picking the `pruned.labels` column.
 
@@ -717,14 +717,14 @@ Now we can plot these cluster-based cell type assignments using the now familiar
 scater::plotUMAP(sce, color_by = "celltype_cluster")
 ```
 
-This sure looks nice and clean, but what have we really done here? 
+This sure looks nice and clean, but what have we really done here?
 We are _assuming_ that each cluster has only a single cell type, which is a pretty bold assumption, as we really aren't sure that the clusters we created were correct.
 You may recall that clustering algorithms are quite sensitive to parameter choice, so a different parameter choice could quite likely give a different result.
 
 ### MetaCell approaches
 
-As a middle ground between the potentially messy single-cell cell type assignment and the almost-certainly overconfident cluster-based assignment above, we can take approach inspired by [Baran _et al._ (2019)](https://doi.org/10.1186/s13059-019-1812-2) using something they called _metacells_. 
-The idea is that we can perform fine-scaled clustering to identify groups of very similar cells, then sum the counts within those clusters as "metacells" to use for further analysis. 
+As a middle ground between the potentially messy single-cell cell type assignment and the almost-certainly overconfident cluster-based assignment above, we can take approach inspired by [Baran _et al._ (2019)](https://doi.org/10.1186/s13059-019-1812-2) using something they called _metacells_.
+The idea is that we can perform fine-scaled clustering to identify groups of very similar cells, then sum the counts within those clusters as "metacells" to use for further analysis.
 The original paper includes a number of optimizations to make sure that the metacell clusters have desirable properties for downstream analysis.
 We won't go into that depth here, but we can apply similar ideas.
 
@@ -736,9 +736,9 @@ While this is almost certainly more clusters than are "real" in this dataset, ou
 ```{r kmeans cluster}
 # perform k-means clustering
 kclusters <- bluster::clusterRows(
-  reducedDim(sce, "PCA"), 
+  reducedDim(sce, "PCA"),
   bluster::KmeansParam(
-    centers = 100, # the number of clusters 
+    centers = 100, # the number of clusters
     iter.max = 100 # more iterations to be sure of convergence
   )
 )
@@ -752,7 +752,7 @@ metacell_mat <- DelayedArray::colsum(counts(sce), kclusters)
 
 # apply SingleR model to metacell matrix
 metacell_singler <- SingleR::classifySingleR(
-  metacell_mat, 
+  metacell_mat,
   singler_finemodel
 )
 
@@ -766,13 +766,13 @@ Now we can plot the results as we have done before.
 scater::plotUMAP(sce, color_by = "celltype_metacell")
 ```
 
-What do you think of this plot? 
+What do you think of this plot?
 Is this more or less useful than the original cell-based clustering?
 
 
 ## Save results
 
-To save disk space (and time), we won't write out the whole SCE object, as we haven't changed any of the core data there. 
+To save disk space (and time), we won't write out the whole SCE object, as we haven't changed any of the core data there.
 Instead we will just write out the cell information table (`colData`) as a TSV file.
 
 ```{r save cell info, live=TRUE}
