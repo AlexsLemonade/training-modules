@@ -20,23 +20,24 @@ When converting between `Seurat` and `SCE` objects, it's helpful to know how the
 The table below shows different aspects of single-cell objects and how to access the associated data, assuming the default names for each type of single-cell object.
 There are several differences between `Seurat` and `SCE` objects that are useful to be aware of when converting them.
 Importantly, the term `"assay"` refers to different things in `SCE` vs. `Seurat` objects:
-  - In an `SCE` object, an `assay` is a matrix of counts, with default names `"counts"` for raw counts and `"logcounts"` for normalized counts.
-  - In a `Seurat` object, an `assay` instead refers to an _experiment_. The default `Seurat` assay is called `"RNA"`, and it is analogous to the "main experiment" in an `SCE` object, which is not given a particular name.
-  - The `Seurat` count matrices are stored within a given assay (experiment) and have default names of `"counts"` for raw counts and `"data"` for normalized counts.
+
+ - In an `SCE` object, an `assay` is a matrix of counts, with default names `"counts"` for raw counts and `"logcounts"` for normalized counts.
+ - In a `Seurat` object, an `assay` instead refers to an _experiment_. The default `Seurat` assay is called `"RNA"`, and it is analogous to the "main experiment" in an `SCE` object, which is not given a particular name.
+ - The `Seurat` count matrices are stored within a given assay (experiment) and have default names of `"counts"` for raw counts and `"data"` for normalized counts.
 
 In addition, by default, `SCE` reduced dimension names are capitalized (e.g., `"PCA"`), and `Seurat` reduced dimension names are in lower case (e.g., `"pca"`).
 
 Always bear in mind that your object(s) may be named differently from the defaults as described here!
 
-| Data aspect | `SCE` | `Seurat` |
-|------------|---------|---------|
-| Raw counts matrix | `counts(sce_object)` | `seurat_obj[["RNA"]]@counts` |
-| Normalized counts matrix | `logcounts(sce_object)` | `seurat_obj[["RNA"]]@data` |
-| Reduced dimension: PCA matrix | `reducedDim(sce_object, "PCA)` | `seurat_obj$pca@cell.embeddings` |
-| Reduced dimension: UMAP matrix | `reducedDim(sce_object, "UMAP)` | `seurat_obj$umap@cell.embeddings` |
-| Cell-level metadata | `colData(sce_object)` | `seurat_obj@meta.data` |
-| Feature (gene)-level metadata | `rowData(sce_object)` | `seurat_obj[["RNA"]]@meta.features`|
-| Miscellaneous additional metadata | `metadata(sce_object)` | `seurat_obj@misc`|
+| Data aspect                       | `SCE`                           | `Seurat v5`                                                                                                |
+| --------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Raw counts matrix                 | `counts(sce_object)`            | `seurat_obj[["RNA"]]$counts`                                                                               |
+| Normalized counts matrix          | `logcounts(sce_object)`         | `seurat_obj[["RNA"]]$data`                                                                                 |
+| Reduced dimension: PCA matrix     | `reducedDim(sce_object, "PCA)`  | `seurat_obj$pca@cell.embeddings`                                                                           |
+| Reduced dimension: UMAP matrix    | `reducedDim(sce_object, "UMAP)` | `seurat_obj$umap@cell.embeddings`                                                                          |
+| Cell-level metadata               | `colData(sce_object)`           | `seurat_obj@meta.data`                                                                                     |
+| Feature (gene)-level metadata     | `rowData(sce_object)`           | `seurat_obj[["RNA"]]@meta.data` <br><br> _Note that `Seurat v3` syntax is:_ `seurat_obj[["RNA"]]@meta.features` |
+| Miscellaneous additional metadata | `metadata(sce_object)`          | `seurat_obj@misc`                                                                                          |
 
 We provide some code examples below for these conversions below.
 For all code examples below, it is assumed that the `SingleCellExperiment` library has been loaded into your R environment:
