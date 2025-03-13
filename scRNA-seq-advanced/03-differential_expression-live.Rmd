@@ -8,7 +8,7 @@ output:
     toc_float: yes
 ---
 
-## Objectives 
+## Objectives
 
 This notebook will demonstrate how to:
 
@@ -21,7 +21,7 @@ This notebook will demonstrate how to:
 Just like bulk RNA-seq, it is likely that one of the goals when performing scRNA-seq will be to compare the gene expression of multiple samples to each other.
 Unlike bulk RNA-seq analysis, scRNA-seq analysis allows us to identify and annotate cell types or subpopulations of cells present in each of our samples.
 This means that we can account for differences in cell type composition across samples and specifically focus on cell types or populations of interest when performing differential expression (DE) analysis.
-In this notebook, we will work with multiple samples to identify differentially expressed genes across cell types of interest using the [`DESeq2`](https://bioconductor.org/packages/3.16/bioc/html/DESeq2.html) package. 
+In this notebook, we will work with multiple samples to identify differentially expressed genes across cell types of interest using the [`DESeq2`](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) package.
 
 ![Single-cell roadmap: Differential expression](diagrams/roadmap_differential_expression.png)
 
@@ -42,7 +42,7 @@ set.seed(2022)
 
 # load libraries
 library(ggplot2) # plotting functions
-library(SingleCellExperiment) 
+library(SingleCellExperiment)
 
 # package used for differential expression analysis
 library(DESeq2)
@@ -63,18 +63,18 @@ Each row in this file corresponds to a sample found in the integrated SCE object
 To begin, let's set up our directories and files:
 
 ```{r filepaths}
-# set up file paths 
+# set up file paths
 # data directory for RMS data
 data_dir <- file.path("data", "rms")
 
 # integrated file containing samples to use for DE analysis
-integrated_sce_file <- file.path(data_dir, 
-                                 "integrated", 
+integrated_sce_file <- file.path(data_dir,
+                                 "integrated",
                                  "rms_all_sce.rds")
 
 # sample metadata to set up DE analysis
-sample_metadata_file <- file.path(data_dir, 
-                                  "annotations", 
+sample_metadata_file <- file.path(data_dir,
+                                  "annotations",
                                   "rms_sample_metadata.tsv")
 
 # directory to store output
@@ -82,12 +82,12 @@ deseq_dir <- file.path("analysis", "rms", "deseq")
 fs::dir_create(deseq_dir)
 
 # results file to output from DE analysis
-deseq_output_file <- file.path(deseq_dir, 
+deseq_output_file <- file.path(deseq_dir,
                                "rms_myoblast_deseq_results.tsv")
 
 # output integrated sce object
-output_sce_file <- file.path(data_dir, 
-                             "integrated", 
+output_sce_file <- file.path(data_dir,
+                             "integrated",
                              "rms_subset_sce.rds")
 ```
 
@@ -96,7 +96,7 @@ We can go ahead and read in the SCE object and the metadata file.
 ```{r read files, live=TRUE}
 # read in the SCE object that has already been integrated
 
-# read in sample metadata file 
+# read in sample metadata file
 
 ```
 
@@ -119,10 +119,10 @@ How are those stored in our object?
 
 ```
 
-When we look at the assay names we should see that there are 3 matrices, `counts`, `logcounts`, and `fastmnn_corrected`. 
+When we look at the assay names we should see that there are 3 matrices, `counts`, `logcounts`, and `fastmnn_corrected`.
 The `counts` and `logcounts` assays correspond to the uncorrected gene expression data that has been merged but NOT integrated.
-The `fastmnn_corrected` data contains the corrected gene expression data obtained from integration. 
-For this exercise we will not be using the `fastmnn_corrected` data (more on why not once we get to setting up the differential expression), but we need to be aware that it is present and be able to distinguish it from our uncorrected data. 
+The `fastmnn_corrected` data contains the corrected gene expression data obtained from integration.
+For this exercise we will not be using the `fastmnn_corrected` data (more on why not once we get to setting up the differential expression), but we need to be aware that it is present and be able to distinguish it from our uncorrected data.
 
 
 ```{r print reducedDim names, live=TRUE}
@@ -168,7 +168,7 @@ This will allow us to match each of the samples in the SCE object with the RMS s
 coldata_df <- colData(integrated_sce) |>
   # convert from DataFrame to data.frame
   as.data.frame() |>
-  # merge with sample metadata 
+  # merge with sample metadata
   dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) |>
   # create new columns
   # cell_id is a combination of barcode and sample
@@ -181,7 +181,7 @@ coldata_df <- colData(integrated_sce) |>
                 ))
 
 # add modified data frame back to SCE as DataFrame
-colData(integrated_sce) <- DataFrame(coldata_df, 
+colData(integrated_sce) <- DataFrame(coldata_df,
                                      row.names = coldata_df$cell_id)
 ```
 
@@ -204,7 +204,7 @@ In the chunk below we will start by taking a look at our integration results and
 
 ```
 
-Interestingly, it looks like samples from the ARMS and ERMS subtypes tend to group with samples of the same subtype rather than all together. 
+Interestingly, it looks like samples from the ARMS and ERMS subtypes tend to group with samples of the same subtype rather than all together.
 
 In the integration notebook we also looked at the distribution of cell types after integration.
 In that notebook, we discussed that cells of the same cell type are expected to integrate with other cells of the same type.
@@ -222,7 +222,7 @@ scater::plotReducedDim(integrated_sce,
                        dimred = "fastmnn_UMAP",
                        # color each point by cell type
                        color_by = "celltype_broad",
-                       point_size= 0.5, 
+                       point_size= 0.5,
                        point_alpha = 0.4)
 ```
 
@@ -258,18 +258,18 @@ tumor_cells_df <- coldata_df |>
   dplyr::filter(stringr::str_detect(celltype_broad, "Tumor"))
 
 # create a stacked barplot
-ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) + 
+ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
     geom_bar(position = "fill", color = "black", size = 0.2) +
     labs(
       x = "Sample",
-      y = "Proportion of cells", 
+      y = "Proportion of cells",
       fill = "Cell type"
     ) +
   scale_fill_brewer(palette = "Dark2") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
-  # facet by diagnosis group 
-  facet_grid(cols = vars(diagnosis_group), 
+  # facet by diagnosis group
+  facet_grid(cols = vars(diagnosis_group),
              # only show non-NA values on x-axis
              scales = "free_x",
              space = "free_x")
@@ -277,13 +277,13 @@ ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
 
 Similar to the UMAP, this plot shows that ARMS and ERMS share a lot of the same cell types.
 
-We also see that only 6 of these libraries have tumor cells that have been further classified into mesoderm, myoblast, and myocyte. 
+We also see that only 6 of these libraries have tumor cells that have been further classified into mesoderm, myoblast, and myocyte.
 3 libraries contain cells that are only classified as tumor or non-tumor, and tumor cells are not further classified, and the remaining library is not even present in our plot because it was not assigned any cell types (all are `NA`).
 We will continue our analysis only using the 6 libraries with fully classified cell types, removing the other 4 before we proceed with differential expression.
 
 ### Filtering samples
 
-The reason we want to pare down our list of samples to consider is that we want to ensure that the cell types (or subpopulations) that we are interested in are present in all samples included in our DE analysis. 
+The reason we want to pare down our list of samples to consider is that we want to ensure that the cell types (or subpopulations) that we are interested in are present in all samples included in our DE analysis.
 We want to remove any samples that do not contain our cell population(s) of interest as they have no counts to contribute to the DE analysis.
 
 ```{r subset sce}
@@ -297,15 +297,15 @@ library_ids <- c(
   "SCPCL000491"
 )
 
-# subset sce to only contain samples of interest 
+# subset sce to only contain samples of interest
 samples_to_keep <- integrated_sce$sample %in% library_ids
 rms_sce <- integrated_sce[, samples_to_keep]
 
-# print out our new SCE 
+# print out our new SCE
 rms_sce
 ```
 
-Before we move on, we'll remove the original integrated object from our environment to save some memory. 
+Before we move on, we'll remove the original integrated object from our environment to save some memory.
 
 ```{r remove sce}
 rm(integrated_sce)
@@ -321,11 +321,11 @@ readr::write_rds(rms_sce, file = output_sce_file, compress = "gz")
 We now have an updated SCE object that contains 6 samples that were obtained from a mix of ARMS and ERMS patients.
 We can then ask the question, do specific tumor cell types contain sets of differentially expressed genes between ARMS and ERMS samples?
 
-We should make sure that we have enough biological replicates from each group to set up our experiment. 
+We should make sure that we have enough biological replicates from each group to set up our experiment.
 It is imperative to consider good experimental design and ensure that we have enough biological replicates (at least 3 for each group) when performing differential gene expression analysis.
 
 If we look back at our stacked barplot we see that we picked 3 ARMS and 3 ERMS samples.
-We can also see that the majority of cells are tumor cells, in particular the largest population of cells appears to be the `Tumor_Myoblast`. 
+We can also see that the majority of cells are tumor cells, in particular the largest population of cells appears to be the `Tumor_Myoblast`.
 For this example we will focus on identifying DE genes in these `Tumor_Myoblast` cells, but the principles applied below can be applied to any cell types or subpopulations of interest.
 
 ## Differential expression analysis
@@ -334,26 +334,26 @@ Now we are ready to start preparing for our DE analysis, where we will compare t
 
 Throughout the notebook we have been working with an integrated dataset that contains corrected gene expression data (`fastmnn_corrected` assay) and a corrected UMAP.
 As a reminder, the uncorrected gene expression data, found in the `counts` and `logcounts` assays, correspond to data that has been merged (the first step we walked through prior to integration) into the same SCE but not yet integrated.
-We do not want to use corrected gene expression values for differential expression; `DESeq2` expects the original raw counts as input so we will be using data found in the `counts` assay of the `SingleCellExperiment` object. 
+We do not want to use corrected gene expression values for differential expression; `DESeq2` expects the original raw counts as input so we will be using data found in the `counts` assay of the `SingleCellExperiment` object.
 
 It is advised to only use the corrected values for any analyses being performed at the cell level, e.g., dimensionality reduction.
 In contrast, it is not advised to use corrected values for any analyses that are gene-based, such as differential expression or marker gene detection, because within-batch and between-batch gene expression differences are no longer preserved.
 The reason for this is two-fold – many of the DE models will expect uncorrected counts because they will account for between-sample variation within the model, and we want to ensure we are preserving variation that is present so as not to artificially inflate differences between populations.
-See the [OSCA chapter on Using the corrected values](https://bioconductor.org/books/3.16/OSCA.multisample/using-corrected-values.html#using-corrected-values) for more insight.
+See the [OSCA chapter on Using the corrected values](https://bioconductor.org/books/3.19/OSCA.multisample/using-corrected-values.html#using-corrected-values) for more insight.
 
-### Pseudo-bulking 
+### Pseudo-bulking
 
-Before we can compare the gene expression profiles of myoblasts in ARMS vs. ERMS samples, we will need to "pseudo-bulk" the gene counts. 
-Pseudo-bulking creates a new counts matrix that contains the sum of the counts from all cells with a given label (e.g., cell type) for each sample ([Tung _et al._ 2017](https://doi.org/10.1038/srep39921)). 
-If we were to keep each cell's counts separate, they would be treated as replicates, leading to inflated statistics. 
+Before we can compare the gene expression profiles of myoblasts in ARMS vs. ERMS samples, we will need to "pseudo-bulk" the gene counts.
+Pseudo-bulking creates a new counts matrix that contains the sum of the counts from all cells with a given label (e.g., cell type) for each sample ([Tung _et al._ 2017](https://doi.org/10.1038/srep39921)).
+If we were to keep each cell's counts separate, they would be treated as replicates, leading to inflated statistics.
 By pseudo-bulking first, we will now have one count for each gene for each sample and we can take advantage of well-established methods for differential expression with bulk RNA-seq.
 
-Pseudo-bulking is implemented prior to differential expression analysis on single-cell data because it: 
+Pseudo-bulking is implemented prior to differential expression analysis on single-cell data because it:
 
-- Produces larger and less sparse counts, which allows us to use standard normalization and differential expression methods used by bulk RNA-seq. 
+- Produces larger and less sparse counts, which allows us to use standard normalization and differential expression methods used by bulk RNA-seq.
 - Collapses gene expression counts by sample, so that samples, rather than cells, represent replicates.
 - Masks variance within a sample to emphasize variance across samples.
-This can be both good and bad! 
+This can be both good and bad!
 Masking intra-sample variation means you might not identify genes where average expression doesn't change between samples but the degree of cell-to-cell variation does.
 
 Before we apply pseudo-bulking to our dataset, let's look at a simple example of how pseudo-bulking works.
@@ -362,7 +362,7 @@ We'll start by creating a fake matrix of counts.
 ```{r create matrix}
 # create an example counts matrix
 counts_mtx <- matrix(
-  1:12, 
+  1:12,
   ncol = 4,
   dimnames = list(c("geneA", "geneB", "geneC"),
                   c("A-cell1", "A-cell2", "B-cell1", "B-cell2"))
@@ -382,28 +382,28 @@ To do this we will use the `DelayedArray::colsum()` function, which allows us to
 
 Looking at this output, you should see that the original 4 columns have been condensed to only 2 columns: 1 column to represent all cells from group `A`, and 1 column to represent all cells from group `B`.
 
-Now the actual pseudo-bulking for our dataset! 
+Now the actual pseudo-bulking for our dataset!
 
 We will use the [`scuttle::aggregateAcrossCells()` function](https://rdrr.io/github/LTLA/scuttle/man/aggregateAcrossCells.html) to pseudo-bulk our dataset.
 This function takes as input an SCE object and the grouping assignments for each cell.
-The output will be an SCE object that contains only the pseudo-bulked counts for all genes across all specified groups, rather than across all cells. 
-We can then subset this SCE to just include our cell type of interest (tumor myoblasts) for input to the DE analysis. 
+The output will be an SCE object that contains only the pseudo-bulked counts for all genes across all specified groups, rather than across all cells.
+We can then subset this SCE to just include our cell type of interest (tumor myoblasts) for input to the DE analysis.
 
 We can pseudo-bulk using any grouping that we are interested in.
-For right now, we are interested in looking at gene expression across cell types, so we want to group the pseudo-bulked counts matrix by both cell type and original sample. 
+For right now, we are interested in looking at gene expression across cell types, so we want to group the pseudo-bulked counts matrix by both cell type and original sample.
 
 ```{r pseudobulk sce}
-# first subset the coldata 
-# to only have the columns we care about for pseudo-bulking 
+# first subset the coldata
+# to only have the columns we care about for pseudo-bulking
 pb_groups <- colData(rms_sce)[, c("celltype_broad", "sample")]
 
-# create a new SCE object that contains 
-# the pseudo-bulked counts across the provided groups 
-pb_sce <- scuttle::aggregateAcrossCells(rms_sce, 
+# create a new SCE object that contains
+# the pseudo-bulked counts across the provided groups
+pb_sce <- scuttle::aggregateAcrossCells(rms_sce,
                                         id = pb_groups)
 
-# column names aren't automatically added to the pseudo-bulked sce, 
-# so let's add them in 
+# column names aren't automatically added to the pseudo-bulked sce,
+# so let's add them in
 colnames(pb_sce) <- glue::glue(
   "{pb_sce$celltype_broad}_{pb_sce$sample}"
 )
@@ -411,17 +411,17 @@ colnames(pb_sce) <- glue::glue(
 pb_sce
 ```
 
-How does the new pseudo-bulked `SingleCellExperiment` look different? 
-How many columns does it have? 
+How does the new pseudo-bulked `SingleCellExperiment` look different?
+How many columns does it have?
 
-Let's take a look at what the `colData` looks like in the pseudo-bulked SCE object. 
+Let's take a look at what the `colData` looks like in the pseudo-bulked SCE object.
 
 ```{r pseudobulk colData, live=TRUE}
-# note the new column with number of cells per group 
+# note the new column with number of cells per group
 
 ```
 
-You should see that columns such as `sum`, `detected`, `subsets_mito_sum`, and other columns that typically contain per cell QC statistics now contain `NA` rather than numeric values. 
+You should see that columns such as `sum`, `detected`, `subsets_mito_sum`, and other columns that typically contain per cell QC statistics now contain `NA` rather than numeric values.
 This is because these values were initially calculated on a per cell level (we did this using `scuttle::addPerCellQCMetrics()`), but we no longer have a single column per cell.
 Instead, each column now represents a _group_ of cells, in this case comprised of cells of a given cell type and sample combination.
 Therefore, the values that we calculated on a per-cell level are no longer applicable to this pseudo-bulked SCE object.
@@ -446,7 +446,7 @@ We can then take a look and see how many cell type-sample columns we removed, if
 ```{r print dim, live=TRUE}
 # print out dimensions of unfiltered pseudobulk sce
 
-# dimensions of filtered pseudobulk sce 
+# dimensions of filtered pseudobulk sce
 
 ```
 
@@ -517,7 +517,7 @@ As a reminder, this is NOT required for running `DESeq2` analysis; we are just u
 deseq_object <- DESeq2::estimateSizeFactors(deseq_object)
 
 # normalize and log transform to use for visualization
-normalized_object <- DESeq2::rlog(deseq_object, 
+normalized_object <- DESeq2::rlog(deseq_object,
                                   blind = TRUE)
 normalized_object
 ```
@@ -541,7 +541,7 @@ This function calculates normalization factors, estimates gene-wise dispersions,
 ```
 
 We can evaluate how well the model fit our data by looking at the dispersion estimates.
-We expect to see the dispersion estimates decrease as means are increasing and follow the line of best fit. 
+We expect to see the dispersion estimates decrease as means are increasing and follow the line of best fit.
 
 ```{r plot dispersion, live=TRUE}
 
@@ -572,8 +572,8 @@ To do this, we will use the `lfcShrink()` function, but first we need to know th
 ```{r shrinkage}
 # appyly logFC shrinkage using the default model
 shrink_results <- DESeq2::lfcShrink(
-  deseq_object, 
-  res = deseq_results, 
+  deseq_object,
+  res = deseq_results,
   coef = 2,
   type = "apeglm"
 )
@@ -590,13 +590,13 @@ deseq_results <- shrink_results |>
   # converting results into a data frame
   tibble::as_tibble(rownames = "ensembl_id")
 
-# convert rowdata to data frame 
+# convert rowdata to data frame
 sce_rowdata_df <- rowData(tumor_myoblast_sce) |>
   # create a column with rownames stored as ensembl id
   # use for joining with deseq results
   tibble::as_tibble(rownames = "ensembl_id")
 
-# combine deseq results with rowdata by ensembl id 
+# combine deseq results with rowdata by ensembl id
 deseq_results <- deseq_results |>
   dplyr::left_join(sce_rowdata_df, by = "ensembl_id")
 
@@ -614,14 +614,14 @@ The last thing that we will do is take a look at how many genes are significant.
 Here we will want to use the adjusted p-value, found in the `padj` column of the results, as this accounts for multiple test correction.
 
 ```{r significant results, live=TRUE}
-# first look at the significant results 
+# first look at the significant results
 
   # filter based on adjusted pvalue
 
 ```
 
 
-### Exploring the identified differentially expressed genes 
+### Exploring the identified differentially expressed genes
 
 Now that we have identified a set of genes that are differentially expressed in the tumor myoblasts between ARMS and ERMS subtypes, lets actually take a look at them and see if we can make some informative plots.
 The first plot we'll make is a volcano plot using the [`EnhancedVolcano` package](https://github.com/kevinblighe/EnhancedVolcano).
@@ -649,10 +649,10 @@ EnhancedVolcano::EnhancedVolcano(deseq_results,
 ```
 
 
-We can also return back to the SCE object that we used to create our pseudo-bulked SCE and look at gene expression of some of the significant genes. 
+We can also return back to the SCE object that we used to create our pseudo-bulked SCE and look at gene expression of some of the significant genes.
 We can create UMAP plots as we did previously, but instead of labeling each cell with metadata, we can color cells by a specified gene's expression levels.
 We will also use some of the `ggplot2` skills we picked up earlier, like `facet_grid()` to plot cells from different RMS subtypes separately.
-This can help us validate the `DESeq2` results so that we can visualize gene expression changes across our cell type of interest on a single-cell level. 
+This can help us validate the `DESeq2` results so that we can visualize gene expression changes across our cell type of interest on a single-cell level.
 
 ```{r expression umap, live=TRUE}
 # filter to just myoblast cells and remove any NA's before plotting
@@ -661,15 +661,15 @@ This can help us validate the `DESeq2` results so that we can visualize gene exp
 
 ```
 
-In the above plot we only plotted the tumor myoblast cells that we used in our DE analysis. 
+In the above plot we only plotted the tumor myoblast cells that we used in our DE analysis.
 However, we might be interested to see the expression of genes that are differentially expressed in other cell types present in our samples.
 
 ```{r celltype comparison}
 # let's compare gene expression across some other cell types
 # look at all tumor cells and pick one normal cell type
-celltypes <- c("Tumor_Myoblast", 
-               "Tumor_Mesoderm", 
-               "Tumor_Myocyte", 
+celltypes <- c("Tumor_Myoblast",
+               "Tumor_Mesoderm",
+               "Tumor_Myocyte",
                "Vascular Endothelium")
 
 # subset to just celltypes that we are interested in
@@ -684,24 +684,24 @@ One neat trick of the `scater::plotExpression()` function is that it actually cr
 We can then directly reference that `Feature` column when plotting, instead of using the `other_fields` option we used previously.
 
 ```{r multi-gene plot}
-# pick a couple genes to look at 
+# pick a couple genes to look at
 genes_to_plot <- c("ENSG00000196090", #PTPRT
                    "ENSG00000148935") #GAS2
 
-# create a violin plot 
+# create a violin plot
 scater::plotExpression(tumor_sce,
                        # a vector of genes to plot
-                       features = genes_to_plot, 
-                       x = "diagnosis_group", 
+                       features = genes_to_plot,
+                       x = "diagnosis_group",
                        color_by = "diagnosis_group",
                        other_fields = "celltype_broad",
                        point_size = 0.1) +
   # each celltype is its own column
   facet_grid(cols = vars(celltype_broad),
              # each feature (gene) is its own row
-             rows = vars(Feature)) + 
+             rows = vars(Feature)) +
   # change the font size of the facet labels
-  theme(strip.text = element_text(size = 7)) + 
+  theme(strip.text = element_text(size = 7)) +
   guides(color = guide_legend(
     title = "Subtype", # update the legend title
     # change the size of the legend colors
@@ -711,15 +711,15 @@ scater::plotExpression(tumor_sce,
 
 How do the expression of these genes change across cell types and RMS subtypes?
 
-Go ahead and explore some genes on your own! 
+Go ahead and explore some genes on your own!
 Feel free to plot any of the genes that are identified as significant, found in the DE results table, or your favorite gene.
 Remember, you need to use the Ensembl gene identifier to refer to each gene.
 
 ```{r explore}
-# now do some exploration of other genes on your own! 
+# now do some exploration of other genes on your own!
 ```
 
-## Print session info 
+## Print session info
 
 ```{r session info}
 sessionInfo()
