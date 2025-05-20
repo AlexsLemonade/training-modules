@@ -38,7 +38,7 @@
 ## Instruction notebook content
 
 Live instruction notebooks should contain roughly 90 minutes of live teaching material.
-They should additional contain enough context to serve as stand-alone tutorials for participants to use after workshops.
+They should additionally contain enough context to serve as stand-alone tutorials for participants to use after workshops.
 
 ### Notebook organization
 
