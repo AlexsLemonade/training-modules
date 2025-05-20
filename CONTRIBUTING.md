@@ -223,17 +223,10 @@ The most recent tagged version of the image will also be tagged as as `ccdl/trai
 ### Spell check
 
 We perform spell checking for every pull request to `master` as part of a GitHub Actions workflow (`spell-check.yml`); it is designed to fail if any spelling errors are detected.
-You can see what errors are detected in `stdout` for the `Run spell check` step of the workflow.
-This workflow uses a script, `scripts/spell-check.R`, to spell check `.md` and completed `.Rmd` files.
-The custom dictionary we use for the project can be found at `components/dictionary.txt`.
+This workflow uses the [`AlexsLemonade/spellcheck` GitHub Action](https://github.com/alexslemonade/spellcheck).
+You can see what errors are detected by downloading the `spell_check_errors` artifact from the completed workflow.
 
-To run spell check locally, you can run the following from the root of the repository:
-
-```
-Rscript --vanilla scripts/spell-check.R
-```
-
-The spelling errors will be listed in `spell_check_errors.tsv` in the root of the repo; this file is ignored by git.
+We maintain a custom at `components/dictionary.txt` where words that should not be flagged as typos can be added.
 
 ### Rendering Test
 
