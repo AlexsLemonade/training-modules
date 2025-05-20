@@ -34,6 +34,9 @@
 
 ## Instruction notebook content
 
+Live instruction notebooks should contain roughly 90 minutes of live teaching material.
+They should additional contain enough context to serve as stand-alone tutorials for participants to use after workshops.
+
 ### Learning Objectives
 
 Each notebook should begin with a "Learning objectives" section.
@@ -60,6 +63,13 @@ The objectives list should be followed by a horizontal rule for visual distincti
 ### Style guide
 
 More to come, but for now, we should generally follow the style conventions we established in [`refinebio-examples`](https://github.com/AlexsLemonade/refinebio-examples/blob/staging/CONTRIBUTING.md#notebook-text) for text.
+
+Some style considerations include:
+
+* Use `::` syntax with functions (e.g. `dplyr::filter()`) even if the library is loaded, to reduce ambiguity
+* When relevant, include explicit function arguments even when using the defaults (see [here for an example](https://github.com/AlexsLemonade/training-modules/blob/d2c63104c72a30273b1dd3016b03f01ffcc2e6b4/scRNA-seq/06-celltype_annotation.Rmd#L516-L517))
+* Incorporate code comments that explain both what and why code is performing a certain task
+* All notebooks should [conclude in a `sessionInfo()` chunk](https://github.com/AlexsLemonade/training-modules/blob/d2c63104c72a30273b1dd3016b03f01ffcc2e6b4/scRNA-seq/06-celltype_annotation.Rmd#L785-L789) to report out the compute environment
 
 ### Code Chunks
 
