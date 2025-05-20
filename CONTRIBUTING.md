@@ -92,7 +92,7 @@ This means that modules can have dependencies on each other, but those dependenc
 In general, input files that are not present in this repository will be linked as part of setting up the repository or user folder, as described in the [Data file management](#data-file-management) section of this document.
 
 An exception is when a notebook relies on the completion of tasks run outside the notebook (salmon mapping, for example).
-In that case, any extra required files should be uploaded to S3 via the [`syncup-s3.sh` script](#files-stored-on-s3) so that the notebook can run to completion during automated testing.
+In that case, a Data Lab member will upload any extra required files to S3 via the [`syncup-s3.sh` script](#files-stored-on-s3) so that the notebook can run to completion during automated testing.
 
 
 ## Data file management
@@ -119,6 +119,8 @@ Because this script is also used to set up directories for training, the links s
 - Directories that users will need to write to should not be links, or the user will not be able to write their own files.
 
 ### Files stored on S3
+
+Note that only Data Lab members have access to S3.
 
 To facilitate automated testing of training notebooks, all needed input files for training notebooks should be placed in the `ccdl-training-data` bucket on S3 and made publicly accessible.
 This is facilitated by the `scripts/syncup-s3.sh` bash script, which includes the needed commands for upload/sync, and should include all directories and files needed to run the training notebooks.
