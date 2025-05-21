@@ -5,7 +5,10 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Instruction notebook content](#instruction-notebook-content)
-  - [Learning Objectives](#learning-objectives)
+  - [Notebook organization](#notebook-organization)
+    - [Learning Objectives](#learning-objectives)
+    - [Setup chunks](#setup-chunks)
+    - [Session info](#session-info)
   - [Style guide](#style-guide)
   - [Code Chunks](#code-chunks)
   - [References](#references)
@@ -34,7 +37,12 @@
 
 ## Instruction notebook content
 
-### Learning Objectives
+Live instruction notebooks should contain roughly 90 minutes of live teaching material.
+They should additionally contain enough context to serve as stand-alone tutorials for participants to use after workshops.
+
+### Notebook organization
+
+#### Learning Objectives
 
 Each notebook should begin with a "Learning objectives" section.
 This section contains a compact summary of the goals for the notebook, in the form of a bulleted list of objectives, preceded by the following header:
@@ -57,9 +65,29 @@ The objectives list should be followed by a horizontal rule for visual distincti
 ---
 ```
 
+#### Setup chunks
+
+Notebooks should generally begin with chunks to perform certain set up steps including:
+
+* Loading libraries
+* Setting a random seed, as needed
+* Defining input and output paths for use throughout the notebooks
+  * This may also involve creating new output directories to store notebook results; we recommend using [`fs::dir_create()`](https://fs.r-lib.org/reference/create.html) for directory creation
+
+#### Session info
+
+All notebooks should [conclude in a `sessionInfo()` chunk](https://github.com/AlexsLemonade/training-modules/blob/d2c63104c72a30273b1dd3016b03f01ffcc2e6b4/scRNA-seq/06-celltype_annotation.Rmd#L785-L789) to report out the compute environment.
+
 ### Style guide
 
 More to come, but for now, we should generally follow the style conventions we established in [`refinebio-examples`](https://github.com/AlexsLemonade/refinebio-examples/blob/staging/CONTRIBUTING.md#notebook-text) for text.
+
+Some style considerations include:
+
+* Use `::` syntax with functions (e.g. `dplyr::filter()`) even if the library is loaded, to reduce ambiguity
+* When relevant, include explicit function arguments even when using the defaults (see [here for an example](https://github.com/AlexsLemonade/training-modules/blob/d2c63104c72a30273b1dd3016b03f01ffcc2e6b4/scRNA-seq/06-celltype_annotation.Rmd#L516-L517))
+* Incorporate code comments that explain both what and why code is performing a certain task
+
 
 ### Code Chunks
 
