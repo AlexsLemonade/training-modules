@@ -89,8 +89,13 @@ RUN ln -s /usr/local/aws-cli/v2/current/bin/aws_completer /usr/local/bin/aws_com
 COPY --from=build /usr/local/salmon/ /usr/local/
 COPY --from=build /usr/local/bin/fastp /usr/local/bin/fastp
 
-# Copy training-modules repo to the image
+# Create the skel directory
 COPY . /home/rstudio/training-modules
+RUN python3 /home/rstudio/training-modules/scripts/setup-skel.py \
+    --base-dir /home/rstudio/training-modules \
+    --skel-dir /etc/skel \
+    --modules "scRNA-seq-advanced" \
+    --reference-modules "scRNA-seq"
 
 WORKDIR /home/rstudio
 

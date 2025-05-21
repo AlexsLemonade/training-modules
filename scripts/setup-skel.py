@@ -15,12 +15,47 @@ ALL_MODULES = {
     "machine-learning",
 }
 
-USER_BASE_FILES = [
+BASE_FILES = [
     "CITATION.cff",
+    "gitignore.user",
     "LICENSE.md",
-    "modules_structure_detail.png",
+    "module_structure_detail.png",
     "README.md",
 ]
+
+REMOVE_MISC = [
+    "scRNA-seq/directory_structure.txt",
+    "intro-to-R-tidyverse/results",
+    "scRNA-seq/data/glioblastoma",
+]
+
+
+def setup_module(
+    source_dir: pathlib.Path,
+    dest_dir: pathlib.Path,
+    as_reference: bool = False,
+) -> None:
+    """
+    Copy a module from the source directory to the destination directory, preparing the module for use.
+    If as_reference is True, the module is copied as a reference module.
+    """
+
+    shutil.copytree(source_dir, dest_dir, symlinks=True)
+    # remove directories and files that are not needed
+    shutil.rmtree(dest_dir / "setup")
+    (dest_dir / ".gitignore").unlink(missing_ok=True)
+    # remove all files with the .nb.html extension
+    for file in dest_dir.glob("*.nb.html"):
+        file.unlink()
+    if as_reference:
+        # remove all files with the -live.Rmd extension
+        for file in dest_dir.glob("*-live.Rmd"):
+            file.unlink()
+    else:
+        # remove Rmd files *if there is a matching -live version*
+        for rmd in dest_dir.glob("*.Rmd"):
+            if (dest_dir / (rmd.stem + "-live.Rmd")).is_file():
+                rmd.unlink()
 
 
 def main() -> None:
@@ -28,36 +63,49 @@ def main() -> None:
         description="Create a skel directory for user setup for CCDL projects"
     )
     parser.add_argument(
-        ["b", "base_dir"],
+        "-b",
+        "--base-dir",
         type=pathlib.Path,
         default=pathlib.Path("/etc/skel-templates/training-modules"),
         help="Directory containing the modules to be included in the training",
     )
     parser.add_argument(
-        ["s", "skel_dir"],
+        "-s",
+        "--skel-dir",
         type=pathlib.Path,
         default=pathlib.Path("/etc/skel"),
         help="Directory to be used as the skel directory. (default: '%(default)s')",
     )
     parser.add_argument(
-        ["m", "modules"],
+        "-m",
+        "--modules",
         type=str,
         help="Modules to be included in the training, comma separated: e.g., 'module1,module2'",
     )
+    parser.add_argument(
+        "--reference-modules",
+        type=str,
+        help="Modules to be included in the training as reference modules (with completed notebooks)",
+    )
     args = parser.parse_args()
 
-    module_set = set(re.split(r"[,;\s]+", args.modules))
     if not args.base_dir.is_dir():
         exit(f"Base directory {args.base_dir} does not exist or is not a directory")
-    if not args.training_tag:
-        exit("Training tag is required")
     if not args.modules:
         exit("At least one module is required")
-    if any(m not in ALL_MODULES for m in module_set):
+
+    modules = re.split(r"[,;\s]+", args.modules)
+    reference_modules = (
+        re.split(r"[,;\s]+", args.reference_modules) if args.reference_modules else []
+    )
+
+    if any(m not in ALL_MODULES for m in modules):
         exit(f"Invalid module(s) specified. Available modules: {ALL_MODULES}")
+    if any(m not in ALL_MODULES for m in reference_modules):
+        exit(f"Invalid reference module(s) specified. Available modules: {ALL_MODULES}")
 
     # check that modules are in the base directory
-    if any(not (args.base_dir / m).is_dir() for m in module_set):
+    if any(not (args.base_dir / m).is_dir() for m in modules):
         exit(f"One or more modules do not exist in the base directory {args.base_dir}")
 
     # run the link-data.sh script in the base directory
@@ -67,7 +115,7 @@ def main() -> None:
     subprocess.run(["bash", link_script], check=True)
 
     # create the target directory
-    args.skel_dir.mkdir(parents=True, exist_ok=False)
+    args.skel_dir.mkdir(parents=True, exist_ok=True)
     # create the shared-data link
     (args.skel_dir / "shared-data").symlink_to("/shared/data")
 
@@ -75,25 +123,30 @@ def main() -> None:
     target_base = args.skel_dir / args.base_dir.name
     target_base.mkdir(parents=True, exist_ok=False)
     # copy the user base files
-    for file in USER_BASE_FILES:
+    for file in BASE_FILES:
         shutil.copy(args.base_dir / file, target_base / file)
     # put the gitignore file in the correct place
     (target_base / "gitignore.user").rename(target_base / ".gitignore")
 
-    # copy the modules
-    for module in module_set:
-        module_dir = target_base / module
-        shutil.copytree(args.base_dir / module, module_dir, symlinks=True)
-        # remove directories and files that are not needed
-        shutil.rmtree(module_dir / "setup")
-        (module_dir / ".gitignore").unlink(missing_ok=True)
-        # remove all files with the .nb.html extension
-        for file in module_dir.glob("*.nb.html"):
-            file.unlink()
-        # remove Rmd files *if there is a matching -live version*
-        for rmd in module_dir.glob("*.Rmd"):
-            if (module_dir / rmd.stem).with_suffix("-live.Rmd").is_file():
-                rmd.unlink()
+    # set up the modules
+    for module in modules:
+        setup_module(args.base_dir / module, target_base / module)
+    # set up the reference modules
+    if args.reference_modules:
+        for module in reference_modules:
+            setup_module(
+                args.base_dir / module,
+                target_base / module,
+                as_reference=True,
+            )
+
+    # remove miscellaneous files and directories
+    for item in REMOVE_MISC:
+        item_path = target_base / item
+        if item_path.is_file():
+            item_path.unlink()
+        elif item_path.is_dir():
+            shutil.rmtree(item_path)
 
 
 if __name__ == "__main__":
