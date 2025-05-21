@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import pathlib
-import re
 import shutil
 import subprocess
 
@@ -78,26 +78,20 @@ def main() -> None:
     )
     parser.add_argument(
         "-m",
-        "--modules",
-        type=str,
-        help="Modules to be included in the training, comma separated: e.g., 'module1,module2'",
-    )
-    parser.add_argument(
-        "--reference-modules",
-        type=str,
-        help="Modules to be included in the training as reference modules (with completed notebooks)",
+        "--module-file",
+        type=pathlib.Path,
+        help="A JSON file containing the list of modules to be included in the training",
     )
     args = parser.parse_args()
 
     if not args.base_dir.is_dir():
         exit(f"Base directory {args.base_dir} does not exist or is not a directory")
-    if not args.modules:
-        exit("At least one module is required")
+    if not args.module_file.is_file() and not args.module_file.suffix == ".json":
+        exit("A JSON module file must be provided.")
 
-    modules = re.split(r"[,;\s]+", args.modules)
-    reference_modules = (
-        re.split(r"[,;\s]+", args.reference_modules) if args.reference_modules else []
-    )
+    module_data = json.loads(args.module_file.read_text())
+    modules = module_data.get("modules", [])
+    reference_modules = module_data.get("reference-modules", [])
 
     if any(m not in ALL_MODULES for m in modules):
         exit(f"Invalid module(s) specified. Available modules: {ALL_MODULES}")
@@ -132,13 +126,9 @@ def main() -> None:
     for module in modules:
         setup_module(args.base_dir / module, target_base / module)
     # set up the reference modules
-    if args.reference_modules:
-        for module in reference_modules:
-            setup_module(
-                args.base_dir / module,
-                target_base / module,
-                as_reference=True,
-            )
+
+    for module in reference_modules:
+        setup_module(args.base_dir / module, target_base / module, as_reference=True)
 
     # remove miscellaneous files and directories
     for item in REMOVE_MISC:

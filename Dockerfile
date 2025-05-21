@@ -94,8 +94,7 @@ COPY . /home/rstudio/training-modules
 RUN python3 /home/rstudio/training-modules/scripts/setup-skel.py \
     --base-dir /home/rstudio/training-modules \
     --skel-dir /etc/skel \
-    --modules "scRNA-seq-advanced" \
-    --reference-modules "scRNA-seq"
+    --module-file /home/rstudio/training-modules/current-modules.json
 
 WORKDIR /home/rstudio
 
