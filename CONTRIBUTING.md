@@ -92,7 +92,7 @@ This means that modules can have dependencies on each other, but those dependenc
 In general, input files that are not present in this repository will be linked as part of setting up the repository or user folder, as described in the [Data file management](#data-file-management) section of this document.
 
 An exception is when a notebook relies on the completion of tasks run outside the notebook (salmon mapping, for example).
-In that case, any extra required files should be uploaded to S3 via the [`syncup-s3.sh` script](#files-stored-on-s3) so that the notebook can run to completion during automated testing.
+In that case, a Data Lab member will upload any extra required files to S3 via the [`syncup-s3.sh` script](#files-stored-on-s3) so that the notebook can run to completion during automated testing.
 
 
 ## Data file management
@@ -119,6 +119,8 @@ Because this script is also used to set up directories for training, the links s
 - Directories that users will need to write to should not be links, or the user will not be able to write their own files.
 
 ### Files stored on S3
+
+Note that only Data Lab members have access to S3.
 
 To facilitate automated testing of training notebooks, all needed input files for training notebooks should be placed in the `ccdl-training-data` bucket on S3 and made publicly accessible.
 This is facilitated by the `scripts/syncup-s3.sh` bash script, which includes the needed commands for upload/sync, and should include all directories and files needed to run the training notebooks.
@@ -221,17 +223,10 @@ The most recent tagged version of the image will also be tagged as as `ccdl/trai
 ### Spell check
 
 We perform spell checking for every pull request to `master` as part of a GitHub Actions workflow (`spell-check.yml`); it is designed to fail if any spelling errors are detected.
-You can see what errors are detected in `stdout` for the `Run spell check` step of the workflow.
-This workflow uses a script, `scripts/spell-check.R`, to spell check `.md` and completed `.Rmd` files.
-The custom dictionary we use for the project can be found at `components/dictionary.txt`.
+This workflow uses the [`AlexsLemonade/spellcheck` GitHub Action](https://github.com/alexslemonade/spellcheck).
+You can see what errors are detected by downloading the `spell_check_errors` artifact from the completed workflow.
 
-To run spell check locally, you can run the following from the root of the repository:
-
-```
-Rscript --vanilla scripts/spell-check.R
-```
-
-The spelling errors will be listed in `spell_check_errors.tsv` in the root of the repo; this file is ignored by git.
+We maintain a custom at `components/dictionary.txt` where words that should not be flagged as typos can be added.
 
 ### Rendering Test
 
