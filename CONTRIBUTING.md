@@ -72,7 +72,7 @@ Notebooks should generally begin with chunks to perform certain set up steps inc
 * Loading libraries
 * Setting a random seed, as needed
 * Defining input and output paths for use throughout the notebooks
-  * This may also involve creating new output directories to store notebook results; we recommend using []`fs::dir_create()`](https://fs.r-lib.org/reference/create.html) for directory creation
+  * This may also involve creating new output directories to store notebook results; we recommend using [`fs::dir_create()`](https://fs.r-lib.org/reference/create.html) for directory creation
 
 #### Session info
 
