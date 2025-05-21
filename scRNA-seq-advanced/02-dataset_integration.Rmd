@@ -177,10 +177,18 @@ sce_paths <- file.path(input_dir,
 sce_paths
 ```
 
-We can now read these files in and create a list of four SCE objects.
+Let's make this a named vector using the sample names.
+This will help us keep track of which objects are which after we read the SCE objects in:
+
+```{r add list names, live = TRUE}
+# Assign the sample names as the names for sce_paths
+names(sce_paths) <- sample_names
+```
+
+We can now read these files in and create a list of four SCE objects. 
 Since `readr::read_rds()` can only operate on one input at a time, we'll need to use `purrr::map()` to run it on all input file paths in one command.
 Although `sce_paths` is a vector (not a list), it will still work as input to `purrr:map()`.
-The output from this code will still be a list, since that's what `purrr::map()` always returns.
+The output from this code will still be a list, since that's what `purrr::map()` always returns, and it will retain the sample names as the list names for convenient bookkeeping:
 
 ```{r read sce paths, live = TRUE}
 # Use purrr::map() to read all files into a list at once
@@ -190,32 +198,24 @@ sce_list <- purrr::map(
 )
 ```
 
-Let's have a look at our list of SCE objects:
+Let's have a look at our named list of SCE objects:
 
 ```{r print sce list, live=TRUE}
 # Print sce_list
 sce_list
 ```
 
-We now have a list of length four, where each item is a processed SCE object!
-However, we'll need to keep track of which sample each item is, so it's helpful to add _names_ to this list representing the relevant sample names.
-
-```{r add list names, live = TRUE}
-# Assign the sample names as the names for sce_list
-names(sce_list) <- sample_names
-```
-
-```{r print named list, live=TRUE}
-# Print the list to see it with names
-sce_list
-```
-
 If you look closely at the printed SCE objects, you may notice that they all contain `colData` table columns `celltype_fine` and `celltype_broad`.
-These columns (which we added to SCE objects during [pre-processing](https://github.com/AlexsLemonade/training-modules/tree/master/scRNA-seq-advanced/setup/rms)) contain putative _cell type annotations_ as assigned in [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003).
-We will end up leveraging these cell type annotations to explore how successful our integration is; after integration, we expect cell types from different samples to group together, rather than being separated by batches.
+These columns (which we added to SCE objects during [pre-processing](https://github.com/AlexsLemonade/training-modules/tree/master/scRNA-seq-advanced/setup/rms)) contain putative cell type annotations as assigned by [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003):
 
-That said, the integration methods we will be applying _do not actually use_ these cell type annotations.
-If we have annotations, they are a helpful "bonus" for assessing the integration's success, but they are not part of the integration itself.
+
+> For each cell subset identified by clustering, we used a combination of `SingleR` version 1.0.1 ([Aran et al., 2019](https://www.nature.com/articles/s41590-018-0276-y)) and manual inspection of differentially expressed genes to annotate whether a cluster belongs to stromal, immune or malignant subpopulations. 
+Malignant cells were confirmed in patient tumor data by inference of copy-number variation using `inferCNV` version 1.1.3 of the TrinityCTAT Project (https://github.com/broadinstitute/infercnv). 
+
+We will end up leveraging these cell type annotations to explore the integration results; after integration, we expect cell types from different samples to group together, rather than being separated by batches. 
+
+That said, the integration methods we will be applying _do not actually use_ any existing cell type annotations.
+If we have annotations, they are a helpful "bonus" for assessing the integration's performance, but they are not part of the integration itself.
 
 
 ## Prepare the SCE list for integration
@@ -290,7 +290,7 @@ All our SCE objects have the same `rowData` columns (as we can see in the next c
 ```{r compare rowdata, live = TRUE}
 # Use `purrr::map()` to quickly extract rowData column names for all SCEs
 purrr::map(sce_list,
-           \(x) colnames(rowData(x)))
+           \(sce) colnames(rowData(sce)))
 ```
 
 
@@ -299,7 +299,7 @@ purrr::map(sce_list,
 The next step in ensuring SCE compatibility is to make sure they all contain the same genes, which are stored as the SCE object's row names (these names are also found the `rowData` slot's row names).
 Here, those gene ids are unique Ensembl gene ids.
 
-We can use some `purrr` magic to quickly find the set of shared genes among our samples:
+We can use some `purrr` magic to quickly find the set of shared genes among our samples, and then ask how many there are.
 
 ```{r shared genes}
 # Define vector of shared genes
@@ -311,8 +311,8 @@ shared_genes <- sce_list |>
 ```
 
 ```{r print shared genes, live = TRUE}
-# Use head to look at the vector of shared genes:
-head(shared_genes)
+# How many shared genes are there?
+length(shared_genes)
 ```
 
 In this case, we happen to know that all SCE objects we're working with already contained the same genes.
@@ -333,7 +333,7 @@ We can use similar syntax here to what we used to look at all the `rowData` colu
 
 ```{r compare coldata}
 purrr::map(sce_list,
-           \(x) colnames(colData(x)) )
+           \(sce) colnames(colData(sce)) )
 ```
 
 It looks like the column names are all already matching among SCEs, so there's no specific preparation we'll need to do there.
@@ -424,8 +424,8 @@ We now have a single SCE object that contains all cells from all samples we'd li
 Let's take a peek at some of the innards of this new SCE object:
 
 ```{r explore merged_sce, live = TRUE}
-# What are the unique values in the `sample` column?
-unique( colData(merged_sce)$sample )
+# How many samples, and cells per sample?
+table( colData(merged_sce)$sample )
 
 # What are the new cell ids (column names)?
 head( colnames(merged_sce) )
@@ -460,19 +460,19 @@ When samples are separately centered but plotting together, you will see samples
 In addition, the mathematical relationship between the original expression data and reduced dimension version of that data will differ across samples, meaning we can't interpret them all together.
 To see how this looks, let's look at the UMAP when calculated from individual samples:
 
-```{r plot individual UMAPs, live = TRUE}
+```{r plot individual UMAPs}
 # Plot UMAP calculated from individual samples with separate scaling
 scater::plotReducedDim(merged_sce,
                        dimred = "UMAP",
                        color_by = "sample",
                        point_size = 0.5,
                        point_alpha = 0.2) +
-  scale_color_brewer(palette = "Dark2", name = "sample") + # Use a CVD-friendly color scheme and specify legend name
-  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) + # Modify the legend key with larger, easier to see points
+  # Use a CVD-friendly color scheme and specify legend name
+  scale_color_brewer(palette = "Dark2", name = "sample") + 
+  # Modify the legend key with larger, easier to see points
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP calculated on each sample separately")
-
 ```
-
 
 As we see in this UMAP, all samples are centered at zero and all overlapping.
 This visual artifact can give the _incorrect impression_ that data is integrated - to be clear, this data is NOT integrated!
@@ -662,6 +662,8 @@ ggplot(merged_sce_df,
   geom_bar(position = "fill") +
   # Use a CVD-friendly color scheme
   scale_fill_brewer(palette = "Dark2", na.value = "grey80") +
+  # customize y-axis label
+  labs(y = "Proportion") +
   # nicer theme
   theme_bw()
 ```
