@@ -41,22 +41,45 @@ REMOVE_MISC = [
 ]
 
 
+def remove_items(directory: pathlib.Path, items: list) -> None:
+    """
+    Remove items (files and directories) from a directory.
+    """
+    for item in items:
+        item_path = directory / item
+        if item_path.is_file():
+            item_path.unlink()
+        elif item_path.is_dir():
+            shutil.rmtree(item_path)
+
+
 def setup_module(
     source_dir: pathlib.Path,
     dest_dir: pathlib.Path,
     as_reference: bool = False,
 ) -> None:
     """
-    Copy a module from the source directory to the destination directory, preparing the module for use in training.
+    Copy a module from the source directory to the destination directory,
+    preparing the module for use in training.
     Setup files are removed, as are rendered notebooks and completed Rmd files.
 
-    If `as_reference=True`, the module the `-live.Rmd` files are removed, and the completed Rmd files are kept.
+    If `as_reference=True`, the module the `-live.Rmd` files are removed,
+    and the completed Rmd files are kept.
     """
 
+    # copy the module, leaving symlinks intact
     shutil.copytree(source_dir, dest_dir, symlinks=True)
-    # remove directories and files that are not needed
-    shutil.rmtree(dest_dir / "setup")
-    (dest_dir / ".gitignore").unlink(missing_ok=True)
+    # remove directories and files that are not needed for training
+    remove_items(
+        directory=dest_dir,
+        items=[
+            "setup",
+            ".Rproj.user",
+            ".Rhistory",
+            ".gitignore",
+        ],
+    )
+
     # remove all files with the .nb.html extension
     for file in dest_dir.glob("*.nb.html"):
         file.unlink()
@@ -86,8 +109,7 @@ def main() -> None:
         "-s",
         "--skel-dir",
         type=pathlib.Path,
-        default=pathlib.Path("/etc/skel"),
-        help="Directory to be used as the skel directory. (default: '%(default)s')",
+        help="Directory to be used as the output skel directory. This will be created if it does not exist",
     )
     parser.add_argument(
         "-m",
@@ -127,7 +149,7 @@ def main() -> None:
     (args.skel_dir / "shared-data").symlink_to("/shared/data")
 
     # make the base directory in the skel
-    target_base = args.skel_dir / args.base_dir.name
+    target_base = args.skel_dir / args.base_dir.resolve().name
     target_base.mkdir(parents=True, exist_ok=False)
     # copy the user base files
     for file in BASE_FILES:
@@ -144,12 +166,7 @@ def main() -> None:
         setup_module(args.base_dir / module, target_base / module, as_reference=True)
 
     # remove miscellaneous files and directories
-    for item in REMOVE_MISC:
-        item_path = target_base / item
-        if item_path.is_file():
-            item_path.unlink()
-        elif item_path.is_dir():
-            shutil.rmtree(item_path)
+    remove_items(target_base, REMOVE_MISC)
 
 
 if __name__ == "__main__":
