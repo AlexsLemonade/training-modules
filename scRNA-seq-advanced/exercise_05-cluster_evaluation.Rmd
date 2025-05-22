@@ -239,7 +239,7 @@ We'll use `purrr::imap()` this time so we can also capture the `resolution` valu
 We'll also use the awesome package [`patchwork`](https://patchwork.data-imaginist.com/) to combine each individual UMAP plot into an overall set of panels.
 Specifically, we'll use [`patchwork::wrap_plots()`](https://patchwork.data-imaginist.com/reference/wrap_plots.html) to plot the list of UMAPs we created by iterating with `purrr::imap()`.
 
-```{r plot all umaps, fig.width = 12}
+```{r plot all umaps, fig.height = 8}
 # First, create a list of UMAP plots
 cluster_plots <- cluster_list |>
   purrr::imap(
@@ -250,7 +250,7 @@ cluster_plots <- cluster_list |>
 
       # Plot the UMAP, colored by the new cluster variable
       ggplot(umap_df_plot, aes(x = UMAP1, y = UMAP2, color = clusters)) +
-        geom_point(alpha = 0.6) +
+        geom_point(alpha = 0.6, size = 0.4) +
         # Add an informative title to tell us which resolution value the plot is of
         labs(title = paste("resolution:", res_param)) +
         # Add on our UMAP-specific theme elements
@@ -348,6 +348,26 @@ Leaving aside the result for `resolution = 0.25`, how do the other distributions
 Do you see silhouette width consistently decrease with resolution, or are there are other patterns you detect?
 
 
+
+### Silhouette width across clusters
+
+Another approach to help interpret silhouette width is to visualize these values across clusters.
+Generally speaking, clusters whose cells have higher silhouette width values are likely to be more tightly connected compared to clusters whose cells have lower silhouette widths.
+This means we can use this metric to help assess which clusters _might_ be more reliable for use in downstream analysis.
+
+In the chunk below, make another plot of your silhouette width values, but this time place the `cluster` variable along the X-axis. 
+You should also facet by `resolution`.
+Hint: Use the argument `scales = "free_x` when setting up your faceting, which will allow different X-axis ranges in each panel. 
+This is helpful because, as we've seen, there is a different number of clusters across resolution values.
+
+Considering each resolution parameterization, do any clusters tend to have cells with higher silhouette values? Lower?
+
+```{r silhouette plot across clusters, solution = TRUE}
+# Plot violin plot of silhouette width across clusters
+
+```
+
+
 ### Neighborhood purity
 
 Next, we'll calculate a metric called neighborhood purity, which is a per-cell metric like silhouette width.
@@ -370,7 +390,10 @@ This function returns a capital-D `DataFrame` with one row per cell and the foll
 * `maximum`, which other cluster has the highest proportion of neighbors to the given cell
 
 In the chunk below, use `purrr::map()` to calculate the neighborhood purity on each vector of clusters.
-Just like we did for calculating silhouette width, you'll want to coerce the `bluster::neighborPurity()` output into a small-d `data.frame` with row names moved into a new column `barcodes`, and finally bind (hint!) all rows together, specifying `.id = "resolution"`, to create one data frame with all results.
+Just like we did for calculating silhouette width, you'll want to coerce the `bluster::neighborPurity()` output into a small-d `data.frame` with row names moved into a new column `barcodes`.
+_Unlike_ for silhouette width though, the `bluster::neighborhoodPurity()` function does not automatically save the cluster assignments to the output data frame, so you'll also want to add a `dplyr::mutate()` statement to ensure there is a `cluster` column in the output.
+
+Finally, after the `purrr:map()` statement, bind (hint!) all rows together, specifying `.id = "resolution"`, to create one data frame with all results.
 Save this result to `cluster_purity_df`, and print the data frame once you have created it (again, remember that R Markdown will only print 1000 rows, even when there are more!)
 
 ```{r calculate neighborhood purity, solution = TRUE}
@@ -381,17 +404,25 @@ Save this result to `cluster_purity_df`, and print the data frame once you have 
 ```
 
 
-In the chunk below, plot the distributions of the `purity` values for each resolution value.
-We recommend a boxplot for this one!
+In the chunks below, plot the distributions of the `purity` values for each resolution value, and then for each cluster faceted by resolution.
+We recommend boxplots for this one!
 
-```{r plot purity, solution = TRUE}
+```{r plot purity across resolution, solution = TRUE}
 # Plot boxplots of purity across resolution values
 
 ```
 
+```{r plot purity across clusters, solution = TRUE}
+# Plot boxplots of purity across clusters
+
+```
+
+
+
 
 Do you think neighborhood purity tells the same or different story from silhouette width?
 Do you see any trends that you expected? Any that differ?
+Do certain clusters appear more reliable based on either metric?
 
 
 ### Stability
@@ -475,94 +506,6 @@ What trends do you see from the resulting values?
 
 Even though we ran this with 50 bootstrap replicates, these averages may not be fully representative of a full distribution.
 Feel free to run this code again with the same (or more!) iterations - do you see any different trends, or do results follow a similar pattern?
-
-#### Stability at the individual cluster level
-
-Let's wade a bit deeper in: Pick your favorite resolution value and run `bluster::bootstrapStability()` but specify `mode = "ratio"` instead of `"index"`.
-
-First, use indexing extract a stand-alone vector called `clusters` from `cluster_list` with the cluster assignments for your chosen resolution value.
-We'll provide this vector to `bluster::bootstrapStability()` next.
-
-Hint: To index lists, you need to use double brackets `[[]]`.
-In addition, you'll want to use quotes around the name (aka, `resolution` value) you're indexing (this matters quite a bit if the values are numbers as they are here!).
-
-```{r create clusters vector, solution = TRUE}
-# Create clusters vector
-
-```
-
-
-Calculate stability below:
-
-- First, define `cluster_params` with `bluster::NNGraphParam()` using your chosen resolution value and our other clustering parameters
-- Second, run `bluster::bootstrapStability()`.
-We again recommend using 50 iterations
-- Finally, save the result to a variable called `stability_ratio`, and print the result
-
-
-```{r calculate stability ratio, solution = TRUE, warning = FALSE}
-# Define cluster_params
-
-# Calculate stability with "ratio" mode and save to `stability_ratio`
-
-# Print the `stability_ratio` result
-
-```
-
-The output from running with `mode = "ratio"` is an upper-triangular matrix.
-Values in the matrix represent the an average of ARI-based ratio values across bootstrap replicates, calculated for each pair of clusters.
-
-We'd like to see the following trends (adapted from the [`bluster` documentation](https://rdrr.io/github/LTLA/bluster/man/bootstrapStability.html)):
-
-- High on-diagonal values, which indicate that cells that start in the same cluster tend to stay in the same clusters across bootstrap replicates
-- High off-diagonal values, which indicate that pairs of clusters tend to remain well-separated across bootstrap replicates
-
-These values can be a bit tricky to interpret, especially because the cluster numbers are randomly assigned and so essentially meaningless on their own.
-So to help us out, we'll plot the results as a heatmap, _and_ we'll plot a UMAP colored by the same clusters.
-To view both plots simultaneously, it might help to "pop out" the plot outputs into a separate window.
-
-We'll plot the heatmap for you using the `pheatmap` package:
-
-
-```{r stability heatmap}
-pheatmap::pheatmap(
-  stability_ratio,
-  color = viridis::magma(100), # set color scale
-  breaks = seq(-1, 1, length.out = 101), # set the range for the color scale
-  na_col = "white", # set NA values as white
-  border_color = NA, # remove grid lines
-  # do not arrange the rows and columns by similarity; leave them in order
-  cluster_rows = FALSE,
-  cluster_cols = FALSE
-)
-```
-
-Now, plot the UMAP below.
-To accomplish this, you can start with the `umap_df` we previously created, and add a column containing your `clusters` vector.
-Then use `ggplot2` to plot your UMAP colored by cluster.
-Don't forget to add on our `umap_plot_settings` to your `ggplot2` code!
-
-```{r cluster umap, solution = TRUE}
-# Create a data frame for your plot starting from umap_df
-
-# Plot the UMAP colored by cluster
-
-```
-
-
-When interpreting the heatmap, let's first consider the stability values along the diagonal, where each cluster is compared to itself.
-Are there any clusters that don't seem stable from run to run, based on the scores on the diagonal? 
-Which clusters seem most stable?
-
-Now, let's consider the off-diagonal scores: 
-Do you see any relationship between the stability score for a pair of clusters and how well-separated those clusters are in the UMAP?
-
-Overall, we might expect comparisons between similar or heavily overlapping clusters to have relatively _lower_ stability, because cells may be _more_ likely to switch clusters across bootstrapping replicates.
-By contrast, we might expect comparisons between highly distinct clusters to have relatively _higher_ stability, because cells may be _less_ likely to switch clusters across bootstrapping replicates.
-Do you see those trends reflected here?
-Be careful not to over-interpret UMAP layout when drawing your conclusions!
-
-Feel free to explore stability for other resolution parameter values as well!
 
 
 ### Export clustering results
