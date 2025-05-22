@@ -16,6 +16,7 @@ import json
 import pathlib
 import shutil
 import subprocess
+from typing import List
 
 ALL_MODULES = {
     "intro-to-R-tidyverse",
@@ -41,7 +42,7 @@ REMOVE_MISC = [
 ]
 
 
-def remove_items(directory: pathlib.Path, items: list) -> None:
+def remove_items(directory: pathlib.Path, items: List[str]) -> None:
     """
     Remove items (files and directories) from a directory.
     """
