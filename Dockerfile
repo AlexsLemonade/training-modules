@@ -90,11 +90,12 @@ COPY --from=build /usr/local/salmon/ /usr/local/
 COPY --from=build /usr/local/bin/fastp /usr/local/bin/fastp
 
 # Create the skel directory
-COPY . /home/rstudio/training-modules
-RUN python3 /home/rstudio/training-modules/scripts/setup-skel.py \
-    --base-dir /home/rstudio/training-modules \
+ARG template_dir=/etc/skel-template/training-modules
+COPY . ${template_dir}
+RUN python3 ${template_dir}/scripts/setup-skel.py \
+    --base-dir ${template_dir} \
     --skel-dir /etc/skel \
-    --module-file /home/rstudio/training-modules/current-modules.json
+    --module-file ${template_dir}/current-modules.json
 
 WORKDIR /home/rstudio
 

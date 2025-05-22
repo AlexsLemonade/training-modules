@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
 
+"""
+This script sets up a skeleton directory for user setup for Data Lab training modules.
+
+The main function is to copy the a set of modules (as specified in a JSON input file),
+from the base directory to the destination directory, removing unnecessary files and directories.
+
+When setting up the modules, this script will also create symlinks to shared data files
+that are expected to be found in the /shared directory on the host system.
+
+"""
+
 import argparse
 import json
 import pathlib
@@ -36,8 +47,10 @@ def setup_module(
     as_reference: bool = False,
 ) -> None:
     """
-    Copy a module from the source directory to the destination directory, preparing the module for use.
-    If as_reference is True, the module is copied as a reference module.
+    Copy a module from the source directory to the destination directory, preparing the module for use in training.
+    Setup files are removed, as are rendered notebooks and completed Rmd files.
+
+    If `as_reference=True`, the module the `-live.Rmd` files are removed, and the completed Rmd files are kept.
     """
 
     shutil.copytree(source_dir, dest_dir, symlinks=True)
@@ -53,9 +66,9 @@ def setup_module(
             file.unlink()
     else:
         # remove Rmd files *if there is a matching -live version*
-        for rmd in dest_dir.glob("*.Rmd"):
-            if (dest_dir / (rmd.stem + "-live.Rmd")).is_file():
-                rmd.unlink()
+        for file in dest_dir.glob("*.Rmd"):
+            if (dest_dir / (file.stem + "-live.Rmd")).is_file():
+                file.unlink()
 
 
 def main() -> None:
@@ -102,7 +115,7 @@ def main() -> None:
     if any(not (args.base_dir / m).is_dir() for m in modules):
         exit(f"One or more modules do not exist in the base directory {args.base_dir}")
 
-    # run the link-data.sh script in the base directory
+    # run the link-data.sh script in the base directory to create required symlinks
     link_script = args.base_dir / "scripts/link-data.sh"
     if not link_script.is_file():
         exit(f"The required script {link_script} does not exist or is not a file")
