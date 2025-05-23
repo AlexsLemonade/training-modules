@@ -68,8 +68,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
-
-
 # Use renv for R packages
 WORKDIR /usr/local/renv
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
@@ -90,6 +88,16 @@ RUN ln -s /usr/local/aws-cli/v2/current/bin/aws /usr/local/bin/aws
 RUN ln -s /usr/local/aws-cli/v2/current/bin/aws_completer /usr/local/bin/aws_completer
 COPY --from=build /usr/local/salmon/ /usr/local/
 COPY --from=build /usr/local/bin/fastp /usr/local/bin/fastp
+
+# Create the skel directory by copying in the repository contents as a template
+# (limited by the .dockerignore file)
+# Then run the setup script to update the default skel directory
+ARG template_dir=/etc/skel-template/training-modules
+COPY . ${template_dir}
+RUN python3 ${template_dir}/scripts/setup-skel.py \
+    --base-dir ${template_dir} \
+    --skel-dir /etc/skel \
+    --module-file ${template_dir}/current-modules.json
 
 WORKDIR /home/rstudio
 
