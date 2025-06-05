@@ -33,7 +33,8 @@ If running the Docker image locally, these links will be broken, but they should
 
 ### Testing on the RStudio server
 
-If you are testing the Docker image on the Data Lab RStudio server, you can use the following commands to pull the Docker image and run launch the container interactively with a bash shell:
+To test the Docker image on the Data Lab RStudio server, you will want to log into the server via SSH (not via the RStudio interface).
+You can then use the following commands to pull the Docker image and run launch the container interactively with a bash shell:
 
 ```bash
 docker pull ccdl/training_rstudio:edge
@@ -60,7 +61,7 @@ For example, running `ls -la /etc/skel/shared-data/` which should show the conte
 
 You can also test the Docker image locally, which may be more convenient for testing via the RStudio GUI, but note that the symbolic links to the `/shared/data` directory will not work correctly (unless you have a local copy of the data you can mount to the same path).
 
-To test the Docker image locally, you can use the following commands to pull the Docker image and run launch the container with an interactive RStudio session:
+To test the Docker image locally, you can use the following commands to pull the Docker image and run launch the container with an RStudio server session:
 
 ```bash
 docker pull --platform linux/amd64 ccdl/training_rstudio:edge
