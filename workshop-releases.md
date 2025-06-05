@@ -73,6 +73,9 @@ docker run \
 Replace `{PASSWORD}` with a password of your choice.
 Then you can open a web browser and go to `http://localhost:8787` to access the RStudio server, logging in with the username `rstudio` and the password you specified.
 
+As noted, the symbolic links to the `/shared/data` directory will not work correctly in this context.
+For example, if you run `ls /etc/skel` in the terminal you will see a visual indicator (i.e., red text on a black background) that the `shared-data` link is broken.
+Non-link files within the `/etc/skel/training-modules/` directory, however, should be present as expected.
 
 ## Tagging the release
 
