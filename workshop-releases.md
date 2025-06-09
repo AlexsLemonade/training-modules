@@ -14,15 +14,26 @@ Before tagging a release, please ensure that the following steps have been compl
 
 ## Select training modules in `current-modules.json`
 
-- Update the `current-modules.json` file in the `training-modules` repository to reflect the modules that will be used in the training workshop:
+First, update the `current-modules.json` file in the `training-modules` repository to reflect the modules that will be used in the training workshop:
   - Set the `release-tag` field to the tag you plan to create for this training workshop.
     We have usually used the format `2025-june`.
   - Set the `modules` to a list of the modules that will be used in the training workshop.
     These modules will be copied to the Docker image `/etc/skel` directory with only the `-live.Rmd` notebooks, ready for participants to use.
   - Set the `reference-modules` to a list of the modules that will be used as reference material for the training workshop.
     These modules will be copied to the Docker image `/etc/skel` directory with completed notebooks.
-- File a pull request with these changes to `master`.
-  - Merging the pull request will [Build Docker Image](https://github.com/AlexsLemonade/training-modules/actions/workflows/build-docker.yml) Action, which will build and push a Docker image to `ccdl/training_rstudio:edge` with the specified modules in the `/etc/skel` directory.
+
+An example `current-modules.json` file (set for an advanced single cell workshop) might look like this:
+
+```json
+{
+  "release-tag": "2025-dev",
+  "modules": ["scRNA-seq-advanced"],
+  "reference-modules": ["scRNA-seq"]
+}
+```
+
+Once the `current-modules.json` file is set, file a pull request with these changes to `master`.
+  - Merging the pull request will trigger the [Build Docker Image](https://github.com/AlexsLemonade/training-modules/actions/workflows/build-docker.yml) Action, which will build and push a Docker image to `ccdl/training_rstudio:edge` with the specified modules in the `/etc/skel` directory.
 
 ## Test the Docker image
 
