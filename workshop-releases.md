@@ -20,6 +20,7 @@ First, update the `current-modules.json` file in the `training-modules` reposito
   - Set the `modules` to a list of the modules that will be used in the training workshop.
     These modules will be copied to the Docker image `/etc/skel` directory with only the `-live.Rmd` notebooks, ready for participants to use.
   - Set the `reference-modules` to a list of the modules that will be used as reference material for the training workshop.
+    For example, when we teach the `scRNA-seq-advanced` module, we included the `scRNA-seq` module as a reference of the material we are building from.
     These modules will be copied to the Docker image `/etc/skel` directory with completed notebooks.
 
 An example `current-modules.json` file (set for an advanced single cell workshop) might look like this:
