@@ -19,7 +19,7 @@ Before tagging a release, please ensure that the following steps have been compl
     We have usually used the format `2025-june`.
   - Set the `modules` to a list of the modules that will be used in the training workshop.
     These modules will be copied to the Docker image `/etc/skel` directory with only the `-live.Rmd` notebooks, ready for participants to use.
-  - Set the `refernce-modules` to a list of the modules that will be used as reference material for the training workshop.
+  - Set the `reference-modules` to a list of the modules that will be used as reference material for the training workshop.
     These modules will be copied to the Docker image `/etc/skel` directory with completed notebooks.
 - File a pull request with these changes to `master`.
   - Merging the pull request will [Build Docker Image](https://github.com/AlexsLemonade/training-modules/actions/workflows/build-docker.yml) Action, which will build and push a Docker image to `ccdl/training_rstudio:edge` with the specified modules in the `/etc/skel` directory.
@@ -75,7 +75,7 @@ Replace `{PASSWORD}` with a password of your choice.
 Then you can open a web browser and go to `http://localhost:8787` to access the RStudio server, logging in with the username `rstudio` and the password you specified.
 
 As noted, the symbolic links to the `/shared/data` directory will not work correctly in this context.
-For example, if you run `ls /etc/skel` in the terminal you will see a visual indicator (i.e., red text on a black background) that the `shared-data` link is broken.
+For example, if you run `ls /etc/skel` in the terminal, you will see a visual indicator (e.g., red text on a black background) that the `shared-data` link is broken.
 Non-link files within the `/etc/skel/training-modules/` directory, however, should be present as expected.
 
 ## Tagging the release
