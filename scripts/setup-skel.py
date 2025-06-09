@@ -9,6 +9,13 @@ from the base directory to the destination directory, removing unnecessary files
 When setting up the modules, this script will also create symlinks to shared data files
 that are expected to be found in the /shared directory on the host system.
 
+Within the JSON file, the modules are specified in two lists:
+
+- "modules": a list of modules that will be used in the workshop,
+  these will have the the completed Rmd files and only `-live.Rmd` files kept
+- "reference-modules": a list of modules to be included as reference material,
+    these will have the completed Rmd files kept and the `-live.Rmd` files removed.
+
 """
 
 import argparse
