@@ -82,11 +82,11 @@ For an intuitive visualization of the general k-means method, you might find [th
 We are going to use the function `scran::clusterCells()` for our clustering.
 This function uses the Bioconductor `bluster` package under the hood to perform clustering.
 This function takes an SCE object and a specification of which assay or reduced dimension to use for clustering.
-Because, clustering algorithms like k-means can be a bit slow with as many features as the number of genes that we have in our data set, so we would rather not use the raw data.
+Because clustering algorithms like k-means can be a bit slow with as many features as the number of genes that we have in our data set, we would rather not use the raw data.
 There is also a potential concern that noise in the raw data might disrupt the clustering algorithm, so it would be best to use some kind of dimensionality reduction algorithm first.
 We still want to maintain a good number of dimensions, so our old friend PCA is a good (and very standard) choice.
 
-The other argument we need for `scran::clusterCells()` is will tell it which clustering algorithm to use, and any additional parameters associated with that algorithm.
+The other argument we need for `scran::clusterCells()` is `BLUSPARAM`, which will specify the algorithm to use, and any additional parameters associated with that algorithm.
 This has to be made with a special kind of function that comes from the `bluster` package.
 In this case, we will use `KmeansParam()` to specify that we want k-means clustering, with the `centers` parameter to set how many clusters we will assign (`k`).
 
@@ -157,8 +157,10 @@ In the example below, we will use the default values for these two arguments.
 nnclusters <- scran::clusterCells(
   hodgkins_sce,
   use.dimred = "PCA",
-  BLUSPARAM = bluster::NNGraphParam(k = 10,
-                  cluster.fun = "walktrap")
+  BLUSPARAM = bluster::NNGraphParam(
+    k = 10,
+    cluster.fun = "walktrap"
+  )
 )
 # store cluster results in the SCE object
 hodgkins_sce$nncluster <- nnclusters
