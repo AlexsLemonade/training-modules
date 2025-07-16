@@ -20,7 +20,7 @@ If you have a different version of R or other R packages, the documentation may 
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
-- [`scater`](#scater)
+- [`scater` and `scran`](#scater-and-scran)
 - [`miQC`](#miqc)
 - [`batchelor` and `harmony`](#batchelor-and-harmony)
 - [`SingleR`](#singler)
@@ -41,9 +41,12 @@ If you have a different version of R or other R packages, the documentation may 
 
 <div style="page-break-after: always;"></div>
 
-## `scater`
+## `scater` and `scran`
 
 Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
+
+Read the [`scran` package documentation](https://rdrr.io/bioc/scran/), and a [vignette on its usage](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
+
 
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
@@ -51,6 +54,7 @@ Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [
 | `scater`| [`plotReducedDim()`](https://rdrr.io/bioc/scater/man/plotReducedDim.html)| Plot reduced dimensions | Plot a given reduced dimension slot from a `SingleCellExperiment` object by its name |
 | `scater`| [`plotUMAP()`](https://rdrr.io/bioc/scater/man/plot_reddim.html)| Plot UMAP | Plot the "UMAP"-named reduced dimension slot from a `SingleCellExperiment` object |
 | `scater`| [`plotExpression()`](https://rdrr.io/bioc/scater/man/plotExpression.html)| Plot expression | Plot expression values for all cells in a `SingleCellExperiment` object, using the `logcounts` assay by default|
+| `scran`| [`clusterCells()`](https://rdrr.io/github/MarioniLab/scran/man/clusterCells.html)| Cluster cells | Perform clustering on an SCE object using the `bluster` package |
 
 
 ## `miQC`
@@ -239,8 +243,8 @@ Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and vi
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|--------------------|---------------------|---------------|
 | `bluster`| [`clusterRows()`](https://rdrr.io/bioc/bluster/man/clusterRows.html)| Cluster rows of a matrix | Perform clustering using a variety of algorithms on a matrix-like object |
-| `bluster`| [`KmeansParam()`](https://rdrr.io/bioc/bluster/man/KmeansParam-class.html)| K-means clustering parameters | Set up parameters to run clustering using `kmeans()` within `bluster::clusterRows()` |
-| `bluster`| [`NNGraphParam()`](https://rdrr.io/bioc/bluster/man/NNGraphParam-class.html)| Graph-based clustering parameters | Set up parameters for nearest-neighbor (NN) graph-based clustering algorithms within `bluster::clusterRows()` |
+| `bluster`| [`KmeansParam()`](https://rdrr.io/bioc/bluster/man/KmeansParam-class.html)| K-means clustering parameters | Set up parameters to run clustering using `kmeans()` within `scran::clusterCells()` or `bluster::clusterRows()` |
+| `bluster`| [`NNGraphParam()`](https://rdrr.io/bioc/bluster/man/NNGraphParam-class.html)| Graph-based clustering parameters | Set up parameters for nearest-neighbor (NN) graph-based clustering algorithms within `scran::clusterCells()` or `bluster::clusterRows()` |
 | `bluster`| [`approxSilhouette()`](https://rdrr.io/bioc/bluster/man/approxSilhouette.html)| Approximate silhouette width | Calculate an approximate silhouette width for each cell given a set of clusters |
 | `bluster`| [`neighborPurity()`](https://rdrr.io/bioc/bluster/man/neighborPurity.html)| Compute neighborhood purity | Calculate neighborhood purity for each cell given a set of clusters |
 | `bluster`| [`bootstrapStability()`](https://rdrr.io/bioc/bluster/man/bootstrapStability.html)| Assess cluster stability by bootstrapping  | Generate cluster bootstrap replicates to estimate cluster robustness to sampling noise  |

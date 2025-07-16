@@ -27,9 +27,6 @@ library(ggplot2)
 library(scater)
 library(scran)
 
-# clustering tools
-library(bluster)
-
 # Setting the seed for reproducibility
 set.seed(12345)
 ```
@@ -82,40 +79,37 @@ There are some heuristics we can use for deciding the "correct" number of cluste
 
 For an intuitive visualization of the general k-means method, you might find [this StatQuest video](https://www.youtube.com/watch?v=4b5d3muPQmA) useful, and for more discussion of the method in a single-cell context, the [Orchestrating Single-Cell Analysis book section on k-means](https://bioconductor.org/books/3.19/OSCA.basic/clustering.html#vector-quantization-with-k-means) is a good reference.
 
-We are going to use the function `clusterRows()` from the  Bioconductor `bluster` package for our clustering.
-This function takes a matrix where each sample (cell in our case) is a row and each column is a feature.
-The matrix of counts (or normalized counts) by cells in our `SingleCellExperiment` object is the wrong orientation, so at a minimum we would have to transpose that matrix before proceeding.
-
-However, clustering algorithms like k-means can be a bit slow with as many features as the number of genes that we have in our data set, so we would rather not use the raw data.
+We are going to use the function `scran::clusterCells()` for our clustering.
+This function uses the Bioconductor `bluster` package under the hood to perform clustering.
+This function takes an SCE object and a specification of which assay or reduced dimension to use for clustering.
+Because clustering algorithms like k-means can be a bit slow with as many features as the number of genes that we have in our data set, we would rather not use the raw data.
 There is also a potential concern that noise in the raw data might disrupt the clustering algorithm, so it would be best to use some kind of dimensionality reduction algorithm first.
 We still want to maintain a good number of dimensions, so our old friend PCA is a good (and very standard) choice.
 
-Thankfully, we already computed *and stored* a matrix with reduced dimensions with the `runPCA()` function.
-We will extract that from the `SingleCellExperiment` object with the `reducedDim()` function, which conveniently returns a matrix with the cells as rows, so we can use that directly!
-
-The other argument we need for `clusterRows()` will tell it which clustering algorithm to use, and any additional parameters associated with that algorithm.
-This has to be made with a special kind of function from the `bluster` package.
+The other argument we need for `scran::clusterCells()` is `BLUSPARAM`, which will specify the algorithm to use, and any additional parameters associated with that algorithm.
+This has to be made with a special kind of function that comes from the `bluster` package.
 In this case, we will use `KmeansParam()` to specify that we want k-means clustering, with the `centers` parameter to set how many clusters we will assign (`k`).
 
 ```{r kmeans_7, live = TRUE}
 # set the number of clusters
 k <- 7
 
-# extract the principal components matrix
-hodgkins_pca <- reducedDim(hodgkins_sce, "PCA")
-
 # perform the clustering
-kclusters <- clusterRows(hodgkins_pca, KmeansParam(centers = k))
+kclusters <- scran::clusterCells(
+  hodgkins_sce, # the SCE object to cluster
+  use.dimred = "PCA", # use the PCA reduced dimension for clustering
+  BLUSPARAM = bluster::KmeansParam(centers = k) # bluster parameter to provide the clustering algorithm
+)
 ```
 
-The `clusterRows()` function returned a vector of cluster assignments as integers, but the numerical values have no inherent meaning.
-For plotting we will want to convert those to a factor, so R is not tempted to treat them as a continuous variable.
+The `scran::clusterCells()` function returned a vector of cluster assignments as integers.
+It has also encoded this vector as a factor, so R will treat these integers as categories and not as a continuous variable.
 
 We can also store them back into the column (cell) information table of the original object for convenient storage and later use.
 
 ```{r store_kclusters, live = TRUE}
 # save clusters in the SCE object as a factor
-hodgkins_sce$kcluster <- factor(kclusters)
+hodgkins_sce$kcluster <- kclusters
 ```
 
 Now we can plot the results and see how the clustering looks, using the `scater` function `plotReducedDim()` that we have used before, coloring the points by our clustering results.
@@ -147,8 +141,8 @@ This algorithm follows the following general steps:
 
 There is a lot of hidden detail in those three steps!
 
-To apply this clustering algorithm, we will use the same `bluster::clusterRows()` function as before, but we will change the second argument from `KmeansParam()` to `NNGraphParam()` to tell it that we want to use a nearest-neighbor graph-based method.
-We can then supply additional parameters to `NNGraphParam()` to adjust the details of the algorithm.
+To apply this clustering algorithm, we will use the same `scran::clusterCells()` function as before, but we will change the second argument from `bluster::KmeansParam()` to `bluster::NNGraphParam()` to tell it that we want to use a nearest-neighbor graph-based method.
+We can then supply additional parameters to `bluster::NNGraphParam()` to adjust the details of the algorithm.
 Here we will use `k` to specify the number of neighbors to use when building the graph and `cluster.fun` to specify the algorithm for identifying the clusters within the graph.
 
 - Despite sharing a letter, `k` here and the one from k-means clustering are not the same thing!
@@ -160,13 +154,16 @@ In the example below, we will use the default values for these two arguments.
 
 ```{r nnclust, live = TRUE}
 # run the clustering algorithm
-nnclusters <- clusterRows(
-  hodgkins_pca,
-  NNGraphParam(k = 10,
-               cluster.fun = "walktrap")
+nnclusters <- scran::clusterCells(
+  hodgkins_sce,
+  use.dimred = "PCA",
+  BLUSPARAM = bluster::NNGraphParam(
+    k = 10,
+    cluster.fun = "walktrap"
   )
+)
 # store cluster results in the SCE object
-hodgkins_sce$nncluster <- factor(nnclusters)
+hodgkins_sce$nncluster <- nnclusters
 ```
 
 Now we can plot the results of our graph-based clustering.
