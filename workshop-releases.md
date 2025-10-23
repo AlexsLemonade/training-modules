@@ -34,7 +34,7 @@ An example `current-modules.json` file (set for an advanced single cell workshop
 ```
 
 Once the `current-modules.json` file is set, file a pull request with these changes to `master`.
-  - Merging the pull request will trigger the [Build Docker Image](https://github.com/AlexsLemonade/training-modules/actions/workflows/build-docker.yml) Action, which will build and push a Docker image to `ccdl/training_rstudio:edge` with the specified modules in the `/etc/skel` directory.
+  - Merging the pull request will trigger the [Build Docker Image](https://github.com/AlexsLemonade/training-modules/actions/workflows/build-docker.yml) Action, which will build and push a Docker image to `ccdl/training_rstudio:edge` with the specified modules in the `/etc/skel` directory (created by the `setup-skel.py` script).
 
 ## Test the Docker image
 
