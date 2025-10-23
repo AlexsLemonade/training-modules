@@ -1,15 +1,15 @@
 ---
 name: Release checklist
-about: Prepare for a new release version of training-modules
-title: Prepare for training-modules release YYYY-month
+about: Prepare for a new workshop release of training-modules
+title: "Prepare for workshop release: YYYY-month"
 labels: release
 assignees: ''
 
 ---
 
-## Steps for a new release of `training-modules`
+## Steps for a workshop release of `training-modules`
 Use this checklist to prepare for a new release of `training-modules` for a training event.
-Update the title of this issue to reflect the version you are releasing (e.g. "Prepare for training-modules release 2025-august").
+Update the title of this issue to reflect the version you are releasing (e.g. "Prepare for workshop release: 2025-august").
 
 Detailed instructions can be found in the [workshop releases documentation](https://github.com/AlexsLemonade/training-modules/blob/master/workshop-releases.md).
 
