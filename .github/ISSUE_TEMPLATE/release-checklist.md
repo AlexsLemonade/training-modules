@@ -23,7 +23,7 @@ Detailed instructions can be found in the [workshop releases documentation](http
 
 ### Creating a release
 
-- [ ] On the [releases page](https://github.com/AlexsLemonade/scpcatools/releases), choose `Draft a new release`.
+- [ ] On the [releases page](https://github.com/AlexsLemonade/training-modules/releases), choose `Draft a new release`.
 - [ ] Create a release using the same tag name that you specified in the `current-modules.json` file.
 This will again trigger the [Build Docker Image](https://github.com/AlexsLemonade/training-modules/actions/workflows/build-docker.yml) action, tagging a Docker release to be associated with the training workshop.
 - [ ] Publish the release!
