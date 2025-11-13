@@ -18,21 +18,21 @@ date: 2024
 
 ---
 
-In this notebook, we'll demonstrate how to use the AUCell method, introduced in [Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463).
+In this notebook, we'll demonstrate how to use the `AUCell` method, introduced in [Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463).
 
-We can use AUCell when we are interested in a gene set's relative expression or activity in an individual cell.
+We can use `AUCell` when we are interested in a gene set's relative expression or activity in an individual cell.
 Gene sets can come from a curated collection of prior knowledge, like the Hallmark collection we used in the last notebook, or we can use our own custom gene sets (e.g., a set of marker genes for a cell type of interest).
 
-A nice feature of AUCell is that it is based on ranking genes from highest to lowest expression value in an individual cell, which is helpful in the following ways ([AUCell vignette](https://bioconductor.org/packages/release/bioc/vignettes/AUCell/inst/doc/AUCell.html)):
+A nice feature of `AUCell` is that it is based on ranking genes from highest to lowest expression value in an individual cell, which is helpful in the following ways ([`AUCell` vignette](https://bioconductor.org/packages/release/bioc/vignettes/AUCell/inst/doc/AUCell.html)):
 
 - It can take a number of different values as input (e.g., raw counts, TPM) 
 - It compensates for differences in library size, where something like averaging raw count values of genes in a gene set would not 
 - It scales to larger datasets, since creating rankings is not as resource-intensive as something like permutation testing, and we could split up the object into subsets of cells if needed
 
-AUCell calculates the area under the recovery curve (AUC), which "represents the proportion of expressed genes in the signature and their relative expression value compared to the other genes within the cell" ([Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463)).
+`AUCell` calculates the area under the recovery curve (AUC), which "represents the proportion of expressed genes in the signature and their relative expression value compared to the other genes within the cell" ([Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463)).
 We will visualize some recovery curves in the notebook to give you a better intuition about the AUC and its meaning.
 
-The AUC values we get out of AUCell can be used in a number of ways ([Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463)):
+The AUC values we get out of `AUCell` can be used in a number of ways ([Aibar _et al_. 2017.](https://doi.org/10.1038/nmeth.4463)):
 
 - As continuous values we can use for visualization or clustering
 - For binary assignment (i.e., "on" and "off" or "expressed" and "not expressed") if we pick a threshold either automatically using built-in functionality or manually by inspecting the distribution of scores ourselves
@@ -82,7 +82,7 @@ sce_file <- fs::path(processed_dir,
                      "SCPCL000822_processed.rds")
 ```
 
-We will save the AUCell results as a table in the analysis directory.
+We will save the `AUCell` results as a table in the analysis directory.
 
 ```{r setup_output_files, live = TRUE}
 output_file <- fs::path(analysis_dir,
@@ -99,7 +99,7 @@ source(fs::path("util", "aucell_functions.R"))
 ```
 
 This loads one custom function, called `plot_recovery_curve()`, into our environment.
-This function is adapted from [the AUCell vignette](https://github.com/aertslab/AUCell/blob/91753b327a39dc7a4bbed46408ec2271c485f2f0/vignettes/AUCell.Rmd#L295-L316).
+This function is adapted from [the `AUCell` vignette](https://github.com/aertslab/AUCell/blob/91753b327a39dc7a4bbed46408ec2271c485f2f0/vignettes/AUCell.Rmd#L295-L316).
 
 ## Set up gene sets
 
@@ -150,7 +150,7 @@ ewing_gene_set_collection <- ewing_gene_set_names |>
   GeneSetCollection()
 ```
 
-## Read in and prepare SingleCellExperiment
+## Read in and prepare the `SingleCellExperiment`
 
 ```{r read_in_sce, live = TRUE}
 sce <- readr::read_rds(sce_file)
@@ -164,7 +164,7 @@ We can extract a counts matrix in sparse format for use with `AUCell`.
 counts_matrix <- counts(sce)
 ```
 
-There may be genes in our gene set that do not appear in the SingleCellExperiment object.
+There may be genes in our gene set that do not appear in the `SingleCellExperiment` object.
 We can remove them using the `subsetGeneSets()` function.
 
 ```{r subset_gene_sets, live = TRUE}
@@ -173,9 +173,9 @@ ewing_gene_set_collection <- subsetGeneSets(ewing_gene_set_collection,
                                             rownames(counts_matrix))
 ```
 
-## AUCell
+## `AUCell`
 
-AUCell relies on ranking genes from highest to lowest expression value to calculate the AUC.
+`AUCell` relies on ranking genes from highest to lowest expression value to calculate the AUC.
 The AUC is the area under the recovery curve, which captures the number of genes in a gene set that are present in the rankings above some threshold (i.e., it is the area under the curve to the left of this gene rank).
 By default, the top 5% of genes are used as the threshold.
 
@@ -190,16 +190,16 @@ set.seed(2024)
 
 ### Cell ranking
 
-The first step in AUCell is to rank genes for each cell from highest to lowest expression value.
-We can do this using the `AUCell_buildRankings()` function, which will output a visualization showing the distribution of the number of genes detected in the cells in our SingleCellExperiment object.
+The first step in `AUCell` is to rank genes for each cell from highest to lowest expression value.
+We can do this using the `AUCell_buildRankings()` function, which will output a visualization showing the distribution of the number of genes detected in the cells in our `SingleCellExperiment` object.
 
 ```{r cell_rankings, live = TRUE}
 cell_rankings <- AUCell_buildRankings(counts_matrix)
 ```
 
-The AUCell authors recommend making sure most cells have at least the number of genes we will use as the max rank to calculate the AUC.
+The `AUCell` authors recommend making sure most cells have at least the number of genes we will use as the max rank to calculate the AUC.
 
-The AUC max rank value tells AUCell the cutoff in the gene rankings to use for calculating AUC; we will visualize this curve and max rank in just a moment.
+The AUC max rank value tells `AUCell` the cutoff in the gene rankings to use for calculating AUC; we will visualize this curve and max rank in just a moment.
 If we picked a max rank higher than the number of genes detected in most cells, the non-detected genes that are randomly ordered would play an outsized role in our AUC values.
 
 By default, the max rank is the top 5% highest expressed genes.
@@ -227,10 +227,10 @@ auc_max_rank <- ceiling(nrow(cell_rankings) * 0.01)
 
 ### Plotting AUC
 
-The AUC values we get out of AUCell are the area under a recovery curve and estimate the proportion of genes in the gene set that are highly expressed (i.e., highly ranked).
+The AUC values we get out of `AUCell` are the area under a recovery curve and estimate the proportion of genes in the gene set that are highly expressed (i.e., highly ranked).
 
 Let's plot the recovery curve for a cell with high AUC and a cell with low AUC to get a better intuition about AUC values.
-Earlier, we loaded a custom function we adapted from [the AUCell vignette](https://github.com/aertslab/AUCell/blob/91753b327a39dc7a4bbed46408ec2271c485f2f0/vignettes/AUCell.Rmd) called `plot_recovery_curve()` with `source()`.
+Earlier, we loaded a custom function we adapted from [the `AUCell` vignette](https://github.com/aertslab/AUCell/blob/91753b327a39dc7a4bbed46408ec2271c485f2f0/vignettes/AUCell.Rmd) called `plot_recovery_curve()` with `source()`.
 
 First, we'll start with a cell with a high AUC.
 We picked this barcode ahead of time when we wrote the notebook.
@@ -293,7 +293,7 @@ head(auc_df)
 
 ### Assignments
 
-AUCell can assign cells as having an active gene set or not by picking a threshold automatically.
+`AUCell` can assign cells as having an active gene set or not by picking a threshold automatically.
 We'll explore these in a later plot, but for now, let's calculate the threshold and assign cells with `AUCell_exploreThresholds()`.
 
 ```{r auc_assignments, live = TRUE}
@@ -376,7 +376,7 @@ auc_plotting_df |>
 
 #### Adding AUC to `colData`
 
-We can also add the AUC values back into the SingleCellExperiment for convenience, e.g., for plotting.
+We can also add the AUC values back into the `SingleCellExperiment` for convenience, e.g., for plotting.
 We'll add it to the existing `colData`.
 
 First, let's rename the gene set columns to something more easily typed.
