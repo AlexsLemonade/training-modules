@@ -156,8 +156,20 @@ ewing_gene_set_collection <- ewing_gene_set_names |>
 sce <- readr::read_rds(sce_file)
 ```
 
+Our object includes counts for all genes that were present in the index when quantifying gene expression.
+There are a number of genes that are present in the object but not detected in any of the cells. 
+We don't want genes that are not found in our data set to impact our rankings, so let's remove them. 
+
+```{r, filter_sce}
+# remove genes that are not detected in any of the cells from the SCE object
+genes_to_keep <- rowData(sce)$detected > 0
+sce <- sce[genes_to_keep, ]
+```
+
+
 The `AUCell` functions takes an expression matrix with genes as rows and cells as column.
 We can extract a counts matrix in sparse format for use with `AUCell`.
+
 
 ```{r counts_matrix}
 # Extract counts matrix
