@@ -224,7 +224,7 @@ As we saw in the slides, this means we'll have to...
 We'll approach this merge in two parts:
 
 + First, we'll take some time to thoroughly explore the our SCE objects to determine what wrangling we need to do to make all the objects _compatible_ for merging
-+ Then, we'll write (ok, we've written it for you) a _custom function_ to prepare each SCE object for merging, including:
++ Then, we'll write (ok, we've written it for you) a _custom function_ to format each SCE object for merging, including:
     + Making any changes to ensure objects are compatible
     + Adding in identifying information so we know which sample the cells and other metadata came from 
 
@@ -263,7 +263,7 @@ sce_list |>
 ```
 
 Even though we know the genes already match, we need to also be sure they are in the same _order_ among all objects.
-So, we'll hold onto that `shared_genes` variable we defined and use it soon in our custom function to make sure all objects fully match.
+So, we'll hold onto that `shared_genes` variable we defined and use it soon in our custom formatting function to make sure all objects fully match.
 
 
 #### Check the `colData` column names
@@ -279,8 +279,8 @@ sce_list |>
 ```
 We see the same columns all around in the same order, which is great!
 
-But what if we we saw different (but overlapping) columns across objects?
-In that case, we could find the intersection of column names like we did above for genes, and use that to re-order and subset all `colData` slot in our custom function.
+But what if there were different columns across objects, or they were differently ordered?
+In that case, we could find the intersection of column names like we did above for genes, and use that to re-order and subset all `colData` slot in our custom formatting function.
 
 
 #### Check the assays and reduced dimensions
@@ -299,7 +299,7 @@ sce_list |>
 ```
 Again, all objects are compatible already: They both a `counts` and `logcounts` assay, and they both have `PCA` and `UMAP` reduced dimensions, so we don't need to do anything in particular here.
 
-In your own data exploration, if you encounter SCEs to merge that have different reduced dimensions, you can remove extraneous ones by setting them to `NULL`, e.g. `assay(sce, "assay_to_remove") <- NULL`.
+In your own data exploration, if you encounter SCEs to merge that have extraneous assays or reduced dimensions that you don't need, you can remove them by setting them to `NULL` in your custom formatting function, e.g. `assay(sce, "assay_to_remove") <- NULL`.
 
 #### Bonus rowData exploration
 
@@ -320,7 +320,7 @@ This means we definitely need to update the colum names `mean` and `detected` to
 But, we don't need a separate `gene_symbol` column for each sample, so we can leave that one alone as just `gene_symbol`. 
 Once we eventually merge, only one `gene_symbol` column will be left in the final object since it is the same across all the SCEs.
 
-We'll show one way to do this in our custom function, but it's worth noting there's nothing _wrong_ with also adding the sample id to the `gene_symbol` column; you'll just end up with a bunch of redundant columns.
+We'll show one way to do this in our custom function, but it's worth noting there's nothing _wrong_ with also adding the sample id to the `gene_symbol` column; you'll just end up with a bunch of redundant gene symbol columns.
 
 ### Perform SCE merging
 
