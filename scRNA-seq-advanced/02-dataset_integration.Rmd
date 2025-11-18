@@ -207,19 +207,68 @@ A word of caution before we begin: **This merged SCE object is NOT an integrated
 Merging SCEs does not perform any batch correction, but just reorganizes the data to allow us to proceed to integration next.
 
 To merge SCE objects, we do need to do some wrangling and bookkeeping to ensure compatibility and that we don't lose important information.
-Overall we'll want to take care of these items:
+Overall, we'll want to make sure that:
 
-1. We should be able to trace sample-specific information back to the originating sample, including...
-    - Cell-level information: Which sample is each cell from?
-    - Library-specific feature statistics, e.g., gene-level statistics for a given library found in `rowData`.
-    Which sample is a given feature statistic from?
-2. SCE objects should contain the same genes: Each SCE object should have the same row names.
-3. SCE cell metadata columns should match: The `colData` for each SCE object should have the same column names.
+1. All objects have compatible dimensions.
+This means that all objects should...
+  + Have the same genes, in the same order
+  + Have the same `colData` slot columns, in the same order
+  + Have the same assays and reduced dimensions
+2. After merging, we'll still be able to identify which sample different pieces of information came from
+As we saw in the slides, this means we'll have to...
+  + Attach sample names to the barcodes (aka, the SCE's column names)
+  + Attach sample names to `rowData` slot column names and `metadata` field names (if you care to keep this information around - today, we will!)
+  + Add a new column indicating the sample to the `colData` slot
+
+We'll approach this merge in two parts:
+
++ First, we'll take some time to thoroughly explore the our SCE objects to determine what wrangling we need to do to make all the objects _compatible_ for merging
++ Then, we'll write (ok, we've written it for you) a _custom function_ to prepare each SCE object for merging, including:
+  + Making any changes to ensure objects are compatible
+  + Adding in identifying information so we know which sample the cells and other metadata came from 
+
+When merging objects on your own, don't skip these data exploration steps!
+The steps we take to prepare our SCEs will probably be different from the steps you need to take with other SCEs, and only by carefully exploring the objects can you figure out what steps you'll need to take to meet all of our conditions.
+
+### Explore the SCE objects
+
+#### Check the genes
+
+First, we'll compare the object's genes (aka, their rownames).
+We can use some `purrr` magic to help us find the set of shared genes among all objects:
+
+```{r shared genes}
+# Define vector of shared genes
+shared_genes <- sce_list |>
+  # get rownames (genes) for each SCE in sce_list
+  purrr::map(rownames) |>
+  # reduce to the _intersection_ among lists
+  purrr::reduce(intersect)
+
+# How many shared genes are there?
+length(shared_genes)
+```
+
+That's quite a lot!
+In fact, because these objects were all uniformly processed by the same workflow (which did not filter out any genes!), we expect them to all have the same genes.
+We can map over the list to confirm that indeed, they have the same number of rows (genes):
 
 
-We'll begin by taking some time to thoroughly explore our SCE objects and figure out what wrangling steps we need to take for these specific data.
-Don't skip this exploration!
-Bear in mind that the exact wrangling shown here will not be the same for other SCE objects you work with, but the same general principles apply.
+```{r check shared genes, live = TRUE}
+# The number of genes in an SCE corresponds to its number of rows:
+sce_list |>
+  purrr::map(nrow)
+```
+
+Even though we know the genes already match, we need to also be sure they are in the same _order_ among all objects.
+So, we'll hold onto that `shared_genes` variable we defined and use it soon in our custom function to make sure all objects fully match.
+
+
+#### Check the `colData` column names
+
+#### Check the assays and reduced dimensions
+
+
 
 
 #### Preserving sample information at the cell level
@@ -274,36 +323,6 @@ purrr::map(sce_list,
 
 
 #### Ensuring that only shared genes are used
-
-The next step in ensuring SCE compatibility is to make sure they all contain the same genes, which are stored as the SCE object's row names (these names are also found the `rowData` slot's row names).
-Here, those gene ids are unique Ensembl gene ids.
-
-We can use some `purrr` magic to quickly find the set of shared genes among our samples, and then ask how many there are.
-
-```{r shared genes}
-# Define vector of shared genes
-shared_genes <- sce_list |>
-  # get rownames (genes) for each SCE in sce_list
-  purrr::map(rownames) |>
-  # reduce to the _intersection_ among lists
-  purrr::reduce(intersect)
-```
-
-```{r print shared genes, live = TRUE}
-# How many shared genes are there?
-length(shared_genes)
-```
-
-In this case, we happen to know that all SCE objects we're working with already contained the same genes.
-We do a quick-and-dirty check for this by looking at the number of rows across SCE objects, and we'll see that they are all the same:
-
-```{r check shared genes, live = TRUE}
-# The number of genes in an SCE corresponds to its number of rows:
-sce_list |>
-  purrr::map(nrow)
-```
-
-So, for our data, we will not have to subset to shared genes since they are already shared!
 
 #### Ensuring matching columns in `colData`
 
