@@ -211,28 +211,26 @@ Overall, we'll want to make sure that:
 
 1. All objects have compatible dimensions.
 This means that all objects should...
-  + Have the same genes, in the same order
-  + Have the same `colData` slot columns, in the same order
-  + Have the same assays and reduced dimensions
+    + Have the same genes, in the same order
+    + Have the same `colData` slot columns, in the same order
+    + Have the same assays and reduced dimensions
 2. After merging, we'll still be able to identify which sample different pieces of information came from
 As we saw in the slides, this means we'll have to...
-  + Attach sample names to the barcodes (aka, the SCE's column names)
-  This also ensures that column names are unique; while a single sample (library) is guaranteed to have unique barcodes, technically they can be repeated across samples!
-  + Attach sample names to `rowData` slot column names and `metadata` field names (if you care to keep this information around - today, we will!)
-  + Add a new column indicating the sample to the `colData` slot
+    + Attach sample names to the barcodes (aka, the SCE's column names)
+    This also ensures that column names are unique; while a single sample (library) is guaranteed to have unique barcodes, technically they can be repeated across samples!
+    + Attach sample names to `rowData` slot column names and `metadata` field names (if you care to keep this information around - today, we will!)
+    + Add a new column indicating the sample to the `colData` slot
 
 We'll approach this merge in two parts:
 
 + First, we'll take some time to thoroughly explore the our SCE objects to determine what wrangling we need to do to make all the objects _compatible_ for merging
 + Then, we'll write (ok, we've written it for you) a _custom function_ to prepare each SCE object for merging, including:
-  + Making any changes to ensure objects are compatible
-  + Adding in identifying information so we know which sample the cells and other metadata came from 
+    + Making any changes to ensure objects are compatible
+    + Adding in identifying information so we know which sample the cells and other metadata came from 
 
 When merging objects on your own, don't skip these data exploration steps!
 The steps we take to prepare our SCEs will probably be different from the steps you need to take with other SCEs, and only by carefully exploring the objects can you figure out what steps you'll need to take to meet all of our conditions.
 
-
-### Background: Why do we need to make these changes
 
 ### Explore the SCE objects
 
@@ -289,7 +287,7 @@ In that case, we could find the intersection of column names like we did above f
 
 Finally, we'll make sure that all objects share the same assays and reduced dimensions.
 
-```{r assay names, live = TRUE}
+```{r assay names}
 # print all the assay names
 sce_list |>
   purrr::map(assayNames)
@@ -317,9 +315,12 @@ sce_list |>
 
 The column `gene_symbol` is not sample-specific - it just provides the corresponding gene symbol to the Ensembl ids seen here as row names.
 The columns `mean` and `detected`, however, are sample-specific - they contain sample-specific statistics about gene expression.
-Overall, this means we need to make sure that `mean` and `detected` columns can be mapped back to their original sample, we should update them to include the sample id.
-But, if we don't change `gene_symbol`'s name, it will be left alone as just `gene_symbol` because it matches across the objects. 
-We'll show this in the wrangling, but it's worth noting there's nothing _wrong_ with also adding the sample id to the `gene_symbol` column; they will just be redundant.
+
+This means we definitely need to update the colum names `mean` and `detected` to include the sample id.
+But, we don't need a separate `gene_symbol` column for each sample, so we can leave that one alone as just `gene_symbol`. 
+Once we eventually merge, only one `gene_symbol` column will be left in the final object since it is the same across all the SCEs.
+
+We'll show one way to do this in our custom function, but it's worth noting there's nothing _wrong_ with also adding the sample id to the `gene_symbol` column; you'll just end up with a bunch of redundant columns.
 
 ### Perform SCE merging
 
@@ -336,7 +337,7 @@ We'll then use our new `purrr::map()` programming skills to run this function ov
 This will give us a new list of formatted SCEs that we can proceed to merge.
 It's important to remember that the `format_sce()` function written below is not a function for general use – it's been precisely written to match the processing we need to do for _these_ SCEs, and different SCEs you work with will require different types of processing.
 
-We also include Roxygen-style comments for this function, which can be a helpful consistent way to document your code if you like it - we've even written a blog post about it: <https://www.ccdatalab.org/blog/dont-make-me-write-tips-for-avoiding-typing-in-rstudio>.
+We also include Roxygen-style comments for this function, which can be a helpful consistent way to document your code if you like it - we've even written a blog post about it :) (<https://www.ccdatalab.org/blog/dont-make-me-write-tips-for-avoiding-typing-in-rstudio>).
 
 ```{r format_sce function}
 #' Custom function to format an SCE before merging
@@ -352,28 +353,29 @@ format_sce <- function(
     shared_genes
   ) {
   
-  ###### Ensure objects have the same genes in the same order ######
-  # Use the shared_genes vector to index genes to the intersection - this subsets (if needed) and reorders!
+  ### Ensure objects have the same genes in the same order
+  # Use the shared_genes vector to index genes to the intersection
+  # Doing this both subsets to just those genes, and reorders!
   sce <- sce[shared_genes, ]
   
-  ##### There is no additional wrangling to do for the colData column names, assays, or reduced dimensions.
-  ##### But if there were, you could add your custom code to do so here.
-  ##### Your custom function may need additional arguments for this, too.
+  ### There is no additional wrangling to do for the colData column names, assays, or reduced dimensions.
+  ### But if there were, you could add your custom code to do so here.
+  ### Your custom function may need additional arguments for this, too.
 
 
-  ###### Ensure cell ids will be unique and identifiable ######
+  ### Ensure cell ids are identifiable and fully unique 
   # Update the SCE object column names (cell ids) by prepending the `sample_name`
   colnames(sce) <- glue::glue("{sample_name}-{colnames(sce)}")
 
 
-  ###### Ensure the rowData columns can be identified ######
+  ### Ensure the rowData columns can be identified
   # Recall, we want to leave `gene_symbol` alone, but add the `sample_name` to the rest
-  # We'll map over the column names to update the ones that _aren't_ `gene_symbol` using the
+  # We'll map over the column names and update the ones that _aren't_ `gene_symbol` using the
   # map function `purrr::map_chr()` which returns a character vector instead of a list
   new_rowdata_names <- colnames(rowData(sce)) |>
     purrr::map_chr(
       \(colname) {
-        # leave it alone if it's gene_symbol. else, tack on the sample name
+        # if it's not gene_symbol, return an updated colum name with the `sample_name` included
         if (colname == "gene_symbol") {
           return(colname)
         } else {
@@ -383,12 +385,12 @@ format_sce <- function(
     )
   colnames(rowData(sce)) <- new_rowdata_names
   
-  ###### Ensure metadata slot fields can be identified ######
+  ### Ensure metadata slot fields can be identified
   # We'll simply prepend the `sample_name` to all fields for this slot
   names(metadata(sce)) <- glue::glue("{sample_name}-{names(metadata(sce))}")
   
   
-  ###### Add sample indicator to the colData slot ######
+  ### Add dedicated sample indicator column to the colData slot
   sce$sample <- sample_name
   
   # Finally, we can return the formatted SCE object
@@ -408,11 +410,11 @@ sce_list_formatted <- purrr::map2(
   names(sce_list),
   # Name of the function to run
   format_sce, 
-  # Additional arguments to pass into the function
+  # Additional argument(s) to pass into the function
   shared_genes
 )
 
-# Print resulting list
+# Print formatted SCE list
 sce_list_formatted
 ```
 
@@ -434,7 +436,7 @@ merged_sce <- do.call(cbind, sce_list_formatted)
 merged_sce
 ```
 
-We now have a single SCE object that contains all cells from all samples we'd like to integrate.
+We now have a single merged SCE object that contains all cells from all samples we'd like to integrate.
 
 Let's take a peek at some of the innards of this new SCE object:
 
