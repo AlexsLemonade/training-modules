@@ -96,8 +96,10 @@ normalized_dir <- file.path(data_dir, "normalized")
 fs::dir_create(normalized_dir)
 
 # output RDS file for normalized data
-output_sce_file <- file.path(normalized_dir,
-                             "glioblastoma_normalized_sce.rds")
+output_sce_file <- file.path(
+  normalized_dir,
+  "glioblastoma_normalized_sce.rds"
+)
 ```
 
 
@@ -109,7 +111,7 @@ Whether the 10x Cell Ranger data is in Matrix Exchange format or in an HDF5 file
 (Though again, we do not recommend using the `.h5` file if you can avoid it, _especially_ for raw (unfiltered) data.)
 
 If you used something other than Cell Ranger to process the raw data, you would need to use a different function to read it in and create the `SingleCellExperiment` object.
-Some of these functions for other common data formats are discussed in [Chapter 3 of OSCA] (http://bioconductor.org/books/3.19/OSCA.intro/getting-scrna-seq-datasets.html#reading-counts-into-r).
+Some of these functions for other common data formats are discussed in [Chapter 3 of OSCA](http://bioconductor.org/books/3.19/OSCA.intro/getting-scrna-seq-datasets.html#reading-counts-into-r).
 
 ```{r read SCE, live=TRUE}
 # read SCE from matrix directory
@@ -273,8 +275,10 @@ The `mito` name is important in that it is the name that will be expected by a l
 (We could define more subsets, but for now this one will do.)
 
 ```{r per cell QC, live=TRUE}
-filtered_sce <- scuttle::addPerCellQC(filtered_sce,
-                                      subsets = list(mito = mito_genes))
+filtered_sce <- scuttle::addPerCellQC(
+  filtered_sce,
+  subsets = list(mito = mito_genes)
+)
 ```
 
 Now we can look at the colData to see what was added:
@@ -337,8 +341,11 @@ We stick with that default, but for clarity, we will also include it in our code
 
 ```{r miQC plotFiltering}
 # look at miQC filtering
-miQC::plotFiltering(filtered_sce, miqc_model,
-                    posterior_cutoff = 0.75) +
+miQC::plotFiltering(
+  filtered_sce,
+  miqc_model,
+  posterior_cutoff = 0.75
+) +
   theme_bw()
 ```
 
@@ -349,8 +356,10 @@ At this point, we can perform the actual filtering using the `filterCells()` fun
 
 ```{r miQC filtercells, live=TRUE}
 # perform miQC filtering
-qcfiltered_sce <- miQC::filterCells(filtered_sce,
-                                    model = miqc_model)
+qcfiltered_sce <- miQC::filterCells(
+  filtered_sce,
+  model = miqc_model
+)
 ```
 
 #### One more filter: unique gene count
@@ -383,8 +392,10 @@ Finally, we apply the scaling factor to the expression values for each cell and 
 qclust <- scran::quickCluster(qcfiltered_sce)
 
 # use clusters to compute scaling factors and add to SCE object
-qcfiltered_sce <- scran::computeSumFactors(qcfiltered_sce,
-                                           clusters = qclust)
+qcfiltered_sce <- scran::computeSumFactors(
+  qcfiltered_sce,
+  clusters = qclust
+)
 
 # perform normalization using scaling factors
 # and save as a new SCE object
@@ -424,8 +435,10 @@ num_genes <- 2000
 gene_variance <- scran::modelGeneVar(normalized_sce)
 
 # get the most variable genes
-hv_genes <- scran::getTopHVGs(gene_variance,
-                              n = num_genes)
+hv_genes <- scran::getTopHVGs(
+  gene_variance,
+  n = num_genes
+)
 ```
 
 The result is a vector of gene ids (ordered from most to least variable):
@@ -486,8 +499,10 @@ Since the UMAP procedure would be slow to calculate with the full data, so the `
 Since we already have a PCA matrix, we will tell the function use that instead of recalculating it.
 
 ```{r runUMAP, live=TRUE}
-normalized_sce <- scater::runUMAP(normalized_sce,
-                                  dimred = "PCA")
+normalized_sce <- scater::runUMAP(
+  normalized_sce,
+  dimred = "PCA"
+)
 ```
 
 As before, we could extract the UMAP matrix from our SCE object with the `reducedDim()` function.
@@ -495,10 +510,12 @@ We can also visualize the UMAP results using the `plotReducedDim()` function.
 
 ```{r plotReducedDim, live=TRUE}
 # plot the UMAP
-scater::plotReducedDim(normalized_sce,
-                       "UMAP",
-                       # color by the most variable gene
-                       color_by = hv_genes[1])
+scater::plotReducedDim(
+  normalized_sce,
+  "UMAP",
+  # color by the most variable gene
+  color_by = hv_genes[1]
+)
 ```
 
 
@@ -512,8 +529,8 @@ There are a number of algorithms that can perform this clustering, each with par
 It is also worth noting that these clusters may or may not correspond to "cell types" by whatever definition you might prefer to use.
 Interpretation of these clusters, or other measures of cell type, are something that will require more careful and likely more customized analysis.
 
-We will perform our clustering using the `bluster` package, which can perform many different types of clustering.
-As mentioned earlier, we are using "graph" clustering, which we define using the `NNGraphParam()` function.
+We will perform our clustering using the function `scran::clusterCells`, which can perform many different types of clustering using the Bioconductor `bluster` package under the hood.
+As mentioned earlier, we are using "graph" clustering, which we define using the `bluster::NNGraphParam()` function.
 Within that are a number of further options, such as the weighting used for building the network graph and the algorithm used for dividing the graph into clusters.
 
 Modifying these parameters can result in quite different cluster assignments!
@@ -524,9 +541,10 @@ In particular, the names/numbers of the clusters can be quite inconsistent betwe
 
 ```{r clustering, live=TRUE}
 # perform graph-based clustering
-nn_clusters <- bluster::clusterRows(
-  pca_matrix,
-  bluster::NNGraphParam(
+nn_clusters <- scran::clusterCells(
+  normalized_sce, # SCE to perform clustering on
+  use.dimred = "PCA", # perform clustering on the PCA matrix
+  BLUSPARAM = bluster::NNGraphParam( # clustering parameters to pass to bluster
     # number of neighbors to use in network graph
     k = 20,
     # weighting scheme for building the network graph
@@ -551,8 +569,10 @@ Here rather than the general `plotReducedDim()` function, we will use `plotUMAP(
 
 ```{r plot clusters, live=TRUE}
 # plot UMAP with assigned clusters
-scater::plotUMAP(normalized_sce,
-                 color_by = "nn_cluster")
+scater::plotUMAP(
+  normalized_sce,
+  color_by = "nn_cluster"
+)
 ```
 
 What do you see in these results?

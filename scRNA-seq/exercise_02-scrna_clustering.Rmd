@@ -28,9 +28,6 @@ library(ggplot2)
 library(scater)
 library(scran)
 
-# clustering tools
-library(bluster)
-
 # File path to plots directory
 plots_dir <- "plots"
 
@@ -141,28 +138,28 @@ Also try adding some color with the `color_by` argument, using the number of gen
 ## Cell clustering
 
 
-
 When we performed dimensionality reduction on our data above, we could see visually that the cells tended cluster together into groups.
 Let's try identifying distinct groups of cells with similar patterns of gene expression that we can assign labels to.
 
 As noted in the `05-clustering_markers_scRNA.Rmd` instruction notebook, there are a number of methods to identify clusters and assign cells to those in multidimensional data like the single cell data we have.
 
-We can use the function `clusterRows()` from the `bluster` package to facilitate applying many of those algorithms.
+We can use the function `scran::clusterCells()` to facilitate applying many of those algorithms.
+This function uses the package `bluster` to perform clustering on cells in a `SingleCellExperiment` object.
 
-To specify the clustering algorithm and the parameters specific to that algorithm to `clusterRows()`, we will provide it an argument with one of a set of `*Params()` functions, which are outlined below.
+To specify the clustering algorithm and the parameters for that algorithm to `scran::clusterCells()`, we will provide it an argument with one of a set of `*Params()` functions from the `bluster` package, which are outlined below.
 Note that there are other algorithms that we will not discuss, but can be explored in the [Flexible clustering for Bioconductor vignette](https://bioconductor.org/packages/3.19/bioc/vignettes/bluster/inst/doc/clusterRows.html).
 
-- `KmeansParam()` will apply the k-means clustering algorithm (see also `?kmeans`).
+- `bluster::KmeansParam()` will apply the k-means clustering algorithm (see also `?kmeans`).
 Some of the more important parameters are:
   - `centers`: the number of clusters to be assigned
   - `nstart`: Since the final k-means clusters may depend on the random clusters chosen at the start, we might want to repeat the procedure a number of times and choose the best output. This argument tells how many times to repeat the clustering (the default is 1).
 
-- `NNGraphParam()` will apply community detection algorithms on a nearest-neighbor (NN) graph.
+- `bluster::NNGraphParam()` will apply community detection algorithms on a nearest-neighbor (NN) graph.
 Some of the more important parameters are:
   - `k`: the number of neighbors for each cell to use when constructing the graph
   - `type`: how the neighbor graph is weighted.
   The options are `rank` (default), `number` and `jaccard`, with the last of those being the default in `Seurat`.
-  For more details see `?makeSNNGraph`
+  For more details see `?bluster::makeSNNGraph`
   - `cluster.fun`: Which cluster detection algorithm to use.
   The options are many, but common choices are `walktrap` (default),  `louvain` (used by `Seurat`), and `leiden`.
 
@@ -182,30 +179,29 @@ That is a hard question and for now the answer is up to you!
 However, for an intuitive visualization of the general k-means method, you might find [this StatQuest video](https://www.youtube.com/watch?v=4b5d3muPQmA) useful.
 For more discussion of the method in a single-cell context, including some tips on choosing `k`, the [Orchestrating Single-Cell Analysis book chapter on k-means](https://bioconductor.org/books/3.19/OSCA.basic/clustering.html#vector-quantization-with-k-means) is a good reference.
 
-We already computed *and stored* a matrix with reduced dimensions with the `runPCA()` function above.
-We will extract that from the `SingleCellExperiment` object with the `reducedDim()` function, which returns a matrix with the cells as rows that we can directly supply to the `clusterRows()` function.
+The first argument to `scran::clusterCells()` is the `SingleCellExperiment` object to cluster.
+We next want to tell this function on what values in the object (e.g. an assay or reduced dimension) to perform the clustering on.
+We'd like to use the PCA matrix for clustering, which we already computed *and stored* in our object with the `runPCA()` function above.
+We can tell the `scran::clusterCells()` function to use this PCA matrix for clustering using the argument `use.dimred = "PCA"`.
 
-When implementing `clusterRows()` below, you can use `KmeansParam()` to specify that we want k-means clustering, with the `centers` parameter to set how many clusters we will assign (`k`).
+When implementing `scran::clusterCells()` below, use the argument `BLUSPARAM = bluster::KmeansParam()` to specify that we want k-means clustering, with the `centers` parameter to set how many clusters we will assign (`k`).
 
 ```{r kmeans, solution = TRUE}
 # set the number of clusters
 
-# extract the principal components matrix
-
-# perform the clustering using `clusterRows()`
+# perform the clustering using `scran::clusterCells()`
 
 ```
 
-The `clusterRows()` function returned a vector of cluster assignments as integers, but the numerical values have no inherent meaning.
-For plotting, convert those integers into factors, so R is not tempted to treat them as a continuous variable.
+The `scran::clusterCells()` function returned a factor vector of cluster assignments, recorded as integers.
 
-Store the new factor values back into the cell information table of the original `normalized_sce` object for convenient storage and later use.
+Store these clusters back into the cell information table of the original `normalized_sce` object for convenient storage and later use.
 You can do this with the `$` notation and a column name of your choosing.
 If you are going to try different numbers of clusters, you might find it useful to include that in the column name so you can keep track of the various results.
 For example, if you used two clusters, you might use  `normalized_sce$kcluster_2` to store the results.
 
 ```{r store_kclusters, solution = TRUE}
-# save clusters in the SCE object as a factor
+# save clusters in the SCE object
 
 ```
 
@@ -231,9 +227,9 @@ Use the chunk below to explore the questions above!
 ```{r explore_kclusters_n, solution = TRUE}
 # try re-running the above steps with a different number of clusters
 
-# perform the clustering using `clusterRows()`
+# perform the clustering using `scran::clusterCells()`
 
-# save clusters in the SCE object as a factor
+# save clusters in the SCE object
 
 # plot new clustering results
 
@@ -250,7 +246,7 @@ What do the results look like if you plot with the `PCA` or `TSNE` coordinates?
 
 The other common type of clustering method for single cell data is graph-based clustering.
 
-To apply this clustering algorithm, use the same `bluster::clusterRows()` function as before, but specify `NNGraphParam()` as the second argument to tell it that we want to use a nearest-neighbor graph-based method.
+To apply this clustering algorithm, use the same `scran::clusterCells()` function as before, but specify `BLUSPARAM = bluster::NNGraphParam()` to tell it that we want to use a nearest-neighbor graph-based method.
 
 Also remember to specify `k` and the cluster detection algorithm using the `cluster.fun`.
 

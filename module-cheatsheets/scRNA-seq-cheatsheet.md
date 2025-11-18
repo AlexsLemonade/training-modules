@@ -98,6 +98,7 @@ Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [
 | `scran`| [`getTopHVGs()`](https://rdrr.io/bioc/scran/man/getTopHVGs.html)| Get top highly variable genes | Identify variable genes in a `SingleCellExperiment` object, based on variance |
 | `scran`| [`modelGeneVar()`](https://rdrr.io/bioc/scran/man/modelGeneVar.html)| model per gene variance | Model the per gene variance of a `SingleCellExperiment` object |
 | `scran`| [`findMarkers()`](https://rdrr.io/bioc/scran/man/findMarkers.html)| Find marker genes | Find candidate marker genes for clusters of cells |
+| `scran`| [`clusterCells()`](https://rdrr.io/github/MarioniLab/scran/man/clusterCells.html)| Cluster cells | Perform clustering on an SCE object using the `bluster` package |
 | `scater`| [`logNormCounts()`](https://rdrr.io/bioc/scuttle/man/logNormCounts.html) | Normalize log counts| Returns the `SingleCellExperiment` object with normalized expression values for each cell, using the size factors stored in the object
 | `scater`| [`addPerCellQC()`](https://rdrr.io/bioc/scuttle/man/addPerCellQC.html)| Add per cell quality control | For a `SingleCellExperiment` object, calculate and add quality control per cell and store in `colData`  |
 | `scater`| [`addPerFeatureQC()`](https://rdrr.io/bioc/scuttle/man/addPerCellQC.html)| Add per feature quality control | For a `SingleCellExperiment` object, calculate and add quality control per feature (genes usually) and store in `rowData`|
@@ -164,8 +165,8 @@ Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and [t
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|--------------------|---------------------|---------------|
 | `bluster`| [`clusterRows()`](https://rdrr.io/bioc/bluster/man/clusterRows.html)| Cluster rows of a matrix | Perform clustering using a variety of algorithms on a matrix-like object |
-| `bluster`| [`KmeansParam()`](https://rdrr.io/bioc/bluster/man/KmeansParam-class.html)| K-means clustering parameters | Set up parameters to run clustering using `kmeans()` within `bluster::clusterRows()` |
-| `bluster`| [`NNGraphParam()`](https://rdrr.io/bioc/bluster/man/NNGraphParam-class.html)| Graph-based clustering parameters | Set up parameters for nearest-neighbor (NN) graph-based clustering algorithms within `bluster::clusterRows()` |
+| `bluster`| [`KmeansParam()`](https://rdrr.io/bioc/bluster/man/KmeansParam-class.html)| K-means clustering parameters | Set up parameters to run clustering using `kmeans()` within `scran::clusterCells()` or `bluster::clusterRows()`  |
+| `bluster`| [`NNGraphParam()`](https://rdrr.io/bioc/bluster/man/NNGraphParam-class.html)| Graph-based clustering parameters | Set up parameters for nearest-neighbor (NN) graph-based clustering algorithms within `scran::clusterCells()` or `bluster::clusterRows()` |
 
 
 
