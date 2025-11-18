@@ -217,6 +217,7 @@ This means that all objects should...
 2. After merging, we'll still be able to identify which sample different pieces of information came from
 As we saw in the slides, this means we'll have to...
   + Attach sample names to the barcodes (aka, the SCE's column names)
+  This also ensures that column names are unique; while a single sample (library) is guaranteed to have unique barcodes, technically they can be repeated across samples!
   + Attach sample names to `rowData` slot column names and `metadata` field names (if you care to keep this information around - today, we will!)
   + Add a new column indicating the sample to the `colData` slot
 
@@ -229,6 +230,9 @@ We'll approach this merge in two parts:
 
 When merging objects on your own, don't skip these data exploration steps!
 The steps we take to prepare our SCEs will probably be different from the steps you need to take with other SCEs, and only by carefully exploring the objects can you figure out what steps you'll need to take to meet all of our conditions.
+
+
+### Background: Why do we need to make these changes
 
 ### Explore the SCE objects
 
@@ -299,90 +303,23 @@ Again, all objects are compatible already: They both a `counts` and `logcounts` 
 
 In your own data exploration, if you encounter SCEs to merge that have different reduced dimensions, you can remove extraneous ones by setting them to `NULL`, e.g. `assay(sce, "assay_to_remove") <- NULL`.
 
+#### Bonus rowData exploration
 
+One of the other items we said we'd need to think about is the `rowData`, which contains gene metadata.
+This slot is interesting because some of its columns are _specific_ to the given sample, while others are general:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### Preserving sample information at the cell level
-
-How will we be able to tell which sample a given cell came from?
-
-The best way to do this is simply to add a `colData` column with the sample information, so that we can know which sample each row came from.
-
-In addition, we want to pay some attention to the SCE object's column names (the cell ids), which must remain unique after merging since duplicate ids will cause an R error.
-In this case, the SCE column names are barcodes (which is usually but not always the case in SCE objects), which are only guaranteed to be unique _within_ a sample but may be repeated across samples.
-So, after merging, it's technically possible that multiple cells will have the same barcode.
-This would be a problem for two reasons:
-First, the cell id would not be able to point us back to cell's originating sample.
-Second, it would literally cause an error in R, which does not allow duplicate column names.
-
-
-One way to ensure that cell ids remain unique even after merging is to actually modify them by _prepending_ the relevant sample name.
-For example, consider these barcodes for the `SCPCL000479` sample:
-
-```{r barcodes}
-# Look at the column names for the `SCPCL000479` sample, for example
-colnames(sce_list$SCPCL000479) |>
-  # Only print out the first 6 for convenience
-  head()
+```{r little head rowdata}
+sce_list |>
+  purrr::map(
+    \(sce) head(rowData(sce), 3) # only print 3 rows for space!
+  )
 ```
 
-These ids will be updated to `SCPCL000479-GGGACCTCAAGCGGAT`, `SCPCL000479-CACAGATAGTGAGTGC`, and so on, thereby ensuring fully unique ids for all cells across all samples.
-
-#### Preserving sample information at the gene level
-
-The `rowData` table in SCE objects will often contain both "general" and "library-specific" information, for example:
-
-```{r rowdata}
-rowData(sce_list$SCPCL000479) |>
-  head()
-```
-
-Here, the rownames are Ensembl gene ids, and columns are `gene_symbol`, `mean`, and `detected`.
-The `gene_symbol` column is general information about all genes, not specific to any library or experiment, but `mean` and `detected` are library-specific gene statistics.
-So, `gene_symbol` does not need to be traced back to its originating sample, but `mean` and `detected` do.
-To this end, we can take a similar approach to what we'll do for cell ids:
-We can change the sample-specific `rowData` column names by prepending the sample name.
-For example, rather than being called `mean`, this column will be named `SCPCL000479-mean` for the `SCPCL000479` sample.
-
-All our SCE objects have the same `rowData` columns (as we can see in the next chunk), so we'll perform this renaming across all SCEs.
-
-```{r compare rowdata, live = TRUE}
-# Use `purrr::map()` to quickly extract rowData column names for all SCEs
-purrr::map(sce_list,
-           \(sce) colnames(rowData(sce)))
-```
-
-
-#### Ensuring that only shared genes are used
-
-#### Ensuring matching columns in `colData`
-
-Finally, we'll need to have the same column names across all SCE `colData` tables, so let's look at all those column names.
-We can use similar syntax here to what we used to look at all the `rowData` column names.
-
-```{r compare coldata}
-purrr::map(sce_list,
-           \(sce) colnames(colData(sce)) )
-```
-
-It looks like the column names are all already matching among SCEs, so there's no specific preparation we'll need to do there.
+The column `gene_symbol` is not sample-specific - it just provides the corresponding gene symbol to the Ensembl ids seen here as row names.
+The columns `mean` and `detected`, however, are sample-specific - they contain sample-specific statistics about gene expression.
+Overall, this means we need to make sure that `mean` and `detected` columns can be mapped back to their original sample, we should update them to include the sample id.
+But, if we don't change `gene_symbol`'s name, it will be left alone as just `gene_symbol` because it matches across the objects. 
+We'll show this in the wrangling, but it's worth noting there's nothing _wrong_ with also adding the sample id to the `gene_symbol` column; they will just be redundant.
 
 ### Perform SCE merging
 
@@ -399,33 +336,63 @@ We'll then use our new `purrr::map()` programming skills to run this function ov
 This will give us a new list of formatted SCEs that we can proceed to merge.
 It's important to remember that the `format_sce()` function written below is not a function for general use – it's been precisely written to match the processing we need to do for _these_ SCEs, and different SCEs you work with will require different types of processing.
 
+We also include Roxygen-style comments for this function, which can be a helpful consistent way to document your code if you like it - we've even written a blog post about it: <https://www.ccdatalab.org/blog/dont-make-me-write-tips-for-avoiding-typing-in-rstudio>.
+
 ```{r format_sce function}
-format_sce <- function(sce, sample_name) {
-  # Input arguments:
-  ## sce: An SCE object to format
-  ## sample_name: The SCE object's name
-  # This function returns a formatted SCE object.
+#' Custom function to format an SCE before merging
+#'
+#' @param sce SCE object to format
+#' @param sample_name Name of the sample
+#' @param shared_genes Vector of shared genes across all SCE objects
+#'
+#' @returns An updated SCE object ready for merging
+format_sce <- function(
+    sce, 
+    sample_name, 
+    shared_genes
+  ) {
+  
+  ###### Ensure objects have the same genes in the same order ######
+  # Use the shared_genes vector to index genes to the intersection - this subsets (if needed) and reorders!
+  sce <- sce[shared_genes, ]
+  
+  ##### There is no additional wrangling to do for the colData column names, assays, or reduced dimensions.
+  ##### But if there were, you could add your custom code to do so here.
+  ##### Your custom function may need additional arguments for this, too.
 
-  ###### Ensure that we can identify the originating sample information ######
-  # Add a column called `sample` that stores this information
-  # This will be stored in `colData`
-  sce$sample <- sample_name
 
-
-  ###### Ensure cell ids will be unique ######
-  # Update the SCE object column names (cell ids) by prepending `sample_name`
+  ###### Ensure cell ids will be unique and identifiable ######
+  # Update the SCE object column names (cell ids) by prepending the `sample_name`
   colnames(sce) <- glue::glue("{sample_name}-{colnames(sce)}")
 
 
-  ###### Ensure gene-level statistics can be identified in `rowData` ######
-  # We want to rename the columns `mean` and `detected` to contain the `sample_name`
-  # Recall the names are: "gene_symbol", "mean", "detected"
-  colnames(rowData(sce)) <- c("gene_symbol",
-                              glue::glue("{sample_name}-mean"),
-                              glue::glue("{sample_name}-detected"))
-
-  # Return the formatted SCE object
-  return(sce)
+  ###### Ensure the rowData columns can be identified ######
+  # Recall, we want to leave `gene_symbol` alone, but add the `sample_name` to the rest
+  # We'll map over the column names to update the ones that _aren't_ `gene_symbol` using the
+  # map function `purrr::map_chr()` which returns a character vector instead of a list
+  new_rowdata_names <- colnames(rowData(sce)) |>
+    purrr::map_chr(
+      \(colname) {
+        # leave it alone if it's gene_symbol. else, tack on the sample name
+        if (colname == "gene_symbol") {
+          return(colname)
+        } else {
+          return( glue::glue("{sample_name}-{colname}") )
+        }
+      }
+    )
+  colnames(rowData(sce)) <- new_rowdata_names
+  
+  ###### Ensure metadata slot fields can be identified ######
+  # We'll simply prepend the `sample_name` to all fields for this slot
+  names(metadata(sce)) <- glue::glue("{sample_name}-{names(metadata(sce))}")
+  
+  
+  ###### Add sample indicator to the colData slot ######
+  sce$sample <- sample_name
+  
+  # Finally, we can return the formatted SCE object
+  return(sce)  
 }
 ```
 
@@ -440,7 +407,9 @@ sce_list_formatted <- purrr::map2(
   sce_list,
   names(sce_list),
   # Name of the function to run
-  format_sce
+  format_sce, 
+  # Additional arguments to pass into the function
+  shared_genes
 )
 
 # Print resulting list
@@ -471,13 +440,14 @@ Let's take a peek at some of the innards of this new SCE object:
 
 ```{r explore merged_sce, live = TRUE}
 # How many samples, and cells per sample?
-table( colData(merged_sce)$sample )
+table(colData(merged_sce)$sample)
 
 # What are the new cell ids (column names)?
-head( colnames(merged_sce) )
+head(colnames(merged_sce))
+tail(colnames(merged_sce))
 
 # What does rowData look like?
-head( rowData(merged_sce) )
+head(rowData(merged_sce))
 ```
 
 
