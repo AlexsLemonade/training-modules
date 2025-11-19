@@ -471,50 +471,24 @@ head(rowData(merged_sce))
 
 ![Single-cell roadmap: Integrate](diagrams/roadmap_multi_integrate.png)
 
-
 So far, we've created a `merged_sce` object which is (almost!) ready for integration.
 
 The integration methods we'll be using here actually perform batch correction on a reduced dimension representation of the normalized gene expression values, which is more efficient.
 `fastMNN` and `harmony` specifically use PCA for this, but be aware that different integration methods may use other kinds of reduced dimensions.
 
-You'll notice that the merged SCE object object already contains PCA and UMAP reduced dimensions, which were calculated during our pre-processing:
+Before merging, our objects had reduced dimension representations calculated on each individual SCE, and we removed them when preparing for merge.
+We removed them because we don't actually want to use them anymore!
+This is because part of their calculation involves scaling the raw data to center the mean.
+When samples are separately centered, _all_ of them will centered at zero making it look like the datasets are already pretty overlapping when you plot their UMAPs together.
+But, this is just a mathematical artifact of how dimension reduction is performed.
 
-```{r merged_sce reddim, live = TRUE}
-# Print the reducedDimNames of the merged_sce
-reducedDimNames(merged_sce)
-```
-
-These represent the original dimension reductions that were performed on _each individual SCE_ before merging, but we actually need to calculate PCA (and UMAP for visualization) from the merged object directly.
-
-Why can't we use the sample-specific PCA and UMAP matrices?
-Part of these calculations themselves involves scaling the raw data to center the mean.
-When samples are separately centered but plotting together, you will see samples "overlapping" in space, but this placement is actually just an artifact of the individual centering.
-In addition, the mathematical relationship between the original expression data and reduced dimension version of that data will differ across samples, meaning we can't interpret them all together.
-To see how this looks, let's look at the UMAP when calculated from individual samples:
-
-```{r plot individual UMAPs}
-# Plot UMAP calculated from individual samples with separate scaling
-scater::plotReducedDim(merged_sce,
-                       dimred = "UMAP",
-                       color_by = "sample",
-                       point_size = 0.5,
-                       point_alpha = 0.2) +
-  # Use a CVD-friendly color scheme and specify legend name
-  scale_color_brewer(palette = "Dark2", name = "sample") + 
-  # Modify the legend key with larger, easier to see points
-  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
-  ggtitle("UMAP calculated on each sample separately")
-```
-
-As we see in this UMAP, all samples are centered at zero and all overlapping.
-This visual artifact can give the _incorrect impression_ that data is integrated - to be clear, this data is NOT integrated!
-
+So, we'll begin by re-calculating PCA and UMAP on the merged object in a way that takes batches into consideration. 
 For input to integration, we'll want the reduced dimension calculations to consider normalized gene expression values from all samples simultaneously.
 So we'll need to recalculate PCA (and UMAP for visualization) on the merged object.
-We'll also save these new reduced dimensions with different names, `merged_PCA` and `merged_UMAP`, to distinguish them from already-present `PCA` and `UMAP`.
 
 First, as usual, we'll determine the high-variance genes to use for PCA from the `merged_sce` object.
 For this, we'll need to provide the argument `block = merged_sce$sample` when modeling gene variance, which tells `scran::modelGeneVar()` to first model variance separately for each batch and then combine those modeling statistics.
+(Psst: isn't is handy we created that `sample` column when merging?!)
 
 ```{r calc merged hv genes}
 # Specify the number of genes to identify
@@ -561,23 +535,13 @@ We can now include this PCA matrix in our `merged_sce` object:
 
 ```{r add merged_pca, live = TRUE}
 # add PCA results to merged SCE object
-reducedDim(merged_sce, "merged_PCA") <- merged_pca[[1]]
+reducedDim(merged_sce, "PCA") <- merged_pca[[1]]
 ```
 
 Now that we have the PCA matrix, we can proceed to calculate UMAP to visualize the uncorrected merged data.
 
-We'll calculate UMAP as "usual", but in this case we'll specify two additional arguments:
-
-- `dimred = "merged_PCA"`, which specifies which existing reduced dimension should be used for the calculation.
-We want to use the batch-weighted PCA, which we named above as `"merged_PCA"`.
-- `name = "merged_UMAP"`, which names the final UMAP that this function calculates.
-This argument will prevent us from overwriting the existing UMAP which is already named "UMAP" and instead create a separate `"merged_UMAP"`.
-
 ```{r calculate merged umap, live = TRUE}
-# add merged_UMAP from merged_PCA
-merged_sce <- scater::runUMAP(merged_sce,
-                              dimred = "merged_PCA",
-                              name = "merged_UMAP")
+merged_sce <- scater::runUMAP(merged_sce)
 ```
 
 Now, let's see how this new `merged_UMAP` looks compared to the `UMAP` calculated from individual samples:
@@ -585,7 +549,7 @@ Now, let's see how this new `merged_UMAP` looks compared to the `UMAP` calculate
 ```{r plot uncorrected merged UMAP}
 # UMAPs scaled together when calculated from the merged SCE
 scater::plotReducedDim(merged_sce,
-                       dimred = "merged_UMAP",
+                       dimred = "UMAP",
                        color_by = "sample",
                        # Some styling to help us see the points:
                        point_size = 0.5,
@@ -595,7 +559,7 @@ scater::plotReducedDim(merged_sce,
   ggtitle("UMAP calculated on merged_sce")
 ```
 
-Samples are now separated, which more reasonably reflects that this data is _not yet batch-corrected_.
+We see (mostly) four separate clumps representing the four different _merged but not yet integrated_ samples.
 We can think of this UMAP as our "before" UMAP, and we can compare this to the "after" UMAP we see post-integration.
 
 Let's discuss a little first: What visual differences do you think the UMAP on the integrated version of data will have?
@@ -645,6 +609,10 @@ reducedDim(merged_sce, "fastmnn_PCA") <- reducedDim(integrated_sce, "corrected")
 ```
 
 Finally, we'll calculate UMAP from these corrected PCA matrix for visualization.
+In this case we need to specify two additional arguments since we're working with non-standard reduced dimension names:
+
++ `dimred = "fastmnn_PCA"`, which specifies the existing reduced dimension to use for the calculation
++ `name = "fastmnn_UMAP"`, which names the final UMAP that this function calculates
 
 ```{r calculate fastmnn umap, live = TRUE}
 # Calculate UMAP
@@ -774,7 +742,7 @@ However, unlike `fastMNN`, `harmony` does not "back-calculate" corrected express
 For input, `harmony` needs a couple pieces of information:
 
 - First, `harmony` takes a batch-weighted PCA matrix to perform integration.
-We already calculated a batch-weighted PCA matrix (our `merged_PCA` reduced dimension), we'll provide this as the the input.
+We already calculated a batch-weighted PCA matrix so we'll provide this as the the input.
 - Second, we need to tell `harmony` about the covariates to use - `sample` and `patient`.
 To do this, we provide two arguments:
   - `meta_data`, a data frame that contains covariates across samples.
@@ -787,7 +755,7 @@ Let's go!
 ```{r run harmony, live = TRUE}
 # Run harmony integration
 harmony_pca <- harmony::RunHarmony(
-  data_mat = reducedDim(merged_sce, "merged_PCA"),
+  data_mat = reducedDim(merged_sce, "PCA"),
   meta_data = colData(merged_sce),
   vars_use = c("sample", "patient")
 )
@@ -858,9 +826,11 @@ This will take a couple minutes to save while compression is performed.
 
 ```{r save integration, live = TRUE}
 # Export to RDS file with "gz" compression
-readr::write_rds(merged_sce,
-                 integrated_sce_file,
-                 compress = "gz")
+readr::write_rds(
+  merged_sce,
+  integrated_sce_file,
+  compress = "gz"
+)
 ```
 
 
