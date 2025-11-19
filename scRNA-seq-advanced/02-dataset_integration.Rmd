@@ -488,7 +488,7 @@ So we'll need to recalculate PCA (and UMAP for visualization) on the merged obje
 
 First, as usual, we'll determine the high-variance genes to use for PCA from the `merged_sce` object.
 For this, we'll need to provide the argument `block = merged_sce$sample` when modeling gene variance, which tells `scran::modelGeneVar()` to first model variance separately for each batch and then combine those modeling statistics.
-(Psst: isn't is handy we created that `sample` column when merging?!)
+(Psst: isn't it handy we created that `sample` column when merging?!)
 
 ```{r calc merged hv genes}
 # Specify the number of genes to identify
@@ -544,16 +544,15 @@ Now that we have the PCA matrix, we can proceed to calculate UMAP to visualize t
 merged_sce <- scater::runUMAP(merged_sce)
 ```
 
-Now, let's see how this new `merged_UMAP` looks compared to the `UMAP` calculated from individual samples:
-
 ```{r plot uncorrected merged UMAP}
 # UMAPs scaled together when calculated from the merged SCE
-scater::plotReducedDim(merged_sce,
-                       dimred = "UMAP",
-                       color_by = "sample",
-                       # Some styling to help us see the points:
-                       point_size = 0.5,
-                       point_alpha = 0.2) +
+scater::plotUMAP(
+  merged_sce,
+  color_by = "sample",
+  # Some styling to help us see the points:
+  point_size = 0.5,
+  point_alpha = 0.2
+) +
   scale_color_brewer(palette = "Dark2", name = "sample") +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP calculated on merged_sce")
@@ -641,7 +640,7 @@ scater::plotReducedDim(merged_sce,
   ggtitle("UMAP after integration with fastMNN")
 ```
 
-This `fastmnn_UMAP` certainly looks different from the one we made from `merged_UMAP`!
+This `fastmnn_UMAP` certainly looks different from the one we made before integrating!
 What different trends do you see?
 Do all samples look "equally well" integrated, from a first look?
 
