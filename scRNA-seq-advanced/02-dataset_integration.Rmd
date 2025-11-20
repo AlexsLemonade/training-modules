@@ -370,6 +370,10 @@ format_sce <- function(
   # We do this first since it makes the object a lot smaller for the rest of this code!
   reducedDims(sce) <- NULL
   
+  ### Add dedicated sample indicator column to the colData slot
+  # Recall, the `sce$` shortcut points to the colData
+  sce$sample <- sample_name
+
   ### Ensure objects have the same genes in the same order
   # Use the shared_genes vector to index genes to the intersection
   # Doing this both subsets to just those genes, and reorders!
@@ -385,8 +389,6 @@ format_sce <- function(
 
   ### Ensure the rowData columns can be identified
   # Recall, we want to leave `gene_symbol` alone, but add the `sample_name` to the rest
-  # We'll map over the column names and update the ones that _aren't_ `gene_symbol` using the
-  # map function `purrr::map_chr()` which returns a character vector instead of a list
   rowdata_names <- colnames(rowData(sce))
   # prefix rowData names with the sample name, except for gene symbols
   new_rowdata_names <- ifelse(
@@ -400,9 +402,6 @@ format_sce <- function(
   # We'll simply prepend the `sample_name` to all fields for this slot
   names(metadata(sce)) <- glue::glue("{sample_name}-{names(metadata(sce))}")
   
-  ### Add dedicated sample indicator column to the colData slot
-  # Recall, the `sce$` shortcut points to the colData
-  sce$sample <- sample_name
   
   ### Finally, we can return the formatted SCE object
   return(sce)  
@@ -419,7 +418,6 @@ sce_list_formatted <- purrr::map2(
   #  arguments `sce_list` and `names(sce_list)` in order
   sce_list,
   names(sce_list),
-  # Name of the function to run
   \(sce, sample_name) format_sce(sce, sample_name, shared_genes) 
 )
 
