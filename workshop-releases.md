@@ -50,7 +50,8 @@ To test the Docker image on the Data Lab RStudio server, follow the instructions
 Briefly, you will need to create a new user of the `edge` session type, which uses the `ccdl/training_rstudio:edge` Docker image and deploy that change to production.
 Then, log in as that user via RStudio server and check that the `home` directory contains the expected contents from the `/etc/skel` directory, which will look something like (assuming the user is `dlab`):
 
-```$ ls -lah ~
+```bash
+$ ls -lah ~
 drwxr-x--- 6 dlab dlab 4.0K Nov 19 20:16 .
 drwxr-xr-x 1 root root 4.0K Nov 19 20:13 ..
 -rw-r--r-- 1 dlab dlab  220 Jan  6  2022 .bash_logout
