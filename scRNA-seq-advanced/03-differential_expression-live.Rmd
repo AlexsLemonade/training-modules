@@ -68,27 +68,35 @@ To begin, let's set up our directories and files:
 data_dir <- file.path("data", "rms")
 
 # integrated file containing samples to use for DE analysis
-integrated_sce_file <- file.path(data_dir,
-                                 "integrated",
-                                 "rms_all_sce.rds")
+integrated_sce_file <- file.path(
+  data_dir,
+  "integrated",
+  "rms_all_sce.rds"
+)
 
 # sample metadata to set up DE analysis
-sample_metadata_file <- file.path(data_dir,
-                                  "annotations",
-                                  "rms_sample_metadata.tsv")
+sample_metadata_file <- file.path(
+  data_dir,
+  "annotations",
+  "rms_sample_metadata.tsv"
+)
 
 # directory to store output
 deseq_dir <- file.path("analysis", "rms", "deseq")
 fs::dir_create(deseq_dir)
 
 # results file to output from DE analysis
-deseq_output_file <- file.path(deseq_dir,
-                               "rms_myoblast_deseq_results.tsv")
+deseq_output_file <- file.path(
+  deseq_dir,
+  "rms_myoblast_deseq_results.tsv"
+)
 
 # output integrated sce object
-output_sce_file <- file.path(data_dir,
-                             "integrated",
-                             "rms_subset_sce.rds")
+output_sce_file <- file.path(
+  data_dir,
+  "integrated",
+  "rms_subset_sce.rds"
+)
 ```
 
 We can go ahead and read in the SCE object and the metadata file.
@@ -172,17 +180,21 @@ coldata_df <- colData(integrated_sce) |>
   dplyr::left_join(sample_metadata, by = c("sample" = "library_id")) |>
   # create new columns
   # cell_id is a combination of barcode and sample
-  dplyr::mutate(cell_id = glue::glue("{sample}-{barcode}"),
-                # simplify subdiagnosis
-                diagnosis_group = forcats::fct_recode(
-                  subdiagnosis,
-                  "ARMS" = "Alveolar rhabdomyosarcoma",
-                  "ERMS" = "Embryonal rhabdomyosarcoma"
-                ))
+  dplyr::mutate(
+    cell_id = glue::glue("{sample}-{barcode}"),
+    # simplify subdiagnosis
+    diagnosis_group = forcats::fct_recode(
+      subdiagnosis,
+      "ARMS" = "Alveolar rhabdomyosarcoma",
+      "ERMS" = "Embryonal rhabdomyosarcoma"
+    )
+  )
 
 # add modified data frame back to SCE as DataFrame
-colData(integrated_sce) <- DataFrame(coldata_df,
-                                     row.names = coldata_df$cell_id)
+colData(integrated_sce) <- DataFrame(
+  coldata_df,
+  row.names = coldata_df$cell_id
+)
 ```
 
 Now when we look at the `colData` of the SCE object we should see new columns, including the `diagnosis_group` column which indicates if each cell comes from an ERMS or ARMS sample.
@@ -218,12 +230,14 @@ The samples which could be further classified have a mix of `Tumor_Mesoderm`, `T
 
 ```{r celltype UMAP}
 # UMAP of all samples labeled by cell type
-scater::plotReducedDim(integrated_sce,
-                       dimred = "fastmnn_UMAP",
-                       # color each point by cell type
-                       color_by = "celltype_broad",
-                       point_size = 0.5,
-                       point_alpha = 0.4) +
+scater::plotReducedDim(
+  integrated_sce,
+  dimred = "fastmnn_UMAP",
+  # color each point by cell type
+  color_by = "celltype_broad",
+  point_size = 0.5,
+  point_alpha = 0.4
+) +
   # Modify the legend key with larger, easier to see points
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1)))
 ```
@@ -241,9 +255,9 @@ In the below plot we will color our cells by cell type while also using `facet_g
 # UMAP of all samples
 # separating by diagnosis group and labeling cell type
 
-                       # color each point by cell type
+  # color each point by cell type
 
-                       # tell scater to use diagnosis_group for plotting
+  # tell scater to use diagnosis_group for plotting
 
   # include each diagnosis group as its own column
 
@@ -261,20 +275,22 @@ tumor_cells_df <- coldata_df |>
 
 # create a stacked barplot
 ggplot(tumor_cells_df, aes(x = sample, fill = celltype_broad)) +
-    geom_bar(position = "fill", color = "black", size = 0.2) +
-    labs(
-      x = "Sample",
-      y = "Proportion of cells",
-      fill = "Cell type"
-    ) +
+  geom_bar(position = "fill", color = "black", size = 0.2) +
+  labs(
+    x = "Sample",
+    y = "Proportion of cells",
+    fill = "Cell type"
+  ) +
   scale_fill_brewer(palette = "Dark2") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   # facet by diagnosis group
-  facet_grid(cols = vars(diagnosis_group),
-             # only show non-NA values on x-axis
-             scales = "free_x",
-             space = "free_x")
+  facet_grid(
+    cols = vars(diagnosis_group),
+    # only show non-NA values on x-axis
+    scales = "free_x",
+    space = "free_x"
+  )
 ```
 
 Similar to the UMAP, this plot shows that ARMS and ERMS share a lot of the same cell types.
@@ -366,8 +382,10 @@ We'll start by creating a fake matrix of counts.
 counts_mtx <- matrix(
   1:12,
   ncol = 4,
-  dimnames = list(c("geneA", "geneB", "geneC"),
-                  c("A-cell1", "A-cell2", "B-cell1", "B-cell2"))
+  dimnames = list(
+    c("geneA", "geneB", "geneC"),
+    c("A-cell1", "A-cell2", "B-cell1", "B-cell2")
+  )
 )
 counts_mtx
 ```
@@ -401,8 +419,10 @@ pb_groups <- colData(rms_sce)[, c("celltype_broad", "sample")]
 
 # create a new SCE object that contains
 # the pseudo-bulked counts across the provided groups
-pb_sce <- scuttle::aggregateAcrossCells(rms_sce,
-                                        id = pb_groups)
+pb_sce <- scuttle::aggregateAcrossCells(
+  rms_sce,
+  id = pb_groups
+)
 
 # column names aren't automatically added to the pseudo-bulked sce,
 # so let's add them in
@@ -519,8 +539,10 @@ As a reminder, this is NOT required for running `DESeq2` analysis; we are just u
 deseq_object <- DESeq2::estimateSizeFactors(deseq_object)
 
 # normalize and log transform to use for visualization
-normalized_object <- DESeq2::rlog(deseq_object,
-                                  blind = TRUE)
+normalized_object <- DESeq2::rlog(
+  deseq_object,
+  blind = TRUE
+)
 normalized_object
 ```
 
@@ -632,18 +654,19 @@ This package automatically colors the points by cutoffs for both significance an
 Even better, it outputs a `ggplot2` object, so if we want to customize the plot further, we can use the same `ggplot2` commands we have used before.
 
 ```{r volcano}
-EnhancedVolcano::EnhancedVolcano(deseq_results,
-                x = 'log2FoldChange', # fold change statistic to plot
-                y = 'pvalue', # significance values
-                lab = deseq_results$gene_symbol, # labels for points
-                pCutoff = 1e-05, # p value cutoff (default)
-                FCcutoff = 1, # fold change cutoff (default)
-                title = NULL, # no title
-                subtitle = NULL, # or subtitle
-                caption = NULL, # or caption
-                drawConnectors = TRUE, # add some fun arrows
-                labSize = 3  # smaller labels
-                ) +
+EnhancedVolcano::EnhancedVolcano(
+  deseq_results,
+  x = "log2FoldChange", # fold change statistic to plot
+  y = "pvalue", # significance values
+  lab = deseq_results$gene_symbol, # labels for points
+  pCutoff = 1e-05, # p value cutoff (default)
+  FCcutoff = 1, # fold change cutoff (default)
+  title = NULL, # no title
+  subtitle = NULL, # or subtitle
+  caption = NULL, # or caption
+  drawConnectors = TRUE, # add some fun arrows
+  labSize = 3 # smaller labels
+) +
   # change the overall theme
   theme_bw() +
   # move the legend to the bottom
@@ -669,10 +692,12 @@ However, we might be interested to see the expression of genes that are differen
 ```{r celltype comparison}
 # let's compare gene expression across some other cell types
 # look at all tumor cells and pick one normal cell type
-celltypes <- c("Tumor_Myoblast",
-               "Tumor_Mesoderm",
-               "Tumor_Myocyte",
-               "Vascular Endothelium")
+celltypes <- c(
+  "Tumor_Myoblast",
+  "Tumor_Mesoderm",
+  "Tumor_Myocyte",
+  "Vascular Endothelium"
+)
 
 # subset to just celltypes that we are interested in
 tumor_sce <- rms_sce[, which(rms_sce$celltype_broad %in% celltypes)]
@@ -687,28 +712,37 @@ We can then directly reference that `Feature` column when plotting, instead of u
 
 ```{r multi-gene plot}
 # pick a couple genes to look at
-genes_to_plot <- c("ENSG00000196090", #PTPRT
-                   "ENSG00000148935") #GAS2
+genes_to_plot <- c(
+  "ENSG00000196090", # PTPRT
+  "ENSG00000148935"
+) # GAS2
 
 # create a violin plot
-scater::plotExpression(tumor_sce,
-                       # a vector of genes to plot
-                       features = genes_to_plot,
-                       x = "diagnosis_group",
-                       color_by = "diagnosis_group",
-                       other_fields = "celltype_broad",
-                       point_size = 0.1) +
+scater::plotExpression(
+  tumor_sce,
+  # a vector of genes to plot
+  features = genes_to_plot,
+  x = "diagnosis_group",
+  color_by = "diagnosis_group",
+  other_fields = "celltype_broad",
+  point_size = 0.1
+) +
   # each celltype is its own column
-  facet_grid(cols = vars(celltype_broad),
-             # each feature (gene) is its own row
-             rows = vars(Feature)) +
+  facet_grid(
+    cols = vars(celltype_broad),
+    # each feature (gene) is its own row
+    rows = vars(Feature)
+  ) +
   # change the font size of the facet labels
   theme(strip.text = element_text(size = 7)) +
-  guides(color = guide_legend(
-    title = "Subtype", # update the legend title
-    # change the size of the legend colors
-    override.aes = list(size = 3, alpha = 1))
+  guides(
+    color = guide_legend(
+      # update the legend title
+      title = "Subtype",
+      # change the size of the legend colors
+      override.aes = list(size = 3, alpha = 1)
     )
+  )
 ```
 
 How do the expression of these genes change across cell types and RMS subtypes?
