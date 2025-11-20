@@ -227,16 +227,17 @@ We'll approach this merge in two parts:
 + Then, we'll write (ok, we've written it for you) a _custom function_ to format each SCE object for merging, including:
     + Making any changes to ensure objects are compatible
     + Adding in identifying information so we know which sample the cells and other metadata came from 
-    + Removing the existing reduced dimensions (PCA and UMAP).
+    + Removing the existing reduced dimension matrices (PCA and UMAP).
     This is because we'll want to recalculate these matrices on the merged objects, taking batch into account
 
 When merging objects on your own, don't skip these data exploration steps!
 The steps we take to prepare our SCEs will probably be different from the steps you need to take with other SCEs, and only by carefully exploring the objects can you figure out what steps you'll need to take to meet all of our conditions.
 
 
-### Updating the column names (cell barcodes)
+### Creating unique cell identifiers
 
-As part of the custom function we'll write, we'll include a step to attach sample names to the SCE column names (cell barcodes): We'll change them (as a toy example) from `ACGT` --> `SampleName-ACGT`.
+As part of the custom function we'll write, we'll include a step to create unique cell identifiers by attaching sample names to the SCE column names (cell barcodes).
+For example, we would update the column name for a cell from `Sample1` with the barcode `ACGT` to `Sample1-ACGT`.
 
 We do this because we need to be able to unambiguously identify which sample a given cell came from, and it helps us avoid bugs!
 When merging, there can't be any duplicate column names (barcodes) across _all_ the objects or R will throw an error.
@@ -314,7 +315,7 @@ Again, all objects are compatible already with both having a `counts` and `logco
 
 In your own data exploration, if you encounter SCEs to merge that have extraneous assays that you don't need, you can remove them by setting them to `NULL` in your custom formatting function, e.g. `assay(sce, "assay_to_remove") <- NULL`.
 
-#### Bonus `rowData` exploration
+#### `rowData` exploration
 
 One of the other items we said we'd need to think about is the `rowData`, which contains gene metadata.
 This slot is interesting because some of its columns are _specific_ to the given sample, while others are general:
@@ -361,9 +362,10 @@ We also include roxygen-style comments for this function, which can be a helpful
 #'
 #' @returns An updated SCE object ready for merging
 format_sce <- function(
-    sce, 
-    sample_name, 
-    shared_genes) {
+  sce, 
+  sample_name, 
+  shared_genes
+) {
   
   ### Remove the single-sample reduced dimensions 
   # We do this first since it makes the object a lot smaller for the rest of this code!
@@ -386,17 +388,13 @@ format_sce <- function(
   # Recall, we want to leave `gene_symbol` alone, but add the `sample_name` to the rest
   # We'll map over the column names and update the ones that _aren't_ `gene_symbol` using the
   # map function `purrr::map_chr()` which returns a character vector instead of a list
-  new_rowdata_names <- colnames(rowData(sce)) |>
-    purrr::map_chr(
-      \(colname) {
-        # if it's not gene_symbol, return an updated colum name with the `sample_name` included
-        if (colname == "gene_symbol") {
-          return(colname)
-        } else {
-          return( glue::glue("{sample_name}-{colname}") )
-        }
-      }
-    )
+  rowdata_names <- colnames(rowData(sce))
+  # prefix rowData names with the sample name, except for gene symbols
+  new_rowdata_names <- ifelse(
+    rowdata_names == "gene_symbol",
+    "gene_symbol",
+    glue::glue("{sample_name}-{rowdata_names}")
+  )
   colnames(rowData(sce)) <- new_rowdata_names
   
   ### Ensure metadata slot fields can be identified
@@ -423,9 +421,7 @@ sce_list_formatted <- purrr::map2(
   sce_list,
   names(sce_list),
   # Name of the function to run
-  format_sce, 
-  # Additional argument(s) to pass into the function
-  shared_genes
+  \(sce, sample_name) format_sce(sce, sample_name, shared_genes) 
 )
 
 # Print formatted SCE list
