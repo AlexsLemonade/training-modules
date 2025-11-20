@@ -55,7 +55,7 @@ set.seed(12345)
 ```
 
 
-### Directories and files
+### Define directories and files
 
 
 We have already prepared count data for the four samples we'll be integrating (i.e., filtered cells, normalized counts, and calculated PCA & UMAP).
@@ -197,7 +197,7 @@ That said, the integration methods we will be applying _do not actually use_ any
 If we have annotations, they are a helpful "bonus" for assessing the integration's performance, but they are not part of the integration itself.
 
 
-## Prepare the SCE list for integration
+## Prepare the SCE list for merging
 
 ![Single-cell roadmap: Merge](diagrams/roadmap_multi_merge.png)
 
@@ -234,7 +234,7 @@ When merging objects on your own, don't skip these data exploration steps!
 The steps we take to prepare our SCEs will probably be different from the steps you need to take with other SCEs, and only by carefully exploring the objects can you figure out what steps you'll need to take to meet all of our conditions.
 
 
-### Creating unique cell identifiers
+### Create unique cell identifiers
 
 As part of the custom function we'll write, we'll include a step to create unique cell identifiers by attaching sample names to the SCE column names (cell barcodes).
 For example, we would update the column name for a cell from `Sample1` with the barcode `ACGT` to `Sample1-ACGT`.
@@ -314,10 +314,10 @@ Again, all objects are compatible already with both having a `counts` and `logco
 
 In your own data exploration, if you encounter SCEs to merge that have extraneous assays that you don't need, you can remove them by setting them to `NULL` in your custom formatting function, e.g. `assay(sce, "assay_to_remove") <- NULL`.
 
-#### `rowData` exploration
+#### Check the `rowData` contents
 
 One of the other items we said we'd need to think about is the `rowData`, which contains gene metadata.
-This slot is interesting because some of its columns are _specific_ to the given sample, while others are general:
+This slot is interesting because some of its columns are specific to the given sample, while others are general:
 
 ```{r little head rowdata}
 sce_list |>
@@ -335,7 +335,8 @@ Once we eventually merge, only one `gene_symbol` column will be left in the fina
 
 We'll show one way to do this in our custom function, but it's worth noting there's nothing _wrong_ with also adding the sample id to the `gene_symbol` column; you'll just end up with a bunch of redundant gene symbol columns.
 
-### Perform SCE merging
+
+### Merge the SCE list into one object
 
 As you can see, there's a lot of moving parts to consider!
 Again, these moving parts may (will!) differ for SCEs that you are working with, so you have to explore your own SCEs in depth to prepare for merging.
@@ -460,7 +461,7 @@ head(rowData(merged_sce))
 ```
 
 
-## Integration
+## Integrate samples
 
 ![Single-cell roadmap: Integrate](diagrams/roadmap_multi_integrate.png)
 
@@ -558,7 +559,7 @@ Let's discuss a little first: What visual differences do you think the UMAP on t
 What similarities do you think the integrated UMAP will have to this plot?
 
 
-### Integration with `fastMNN`
+### Integrate with `fastMNN`
 
 Finally, we're ready to integrate!
 To start, we'll use the `fastMNN` approach from the Bioconductor [`batchelor` package](http://www.bioconductor.org/packages/release/bioc/html/batchelor.html).
@@ -705,8 +706,7 @@ scater::plotReducedDim(merged_sce,
 
 What trends do you observe between tumor and healthy tissues among these integrated samples?
 
-
-### Integration with `harmony`
+### Integrate with `harmony`
 
 `fastMNN` is only one of many approaches to perform integration, and different methods have different capabilities and may give different results.
 For example, some methods can accommodate additional covariates (e.g., technology, patient, diagnosis, etc.) that can influence integration.
