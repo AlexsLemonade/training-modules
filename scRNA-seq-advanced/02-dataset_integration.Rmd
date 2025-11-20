@@ -197,7 +197,7 @@ That said, the integration methods we will be applying _do not actually use_ any
 If we have annotations, they are a helpful "bonus" for assessing the integration's performance, but they are not part of the integration itself.
 
 
-## Prepare the SCE list for merging
+## Merge the SCE list into one object
 
 ![Single-cell roadmap: Merge](diagrams/roadmap_multi_merge.png)
 
@@ -234,7 +234,9 @@ When merging objects on your own, don't skip these data exploration steps!
 The steps we take to prepare our SCEs will probably be different from the steps you need to take with other SCEs, and only by carefully exploring the objects can you figure out what steps you'll need to take to meet all of our conditions.
 
 
-### Create unique cell identifiers
+### Prepare to merge SCEs
+
+#### Create unique cell identifiers
 
 As part of the custom function we'll write, we'll include a step to create unique cell identifiers by attaching sample names to the SCE column names (cell barcodes).
 For example, we would update the column name for a cell from `Sample1` with the barcode `ACGT` to `Sample1-ACGT`.
@@ -245,9 +247,9 @@ While you're guaranteed to have unique barcodes in a given SCE object, there is 
 Adding the sample id to the column names (barcodes) is therefore a crucial step in our merging bookkeeping.
 
 
-### Explore the SCE objects
+#### Explore the SCE objects
 
-#### Check the genes
+##### Check the genes
 
 First, we'll compare the object's genes (aka, their row names).
 We can use some `purrr` magic to help us find the set of shared genes among all objects:
@@ -284,7 +286,7 @@ We could instead take the _union_ of genes so nothing gets thrown out.
 In this case, you'd need to create "dummy" assay rows for genes that a given SCE doesn't have and fill it with `NA` expression values.
 You'll still have to make sure the SCEs have the same rows in the same order before merging, so you may need to do a decent bit of matrix wrangling.
 
-#### Check the `colData` column names
+##### Check the `colData` column names
 
 Next up, we'll check the `colData` columns: we need these to be the same, and in the same order.
 Let's print out each object's `colData` column name to see where we stand:
@@ -301,9 +303,9 @@ But what if there were different columns across objects, or they were differentl
 In that case, we could find the intersection of column names like we did above for genes, and use that to re-order and subset all `colData` slots in our custom formatting function.
 
 
-#### Check the assays
+##### Check the assays
 
-Finally, we'll make sure that all objects share the same assays:
+Next, we'll make sure that all objects share the same assays:
 
 ```{r assay names, live = TRUE}
 # print all the assay names
@@ -314,7 +316,7 @@ Again, all objects are compatible already with both having a `counts` and `logco
 
 In your own data exploration, if you encounter SCEs to merge that have extraneous assays that you don't need, you can remove them by setting them to `NULL` in your custom formatting function, e.g. `assay(sce, "assay_to_remove") <- NULL`.
 
-#### Check the `rowData` contents
+##### Check the `rowData` contents
 
 One of the other items we said we'd need to think about is the `rowData`, which contains gene metadata.
 This slot is interesting because some of its columns are specific to the given sample, while others are general:
@@ -429,7 +431,7 @@ sce_list_formatted
 (Psst, like `purrr` and want to dive deeper? Check out [the `purrr::imap()` function](https://purrr.tidyverse.org/reference/imap.html)!)
 
 
-### Merge the SCE list into one object
+### Perform the merging
 
 
 At long last, we are ready to merge the SCEs, which we'll do using the R function `cbind()`.
