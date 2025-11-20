@@ -43,31 +43,32 @@ Once the [Build Docker Image](https://github.com/AlexsLemonade/training-modules/
 One important thing to note is that there are a number of symbolic links in the `/etc/skel` directory that point to shared data files in the `/shared` directory on the Data Lab RStudio server.
 If running the Docker image locally, these links will be broken, but they should work correctly on the RStudio server if the `/shared` directory is mounted.
 
-### Testing on the RStudio server
+### Testing on the RStudio Server
 
-To test the Docker image on the Data Lab RStudio server, you will want to log into the server via SSH (not via the RStudio interface).
-You can then use the following commands to pull the Docker image and run launch the container interactively with a bash shell:
+To test the Docker image on the Data Lab RStudio server, follow the instructions in the `rstudio-server` README: <https://github.com/AlexsLemonade/rstudio-server/tree/dev?tab=readme-ov-file#testing-edge>
+
+Briefly, you will need to create a new user of the `edge` session type, which uses the `ccdl/training_rstudio:edge` Docker image and deploy that change to production.
+Then, log in as that user via RStudio server and check that the `home` directory contains the expected contents from the `/etc/skel` directory, which will look something like (assuming the user is `dlab`):
 
 ```bash
-docker pull ccdl/training_rstudio:edge
-docker run -it --rm \
-  --mount type=bind,source=/shared/data,target=/shared/data,readonly \
-  ccdl/training_rstudio:edge bash
-```
-
-Then within the container, you can check that the `/etc/skel` contains the expected contents: `ls -la /etc/skel` should look something like this (skipping the `.` and `..` entries):
-
-```
--rw-r--r-- 1 root root  220 Jan  6  2022 .bash_logout
--rw-r--r-- 1 root root 3771 Jan  6  2022 .bashrc
--rw-r--r-- 1 root root  807 Jan  6  2022 .profile
-lrwxrwxrwx 1 root root   12 May 23 16:52 shared-data -> /shared/data/
-drwxr-xr-x 4 root root 4096 May 23 16:52 training-modules/
+$ ls -lah ~
+drwxr-x--- 6 dlab dlab 4.0K Nov 19 20:16 .
+drwxr-xr-x 1 root root 4.0K Nov 19 20:13 ..
+-rw-r--r-- 1 dlab dlab  220 Jan  6  2022 .bash_logout
+-rw-r--r-- 1 dlab dlab 3.7K Jan  6  2022 .bashrc
+drwxr-xr-x 3 dlab dlab 4.0K Nov 19 20:16 .config
+drwxr-xr-x 3 dlab dlab 4.0K Nov 19 20:16 .local
+-rw-r--r-- 1 dlab dlab  807 Jan  6  2022 .profile
+drwxr-xr-x 3 dlab dlab 4.0K Nov 19 20:16 R
+lrwxrwxrwx 1 dlab dlab   12 Nov 18 22:28 shared-data -> /shared/data
+drwxr-xr-x 4 dlab dlab 4.0K Nov 18 22:28 training-modules
 ```
 
 Within the `training-modules` directory, you should see the modules that you specified in the `current-modules.json` file, and you can check that the files are present as expected.
 You should also be able to check that the symbolic links to the `/shared/data/` directory are working correctly.
-For example, running `ls -la /etc/skel/shared-data/` which should show the contents of the `/shared/data/`, and links within modules' `data/` directories should point to the correct files (usually in `/shared/data/training-modules/`).
+For example, links within modules' `data/` directories should point to the correct files (usually in `/shared/data/training-modules/`).
+
+After verifying that the Docker image is working as expected, you can cleanup the test user as described in the `rstudio-server` README.
 
 ### Testing locally
 
