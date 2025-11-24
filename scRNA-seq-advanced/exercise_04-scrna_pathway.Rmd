@@ -8,8 +8,8 @@ output:
     toc_float: true
 ---
 
-In this notebook, we will use AUCell with a custom gene set of tumor marker genes for Ewing sarcoma, as well as a collection from the Molecular Signatures Database (MSigDB) of your choosing.
-Because AUCell will assign cells as expressing (or not expressing) a gene set, it can be used as part of a strategy for cell typing or identifying malignant cells when a high quality marker gene set is available.
+In this notebook, we will use `AUCell` with a custom gene set of tumor marker genes for Ewing sarcoma, as well as a collection from the Molecular Signatures Database (MSigDB) of your choosing.
+Because `AUCell` will assign cells as expressing (or not expressing) a gene set, it can be used as part of a strategy for cell typing or identifying malignant cells when a high quality marker gene set is available.
 Once tumor cells are identified using an automatically selected threshold, we can visualize that information or even use it in tandem with AUC values from other gene sets.
 
 Our goal in this notebook is to explore gene sets from MSigDB that may have different relative expression (i.e., AUC values) between malignant and non-malignant cells.
@@ -19,8 +19,8 @@ In practice, if we were to publish these results, we would want to explicitly te
 In this notebook, you will:
 
 - Part A: Read in and prepare the data
-- Part B: Run AUCell with tumor marker genes
-- Part C: Run AUCell with an MSigDB collection
+- Part B: Run `AUCell` with tumor marker genes
+- Part C: Run `AUCell` with an MSigDB collection
 - Part D: Visualize the results
 
 There are multiple Ewing sarcoma samples you can choose for your analysis, available in the following directory:
@@ -52,7 +52,7 @@ library(msigdbr)
 
 ### Set a seed
 
-Some genes sharing expression values or that are not detected will be randomly ordered in the AUCell rankings, so we need to set a seed using `set.seed()`.
+Some genes sharing expression values or that are not detected will be randomly ordered in the `AUCell` rankings, so we need to set a seed using `set.seed()`.
 
 ```{r set_seed, solution = TRUE}
 
@@ -62,7 +62,7 @@ Some genes sharing expression values or that are not detected will be randomly o
 
 #### Directories
 
-Set up the directories to read in a Ewing sarcoma SingleCellExperiment and output pathway analysis results.
+Set up the directories to read in a Ewing sarcoma `SingleCellExperiment` and output pathway analysis results.
 
 ```{r set_up_directories, solution = TRUE}
 # Input data 
@@ -118,12 +118,12 @@ marker_genes_df
 
 You can use the information in the `source` column to review the publication a marker gene's inclusion is supported by.
 
-Now we need to get the gene set ready for use with AUCell. 
+Now we need to get the gene set ready for use with `AUCell`. 
 You're going to save the gene set to a vector called `ensg_tumor_markers`.
 Here are some things to keep in mind when preparing the gene set:
 
 - You are only interested in the _tumor_ gene set
-- The SingleCellExperiment object uses Ensembl gene identifiers
+- The `SingleCellExperiment` object uses Ensembl gene identifiers
 - You'll want to remove any duplicate genes in the gene set
 
 ```{r format_marker_genes, solution = TRUE}
@@ -131,7 +131,7 @@ Here are some things to keep in mind when preparing the gene set:
 
 ```
 
-Next, convert the vector of Ensembl ids to a `GeneSet` object for use with AUCell:
+Next, convert the vector of Ensembl ids to a `GeneSet` object for use with `AUCell`:
 
 ```{r GeneSet}
 ensg_tumor_markers <- GeneSet(ensg_tumor_markers,
@@ -142,7 +142,7 @@ ensg_tumor_markers <- GeneSet(ensg_tumor_markers,
 ### Prepare the single-nuclei data
 
 Now that we have our gene set prepared, let's prepare the data.
-First, we will read in the SingleCellExperiment from the file we chose earlier.
+First, we will read in the `SingleCellExperiment` from the file we chose earlier.
 
 ```{r read_in_sce}
 sce <- readr::read_rds(sce_file)
@@ -154,7 +154,7 @@ We will mostly be using the raw counts, so save the counts matrix to a separate 
 
 ```
 
-## Part B: Run AUCell with tumor marker genes
+## Part B: Run `AUCell` with tumor marker genes
 
 Calculate the gene rankings for individual cells.
 
@@ -182,7 +182,7 @@ Save the output to `cell_auc`.
 ```
 
 Automatically calculate a threshold for the AUC values using `AUCell_exploreThresholds()`.
-You'll want to set `assignCells = TRUE`, which tells AUCell to assign tumor cell labels to cells above the automatically chosen threshold.
+You'll want to set `assignCells = TRUE`, which tells `AUCell` to assign tumor cell labels to cells above the automatically chosen threshold.
 
 Save the output to `auc_assignments`.
 
@@ -192,7 +192,7 @@ Save the output to `auc_assignments`.
 
 ### Wrangle data for plotting
 
-We will create a data frame that holds the barcodes, AUC values, and a column called `tumor_cell` that indicates whether or not AUCell classified the cell as a tumor cell using the AUC values for the marker gene set.
+We will create a data frame that holds the barcodes, AUC values, and a column called `tumor_cell` that indicates whether or not `AUCell` classified the cell as a tumor cell using the AUC values for the marker gene set.
 
 ```{r auc_df}
 auc_df <- cell_auc@assays@data$AUC |> # start with the internal AUC table
@@ -226,11 +226,11 @@ Add a vertical line representing the threshold that was automatically selected a
 
 ```
 
-## Part C: Run AUCell with an MSigDB collection
+## Part C: Run `AUCell` with an MSigDB collection
 
-Now, let's run AUCell using a collection from the Molecular Signatures Database (MSigDB).
+Now, let's run `AUCell` using a collection from the Molecular Signatures Database (MSigDB).
 
-We can use the results to explore if there are gene sets that have different expression in tumor cells vs. other cells in the sample, using the labels from AUCell.
+We can use the results to explore if there are gene sets that have different expression in tumor cells vs. other cells in the sample, using the labels from `AUCell`.
 
 Let's look at what collections are available as part of the `msigdbr` package:
 
@@ -243,13 +243,13 @@ It may be helpful to cross-reference this with the MSigDB website: <https://www.
 Pick a category or subcategory that is biologically relevant to Ewing sarcoma, and extract it for use with AUC via `msigdbr()` and save it to a data frame called `collection_df`.
 
 The _solved version_ of this notebook is going to use the Hallmarks gene set (`"H"`), but feel free to pick whatever interests you!
-Just keep in mind that the more gene sets in the collection, the longer AUCell will take to run.
+Just keep in mind that the more gene sets in the collection, the longer `AUCell` will take to run.
 
 ```{r collection_df, solution = TRUE}
 
 ```
 
-Turn the data frame into a `GeneSetCollection` for use with AUCell.
+Turn the data frame into a `GeneSetCollection` for use with `AUCell`.
 
 ```{r gene_set_collection}
 collection_list <- unique(collection_df$gs_name) |>
@@ -270,7 +270,7 @@ collection_list <- unique(collection_df$gs_name) |>
   GeneSetCollection()
 ```
 
-AUCell provides a wrapper function that runs the ranking and AUC calculation steps called `AUCell_run()`.
+`AUCell` provides a wrapper function that runs the ranking and AUC calculation steps called `AUCell_run()`.
 Because we're using the same sample as we did with the tumor marker genes, we can use the same AUC max rank value we used earlier (`auc_max_rank`).
 
 You may need to change the names of the variables passed to the `exprsMat` and `aucMaxRank` arguments below depending on what you used earlier!
@@ -315,11 +315,11 @@ Write this data frame to the output file you saved as a variable earlier.
 
 ### Plot UMAPs
 
-We can use the data in `auc_df` to make UMAP visualizations once we add it to the SingleCellExperiment object.
+We can use the data in `auc_df` to make UMAP visualizations once we add it to the `SingleCellExperiment` object.
 
 #### Add AUC values to `colData`
 
-To prepare for use with `scater::plotUMAP`, let's add the `auc_df` to the `colData` of the SingleCellExperiment.
+To prepare for use with `scater::plotUMAP`, let's add the `auc_df` to the `colData` of the `SingleCellExperiment` object.
 Don't forget to provide the `row.names` argument when converting back to a `DataFrame`.
 
 ```{r add_to_col_data, solution = TRUE}
@@ -331,7 +331,7 @@ Don't forget to provide the `row.names` argument when converting back to a `Data
 
 #### Plot tumor cell assignments (UMAP)
 
-First, plot a UMAP, coloring cells by whether or not they are a tumor cell according to AUCell.
+First, plot a UMAP, coloring cells by whether or not they are a tumor cell according to `AUCell`.
 
 ```{r plot_tumor_cell, solution = TRUE}
 
