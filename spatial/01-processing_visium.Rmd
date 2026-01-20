@@ -349,6 +349,71 @@ But, we do see some interesting patterns - check out clusters 1, 5, & 7 in parti
 When expression and tissue structure are correlated, expression-only clusters can pick up on certain spatial regions, but this is _not_ the same as finding "true" spatial domains. 
 
 
+## Exploring spot-based spatial data
+
+Let's explore this data a little more, using some marker genes.
+We don't have specific cells as units here, but we can use marker gene expression to build some descriptive intuition for the data. 
+
+We've defined some marker genes here for visualization that correspond to expected Wilm's Tumor biology:
+
+```{r}
+marker_genes <- c(
+  "WT1 (kidney development, maglinant in WT)" = "ENSG00000184937",
+  "SIX1 (blastema, malignant)" = "ENSG00000126778",
+  "MYCN (malignant)" = "ENSG00000134323",
+  "COL1A1 (fibroblast/mesenchymal)" = "ENSG00000108821",
+  "TAGLN (myofibroblast/mesenchymal)" = "ENSG00000149591"
+)
+```
+
+Let's plot the expression of these genes, using both UMAP and the spatial layouts to compare:
+
+```{r, fig.width = 12}
+cluster_umap <- scater::plotUMAP(spe, color_by = "nn_cluster", point_size = 0.5, point_alpha = 0.5) +
+  ggtitle("expression-based clusters") + 
+  coord_equal() +
+  ggokabeito::scale_color_okabe_ito() 
+
+marker_umaps <- marker_genes |>
+  purrr::imap(
+    \(ensembl, gene_name) {
+      scater::plotUMAP(spe, color_by = ensembl, point_size = 0.5, point_alpha = 0.5) + ggtitle(gene_name) + coord_equal()
+    }
+  ) |>
+  # cluster umap and then the marker gene umaps
+  append(values = cluster_umap, after = 0)
+
+patchwork::wrap_plots(marker_umaps, nrow = 2)
+```
+
+
+```{r, fig.width = 14}
+cluster_coords <- ggspavis::plotCoords(spe, annotate = "nn_cluster", point_size = 0.75) +
+  ggtitle("expression-based clusters") + 
+  ggokabeito::scale_color_okabe_ito() 
+
+marker_coords <- marker_genes |>
+  purrr::imap(
+    \(ensembl, gene_name) {
+      # default assay is counts, override!
+      ggspavis::plotCoords(spe, annotate = ensembl, point_size = 0.75, assay = "logcounts") +
+        scale_color_distiller(palette = "Blues", direction = 1) + 
+        ggtitle(gene_name)
+    }
+  ) |>
+  # cluster cooords and then the marker gene coords
+  append(values = cluster_coords, after = 0) 
+
+p_he + patchwork::wrap_plots(marker_coords, nrow = 2) + plot_layout(widths = c(1,2))
+```
+
+
+Based on these observations, it seems like there could be some spatial patterns/variability here; _interpret_.
+We'll talk more rigorously about quantifying spatially-variable genes later in the workshop, but for now, we can take this opportunity to to ask some descriptive questions about these genes' expression across space.
+
+
+
+
 
 ## Session Info
 
