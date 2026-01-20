@@ -146,6 +146,138 @@ ggspavis::plotCoords(spe, point_size = 1)
 ```
 
 
+## Quality control
+
+### Removing uninformative bins
+
+We only care about spots on top of tissue, so let's begin by removing the `in_tissue = 0` spots.
+(Note that reading in the `filtered_feature_bc_matrix` version of Space Ranger output would already be filtered to only `1` in this column, so we're only taking this step because we read in the `raw` output).
+
+We can visualize which spots those are, and we'll do it over the H&E to clearly see the relationship.
+We'll use the `annotate` argument, but `plotVisium` sees that this column is an integer and forces it to use a continuous color scale; we'll go ahead and make it a factor for plotting.
+
+```{r}
+# make a factor version of this column to plot with
+spe$in_tissue_factor <- as.factor(spe$in_tissue)
+
+ggspavis::plotVisium(
+  spe, 
+  annotate = "in_tissue_factor", 
+  # custom palette so we can see clearly
+  pal = c("red", "lightblue")
+)
+```
+
+- The tissue overhang on the left isn't colored at all - indeed, there aren't spots at those coordinates outside the slide
+- Red points are those to filter out - they are uninformative.
+Worth noting that some of these appear "inside" the tissue. 
+
+```{r}
+# keep only spots that are in the tissue
+spe <- spe[, spe$in_tissue == 1]
+spe
+```
+
+Now, we're down to 3701 spots and we can see this reflected in a plot.
+We now only see spots with tissue underneath. 
+Onwards!
+
+```{r}
+ggspavis::plotVisium(spe)
+```
+
+### Filtering for bin quality
+
+
+We _could_ do the same kind of QC that we do for single-cell data, which (usually) involves defining global thresholds for e.g. number of detected UMIs or percent mito.
+However, spatial data doesn't lend itself as well to this type of filtering since global thresholds may not be suitable for the different tissues.
+Compared to spatial data, single-cell data more closely (but of course not exactly!) resembles a homogeneous pool of cells. 
+
+
+Let's go ahead and calculate some QC stats and visualize them:
+
+```{r}
+is_mito <- grepl("(^MT-)|(^mt-)", rowData(spe)$Symbol)
+mito_ensembl <- rownames(spe)[is_mito]
+spe <- scater::addPerCellQC(spe, subsets=list(mito=mito_ensembl))
+```
+
+`ggspavis` comes with a helpful QC plotter (makes histograms by default but has a couple more options!)
+
+```{r, fig.width = 10, fig.height = 4}
+p1 <- ggspavis::plotObsQC(spe, x_metric = "sum") + ggtitle("sum")
+p2 <- ggspavis::plotObsQC(spe, x_metric = "detected") + ggtitle("detected")
+p3 <- ggspavis::plotObsQC(spe, x_metric = "subsets_mito_percent") + ggtitle("mito %")
+
+p1 + p2 + p3
+```
+
+Distributions don't look like there are any _major_ issues with quality here.
+One reason for this is - these are all spots (aggregates of cells), not cells! 
+Data is sparse, but not quite as sparse.
+
+Let's plot the same stats on the slide:
+
+```{r, fig.width = 12}
+p1 <- plotCoords(spe, annotate="sum", point_size = 1) + ggtitle("sum")
+p2 <- plotCoords(spe, annotate="detected", point_size = 1) + ggtitle("detected")
+p3 <- plotCoords(spe, annotate="subsets_mito_percent", point_size = 1) + ggtitle("mito %")
+p1 + p2 + p3 + p_he
+```
+
+We _do_ see a relationship here with tissue type and QC stats that suggests we don't have globally homogeneous patterns - 
+
+- the likely stromal regions look like they have relatively high mito (although still low overall!)
+- the likely blastema regions tend to have more detected genes
+
+This tells us that there is local structure in the data, and using a global thresholds could be too aggressive/not aggressive enough depending on the local context.
+
+### Local filtering with Spot Sweeper
+
+A more spatially-suited approach comes from `SpotSweeper` which models QC stats to identify _local_ outliers.
+
+We'll detect local outliers based on these three QC stats.
+This function will add some `colData` columns we we can use to find all the local outliers.
+
+```{r}
+spe <- SpotSweeper::localOutliers(spe, metric="sum", direction="lower", log=TRUE) # lower-value outliers should be detected
+spe <- SpotSweeper::localOutliers(spe, metric="detected", direction="lower", log=TRUE) # lower-value outliers should be detected
+spe <- SpotSweeper::localOutliers(spe, metric="subsets_mito_percent", direction="higher", log=FALSE) # higher-value outliers should be detected
+``` 
+
+How many of each kind of outlier?
+
+```{r}
+c("sum_outliers", "detected_outliers", "subsets_mito_percent_outliers") |>
+  purrr::set_names() |>
+  purrr::map(\(x) table(spe[[x]]))
+```
+
+We'll use a built-in plotting function from `SpotSweeper` to plot these results (the `ggspavis` plotting isn't quite as nice in this case).
+Each plot highlights the spots to remove, and spots are colored based on a different stat.
+Again we'll include the H&E as a panel for ease of comparison.
+
+```{r, fig.width = 10}
+p1 <- SpotSweeper::plotQCmetrics(spe, metric = "sum_log", outliers = "sum_outliers") + ggtitle("log sum")
+p2 <- SpotSweeper::plotQCmetrics(spe, metric = "detected_log", outliers = "detected_outliers") + ggtitle("log detected")
+p3 <- SpotSweeper::plotQCmetrics(spe, metric = "subsets_mito_percent", outliers = "subsets_mito_percent_outliers") + ggtitle("mito %")
+
+p1 + p2 + p3 + p_he
+```
+Some of these spots are being flagged by multiple stats, in particular both `sum` and `detected`.
+Let's go ahead and filter all these cells out:
+
+```{r}
+# combine all outliers into "local_outliers" column to filter on
+spe$local_outliers <- as.logical(spe$sum_outliers) |
+    as.logical(spe$detected_outliers) |
+    as.logical(spe$subsets_mito_percent_outliers)
+
+spe <- spe[, spe$local_outliers == FALSE]
+```
+
+
+
 ## Session Info
 
 ```{r}
