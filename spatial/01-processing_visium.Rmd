@@ -116,7 +116,7 @@ Ultimately, we won't want to analyze the spots that are not on top of tissue, so
 Having all this image information in the `SPE` object means we can plot directly.
 The package `ggspavis` provides several useful functions for plotting, let's see the highlights:
 
-```{r}
+```{r, fig.width = 5}
 # Spots overlaying the H&E, and we can see the slide boundaries as well
 ggspavis::plotVisium(spe)
 ```
@@ -124,7 +124,7 @@ ggspavis::plotVisium(spe)
 By default this shows the spots, but we can hide them and zoom into the tissue on the slide.
 This is a helpful way to pop up the H&E for side-by-side comparisons with other plots you might make.
 
-```{r}
+```{r, fig.width = 5}
 ggspavis::plotVisium(spe, spots = FALSE, zoom = TRUE) 
 ```
 
@@ -140,7 +140,7 @@ p_he <- ggspavis::plotVisium(spe, spots = FALSE, zoom = TRUE)
 
 There's another function called `plotCoords` which hides the H&E to just show the spots; this plot is not currently very compelling, but once we start coloring by things it will be much more fun!
 
-```{r}
+```{r, fig.width = 5}
 # no H&E
 ggspavis::plotCoords(spe, point_size = 1) 
 ```
@@ -156,7 +156,7 @@ We only care about spots on top of tissue, so let's begin by removing the `in_ti
 We can visualize which spots those are, and we'll do it over the H&E to clearly see the relationship.
 We'll use the `annotate` argument, but `plotVisium` sees that this column is an integer and forces it to use a continuous color scale; we'll go ahead and make it a factor for plotting.
 
-```{r}
+```{r, fig.width = 5}
 # make a factor version of this column to plot with
 spe$in_tissue_factor <- as.factor(spe$in_tissue)
 
@@ -182,7 +182,7 @@ Now, we're down to 3701 spots and we can see this reflected in a plot.
 We now only see spots with tissue underneath. 
 Onwards!
 
-```{r}
+```{r, fig.width = 5}
 ggspavis::plotVisium(spe)
 ```
 
@@ -204,7 +204,7 @@ spe <- scater::addPerCellQC(spe, subsets=list(mito=mito_ensembl))
 
 `ggspavis` comes with a helpful QC plotter (makes histograms by default but has a couple more options!)
 
-```{r, fig.width = 10, fig.height = 4}
+```{r, fig.width = 8, fig.height = 4}
 p1 <- ggspavis::plotObsQC(spe, x_metric = "sum") + ggtitle("sum")
 p2 <- ggspavis::plotObsQC(spe, x_metric = "detected") + ggtitle("detected")
 p3 <- ggspavis::plotObsQC(spe, x_metric = "subsets_mito_percent") + ggtitle("mito %")
@@ -218,7 +218,7 @@ Data is sparse, but not quite as sparse.
 
 Let's plot the same stats on the slide:
 
-```{r, fig.width = 12}
+```{r, fig.width = 10}
 p1 <- plotCoords(spe, annotate="sum", point_size = 1) + ggtitle("sum")
 p2 <- plotCoords(spe, annotate="detected", point_size = 1) + ggtitle("detected")
 p3 <- plotCoords(spe, annotate="subsets_mito_percent", point_size = 1) + ggtitle("mito %")
@@ -336,7 +336,7 @@ scater::plotUMAP(spe, color_by = "nn_cluster") +
 How do these clusters come out when using the spatial layout?
 We have coordinates, after all - let's use them!
 
-```{r}
+```{r, fig.width = 8}
 p1 <- ggspavis::plotCoords(spe, annotate = "nn_cluster", point_size = 1) +
   # matching palette to UMAP
   ggokabeito::scale_color_okabe_ito()
@@ -368,7 +368,7 @@ marker_genes <- c(
 
 Let's plot the expression of these genes, using both UMAP and the spatial layouts to compare:
 
-```{r, fig.width = 12}
+```{r, fig.width = 14}
 cluster_umap <- scater::plotUMAP(spe, color_by = "nn_cluster", point_size = 0.5, point_alpha = 0.5) +
   ggtitle("expression-based clusters") + 
   coord_equal() +
@@ -387,7 +387,7 @@ patchwork::wrap_plots(marker_umaps, nrow = 2)
 ```
 
 
-```{r, fig.width = 14}
+```{r, fig.width = 12}
 cluster_coords <- ggspavis::plotCoords(spe, annotate = "nn_cluster", point_size = 0.75) +
   ggtitle("expression-based clusters") + 
   ggokabeito::scale_color_okabe_ito() 
