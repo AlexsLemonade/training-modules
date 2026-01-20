@@ -278,6 +278,78 @@ spe <- spe[, spe$local_outliers == FALSE]
 
 
 
+
+## Normalization
+
+With single-cell, a popular normalization approach we adopt involves deconvolution - we do a quick clustering so we can get groups of cells that will share a size factor, for faster processing.
+But this isn't suitable for spot-based spatial data since our units aren't cells, but potentially heterogeneous groups of cells (whole or partial).
+
+We'll therefore use going to use library-size normalization here to correct for sequencing depth but preserve the other heterogeneous biological signal.
+Bear in mind the caveat that in some cases library size itself is also confounded with spatial structure (https://link.springer.com/article/10.1186/s13059-024-03241-7); so, keep your eyes peeled for normalization developments, since this space is evolving rapidly!
+
+```{r}
+spe <- scuttle::computeLibraryFactors(spe)
+spe <- scuttle::logNormCounts(spe)
+spe # now we have a logcounts assay
+```
+
+## Dimension reduction
+
+For this step, we're going to get a reduced dimension representation using _just_ the lens of gene expression, "ignoring" spatial information.
+(Later, we'll see complementary approaches to some of this which leverages spatial information).
+
+This all tells us we have to be careful when interpreting analyses on spatial data: "to what extent was spatial information taken into account" is something you'll want to understand.
+
+Let's do HVG selection (again, this does not consider spatial patterns! we'll learn about _spatially_ variable genes later), PCA, UMAP, and clustering (once again, this won't be spatial regions! just _spot_ similarity based on expression - that's not the same as cells, either!)
+So, we'll use a `SCE`-style approach:
+
+
+```{r}
+num_genes <- 2000
+gene_variance <- scran::modelGeneVar(spe)
+hv_genes <- scran::getTopHVGs(gene_variance, n = num_genes)
+
+spe <- scater::runPCA(spe, subset_row = hv_genes)
+spe <- scater::runUMAP(spe, dimred = "PCA")
+
+nn_clusters <- scran::clusterCells(
+  spe, # object to perform clustering on
+  use.dimred = "PCA", # perform clustering on the PCA matrix
+  BLUSPARAM = bluster::NNGraphParam(
+    k = 20,
+    type = "jaccard",
+    cluster.fun = "louvain"
+  )
+)
+spe$nn_cluster <- nn_clusters
+```
+
+
+We'll plot the UMAP colored by clusters, because we love UMAPs:
+
+```{r}
+scater::plotUMAP(spe, color_by = "nn_cluster") +
+  # use distinct palette so we can match up with a spatial view next
+  ggokabeito::scale_color_okabe_ito()
+```
+
+How do these clusters come out when using the spatial layout?
+We have coordinates, after all - let's use them!
+
+```{r}
+p1 <- ggspavis::plotCoords(spe, annotate = "nn_cluster", point_size = 1) +
+  # matching palette to UMAP
+  ggokabeito::scale_color_okabe_ito()
+
+p1 + p_he
+```
+
+A lot of the clusters are intermingled in space, showing that this analysis is really not spatially-aware!
+But, we do see some interesting patterns - check out clusters 1, 5, & 7 in particular - they look stroma-y; also, cluster 8 ooks like a defined region in the H&E, but I'm not a pathologist so let's not overinterpret here.
+When expression and tissue structure are correlated, expression-only clusters can pick up on certain spatial regions, but this is _not_ the same as finding "true" spatial domains. 
+
+
+
 ## Session Info
 
 ```{r}
