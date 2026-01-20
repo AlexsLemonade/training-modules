@@ -1,0 +1,153 @@
+---
+title: "Reading, processing, and exploring Visium data"
+author: Data Lab for ALSF
+date: 2026
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+## Objectives
+
+- Quality control and post-processing of a Visium dataset
+- Learn visualization approaching for spatial data 
+- Apply descriptive statistics for lattice-based spatial data
+
+
+---
+
+
+This notebook will analyze an anaplastic Wilms Tumor sample from a 3 year old male biopsied at initial diagnosis.
+The dataset comes from the Single-cell Pediatric Cancer Atlas Portal, [project `SCPCP000006`](https://scpca.alexslemonade.org/projects/SCPCP000006).
+
+## Set up
+
+Load libraries and set random seed:
+
+
+```{r}
+suppressPackageStartupMessages({
+  library(SpatialExperiment) # core object 
+  library(VisiumIO) # I/O, but we'll still use :: in the code
+  library(ggspavis) # plotting
+  library(ggplot2) # plotting
+  library(patchwork) # plotting
+  library(Voyager) # SFE object & spatial descriptive stats
+})
+set.seed(2026)
+```
+
+Paths:
+
+```{r}
+data_path <- here::here( 
+  "data", 
+  "SCPCS000190",
+  "SCPCL000429_spatial"
+) 
+```
+
+What's in Space Ranger output?
+Must note that this was processed with an older version of Space Ranger `1.3.1`.
+
+```{r}
+dir(data_path)
+dir(file.path(data_path, "spatial"))
+```
+
+## Import Visium data
+
+We'll use the `VisiumIO` package:
+
+```{r}
+# define handle, essentially
+tenx_object_raw_matrix <- VisiumIO::TENxVisium(
+  resources = file.path(data_path, "raw_feature_bc_matrix"),
+  spatialResource = file.path(data_path, "spatial"),
+  # this argument is needed: the default argument includes "cytassist" 
+  # but ScPCA samples don't have that one; only have these
+  images = c("lowres", "hires", "detected", "aligned")
+)
+
+# actually import it
+spe <- VisiumIO::import(tenx_object_raw_matrix)
+```
+
+
+Let's have a look:
+
+```{r}
+spe
+```
+
+It's essentially an `SCE`, but with a few more bells and whistles.
+
+Note that we have 4992 spots - this is not a random value! 
+It's the number of spots on Visium's 6.5 x 6.5 slide. 
+
+Unlike `SCE`s, we have spatial information in a dedicated `spatialCoords` slot:
+
+```{r}
+# handy function from our code package SpatialExperiment
+# literally is giving x/y coordinates
+head(spatialCoords(spe))
+```
+
+We also have a slot that just holds the images, `imgData`, although looking at it directly isn't very interesting.
+But, this stored information will help us make figures!
+
+```{r}
+imgData(spe)
+```
+
+We should also point out what's in `colData`.
+Unlike an `SCE`, this isn't cell metadata. 
+IN an `SPE`, it's _spot_ metadata; recall that each spot may contain multiple cells, which can even include partial cells!
+
+```{r}
+head(colData(spe))
+```
+
+Hmmm, check out that `in_tissue` column!
+It contains 0/1 because we read in the `raw` Space Ranger output, which includes all spots including those which don't actually overlap tissue.
+Ultimately, we won't want to analyze the spots that are not on top of tissue, so we'll have to deal with that.
+
+Having all this image information in the `SPE` object means we can plot directly.
+The package `ggspavis` provides several useful functions for plotting, let's see the highlights:
+
+```{r}
+# Spots overlaying the H&E, and we can see the slide boundaries as well
+ggspavis::plotVisium(spe)
+```
+
+By default this shows the spots, but we can hide them and zoom into the tissue on the slide.
+This is a helpful way to pop up the H&E for side-by-side comparisons with other plots you might make.
+
+```{r}
+ggspavis::plotVisium(spe, spots = FALSE, zoom = TRUE) 
+```
+
+Let's take a moment to chat about Wilm's Tumor - these tumors in the developing kidney are often composed of a couple histologic compartments, blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
+In this section, we can see two major components: the bluer indicating densely cellular, ECM-poor regions consistent with blastema, and paler pink regions consistent with stromal tissue.
+
+Let's actually go ahead and save this plot to a variable; it will be a convenient way for us to quickly pop up the H&E for side-by-side comparison with other plots we'll make later.
+
+```{r}
+p_he <- ggspavis::plotVisium(spe, spots = FALSE, zoom = TRUE) 
+```
+
+
+There's another function called `plotCoords` which hides the H&E to just show the spots; this plot is not currently very compelling, but once we start coloring by things it will be much more fun!
+
+```{r}
+# no H&E
+ggspavis::plotCoords(spe, point_size = 1) 
+```
+
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
