@@ -103,7 +103,7 @@ imgData(spe)
 
 We should also point out what's in `colData`.
 Unlike an `SCE`, this isn't cell metadata. 
-IN an `SPE`, it's _spot_ metadata; recall that each spot may contain multiple cells, which can even include partial cells!
+In an `SPE`, it's _spot_ metadata; recall that each spot may contain multiple cells, which can even include partial cells!
 
 ```{r}
 head(colData(spe))
@@ -227,10 +227,10 @@ p1 + p2 + p3 + p_he
 
 We _do_ see a relationship here with tissue type and QC stats that suggests we don't have globally homogeneous patterns - 
 
-- the likely stromal regions look like they have relatively high mito (although still low overall!)
+- the likely stromal regions look like they have relatively higher mito (although it's low all around!)
 - the likely blastema regions tend to have more detected genes
 
-This tells us that there is local structure in the data, and using a global thresholds could be too aggressive/not aggressive enough depending on the local context.
+This tells us that there is local structure in the data, and using global thresholds could be too aggressive/not aggressive enough depending on the local context.
 
 ### Local filtering with Spot Sweeper
 
@@ -285,7 +285,7 @@ With single-cell, a popular normalization approach we adopt involves deconvoluti
 But this isn't suitable for spot-based spatial data since our units aren't cells, but potentially heterogeneous groups of cells (whole or partial).
 
 We'll therefore use going to use library-size normalization here to correct for sequencing depth but preserve the other heterogeneous biological signal.
-Bear in mind the caveat that in some cases library size itself is also confounded with spatial structure (https://link.springer.com/article/10.1186/s13059-024-03241-7); so, keep your eyes peeled for normalization developments, since this space is evolving rapidly!
+Bear in mind the caveat that in some cases library size itself is [also confounded with spatial structure]((https://link.springer.com/article/10.1186/s13059-024-03241-7); so, keep your eyes peeled for normalization developments, since this space is evolving rapidly!
 
 ```{r}
 spe <- scuttle::computeLibraryFactors(spe)
@@ -413,6 +413,224 @@ We'll talk more rigorously about quantifying spatially-variable genes later in t
 
 
 
+### Spatial descriptive statistics 
+
+Although spatial analysis is an emerging field in transcriptomics, it's not new to science!
+Folks in geography, epidemiology, ecology, and more have been thinking about spatial data for a long time, so we can draw from existing quantitative approaches.
+
+Spot-based spatial data is analogous to "lattice-structure" spatial data, in contrast to high-res spatial technologies that are "point-pattern" data; see [the pasta paper](https://academic.oup.com/nar/article/53/17/gkaf870/8250477).
+
+The R package `spdep` already exists to work with lattice-structure spatial data, and helpfully folks have already started to put this (and other spatial platforms) to work for transcriptomics data.
+The `Voyager`/`SpatialFeatureExperiment`: <https://pachterlab.github.io/voyager/index.html> framework is complementary to `SpatialExperiment` and can help us use these tools.
+The `SFE` object is an expanded `SPE` object with more slots to facilitate spatial analysis with existing tools (we won't get into these weeds much though, suffice to say it's a super rich environment).
+
+When working with spot data, we can turn it into a graph and ask descriptive (not modeling!) questions about spatial structure directly.
+Let's go!
+
+First, we'll need to get it into the `SFE` framework and convert the `SPE` to an `SFE` object.
+
+```{r}
+# TODO: I have to remove the image before converting, errors otherwise. Can this be avoided?
+# Error: [ext] invalid extent
+spe_noimg <- spe
+imgData(spe_noimg) <- imgData(spe_noimg)[0, , drop=FALSE]
+sfe <- toSpatialFeatureExperiment(spe_noimg)
+#sfe <- mirror(sfe, direction = "vertical") # use mirror so plots between ggspavis and this one match. 
+# OR, let it be a mirror to serve as a teachable moment about space!
+```
+
+One way to make a graph is using k-nearest neighbors, but there's other ways (all of these choices matter to some degree, and we should discuss that!):
+Now we'll make a graph using:
+
+- spot centroids as nodes (don't skip that this is a _choice_!)
+- knn approach with k = 10, as a starting point
+- no weighting
+
+```{r}
+colGraph(sfe, "knn10") <- SpatialFeatureExperiment::findSpatialNeighbors(
+  sfe, 
+  type = "centroids", 
+  method = "knearneigh", 
+  k = 10
+)
+```
+
+This will get stored in `colGraph` slot in the `SFE` object.
+
+We can visualize it - check out those edges and nodes, it's a graph!
+
+```{r}
+Voyager::plotColGraph(
+  sfe, 
+  colGraphName = "knn10", 
+  colGeometryName = "centroids", 
+  segment_size = 0.1,
+  geometry_size = 0.3
+) +
+  theme_void() # we just want the graph
+```
+
+Hey notice anything interesting about this image?
+It's a mirror of how `ggspavis` plotted it!
+Is that a problem? 
+Well, no - in space we can mirror and rotate and such, but the spatial relationships are preserved.
+This is a big hint that specific coordinates may not always be the same, but the distances should be.
+
+
+It seems potentially cute to zoom in to prove to you that `k = 10`:
+
+```{r}
+Voyager::plotColGraph(
+  sfe, 
+  colGraphName = "knn10", 
+  colGeometryName = "centroids", 
+  segment_size = 0.1,
+  geometry_size = 5
+) +
+  scale_y_continuous(limits = c(11500, 12000)) + 
+  scale_x_continuous(limits = c(4000,4300)) +
+  theme_void()
+```
+
+
+Alright, now that we have a graph, let's see an example of using it for exploratory analysis.
+A common descriptive statistic used for lattice spatial data is "Moran's I" which quantifies spatial autocorrelation.
+It asks, is the spatial distribution of a variable of interest dispersed, random, or clustered?
+We'll use it to look at gene expression of some of our marker genes of interest.
+In this case, Moran's I tells us: do neighboring spots (hint: this will depend on your definition of a _neighborhood_!_) have very similar, very dissimilar, or totally unrelated gene expression, where:
+
+- close to 1 values: Nearby spots tend to have similar expression
+- ~0: looks random in space
+- close to -1 values: Nearby spots tend to have different expression (less commonly of interest in this sort of biology)
+
+We'll calculate this with `Voyager` on our `SFE` object using the graph we just built.
+
+```{r}
+sfe <- Voyager::runUnivariate(
+  sfe, 
+  type = "moran", 
+  features = marker_genes, 
+  colGraphName = "knn10"
+)
+```
+
+This stores results in `rowData`:
+
+```{r}
+rowData(sfe)[marker_genes, ]
+```
+
+This makes some sense given what we when plotting gene expression:
+
+- `SIX1` and `MYCN` were just splotched all around randomly in much of the slide
+- `COL1A1` and `TAGLN`  were more concentrated in certain areas
+- `WT1` was somewhere in the middle - generally expressed by less variation from spot-to-spot in the plots earlier, per vibes
+
+This global statistic gave us an overall picture, but we can calculate a variant of this statistic also called Local Moran's I which is, you guessed it, a local version.
+Rather than giving a single value for the dataset, we'll get a _per-spot_ value (or rather, per node in the graph) that tells us "how much does this spot agree with its immediate neighborhood"?
+
+- high: spot is similar to neighbors and all are high _OR_ all are low
+- ~0: spatially neutral, no real relationship to neighbors
+- low: spot is different from neighbors where high surrounded by low or vice versa
+
+Let's go:
+
+```{r}
+sfe <- Voyager::runUnivariate(
+  sfe, 
+  type = "localmoran", 
+  features = marker_genes, 
+  colGraphName = "knn10", 
+  name = "localmoran_knn10" # save it as this name
+)
+
+# stores it here, not so pretty...
+localResults(sfe)$localmoran_knn10
+```
+
+
+```{r, fig.width = 10}
+# we can plot with voyager, since it's in a special slot
+# or we'd have to pull it out to store back in our SPE
+Voyager::plotLocalResult(
+  sfe,
+  name = "localmoran_knn10",
+  features = marker_genes,
+  colGeometryName = "centroids",
+  divergent = TRUE, # palette
+  diverge_center = 0 # palette 
+  ) 
+```
+
+For easier comparison, we can also use the standardized (z-score) values by specifying the specific attribute (the default was `"Ii"`, the actual stat).
+
+```{r, fig.width = 10}
+Voyager::plotLocalResult(
+  sfe,
+  name = "localmoran_knn10",
+  features = marker_genes,
+  attribute = "Z.Ii", # plot the normalized moran's i
+  colGeometryName = "centroids",
+  divergent = TRUE, 
+  diverge_center = 0 
+  ) 
+```
+
+### Scale matters!
+
+We did a graph with 10 nearest neighbors. 
+The number of neighbors is going to matter here!
+
+Pick one gene (provide the ensembl id) and see how interpretation differs at different `k`'s.
+Try out a really high (`k>=50`) and really low number (`k<=3`) below to calculate and plot Local Moran's I again - the real value, not scaled.
+What do you see?
+
+```{r}
+gene <- marker_genes[1] # WT1, for example
+colGraph(sfe, "knn100") <- findSpatialNeighbors(sfe, type="centroids", method = "knearneigh", k=100)
+colGraph(sfe, "knn2") <- findSpatialNeighbors(sfe, type="centroids", method = "knearneigh", k=2)
+
+sfe <- Voyager::runUnivariate(
+  sfe, 
+  type="localmoran", 
+  features = gene, 
+  colGraphName="knn100", 
+  name = "localmoran_knn100" 
+)
+sfe <- Voyager::runUnivariate(
+  sfe, 
+  type="localmoran", 
+  features = gene, 
+  colGraphName="knn2", 
+  name = "localmoran_knn2" 
+)
+
+p1 <- Voyager::plotLocalResult(
+  sfe,
+  name = "localmoran_knn100",
+  features = gene,
+  colGeometryName = "centroids",
+  divergent = TRUE,
+  diverge_center = 0
+) 
+
+
+p2 <- Voyager::plotLocalResult(
+  sfe,
+  name = "localmoran_knn2",
+  features = gene,
+  colGeometryName = "centroids",
+  divergent = TRUE,
+  diverge_center = 0
+) 
+
+p1 + p2
+```
+
+When `k` is very high, there's a lot of neighbors being consider.
+Expression will have to be similar cross them all to get a high value for this stat.
+But, when `k` is very low, there's very few neighbors!
+Much finer-grained picture of similarity between spots.
 
 
 ## Session Info
