@@ -73,8 +73,6 @@ WORKDIR /usr/local/renv
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 RUN Rscript -e "install.packages('renv')"
 
-# Temporary fix for broken(?) RSamtools package
-RUN Rscript -e "install.packages('BiocManager'); BiocManager::install('Rsamtools')"
 
 COPY renv.lock renv.lock
 RUN Rscript -e "renv::restore()" \
