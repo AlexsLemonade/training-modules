@@ -45,7 +45,7 @@ RUN cd fastp-${FASTP_VERSION} && \
     make && make install
 
 # Main image with Biocconductor and other tools
-FROM bioconductor/bioconductor_docker:3.19 AS final
+FROM bioconductor/bioconductor_docker:3.22 AS final
 LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
