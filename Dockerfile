@@ -1,5 +1,6 @@
 # Build salmon from source in a separate image
-FROM ubuntu:22.04 AS build
+# matching base image from https://github.com/rocker-org/rocker-versioned2/blob/master/dockerfiles/r-ver_4.5.2.Dockerfile
+FROM docker.io/library/ubuntu:noble AS build
 
 # Build dependencies
 RUN apt-get update -qq
@@ -66,7 +67,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 
 # Python packages
 COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt --break-system-packages
 
 # Use renv for R packages
 WORKDIR /usr/local/renv
