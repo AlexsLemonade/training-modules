@@ -16,6 +16,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     libdeflate-dev \
     libisal-dev \
     liblzma-dev \
+    libzstd-dev \
     make \
     pkg-config \
     unzip \
@@ -30,7 +31,7 @@ RUN unzip awscliv2.zip
 RUN ./aws/install
 
 # Build salmon
-ARG SALMON_VERSION=1.10.1
+ARG SALMON_VERSION=1.10.3
 RUN curl -LO https://github.com/COMBINE-lab/salmon/archive/refs/tags/v${SALMON_VERSION}.tar.gz
 RUN tar xzf v${SALMON_VERSION}.tar.gz
 RUN mkdir salmon-${SALMON_VERSION}/build
