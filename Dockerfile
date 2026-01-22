@@ -1,5 +1,6 @@
 # Build salmon from source in a separate image
-FROM ubuntu:22.04 AS build
+# matching base image from https://github.com/rocker-org/rocker-versioned2/blob/master/dockerfiles/r-ver_4.5.2.Dockerfile
+FROM docker.io/library/ubuntu:noble AS build
 
 # Build dependencies
 RUN apt-get update -qq
@@ -15,6 +16,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     libdeflate-dev \
     libisal-dev \
     liblzma-dev \
+    libzstd-dev \
     make \
     pkg-config \
     unzip \
@@ -29,7 +31,7 @@ RUN unzip awscliv2.zip
 RUN ./aws/install
 
 # Build salmon
-ARG SALMON_VERSION=1.10.1
+ARG SALMON_VERSION=1.10.3
 RUN curl -LO https://github.com/COMBINE-lab/salmon/archive/refs/tags/v${SALMON_VERSION}.tar.gz
 RUN tar xzf v${SALMON_VERSION}.tar.gz
 RUN mkdir salmon-${SALMON_VERSION}/build
@@ -45,7 +47,7 @@ RUN cd fastp-${FASTP_VERSION} && \
     make && make install
 
 # Main image with Biocconductor and other tools
-FROM bioconductor/bioconductor_docker:3.19 AS final
+FROM bioconductor/bioconductor_docker:3.22 AS final
 LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
@@ -66,15 +68,13 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 
 # Python packages
 COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt --break-system-packages
 
 # Use renv for R packages
 WORKDIR /usr/local/renv
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 RUN Rscript -e "install.packages('renv')"
 
-# Temporary fix for broken(?) RSamtools package
-RUN Rscript -e "install.packages('BiocManager'); BiocManager::install('Rsamtools')"
 
 COPY renv.lock renv.lock
 RUN Rscript -e "renv::restore()" \
