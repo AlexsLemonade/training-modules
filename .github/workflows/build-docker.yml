@@ -19,16 +19,27 @@ on:
       - renv.lock
       - requirements.txt
       - current-modules.json
+      - .github/workflows/build-docker.yml
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+env:
+  REGISTRY_IMAGE: ccdl/training_rstudio
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      - name: Prepare env variables
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
       - name: Check out the repo
         uses: actions/checkout@v5
 
@@ -44,7 +55,69 @@ jobs:
           fi
 
       - name: Load 1Password secrets
-        uses: 1password/load-secrets-action@v2
+        uses: 1password/load-secrets-action@v3
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.TRAINING_OP_SERVICE_ACCOUNT_TOKEN }}
+          DOCKER_USER: ${{ secrets.OP_DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.OP_DOCKER_PASSWORD }}
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USER }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+
+      # Build Docker image, push only on push events
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ github.event_name == 'push' }}
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,push-by-digest=true,name-canonical=true
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.REGISTRY_IMAGE }}
+          cache-from: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache-${{ env.PLATFORM_PAIR }}
+          cache-to: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache-${{ env.PLATFORM_PAIR }},mode=max
+
+      - name: Export digest
+        if: github.event_name == 'push'
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    # only merge the manifests and push on push events
+    if: github.event_name == 'push'
+    steps:
+      - name: Load 1Password secrets
+        uses: 1password/load-secrets-action@v3
         with:
           export-env: true
         env:
@@ -53,22 +126,26 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.OP_DOCKER_PASSWORD }}
           ACTION_MONITORING_SLACK: ${{ secrets.OP_ACTION_MONITORING_SLACK }}
 
-      # Login to Dockerhub
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_USER }}
           password: ${{ env.DOCKER_PASSWORD }}
 
-      # set up Docker build
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Docker metadata
+      - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ccdl/training_rstudio
+          images: ${{ env.REGISTRY_IMAGE }}
           # each github tag will create a matching tag on dockerhub,
           # with the most recent given the "latest" tag
           # the most recent push to master will get an "edge" tag
@@ -76,18 +153,19 @@ jobs:
             type=ref,event=tag
             type=edge,branch=master
 
-      # Build Docker image, push only on push events
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          push: ${{ github.event_name == 'push' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=registry,ref=ccdl/training_rstudio:buildcache
-          cache-to: type=registry,ref=ccdl/training_rstudio:buildcache,mode=max
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
 
       # If we have a failure, Slack us
       - name: Report failure to Slack
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ failure() }}
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
