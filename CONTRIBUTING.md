@@ -215,7 +215,7 @@ In practice, this means that you will not need to add individual R packages to t
 To use the Docker image for development, pull from Docker Hub with:
 
 ```
-docker pull --platform linux/amd64 ccdl/training_rstudio:edge
+docker pull ccdl/training_rstudio:edge
 ```
 
 To run the container and mount a local volume, use the following from the root of this repository:
