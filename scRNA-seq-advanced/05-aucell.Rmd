@@ -77,16 +77,20 @@ fs::dir_create(analysis_dir)
 The input will be a `SingleCellExperiment` for an individual Ewing sarcoma library.
 
 ```{r setup_input_files}
-sce_file <- fs::path(processed_dir, 
-                     "SCPCS000490", 
-                     "SCPCL000822_processed.rds")
+sce_file <- fs::path(
+  processed_dir, 
+  "SCPCS000490", 
+  "SCPCL000822_processed.rds"
+)
 ```
 
 We will save the `AUCell` results as a table in the analysis directory.
 
 ```{r setup_output_files, live = TRUE}
-output_file <- fs::path(analysis_dir,
-                        "ewing_sarcoma_aucell_results.tsv")
+output_file <- fs::path(
+  analysis_dir,
+  "ewing_sarcoma_aucell_results.tsv"
+)
 ```
 
 
@@ -112,8 +116,10 @@ We would expect both of these gene sets to have high expression in tumor cells.
 
 ```{r genesets}
 # Create a named vector with the relevant gene set names
-ewing_gene_set_names <- c(zhang = "ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
-                          riggi = "RIGGI_EWING_SARCOMA_PROGENITOR_UP")
+ewing_gene_set_names <- c(
+  zhang = "ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
+  riggi = "RIGGI_EWING_SARCOMA_PROGENITOR_UP"
+)
 
 ewing_gene_set_names
 ```
@@ -122,32 +128,25 @@ These gene sets come from the C2 gene set collection from MSigDB.
 Let's retrieve them using `msigdbr()`.
 
 ```{r extract_genesets, live = TRUE}
-ewing_gene_sets_df <- msigdbr(species = "Homo sapiens",
-                              category = "C2",
-                              subcategory = "CGP") |>
-  dplyr::filter(gs_name %in% ewing_gene_set_names)
+ewing_gene_sets_df <- msigdbr(
+  species = "Homo sapiens",
+  collection = "C2",
+  subcollection = "CGP"
+) |>
+  dplyr::filter(gs_name %in% ewing_gene_set_names) |>
+  dplyr::select(gs_name, ensembl_gene)
 ```
 
-`AUCell` uses gene sets in a particular format that comes from the `GSEABase` package.
-We need to create a `GeneSetCollection`.
+We can provide these gene sets as a named list to `AUCell`, so let's create that now.
 
-```{r gene_set_collection}
-ewing_gene_set_collection <- ewing_gene_set_names |>
-  purrr::map(
-    # For each gene set
-    \(gene_set_name) {
-      ewing_gene_sets_df |>
-        # Subset to the rows in that gene set
-        dplyr::filter(gs_name == gene_set_name) |>
-        # Grab the Ensembl gene identifiers
-        dplyr::pull(ensembl_gene) |>
-        # Create a GeneSet object
-        GeneSet(setName = gene_set_name,
-                geneIdType = ENSEMBLIdentifier())
-    }
-  ) |>
-  # Turn the list of GeneSet objects into a GeneSet collection
-  GeneSetCollection()
+```{r create_gene_list}
+ewing_gene_set_list <- split(
+  ewing_gene_sets_df$ensembl_gene,
+  ewing_gene_sets_df$gs_name
+)
+
+# briefly, show the resulting list
+purrr::map(ewing_gene_set_list, head)
 ```
 
 ## Read in and prepare the `SingleCellExperiment`
@@ -176,13 +175,16 @@ We can extract a counts matrix in sparse format for use with `AUCell`.
 counts_matrix <- counts(sce)
 ```
 
-There may be genes in our gene set that do not appear in the `SingleCellExperiment` object.
-We can remove them using the `subsetGeneSets()` function.
+There may be genes in our gene set that do not appear in the `SingleCellExperiment` object which we should remove before proceeding.
 
 ```{r subset_gene_sets, live = TRUE}
-# Remove genes from gene sets if they are not in the SCE
-ewing_gene_set_collection <- subsetGeneSets(ewing_gene_set_collection,
-                                            rownames(counts_matrix))
+# Remove genes from list if they are not in the SCE
+ewing_gene_set_list <- ewing_gene_set_list |>
+  purrr::map(
+    \(gene_list) {
+      intersect(gene_list, rownames(sce)) # keep only the intersection with our genes 
+    }
+) 
 ```
 
 ## `AUCell`
@@ -248,11 +250,13 @@ First, we'll start with a cell with a high AUC.
 We picked this barcode ahead of time when we wrote the notebook.
 
 ```{r high_recovery_curve}
-plot_recovery_curve(cell_rankings,
-                    ewing_gene_set_collection,
-                    gene_set_name = "ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
-                    barcode = "CTGAGCGGTCTTTATC",
-                    auc_max_rank = auc_max_rank)  # 1% threshold 
+plot_recovery_curve(
+  cell_rankings,
+  ewing_gene_set_list,
+  gene_set_name = "ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
+  barcode = "CTGAGCGGTCTTTATC",
+  auc_max_rank = auc_max_rank # 1% threshold 
+)  
 ```
 
 The x-axis is the gene ranks for all genes.
@@ -262,11 +266,13 @@ The AUC is the area under this recovery curve at the max rank threshold chosen f
 Now, let's look at an example with a low AUC.
 
 ```{r low_recovery_curve}
-plot_recovery_curve(cell_rankings,
-                    ewing_gene_set_collection,
-                    gene_set_name = "ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
-                    barcode = "AGATAGAGTCACAATC",
-                    auc_max_rank = auc_max_rank)  # 1% threshold
+plot_recovery_curve(
+  cell_rankings,
+  ewing_gene_set_list,
+  gene_set_name = "ZHANG_TARGETS_OF_EWSR1_FLI1_FUSION",
+  barcode = "AGATAGAGTCACAATC",
+  auc_max_rank = auc_max_rank  # 1% threshold
+) 
 ```
 
 Far fewer genes in the gene set are ranked above the threshold, yielding a lower AUC value.
@@ -276,9 +282,11 @@ Far fewer genes in the gene set are ranked above the threshold, yielding a lower
 Once we have the rankings, we can calculate the AUC scores for both gene sets in all cells with the `AUCell_calcAUC()` function.
 
 ```{r calc_auc, live = TRUE}
-cell_auc <- AUCell_calcAUC(geneSets = ewing_gene_set_collection, 
-                           rankings = cell_rankings,
-                           aucMaxRank = auc_max_rank)
+cell_auc <- AUCell_calcAUC(
+  geneSets = ewing_gene_set_list, 
+  rankings = cell_rankings,
+  aucMaxRank = auc_max_rank
+)
 ```
 
 This function returns an `aucellResults` object.
@@ -309,18 +317,22 @@ head(auc_df)
 We'll explore these in a later plot, but for now, let's calculate the threshold and assign cells with `AUCell_exploreThresholds()`.
 
 ```{r auc_assignments, live = TRUE}
-auc_assignments <- AUCell_exploreThresholds(cell_auc, 
-                                            plotHist = FALSE, 
-                                            assignCells = TRUE)
+auc_assignments <- AUCell_exploreThresholds(
+  cell_auc, 
+  plotHist = FALSE, 
+  assignCells = TRUE
+)
 ```
 
 We're going to plot the distribution of AUC values with `ggplot2`, so we will want the AUC values in a longer format.
 
 ```{r auc_plotting_df}
 auc_plotting_df <- auc_df |>
-  tidyr::pivot_longer(!barcodes,
-                      names_to = "gene_set",
-                      values_to = "auc") |>
+  tidyr::pivot_longer(
+    !barcodes,
+    names_to = "gene_set",
+    values_to = "auc"
+  ) |>
   dplyr::mutate(
     # Create a new logical column called assigned
     assigned = dplyr::case_when(
@@ -396,9 +408,10 @@ First, let's rename the gene set columns to something more easily typed.
 ```{r rename_gene_set}
 auc_df <- auc_df |>
   # Use shorter names
-  dplyr::rename(zhang_auc = ewing_gene_set_names[["zhang"]],
-                riggi_auc = ewing_gene_set_names[["riggi"]])
-
+  dplyr::rename(
+    zhang_auc = ewing_gene_set_names[["zhang"]],
+    riggi_auc = ewing_gene_set_names[["riggi"]]
+  )
 ```
 
 And join it to the existing `colData`.
@@ -431,18 +444,26 @@ We can use the `plotUMAP()` function from the `scater` package to plot a UMAP wi
 ```{r plot_umap_zhang}
 scater::plotUMAP(sce, colour_by = "zhang_auc") +
   # Use the gene set name, replacing underscores with spaces
-  ggplot2::ggtitle(stringr::str_replace_all(ewing_gene_set_names[["zhang"]], 
-                                            "\\_", 
-                                            " "))
+  ggplot2::ggtitle(
+    stringr::str_replace_all(
+      ewing_gene_set_names[["zhang"]], 
+      "\\_", 
+      " "
+    )
+  )
 ```
 
 Let's color the points by the AUC values for the other gene set.
 
 ```{r plot_umap_riggi, live = TRUE}
 scater::plotUMAP(sce, colour_by = "riggi_auc") + 
-  ggplot2::ggtitle(stringr::str_replace_all(ewing_gene_set_names[["riggi"]], 
-                                            "\\_", 
-                                            " "))
+  ggplot2::ggtitle(
+    stringr::str_replace_all(
+      ewing_gene_set_names[["riggi"]], 
+      "\\_", 
+      " "
+    )
+  )
 ```
 
 We would want to do something more formal to confirm, but it seems like the same cells have high AUC values for both gene sets!
