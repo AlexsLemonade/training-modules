@@ -3,8 +3,8 @@
 #' Adapted from https://github.com/aertslab/AUCell/blob/91753b327a39dc7a4bbed46408ec2271c485f2f0/vignettes/AUCell.Rmd#L295-L316
 #'
 #' @param cell_rankings Cell rankings; the output of AUCell::AUCell_buildRankings()
-#' @param gene_set_collection A GSEABase GeneSetCollection object
-#' @param gene_set_name The name of the gene set from the GeneSetCollection
+#' @param gene_set_list A list of gene sets
+#' @param gene_set_name The name of the gene set the gene_set_list
 #'   that you would like to plot a recovery curve for
 #' @param barcode The cell barcode that you would like to plot a recovery
 #'   curve for
@@ -14,7 +14,7 @@
 #'
 #' @return Outputs a recovery curve plot with the
 plot_recovery_curve <- function(cell_rankings,
-                                gene_set_collection,
+                                gene_set_list,
                                 gene_set_name,
                                 barcode,
                                 auc_max_rank,
@@ -24,8 +24,8 @@ plot_recovery_curve <- function(cell_rankings,
 
   # Pull out the gene set and identify where in the cell ranks those genes
   # lie
-  gene_set <- gene_set_collection[[gene_set_name]]
-  gene_set_ranks <- cell_rankings[geneIds(gene_set), ]
+  gene_set <- ewing_gene_set_list[[gene_set_name]]
+  gene_set_ranks <- cell_rankings[gene_set, ]
 
   # Index of the cell with the barcode
   barcode_index <- which(colnames(gene_set_ranks) == barcode)
@@ -35,7 +35,7 @@ plot_recovery_curve <- function(cell_rankings,
   plot(aucCurve,
        type="s", col="darkblue", lwd=1,
        xlab="Gene rank", ylab="# genes in the gene set",
-       xlim=c(0, auc_max_rank*3), ylim=c(0, nGenes(gene_set)),
+       xlim=c(0, auc_max_rank*3), ylim=c(0, length(gene_set)),
        main="Recovery curve",
        sub=paste("Cell:", colnames(gene_set_ranks)[barcode_index]))
   aucShade <- aucCurve[which(aucCurve[,1] < auc_max_rank),]
