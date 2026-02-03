@@ -490,12 +490,12 @@ We will also take this time to dive a bit deeper into the steps that `SingleR` p
 As mentioned, the first step is training the model, during which we identify the genes that will be used for the correlation analysis later.
 While this step is not particularly slow, if we were classifying multiple samples, we would not want to have to repeat it for every sample.
 
-To do the training, we will use the `trainSingleR()` function.
+To do the training, we will use the `SingleR::trainSingleR()` function.
 For this we will start with our reference and the labels we want to train the model with.
 
 We can then specify the method used to select the genes that will be used for classification.
 The default method is `"de"`, which performs a differential expression analysis for each pair of labels, but we could also use `"sd"` to select the genes which are most variable across labels, or `"all"` to use all genes.
-If we want to get really fancy, we could even provide a specific list of genes to use.
+If we wanted to get really fancy, we could even provide a specific list of genes to use with the `restrict` argument.
 
 We should note here that the reference dataset for `SingleR` does not need to be from a compendium like `celldex`!
 If you have any well-classified dataset that you want to use as a reference, you can, as long as you can create a gene by sample expression matrix and a vector of cell types for each sample.
@@ -503,7 +503,8 @@ You will want to ensure that the cell types you expect to see in your sample are
 You can even use a previously-annotated `SingleCellExperiment` as a reference for a new dataset.
 For more details about custom references, see the [OSCA chapter on cell type annotation](http://bioconductor.org/books/3.19/OSCA.basic/cell-type-annotation.html#using-custom-references)
 
-We do want to be sure that the genes selected for the model will be among those present in our SCE object, so we will use the `restrict` argument with a vector of the genes in our SCE.
+We do want to be sure that the genes included in the model will be among those present in our SCE object, so we will use the `test.genes` argument with a vector of the genes in our SCE.
+Otherwise, the function will assume that both the reference and test data set have the same genes in the same order (which they don't!), and the next step of actually classifying cell types wouldn't work.
 This step would happen automatically with the `SingleR::SingleR()` function, but we need to add it manually for this use case.
 
 
@@ -512,10 +513,10 @@ This step would happen automatically with the `SingleR::SingleR()` function, but
 singler_finemodel <- SingleR::trainSingleR(
   monaco_ref, # reference dataset
   labels = monaco_ref$label.fine, # labels for training dataset
+  # consider only genes in the sce object
+  test.genes = rownames(sce), 
   # use DE to select genes (default)
   genes = "de",
-  # only use genes in the sce object
-  restrict = rownames(sce),
   # parallel processing
   BPPARAM = BiocParallel::MulticoreParam(4)
 )
