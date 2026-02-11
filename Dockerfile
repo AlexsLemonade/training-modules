@@ -17,6 +17,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     libisal-dev \
     liblzma-dev \
     libzstd-dev \
+    libsqlite3-dev \
     make \
     pkg-config \
     unzip \
