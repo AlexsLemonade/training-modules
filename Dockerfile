@@ -76,6 +76,8 @@ WORKDIR /usr/local/renv
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 RUN Rscript -e "install.packages('renv')"
 
+# Install problematic package on its own first
+RUN Rscript -e "install.packages('RSQLite')"
 
 COPY renv.lock renv.lock
 RUN Rscript -e "renv::restore()" \
