@@ -66,7 +66,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     fastqc \
     && apt-get clean
 
-
 # Python packages
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt --break-system-packages
