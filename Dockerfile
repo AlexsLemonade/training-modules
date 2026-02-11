@@ -52,7 +52,7 @@ LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
 
-# Additonal dependencies for AWS runtime and R dependencies
+# Additonal dependencies for AWS runtime
 RUN apt-get update -qq
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     glibc-source \
