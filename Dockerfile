@@ -17,7 +17,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     libisal-dev \
     liblzma-dev \
     libzstd-dev \
-    libsqlite3-dev \
     make \
     pkg-config \
     unzip \
@@ -53,19 +52,21 @@ LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
 
-# Additonal dependencies for AWS runtime
+# Additonal dependencies for AWS runtime and R dependencies
 RUN apt-get update -qq
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     glibc-source \
     groff \
     less \
     libisal2 \
+    libsqlite3-dev \
     && apt-get clean
 
 # FastQC
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     fastqc \
     && apt-get clean
+
 
 # Python packages
 COPY requirements.txt requirements.txt
