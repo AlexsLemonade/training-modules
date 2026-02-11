@@ -59,7 +59,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     groff \
     less \
     libisal2 \
-    libsqlite3-dev \
     && apt-get clean
 
 # FastQC
