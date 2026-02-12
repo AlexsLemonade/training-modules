@@ -119,11 +119,13 @@ We'll use the Hallmark collection for GSEA.
 Notably, there are only 50 gene sets included in this collection.
 The fewer gene sets we test, the lower our multiple hypothesis testing burden.
 
-We can retrieve only the Hallmark gene sets by specifying `category = "H"` to the `msigdbr()` function.
+We can retrieve only the Hallmark gene sets by specifying `collection = "H"` to the `msigdbr()` function.
 
 ```{r hallmark_sets, live = TRUE}
-hs_hallmark_df <- msigdbr(species = "Homo sapiens",
-                          category = "H")
+hs_hallmark_df <- msigdbr(
+  species = "Homo sapiens",
+  collection = "H"
+)
 ```
 
 ## Differential gene expression results
@@ -238,14 +240,15 @@ Now for the analysis!
 We can use the `GSEA()` function to perform GSEA with any generic set of gene sets, but there are several functions for using specific, commonly used gene sets (e.g., `gseKEGG()`).
 
 ```{r run_gsea}
-gsea_results <- GSEA(geneList = lfc_vector,  # ordered ranked gene list
-                     minGSSize = 25,  # minimum gene set size
-                     maxGSSize = 500,  # maximum gene set set
-                     pvalueCutoff = 0.05,
-                     pAdjustMethod = "BH",  # correction for multiple hypothesis testing
-                     TERM2GENE = dplyr::select(hs_hallmark_df,
-                                               gs_name,
-                                               gene_symbol))
+gsea_results <- GSEA(
+  geneList = lfc_vector,  # ordered ranked gene list
+  minGSSize = 25,  # minimum gene set size
+  maxGSSize = 500,  # maximum gene set set
+  pvalueCutoff = 0.05,
+  pAdjustMethod = "BH",  # correction for multiple hypothesis testing
+  TERM2GENE = dplyr::select(hs_hallmark_df,
+                            gs_name,
+                            gene_symbol))
 ```
 
 The warning about ties means that there are multiple genes that have the same log2 fold change value.
