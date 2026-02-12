@@ -107,7 +107,7 @@ The results we're interested in here come from mouse samples, so we can obtain j
 mm_msigdb_df <- msigdbr(species = "Mus musculus")
 ```
 
-MSigDB contains 8 different gene set collections.
+MSigDB contains 9 different gene set collections.
 
     H: hallmark gene sets
     C1: positional gene sets
@@ -117,23 +117,26 @@ MSigDB contains 8 different gene set collections.
     C5: GO gene sets
     C6: oncogenic signatures
     C7: immunologic signatures
+    C8: cell type signatures
 
 In this example, we will use canonical pathways which are ([ref](https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp)):
 
 > Gene sets from pathway databases. Usually, these gene sets are canonical representations of a biological process compiled by domain experts.
 
 And are a subset of `C2: curated gene sets`.
-Specifically, we will use the [KEGG (Kyoto Encyclopedia of Genes and Genomes)](https://www.genome.jp/kegg/) pathways.
+Specifically, we will use the [KEGG (Kyoto Encyclopedia of Genes and Genomes)](https://www.genome.jp/kegg/) pathways, which is denoted as `CP:KEGG_MEDICUS` in this version of `msigdbr`.
 
 ```{r filter_to_kegg}
 # Filter the mouse data frame to the KEGG pathways that are included in the
 # curated gene sets
 mm_kegg_df <- mm_msigdb_df |>
-  dplyr::filter(gs_cat == "C2",  # curated gene sets
-                gs_subcat == "CP:KEGG")  # KEGG pathways
+  dplyr::filter(
+    gs_collection == "C2",  # curated gene set
+    gs_subcollection == "CP:KEGG_MEDICUS" # KEGG pathways
+  )  
 ```
 
-*Note: We could specified that we wanted the KEGG gene sets using the `category` and `subcategory` arguments of `msigdbr()`, but we're going for general steps!*
+*Note: We could specified that we wanted the KEGG gene sets using the `collection` and `subcollection` arguments of `msigdbr()`, but we're going for general steps!*
 
 ```{r mm_kegg_columns}
 colnames(mm_kegg_df)
@@ -179,18 +182,20 @@ The function we will use to map from Ensembl gene IDs to gene symbols is called 
 ```{r map_to_symbol}
 # This returns a named vector which we can convert to a data frame, where
 # the keys (Ensembl IDs) are the names
-symbols_vector <- mapIds(org.Mm.eg.db,  # Specify the annotation package
-                         # The vector of gene identifiers we want to
-                         # map
-                         keys = vs_low_df$Gene,
-                         # What type of gene identifiers we're starting
-                         # with
-                         keytype = "ENSEMBL",
-                         # The type of gene identifier we want returned
-                         column = "SYMBOL",
-                         # In the case of 1:many mappings, return the
-                         # first one. This is default behavior!
-                         multiVals = "first")
+symbols_vector <- mapIds(
+  org.Mm.eg.db,  # Specify the annotation package
+  # The vector of gene identifiers we want to
+  # map
+  keys = vs_low_df$Gene,
+  # What type of gene identifiers we're starting
+  # with
+  keytype = "ENSEMBL",
+  # The type of gene identifier we want returned
+  column = "SYMBOL",
+  # In the case of 1:many mappings, return the
+  # first one. This is default behavior!
+  multiVals = "first"
+)
 
 # We would like a data frame we can join to the DGE results
 symbols_df <- data.frame(
@@ -210,10 +215,12 @@ Let's do this first for the comparison to the low stem cell capacity population.
 ```{r add_symbols, live = TRUE}
 vs_low_df <- symbols_df |>
   # An *inner* join will only return rows that are in both data frames
-  dplyr::inner_join(vs_low_df,
-                    # The name of the column that contains the Ensembl gene IDs
-                    # in the left data frame and right data frame
-                    by = c("ensembl_id" = "Gene"))
+  dplyr::inner_join(
+    vs_low_df,
+    # The name of the column that contains the Ensembl gene IDs
+    # in the left data frame and right data frame
+    by = c("ensembl_id" = "Gene")
+  )
 ```
 
 ### Drop `NA` values
@@ -292,8 +299,10 @@ Genes with positive log2 fold-changes (LFC) will be more highly expressed in the
 ```{r high_capacity_genes}
 vs_low_genes <- vs_low_df |>
   # Filter to the positive LFC and filter based on significance too (padj)
-  dplyr::filter(log2FoldChange > 0,
-                padj < 0.05) |>
+  dplyr::filter(
+    log2FoldChange > 0,
+    padj < 0.05
+  ) |>
   # Return a vector of gene symbols
   dplyr::pull(gene_symbol)
 ```
@@ -306,8 +315,10 @@ Now, we'll take the same steps for our other results.
 
 ```{r unsorted_genes_to_remove, live = TRUE}
 vs_unsorted_genes <- vs_unsorted_df |>
-  dplyr::filter(log2FoldChange > 0,
-                padj < 0.05) |>
+  dplyr::filter(
+    log2FoldChange > 0,
+    padj < 0.05
+  ) |>
   dplyr::pull(gene_symbol)
 ```
 
@@ -335,8 +346,10 @@ We can use another function for set operations, `intersect()`, to get our backgr
 ```{r get_background_set}
 # intersect() will return the genes in both sets - we are using the entire data
 # frame here (complete cases), not just the significant genes
-background_set <- intersect(vs_low_df$gene_symbol,
-                            vs_unsorted_df$gene_symbol)
+background_set <- intersect(
+  vs_low_df$gene_symbol,
+  vs_unsorted_df$gene_symbol
+)
 
 # Remove anything that couldn't reliably be measured/assessed in both from the
 # genes of interest list - using intersect() will drop anything in the first set
@@ -381,13 +394,13 @@ kegg_result_df <- data.frame(kegg_ora_results@result)
 
 We can use a dot plot to visualize our significant enrichment results.
 
-```{r dotplot, live = TRUE}
+```{r dotplot, fig.width = 10, live = TRUE}
 enrichplot::dotplot(kegg_ora_results)
 ```
 
 We can use an [UpSet plot](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4720993/) to visualize the **overlap** between the gene sets that were returned as significant.
 
-```{r upsetplot, live = TRUE}
+```{r upsetplot, fig.width = 10, live = TRUE}
 enrichplot::upsetplot(kegg_ora_results)
 ```
 
