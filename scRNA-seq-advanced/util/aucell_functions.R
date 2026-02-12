@@ -24,7 +24,7 @@ plot_recovery_curve <- function(cell_rankings,
 
   # Pull out the gene set and identify where in the cell ranks those genes
   # lie
-  gene_set <- ewing_gene_set_list[[gene_set_name]]
+  gene_set <- gene_set_list[[gene_set_name]]
   gene_set_ranks <- cell_rankings[gene_set, ]
 
   # Index of the cell with the barcode
