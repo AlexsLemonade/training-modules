@@ -78,9 +78,9 @@ RUN Rscript -e "install.packages('renv')"
 
 COPY renv.lock renv.lock
 RUN Rscript -e "renv::restore()" \
-    rm -rf ~/.cache/R/renv && \
-    rm -rf /tmp/downloaded_packages && \
-    rm -rf /tmp/Rtmp*
+    && rm -rf ~/.cache/R/renv \
+    && rm -rf /tmp/downloaded_packages \
+    && rm -rf /tmp/Rtmp*
 
 # copy aws, salmon, and fastp binaries from the build image
 COPY --from=build /usr/local/aws-cli/ /usr/local/aws-cli/

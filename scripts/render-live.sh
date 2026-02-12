@@ -31,7 +31,7 @@ files=(
   scRNA-seq/03-normalizing_scRNA.Rmd
   scRNA-seq/04-dimension_reduction_scRNA.Rmd
   scRNA-seq/05-clustering_markers_scRNA.Rmd
-  # scRNA-seq/06-celltype_annotation.Rmd # TODO: Uncomment for https://github.com/AlexsLemonade/training-modules/issues/911
+  scRNA-seq/06-celltype_annotation.Rmd
   scRNA-seq-advanced/01-read_filter_normalize_scRNA.Rmd
   scRNA-seq-advanced/02-dataset_integration.Rmd
   scRNA-seq-advanced/03-differential_expression.Rmd
@@ -41,9 +41,15 @@ files=(
   # machine-learning/02-openpbta_consensus_clustering.Rmd
   # machine-learning/03-openpbta_PLIER.Rmd
   # machine-learning/04-openpbta_plot_LV.Rmd
+<<<<<<< HEAD
   # pathway-analysis/01-overrepresentation_analysis.Rmd # TODO: Uncomment for https://github.com/AlexsLemonade/training-modules/issues/911
   # pathway-analysis/02-gene_set_enrichment_analysis.Rmd # TODO: Uncomment for https://github.com/AlexsLemonade/training-modules/issues/911
   # pathway-analysis/03-gene_set_variation_analysis.Rmd # TODO: Uncomment for https://github.com/AlexsLemonade/training-modules/issues/911
+=======
+ #  pathway-analysis/01-overrepresentation_analysis.Rmd  # TEMPORARY
+ #  pathway-analysis/02-gene_set_enrichment_analysis.Rmd  # TEMPORARY
+ #  pathway-analysis/03-gene_set_variation_analysis.Rmd  # TEMPORARY
+>>>>>>> master
 )
 for file in ${files[@]}
 do
