@@ -231,7 +231,7 @@ This will also drop genes that have an Ensembl gene identifier but no gene symbo
 ```{r complete_cases}
 # Remove rows that are not complete (e.g., contain NAs) by filtering to only
 # complete rows
-vs_low_df <- vs_low_df |>
+vs_low_complete_df <- vs_low_df |>
   tidyr::drop_na()
 ```
 
@@ -295,7 +295,7 @@ We'll start with the high stem cell capacity vs. low stem cell capacity populati
 Genes with positive log2 fold-changes (LFC) will be more highly expressed in the high stem cell capacity cells based on how we set up the analysis.
 
 ```{r high_capacity_genes}
-vs_low_genes <- vs_low_df |>
+vs_low_genes <- vs_low_complete_df |>
   # Filter to the positive LFC and filter based on significance too (padj)
   dplyr::filter(
     log2FoldChange > 0,
@@ -345,7 +345,7 @@ We can use another function for set operations, `intersect()`, to get our backgr
 # intersect() will return the genes in both sets - we are using the entire data
 # frame here (complete cases), not just the significant genes
 background_set <- intersect(
-  vs_low_df$gene_symbol,
+  vs_low_complete_df$gene_symbol,
   vs_unsorted_df$gene_symbol
 )
 
