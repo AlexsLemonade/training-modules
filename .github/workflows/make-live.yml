@@ -45,13 +45,17 @@ jobs:
         run: |
           aws s3 sync s3://ccdl-training-data/training-modules/ .
 
+      - name: Pull latest Docker image
+        run: |
+          docker pull ccdl/training_rstudio:edge
+
       - name: Render notebooks
         env:
           RENDER_RMD: ${{ github.event.inputs.rendering }}
         run: |
           docker run --rm \
-            -v "$GITHUB_WORKSPACE":"$GITHUB_WORKSPACE" \
-            -w "$GITHUB_WORKSPACE" \
+            --mount type=bind,source="$GITHUB_WORKSPACE",target=/training-modules \
+            -w /training-modules \
             -e RENDER_RMD \
             --user "$(id -u):$(id -g)" \
             ccdl/training_rstudio:edge \
