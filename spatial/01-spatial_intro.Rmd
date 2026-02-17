@@ -22,7 +22,223 @@ output:
 In this notebook, we'll learn some basic import, processing, and visualization of a Visium data set, starting with the Space Ranger output. 
 
 The data we'll use in this notebook is from an anaplastic Wilms Tumor sample in the [Single-cell Pediatric Cancer Atlas](https://scpca.alexslemonade.org/projects/SCPCP000006).
-This sample was processed using first-generation 3' Visium technology, and it was quantified with `Space ranger 1.3.1`.
+This sample was processed using first-generation 3' Visium technology, and it was quantified with `Space Ranger 1.3.1`.
+
+## Set up
+
+To begin, we'll load some of the libraries we'll use in this notebook.
+We won't be doing any calculations involving random numbers here, so we don't need to set a seed.
+
+```{r libraries}
+# Load libraries
+
+# The main class we use for spatial transcriptomic data
+library(SpatialExperiment)
+
+# Functions to import Visium data
+library(VisiumIO)
+
+# Plotting functions
+library(ggspavis)
+
+# Frameworks for processing (filtering, normalizing) Visium data
+library(scran)
+library(SpotSweeper)
+```
+
+### Directories and files
+
+Next we'll define paths and files.
+
+```{r inputs, live=TRUE}
+# main data directory 
+data_dir <- file.path("data", "wilms-tumor", "SCPCS000190")
+
+# Path to Space Ranger output
+raw_spaceranger_dir <- file.path(data_dir, "outs")
+
+# reference data directory
+ref_dir <- file.path("data", "reference")
+
+# Path to mitochondrial genes table
+mito_file <- file.path(ref_dir, "hs_mitochondrial_genes.tsv")
+```
+
+
+```{r outputs}
+# Directory and file to save output
+normalized_dir <- file.path(data_dir, "normalized")
+
+# create the directory if it does not exist
+fs::dir_create(normalized_dir)
+
+# output RDS file for normalized SPE (SPatial Experiment) object
+output_spe_file <- file.path(
+  normalized_dir,
+  "SCPCS000190_normalized.rds"
+)
+```
+
+
+
+## Reading Space Ranger data
+
+We'll use the `VisiumIO` package to read this data in.
+The directory structure typically looks something like this, with differences for different technology versions.
+
+```markdown
+_add file tree here with standard visium output_
+```
+
+Let's see what we have:
+
+```{r dir-spaceranger, live = TRUE}
+dir(raw_spaceranger_dir)
+```
+
+The filtered/raw matrix directories are what we'd get from Cell Ranger for single-cell sequencing, but the `spatial` directory is what makes this data _spatial_. 
+Let's have a closer look at what's in the `spatial` directory:
+
+```{r dir-spatial, live = TRUE}
+dir(
+  file.path(raw_spaceranger_dir, "spatial")
+)
+```
+
+Placeholder to describe each image file:
+- "aligned_fiducials.jpg"     
+- "detected_tissue_image.jpg" 
+- "tissue_hires_image.png" 
+- "tissue_lowres_image.png"
+- "tissue_positions_list.csv"
+- "scalefactors_json.json"   
+
+Potentially point out there is no cytaimage, because this is from an older technology than `CytAssist`, but this may be a confusing detail for so early in the game!
+
+
+We'll import the raw, not filtered, version of the data here so that we can see full processing steps.
+We do this in two steps:
+
+- Define a `TENxVisium` object with all the file information for this sample
+- Import the data into R
+
+
+```{r define-tenx-object, live = TRUE}
+tenx_object_raw_matrix <- VisiumIO::TENxVisium(
+  # path that contains the sequencing data
+  resources = file.path(data_path, "raw_feature_bc_matrix"),
+  # path that contains the spatial data
+  spatialResource = file.path(data_path, "spatial"),
+  # which image(s) to import - use lowres to save some memory/space
+  images = "lowres"
+)
+
+# print the TENxVisium object
+tenx_object_raw_matrix
+```
+
+We'll formally import the data as a variable called `spe`, which stands for **sp**atial **e**xperiment.
+Generally, we'll call these objects `SPE`'s.
+
+```{r import, live = TRUE}
+# import the object
+spe <- VisiumIO::import(tenx_object_raw_matrix)
+```
+
+Let's get to know our `SPE` object!
+
+```{r explore-spe, live = TRUE}
+spe
+```
+
+It's essentially an `SCE`, but with a few more bells and whistles.
+
+Note that we have 4992 spots - this is not a random value! 
+It's the number of spots on Visium's 6.5 x 6.5 slide. 
+
+Unlike `SCE`s, we have spatial information in a dedicated `spatialCoords` slot which contains the x/y coordinates on the slide:
+
+
+```{r spe-spatialcoords, live = TRUE}
+# handy function from our code package SpatialExperiment
+# literally is giving x/y coordinates
+spatialCoords(spe)
+```
+
+We also have a slot that just holds the images, `imgData`, although looking at it directly isn't very interesting.
+But, this stored information will help us make figures!
+
+```{r spe-imgdata, live = TRUE}
+imgData(spe)
+```
+
+We should also point out what's in `colData`.
+Unlike an `SCE`, this isn't cell metadata. 
+In this `SPE` from a Visium experiment, it's _spot_ metadata; recall that each spot may contain multiple cells, which can even include partial cells!
+
+```{r spe-coldata, live = TRUE}
+colData(spe)
+```
+
+Hmmm, check out that `in_tissue` column!
+It contains 0/1 because we read in the raw `Space Ranger` output, which includes all spots including those which don't actually overlap tissue.
+Ultimately, we won't want to analyze the spots that are not on top of tissue, so we'll have to deal with that.
+
+### Introduction to spatial data visualization
+
+Before we get further, let's go ahead and actually look at our data.
+Because the spatial and image information is contained in the object, we can plot directly from this object using the viz package `ggspavis`.
+
+
+```{r plot-visium, live = TRUE}
+ggspavis::plotVisium(spe)
+```
+
+Here, we see the spots overlaid on the slide as well as slide boundaries.
+You'll notice that every single spot is shown, including ones that don't overlap tissue directly - indeed, all 4992 spots are present int he `SPE` right now!
+
+By default this shows the spots, but we can hide them and zoom into the tissue on the slide.
+This is a helpful way to pop up the H&E for side-by-side comparisons with other plots you might make.
+
+```{r plot-visium-zoom, live = TRUE}
+ggspavis::plotVisium(
+  spe, 
+  spots = FALSE, # don't show the spots
+  zoom = TRUE    # zoom into the slide area
+) 
+```
+
+TODO: save this text for when we actually plot genes?
+Let's take a moment to chat about Wilm's Tumor - these tumors in the developing kidney are often composed of a couple histologic compartments, blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
+In this tissue section, we can see two major components: the bluer indicating densely cellular, ECM-poor regions consistent with blastema, and paler pink regions consistent with stromal tissue.
+
+Let's actually go ahead and save this plot to a variable; it will be a convenient way for us to quickly pop up the H&E for side-by-side comparison with other plots we'll make later.
+
+```{r save-visium-plot}
+he_plot <- ggspavis::plotVisium(
+  spe, 
+  spots = FALSE, 
+  zoom = TRUE
+) 
+```
+
+
+There's another function in `ggspavis` called `plotCoords` which hides the H&E to just show the spots; this plot is not currently very compelling without any colors, but we'll add those soon!
+
+```{r plot-coords, live = TRUE}
+# plot just the spots
+ggspavis::plotCoords(spe) 
+```
+Hm, the spot layout looks a bit different.
+By default, this function will only plot spots that overlay tissue, even if those spots are still in the `SPE`.
+
+We can override this if we want, but really what we want to do is actually remove those spots since they are entirely uninformative - we'll do this in the next section.
+We'll also make the spots a little bigger.
+
+```{r plot-coords-all-spots, live = TRUE}
+ggspavis::plotCoords(spe, in_tissue = NULL, point_size = 1) 
+```
+
 
 
 ## Session info
