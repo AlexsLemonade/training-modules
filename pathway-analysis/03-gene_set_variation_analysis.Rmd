@@ -57,9 +57,7 @@ input_dir <- file.path("data", "open-pbta")
 
 # Create a directory specifically for the results using this dataset
 output_dir <- file.path("results", "open-pbta")
-if (!dir.exists(output_dir)) {
-  dir.create(output_dir, recursive = TRUE)
-}
+fs::dir_create(output_dir)
 ```
 
 #### Input
@@ -164,9 +162,7 @@ gsva_results <- gsva(
     kcdf = "Gaussian",
     # enrichment score is the difference between largest positive and negative
     maxDiff = TRUE
-  ),
-  # Use 4 cores for multiprocessing
-  BPPARAM = BiocParallel::MulticoreParam(4)
+  )
 )
 ```
 
@@ -211,8 +207,9 @@ random_gene_sets <- rep(gene_set_size, nreps) |>  # Repeat gene sizes so we run 
   purrr::map(
     # Sample the vector of all genes, choosing the number of items specified
     # in the element of gene set size
-    ~ base::sample(x = all_genes,
-                   size = .x)
+    \(geneset_size) {
+      base::sample(x = all_genes, size = geneset_size)
+    }
   )
 ```
 
@@ -224,9 +221,13 @@ The Hallmarks list we used earlier stored the gene set names as the name of the 
 # number
 lengths_vector <- random_gene_sets |>
   # Get the length of each gene set (number of genes)
-  purrr::map(~ length(.x)) |>
+  purrr::map(length) |>
   # Make it "pathway_<gene set size>"
-  purrr::map(~ paste0("pathway_", .x)) |>
+  purrr::map(
+    \(geneset_size) {
+      paste0("pathway_", geneset_size)
+    }
+  ) |>
   # Return a vector
   purrr::flatten_chr()
 
@@ -247,9 +248,7 @@ random_gsva_results <- gsva(
     maxSize = 500,
     kcdf = "Gaussian",
     maxDiff = TRUE
-  ),
-  # Use 4 cores for multiprocessing
-  BPPARAM = BiocParallel::MulticoreParam(4)
+  )
 )
 ```
 

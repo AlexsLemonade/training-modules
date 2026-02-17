@@ -41,9 +41,9 @@ files=(
   # machine-learning/02-openpbta_consensus_clustering.Rmd
   # machine-learning/03-openpbta_PLIER.Rmd
   # machine-learning/04-openpbta_plot_LV.Rmd
-  # pathway-analysis/01-overrepresentation_analysis.Rmd # TODO: Uncomment for https://github.com/AlexsLemonade/training-modules/issues/911
-  # pathway-analysis/02-gene_set_enrichment_analysis.Rmd # TODO: Uncomment for https://github.com/AlexsLemonade/training-modules/issues/911
-  # pathway-analysis/03-gene_set_variation_analysis.Rmd # TODO: Uncomment for https://github.com/AlexsLemonade/training-modules/issues/911
+  pathway-analysis/01-overrepresentation_analysis.Rmd
+  pathway-analysis/02-gene_set_enrichment_analysis.Rmd
+  pathway-analysis/03-gene_set_variation_analysis.Rmd
 )
 for file in ${files[@]}
 do
