@@ -6,20 +6,29 @@ on:
     branches:
       - master
     paths:
-      - '**.Rmd'
-      - '!**-live.Rmd' # don't trigger for live-only changes
-      - '!**/exercise*.Rmd' # or exercise notebooks
-      - '!**/setup/**.Rmd' # or setup notebooks
-      - 'scripts/make-live.R'
-      - 'scripts/render-live.sh'
+      - ".github/workflows/render-rmds.yml"
+      - "**.Rmd"
+      - "!**-live.Rmd" # don't trigger for live-only changes
+      - "!**/exercise*.Rmd" # or exercise notebooks
+      - "!**/setup/**.Rmd" # or setup notebooks
+      - "scripts/make-live.R"
+      - "scripts/render-live.sh"
 
 jobs:
   test-render:
     runs-on: ubuntu-latest
-    container:
-      image: ccdl/training_rstudio:edge
 
     steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          # Print free disk space
+          df -h
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -36,8 +45,16 @@ jobs:
         env:
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          aws s3 sync s3://ccdl-training-data/training-modules/ .
+          aws s3 sync s3://ccdl-training-data/training-modules/ . --no-progress
 
+      - name: Pull latest Docker image
+        run: |
+          docker pull ccdl/training_rstudio:edge
 
       - name: Render notebooks
-        run: bash scripts/render-live.sh
+        run: |
+          docker run --rm \
+            --mount type=bind,source="$GITHUB_WORKSPACE",target=/training-modules \
+            -w /training-modules \
+            ccdl/training_rstudio:edge \
+            bash scripts/render-live.sh
