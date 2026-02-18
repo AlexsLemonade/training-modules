@@ -14,7 +14,7 @@ output:
 - Filter to spots overlapping tissue
 - Calculate quality control measures on spatial transcriptomic data
 - Remove likely low-quality spots with `SpotSweeper()`
-- Normalize expression data across spots
+- Normalize spatial expression data
 - Visualize spatial transcriptomic data 
 
 ## Introduction
@@ -126,9 +126,9 @@ We do this in two steps:
 ```{r define-tenx-object, live = TRUE}
 tenx_object_raw_matrix <- VisiumIO::TENxVisium(
   # path that contains the sequencing data
-  resources = file.path(data_path, "raw_feature_bc_matrix"),
+  resources = file.path(raw_spaceranger_dir, "raw_feature_bc_matrix"),
   # path that contains the spatial data
-  spatialResource = file.path(data_path, "spatial"),
+  spatialResource = file.path(raw_spaceranger_dir, "spatial"),
   # which image(s) to import - use lowres to save some memory/space
   images = "lowres"
 )
@@ -153,7 +153,7 @@ spe
 
 It's essentially an `SCE`, but with a few more bells and whistles.
 
-Note that we have 4992 spots - this is not a random value! 
+Note that we have 4992 spots - this is not a random value.
 It's the number of spots on Visium's 6.5 x 6.5 slide. 
 
 Unlike `SCE`s, we have spatial information in a dedicated `spatialCoords` slot which contains the x/y coordinates on the slide:
@@ -162,7 +162,7 @@ Unlike `SCE`s, we have spatial information in a dedicated `spatialCoords` slot w
 ```{r spe-spatialcoords, live = TRUE}
 # handy function from our code package SpatialExperiment
 # literally is giving x/y coordinates
-spatialCoords(spe)
+spatialCoords(spe) |> head()
 ```
 
 We also have a slot that just holds the images, `imgData`, although looking at it directly isn't very interesting.
@@ -229,16 +229,20 @@ There's another function in `ggspavis` called `plotCoords` which hides the H&E t
 # plot just the spots
 ggspavis::plotCoords(spe) 
 ```
-Hm, the spot layout looks a bit different.
+
+The spot layout looks a bit different.
 By default, this function will only plot spots that overlay tissue, even if those spots are still in the `SPE`.
 
 We can override this if we want, but really what we want to do is actually remove those spots since they are entirely uninformative - we'll do this in the next section.
-We'll also make the spots a little bigger.
 
-```{r plot-coords-all-spots, live = TRUE}
-ggspavis::plotCoords(spe, in_tissue = NULL, point_size = 1) 
-```
 
+## Filtering empty spots
+
+## Filtering low-quality spots
+
+## Normalization
+
+## Exploring marker gene expression
 
 
 ## Session info
