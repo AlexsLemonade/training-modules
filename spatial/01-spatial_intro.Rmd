@@ -113,47 +113,33 @@ Placeholder to describe each image file:
 - `"tissue_positions_list.csv"`
 - `"scalefactors_json.json"`   
 
-TODO potentially point out there is no cytaimage, because this is from an older technology than `CytAssist`, but I feel like this may be a confusing detail for so early in the game!
+It's worth mentioning that this is a slightly older technology than the current Visium `CytAssist` image, which means there is no specific `Cytassist` image.
+This won't affect our analysis, but worth noting when reading in since by default the functions assume that image is present. 
 
 
-We'll import the raw, not filtered, version of the data here so that we can see full processing steps.
-We do this in two steps:
+We'll import the raw, not filtered, version of the data here so that we can see full processing steps and save it to a variable called `spe`.
 
-- Define a `TENxVisium` object with all the file information for this sample
-- Import the data into R
-
-
-```{r define-tenx-object, live = TRUE}
-tenx_object_raw_matrix <- VisiumIO::TENxVisium(
-  # path that contains the sequencing data
-  resources = file.path(raw_spaceranger_dir, "raw_feature_bc_matrix"),
-  # path that contains the spatial data
-  spatialResource = file.path(raw_spaceranger_dir, "spatial"),
-  # which image(s) to import - use lowres to save some memory/space
-  images = "lowres"
+```{r import-visium, live = TRUE}
+spe <- import(
+  VisiumIO::TENxVisium(
+    # path that contains the sequencing data
+    resources = file.path(raw_spaceranger_dir, "raw_feature_bc_matrix"),
+    # path that contains the spatial data
+    spatialResource = file.path(raw_spaceranger_dir, "spatial"),
+    # which image(s) to import - use lowres to save some memory/space
+    # we also need to override the default since it assumes there is a CytAssist image
+    images = "lowres"
+  )
 )
 
-# print the TENxVisium object
-tenx_object_raw_matrix
-```
-
-We'll formally import the data as a variable called `spe`, for SPatial Experiment.
-Generally, we'll call these objects `SPE`'s.
-
-```{r import, live = TRUE}
-# import the Visium data to an SPE object
-spe <- VisiumIO::import(tenx_object_raw_matrix)
-```
-
-Let's get to know our `SPE` object!
-
-```{r explore-spe, live = TRUE}
+# print the spe
 spe
 ```
-
+Let's get to know our `SPE` object!
 It's essentially an `SCE`, but with a few more bells and whistles.
+This means there are some functions we'll use to explore it that you might recognize, but there will also be some new ones only used for `SPE` objects.
 
-Note that we have 4992 spots - this is not a random value.
+First, note that we have 4992 spots - this is not a random value.
 It's the number of spots on a Visium 6.5 x 6.5 slide. 
 
 Unlike `SCE`s, we have spatial information in a dedicated `spatialCoords` slot which contains the x/y coordinates on the slide:
