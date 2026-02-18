@@ -15,7 +15,12 @@ cd ..
 render="${RENDER_RMD:-TRUE}"
 
 # array of files to transform
+
+## TEMPORARY FOR DEBUGGING!!!!!!
 files=(
+  spatial/01-spatial_intro.Rmd
+)
+xfiles=(
   intro-to-R-tidyverse/01-intro_to_base_R.Rmd
   intro-to-R-tidyverse/02-intro_to_ggplot2.Rmd
   intro-to-R-tidyverse/03-intro_to_tidyverse.Rmd
