@@ -113,12 +113,18 @@ This won't affect our analysis, but worth noting when reading in since by defaul
 We'll import the raw, not filtered, version of the data here so that we can see full processing steps and save it to a variable called `spe`, using the package `VisiumIO`.
 
 ```{r import-visium, live = TRUE}
+# path to quantified RNA 10X output
+rna_dir <- file.path(raw_spaceranger_dir, "raw_feature_bc_matrix")
+
+# path to spatial 10X output
+spatial_dir <- file.path(raw_spaceranger_dir, "spatial")
+
 spe <- VisiumIO::import(
   VisiumIO::TENxVisium(
     # path that contains the sequencing data
-    resources = file.path(raw_spaceranger_dir, "raw_feature_bc_matrix"),
+    resources = rna_dir,
     # path that contains the spatial data
-    spatialResource = file.path(raw_spaceranger_dir, "spatial"),
+    spatialResource = spatial_dir,
     # which image(s) to import - use lowres to save some memory/space
     # we also need to override the default since it assumes there is a CytAssist image
     images = "lowres"
@@ -128,6 +134,7 @@ spe <- VisiumIO::import(
 # print the spe
 spe
 ```
+
 Let's get to know our `SPE` object!
 It's essentially an `SCE`, but with a few more bells and whistles.
 This means there are some functions we'll use to explore it that you might recognize, but there will also be some new ones only used for `SPE` objects.
@@ -135,9 +142,27 @@ This means there are some functions we'll use to explore it that you might recog
 First, note that we have 4992 spots - this is not a random value.
 It's the number of spots on a Visium 6.5 x 6.5 slide. 
 
+Like `SCE`s, we have slots like `assays` for count matrices, `rowData` for feature metadata, and `colData` for _spot_ metadata - recall, our experimental units are not individual cells in spatial transcriptomics.
+Let's take a tour:
+
+```{r spe-rowdata}
+rowData(spe)
+```
+
+```{r spe-assays}
+counts(spe)[1:10, 1:10]
+```
+Again, for the colData`, we're looking at spots and not cells.
+With this technology where each spot is 55 `um`, we can expect there's somewhere between 1-10 cells per spot.
+
+```{r spe-coldata, live = TRUE}
+colData(spe)
+```
+Check out that `in_tissue` column.
+It contains 0/1 because we read in the raw `Space Ranger` output, which includes all spots including those which don't actually overlap tissue.
+Ultimately, we won't want to analyze the spots that are not on top of tissue, so we'll have to deal with that.
+
 Unlike `SCE`s, we have spatial information in a dedicated `spatialCoords` slot which contains the x/y coordinates on the slide:
-
-
 ```{r spe-spatialcoords, live = TRUE}
 # handy function from our code package SpatialExperiment
 # literally is giving x/y coordinates
@@ -150,18 +175,6 @@ But, this stored information will help us make figures!
 ```{r spe-imgdata, live = TRUE}
 imgData(spe)
 ```
-
-We should also point out what's in `colData`.
-Unlike an `SCE`, this isn't cell metadata. 
-In this `SPE` from a Visium experiment, it's _spot_ metadata; recall that each spot may contain multiple cells, which can even include partial cells!
-
-```{r spe-coldata, live = TRUE}
-colData(spe)
-```
-
-Check out that `in_tissue` column.
-It contains 0/1 because we read in the raw `Space Ranger` output, which includes all spots including those which don't actually overlap tissue.
-Ultimately, we won't want to analyze the spots that are not on top of tissue, so we'll have to deal with that.
 
 ### Introduction to spatial data visualization
 
