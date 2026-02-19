@@ -223,6 +223,40 @@ We can override this if we want, but really what we want to do is actually remov
 
 ## Filtering empty spots
 
+We only care about spots on top of tissue, so let's begin by removing the `in_tissue = 0` spots.
+Note that if we had read in the `filtered_feature_bc_matrix` instead, the data would already be filtered to only `1` in this column, but we need to take this step because we read in the `raw`. 
+We can make a rough analogy, that this analysis step is like filtering empty droplets to retain only droplets with cells in scRNA-seq, but here we're retaining only spots over tissue.
+
+We can visualize which spots those are, and we'll do it over the H&E to clearly see the relationship.
+We'll use the `annotate` argument, but `plotVisium` sees that this column is an integer and forces it to use a continuous color scale; we'll go ahead and make it a factor for plotting.
+
+```{r plot_in_tissue}
+# make a factor version of this column to plot with
+spe$in_tissue_factor <- as.factor(spe$in_tissue)
+
+ggspavis::plotVisium(
+  spe, 
+  annotate = "in_tissue_factor", 
+  # custom palette so we can see clearly
+  pal = c("red", "lightblue")
+)
+```
+
+- The purple tissue overhang on the left isn't colored at all - indeed, there aren't spots at those coordinates outside the slide
+- Red points are those to filter out - they are uninformative since they don't overlap tissue.
+
+```{r filter_in_tissue, live = TRUE}
+# keep only spots that are in the tissue
+spe <- spe[, spe$in_tissue == 1]
+
+# print resulting spe
+spe
+```
+
+
+Now, we're down to 4120 spots from the original 4992, but that's still a pretty good amount. 
+But not all of these spots are necessarily good quality, so we'll want to do some additional QC filtering next.
+
 ## Filtering low-quality spots
 
 ## Normalization
