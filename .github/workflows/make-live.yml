@@ -14,19 +14,21 @@ jobs:
   make-live:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    container:
-      image: ccdl/training_rstudio:edge
 
     steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          # Print free disk space
+          df -h
+
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Configure git
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
 
       - name: Load 1Password secrets
         uses: 1password/load-secrets-action@v2
@@ -43,12 +45,22 @@ jobs:
         env:
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          aws s3 sync s3://ccdl-training-data/training-modules/ .
+          aws s3 sync s3://ccdl-training-data/training-modules/ . --no-progress
+
+      - name: Pull latest Docker image
+        run: |
+          docker pull ccdl/training_rstudio:edge
 
       - name: Render notebooks
         env:
           RENDER_RMD: ${{ github.event.inputs.rendering }}
-        run: bash scripts/render-live.sh
+        run: |
+          docker run --rm \
+            --mount type=bind,source="$GITHUB_WORKSPACE",target=/training-modules \
+            -w /training-modules \
+            -e RENDER_RMD \
+            ccdl/training_rstudio:edge \
+            bash scripts/render-live.sh
 
       # Make changes to pull request here
       - name: Create PR with rendered notebooks
