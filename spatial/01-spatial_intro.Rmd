@@ -34,6 +34,9 @@ We won't be doing any calculations involving random numbers here, so we don't ne
 
 # The main class we use for spatial transcriptomic data
 library(SpatialExperiment)
+
+# For combining plots
+library(patchwork)
 ```
 
 ### Directories and files
@@ -246,11 +249,11 @@ ggspavis::plotVisium(
 - Red points are those to filter out - they are uninformative since they don't overlap tissue.
 
 ```{r filter_in_tissue, live = TRUE}
-# keep only spots that are in the tissue
-spe <- spe[, spe$in_tissue == 1]
+# keep only spots that are in the tissue and save to filtered_spe
+filtered_spe <- spe[, spe$in_tissue == 1]
 
-# print resulting spe
-spe
+# print resulting filtered_spe
+filtered_spe
 ```
 
 
@@ -258,6 +261,111 @@ Now, we're down to 4120 spots from the original 4992, but that's still a pretty 
 But not all of these spots are necessarily good quality, so we'll want to do some additional QC filtering next.
 
 ## Filtering low-quality spots
+
+### Filtering with global QC thresholds
+
+As a first step towards filtering, we can borrow some approaches from scRNA-seq and calculate some quality-control measures. 
+Let's do that and have a look - we'll get our mito genes for QC calculations and we'll use `scran::addPerCellQC()` like we might for single-cell.
+
+```{r get mitochondrial genes}
+# read in a table of mitochondrial genes and extract ids
+mito_genes <- readr::read_tsv(mito_file) |>
+  # filter to only the genes that are found in our dataset
+  dplyr::filter(gene_id %in% rownames(filtered_spe)) |>
+  # create a vector from the gene_id column
+  dplyr::pull(gene_id)
+```
+
+```{r calculate qc, live = TRUE}
+filtered_spe <- scuttle::addPerCellQC(
+  filtered_spe,
+  subsets = list(mito = mito_genes)
+)
+
+# print resulting colData to see QC stats
+colData(filtered_spe) |> head()
+```
+
+`ggspavis` comes with a helpful QC plotter (makes histograms by default but has a couple more options!).
+These are `ggplot2` objects, so we can use `ggplot2` code with them like add a title to each.
+
+```{r global qc distributions, fig.width = 12, fig.height = 4}
+p1 <- ggspavis::plotObsQC(filtered_spe, x_metric = "sum") + ggplot2::ggtitle("sum")
+p2 <- ggspavis::plotObsQC(filtered_spe, x_metric = "detected") + ggplot2::ggtitle("detected")
+p3 <- ggspavis::plotObsQC(filtered_spe, x_metric = "subsets_mito_percent") + ggplot2::ggtitle("mito %")
+
+# Add plots together with patchwork
+p1 + p2 + p3
+```
+
+These distributions all look unimodal without too much skew, which is different from how distributions from single-cell data might look. With single-cell data, we might typically see long right tails reflecting differences in cell biology or cell quality.
+Here, QC stats are calculated per spot aka for aggregates of cells, extremes end up getting smoothed out.
+
+Let's plot the same stats on the slide:
+
+```{r global qc coords, fig.width = 10}
+p1 <- ggspavis::plotCoords(filtered_spe, annotate="sum", point_size = 1) + ggplot2::ggtitle("sum")
+p2 <- ggspavis::plotCoords(filtered_spe, annotate="detected", point_size = 1) + ggplot2::ggtitle("detected")
+p3 <- ggspavis::plotCoords(filtered_spe, annotate="subsets_mito_percent", point_size = 1) + ggplot2::ggtitle("mito %")
+
+p1 + p2 + p3
+```
+
+Now, we start to see there's more to the story.
+There is spatial heterogeneity in these QC stats.
+
+Let's plot the H&E again to see any correlation:
+
+```{r show he for qc, fig.width = 5}
+ggspavis::plotVisium(filtered_spe, spots = FALSE, zoom = TRUE)
+```
+
+We see that:
+
+- the likely stromal regions have distinctly higher mitochondrial percentages (although these values are pretty low all around!) and fewer detected genes/UMIs
+- the likely blastema regions tend to have more detected genes
+
+This tells us that there is local structure in the data that we might like our QC approach to take into consideration.
+
+Still, let's try to pick some global thresholds and see what would be removed, trying to infer reasonable thresholds from the histograms.
+We'll choose some thresholds around the distribution's tails.
+
+
+```{r global filter spe, live = TRUE}
+# create a logical vector of QC filters
+filter_spot <- filtered_spe$sum < 5000 |
+  filtered_spe$detected < 4000 |
+  filtered_spe$subsets_mito_percent > 4
+
+# how many spots would be removed?
+sum(filter_spot)
+```
+
+Let's have a look at which spots these would be:
+
+```{r plot global filter}
+# add filter_spot to object
+# make it a factor to use custom discrete colors
+filtered_spe$filter_spot <- as.factor(filter_spot)
+
+# plot which spots would be removed
+ggspavis::plotCoords(
+  filtered_spe, 
+  annotate="filter_spot", 
+  point_size = 1.5, 
+  # custom palette: red spots flagged for removal
+  pal = c("gray", "red")
+) 
+```
+
+Using these global thresholds, we can see that QC is confounded by biology. 
+If we filter these spots, we'll be removing spots associated with a particular tissue region.
+This shows that global thresholds may not be suitable for data with this kind of heterogeneity, so a different approach could be warranted.
+Worth noting, this is not strictly a spatial transcriptomics issue; there can be quite a bit of heterogeneity in scRNA-seq data too depending on what was sequenced!
+Always plot your data!
+
+### Filtering with local QC thresholds
+
 
 ## Normalization
 
