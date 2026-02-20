@@ -14,11 +14,15 @@ library(optparse)
 # Set up optparse options
 option_list <- list(
   make_option(
-    opt_str = "--notebook", type = "character",
-    help = "The notebook file to process."),
+    opt_str = "--notebook",
+    type = "character",
+    help = "The notebook file to process."
+  ),
   make_option(
-    opt_str = "--render", type = "character",
-    default = "TRUE", help = "Needs a 'TRUE/FALSE' to determine whether the markdown::render() step will be run."
+    opt_str = "--render",
+    type = "character",
+    default = "TRUE",
+    help = "Needs a 'TRUE/FALSE' to determine whether the markdown::render() step will be run."
   )
 )
 
@@ -26,7 +30,7 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list = option_list))
 
 # Check that render is TRUE or FALSE (or an obvious variant)
-if (! tolower(opt$render) %in% c("true", "false", "t", "f")){
+if (!tolower(opt$render) %in% c("true", "false", "t", "f")) {
   stop("`--render` option must be TRUE or FALSE")
 }
 
@@ -34,13 +38,17 @@ if (! tolower(opt$render) %in% c("true", "false", "t", "f")){
 render <- as.logical(opt$render)
 
 # Check that the file is an Rmarkdown file:
-if (! stringr::str_detect(opt$notebook, "\\.Rmd$")){
+if (!stringr::str_detect(opt$notebook, "\\.Rmd$")) {
   stop(opt$notebook, " is not a `.Rmd` notebook")
 }
 
 # Install exrcise package if needed.
-if (!"exrcise" %in% installed.packages()){
-  remotes::install_github("AlexsLemonade/exrcise", dependencies = TRUE, upgrade = "never")
+if (!"exrcise" %in% installed.packages()) {
+  remotes::install_github(
+    "AlexsLemonade/exrcise",
+    dependencies = TRUE,
+    upgrade = "never"
+  )
 }
 
 
