@@ -52,7 +52,7 @@ LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
 
-# Additonal dependencies for AWS runtime
+# Additional dependencies for AWS runtime
 RUN apt-get update -qq
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     glibc-source \
@@ -77,7 +77,7 @@ RUN Rscript -e "install.packages('renv')"
 
 
 COPY renv.lock renv.lock
-RUN Rscript -e "renv::restore()" \
+RUN Rscript -e "options(pkgType='binary'); renv::restore(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'))" \
     && rm -rf ~/.cache/R/renv \
     && rm -rf /tmp/downloaded_packages \
     && rm -rf /tmp/Rtmp*
