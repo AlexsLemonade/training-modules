@@ -52,7 +52,8 @@ library(tidyverse)
 Note that if we had not imported the tidyverse set of packages using `library()` like above, and we wanted to use a tidyverse function like `read_tsv()`, we would need to tell R what package to find this function in.
 To do this, we would use `::` to tell R to load in this function from the `readr` package by using `readr::read_tsv()`.
 You will see this `::` method of referencing libraries within packages throughout the course.
-We like to use it in part to remove any ambiguity in which version of a function we are using; it is not too uncommon for different packages to use the same name for very different functions!
+We like to use it in part to remove any ambiguity in which version of a function we are using, even if the package was imported; it is not too uncommon for different packages to use the same name for very different functions!
+We'll use `::` syntax for external functions throughout this notebook.
 
 ## Managing directories
 
@@ -92,6 +93,7 @@ But we've also seen that this function will throw an error if you try to create 
 A different option is to use the [`fs`](https://fs.r-lib.org/) package, which provides functions for you to interact with your computer's file system with a more consistent behavior than the base R functions.
 One function from this package is `fs::dir_create()` (note that it has an _underscore_, not a period), and much like the base R `dir.create()`, it creates directories. 
 It has some other helpful features too:
+
 - It will simply do nothing if that directory already exists; no errors, and nothing will get overwritten
 - It allows creating _nested_ directories by default, i.e. in one call make directories inside of other directories
 
@@ -142,16 +144,15 @@ data_dir <- "data"
 ```
 
 Although base R has functions to read in data files, the functions in the `readr` package (part of the tidyverse) are faster and more straightforward to use so we are going to use those here.
-Because the file we are reading in is a TSV (tab separated values) file we will be using the `read_tsv` function.
-There are analogous functions for CSV (comma separated values) files (`read_csv()`) and other files types.
+Because the file we are reading in is a TSV (tab separated values) file we will be using the `readr::read_tsv()` function.
+There are analogous functions for CSV (comma separated values) files (`readr::read_csv()`) and other files types.
 
 ## Read in the differential expression analysis results file
 
 ```{r read-results}
 stats_df <- readr::read_tsv(
-  file.path(data_dir,
-            "gene_results_GSE44971.tsv")
-  )
+  file.path(data_dir, "gene_results_GSE44971.tsv")
+)
 ```
 
 Following the template of the previous chunk, use this chunk to read in the file `GSE44971.tsv` that is in the `data` folder and save it in the variable `gene_df`.
@@ -159,9 +160,8 @@ Following the template of the previous chunk, use this chunk to read in the file
 ```{r read-expr, live = TRUE}
 # Use this chunk to read in data from the file `GSE44971.tsv`
 gene_df <- readr::read_tsv(
-  file.path(data_dir,
-            "GSE44971.tsv")
-  )
+  file.path(data_dir, "GSE44971.tsv")
+)
 ```
 
 Use this chunk to explore what `gene_df` looks like.
@@ -182,16 +182,18 @@ _Note:_ If you are using a version of `R` prior to 4.1 (or looking at older code
 That pipe was the inspiration for the native R pipe we are using here. 
 While there are some minor differences, you can mostly treat them interchangeably as long as you load the `magrittr` package or `dplyr`, which also loads that version of the pipe.
 
-For example, the output from this:
+We'll being our journey into pipes using some core functions from the `dplyr` package (a core tidyverse package that offers "pliers" for your data).
+
+As our first example, the output from this:
 
 ```{r filter}
-filter(stats_df, contrast == "male_female")
+dplyr::filter(stats_df, contrast == "male_female")
 ```
 
 ...is the same as the output from this:
 
 ```{r filter-pipe}
-stats_df |> filter(contrast == "male_female")
+stats_df |> dplyr::filter(contrast == "male_female")
 ```
 
 This can make your code cleaner and easier to follow a series of related commands.
@@ -200,9 +202,9 @@ Let's look at an example with our stats of of how the same functions look with o
 *Example 1:* without pipes:
 
 ```{r steps-nopipe}
-stats_arranged <- arrange(stats_df, t_statistic)
-stats_filtered <- filter(stats_arranged, avg_expression > 50)
-stats_nopipe <- select(stats_filtered, contrast, log_fold_change, p_value)
+stats_arranged <- dplyr::arrange(stats_df, t_statistic)
+stats_filtered <- dplyr::filter(stats_arranged, avg_expression > 50)
+stats_nopipe <- dplyr::select(stats_filtered, contrast, log_fold_change, p_value)
 ```
 
 UGH, we have to keep track of all of those different intermediate data frames and type their names so many times here!
@@ -213,15 +215,15 @@ It's annoying and makes it harder for people to read.
 
 ```{r steps-pipe, live = TRUE}
 # Example of the same modifications as above but with pipes!
-stats_pipe  <- stats_df |>
-               arrange(t_statistic) |>
-               filter(avg_expression > 50) |>
-               select(contrast, log_fold_change, p_value)
+stats_pipe <- stats_df |>
+  dplyr::arrange(t_statistic) |>
+  dplyr::filter(avg_expression > 50) |>
+  dplyr::select(contrast, log_fold_change, p_value)
 ```
 
 What the `|>` (pipe) is doing here is feeding the result of the expression on its left into the first argument of the next function (to its right, or on the next line here).
 We can then skip that first argument (the data in these cases), and move right on to the part we care about at that step: what we are arranging, filtering, or selecting in this case.
-The key insight that makes the pipe work here is to recognize that each of these functions (`arrange`, `filter`, and `select`) are fundamental `dplyr` (a tidyverse package) functions which work as "data in, data out."
+The key insight that makes the pipe work here is to recognize that each of these functions (`dplyr::arrange`, `dplyr::filter`, and `dplyr::select`) are fundamental `dplyr` functions which work as "data in, data out."
 In other words, these functions operate on data frames, and return data frames; you give them a data frame, and they give you back a data frame.
 Because these functions all follow a "data in, data out" framework, we can chain them together with pipe and send data all the way through the...pipeline!
 
@@ -239,12 +241,12 @@ Now that hopefully you are convinced that the tidyverse can help you make your c
 ## Common tidyverse functions
 
 Let's say we wanted to filter this gene expression dataset to particular sample groups.
-In order to do this, we would use the function `filter()` as well as a logic statement (usually one that refers to a column or columns in the data frame).
+In order to do this, we would use the function `dplyr::filter()` as well as a logic statement (usually one that refers to a column or columns in the data frame).
 
 ```{r filter-gene}
 # Here let's filter stats_df to only keep the gene_symbol "SNCA"
 stats_df |>
-  filter(gene_symbol == "SNCA")
+  dplyr::filter(gene_symbol == "SNCA")
 ```
 
 We can use `filter()` similarly for numeric statements.
@@ -252,7 +254,7 @@ We can use `filter()` similarly for numeric statements.
 ```{r filter-numeric, live = TRUE}
 # Here let's filter the data to rows with average expression values above 50
 stats_df |>
-  filter(avg_expression > 50)
+  dplyr::filter(avg_expression > 50)
 ```
 
 We can apply multiple filters at once, which will require all of them to be satisfied for every row in the results:
@@ -260,8 +262,10 @@ We can apply multiple filters at once, which will require all of them to be sati
 ```{r filter-2, live = TRUE}
 # filter to highly expressed genes with contrast "male_female"
 stats_df |>
-  filter(contrast == "male_female",
-         avg_expression > 50)
+  dplyr::filter(
+    contrast == "male_female",
+    avg_expression > 50
+  )
 ```
 
 When we are filtering, the `%in%` operator can come in handy if we have multiple items we would like to match.
@@ -278,7 +282,7 @@ stats_df$gene_symbol %in% genes_of_interest
 ```{r filter-in, live = TRUE}
 # filter to keep only genes of interest
 stats_df |>
-  filter(gene_symbol %in% c("SNCA", "CDKN1A"))
+  dplyr::filter(gene_symbol %in% c("SNCA", "CDKN1A"))
 ```
 
 Let's return to our first `filter()` and build on to it.
@@ -290,9 +294,11 @@ Let's also save this as a new data frame called `stats_filtered_df`.
 # filter to highly expressed "male_female"
 # and select gene_symbol, log_fold_change and t_statistic
 stats_filtered_df <- stats_df |>
-  filter(contrast == "male_female",
-         avg_expression > 50) |>
-  select(log_fold_change, t_statistic)
+  dplyr::filter(
+    contrast == "male_female",
+    avg_expression > 50
+  ) |>
+  dplyr::select(log_fold_change, t_statistic)
 ```
 
 Let's say we wanted to arrange this dataset so that the genes are arranged by the smallest p values to the largest.
@@ -300,7 +306,7 @@ In order to do this, we would use the function `arrange()` as well as the column
 
 ```{r arrange}
 stats_df |>
-  arrange(p_value)
+  dplyr::arrange(p_value)
 ```
 
 What if we want to sort from largest to smallest?
@@ -310,15 +316,15 @@ We can use the same function, but instead use the `desc()` function and now we a
 ```{r arrange-desc}
 # arrange descending by avg_expression
 stats_df |>
-  arrange(desc(avg_expression))
+  dplyr::arrange(desc(avg_expression))
 ```
 
 What if we would like to create a new column of values?
-For that we use `mutate()` function.
+For that we use `dplyr::mutate()` function.
 
 ```{r mutate}
 stats_df |>
-  mutate(log10_p_value = -log10(p_value))
+  dplyr::mutate(log10_p_value = -log10(p_value))
 ```
 
 What if we want to obtain summary statistics for a column or columns?
@@ -327,19 +333,26 @@ Here we will use summarize to calculate two summary statistics of log-fold chang
 
 ```{r summarize}
 stats_df |>
-  summarize(mean(log_fold_change),
-            sd(log_fold_change))
+  dplyr::summarize(
+    # name the columns mean_lfc an sd_lfc
+    mean_lfc = mean(log_fold_change),
+    sd_lfc = sd(log_fold_change)
+  )
 ```
 
 What if we'd like to obtain a summary statistics but have them for various groups?
 Conveniently named, there's a function called `group_by()` that seamlessly allows us to do this.
 Also note that `group_by()` allows us to group by multiple variables at a time if you want to.
 
+We'll use this function to create a grouped summary data frame and save it to a variable `stats_summary_df`.
+
 ```{r summarize-groups, live = TRUE}
 stats_summary_df <- stats_df |>
-      group_by(contrast) |>
-      summarize(mean(log_fold_change),
-                sd(log_fold_change))
+  dplyr::group_by(contrast) |>
+  dplyr::summarize(
+    mean_lfc = mean(log_fold_change),
+    sd_lfc = sd(log_fold_change)
+  )
 ```
 
 Let's look at a preview of what we made:
@@ -454,7 +467,7 @@ In this case we want to match the gene information between the two, so we will s
 stats_df |>
   # Join based on their shared column
   # Called ensembl_id in stats_df and called Gene in gene_df
-  inner_join(gene_df, by = c('ensembl_id' = 'Gene'))
+  dplyr::inner_join(gene_df, by = c('ensembl_id' = 'Gene'))
 ```
 
 ## Save data to files
