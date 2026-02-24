@@ -283,7 +283,7 @@ But not all of these spots are necessarily good quality, so we'll want to do som
 ### Filtering with global QC thresholds
 
 As a first step towards filtering, we can borrow some approaches from scRNA-seq and calculate some quality-control measures. 
-Let's do that and have a look - we'll get our mitochondrial genes for QC calculations and we'll use `scran::addPerCellQC()` like we might for single-cell.
+Let's do that and have a look - we'll get our mitochondrial genes for QC calculations and we'll use `scran::addPerCellQC()` like we might for single-cell (except here it adds per spot).
 
 ```{r get mitochondrial genes}
 # read in a table of mitochondrial genes and extract ids
@@ -409,6 +409,222 @@ Worth noting, this is not strictly a spatial transcriptomics issue; there can be
 Always plot your data!
 
 ### Filtering with local QC thresholds
+
+Rather than finding outliers based on overall QC stats derived across biologically distinct domains/tissue regions, we can instead look for _local_ outliers to filter, i.e. spots with properties that deviate from their neighborhood of nearby spots.
+Placeholder text to introduce [`SpotSweeper`](https://www.bioconductor.org/packages/3.22/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html):
+
+- Evaluates spots relative to their local neighborhood which is defined with `kNN`
+- Calculates local means and variances of standard QC metrics to flag outliers for removal within a local tissue context
+- Can be used to find both individual outlying spots as well as so-called "hangnails" which are regional artifacts caused by e.g. issues in tissue prep or other technical issues
+  - Note that hangnail detection tends to be really aggressive, so don't trust the defaults!
+
+We'll detect local outliers based using `SpotSweeper::localOutliers()` which takes these arguments:
+
+- `metric`: name of column in `colData` with QC stat of interest
+- `direction`: are lower value or higher value outliers bad?
+  - e.g. we'd say "lower" for detected (we don't want low detected values), and we'd say "higher" for mitochondrial percentage
+- `n_neighbors`: number of neighbors for building the `kNN` graph; Default is 36
+- `log`: whether to consider the `log1p` of the metric; Default is `FALSE`
+  - The method assumes a normal distribution, so logging a metric may be needed to meet assumptions
+  - logging "detected" and "sum" is often recommended because these distributions are unbounded and span orders of magnitude
+  - logging "mitochondrial" is not often recommended because it's bounded `[0,100]` and logging percentages can distort the distribution
+- `cutoff`: Threshold for identifying outliers; Default is 3, meaning 3 standard deviations from the mean (think z-scores)
+  - Can make this higher to be more stringent, lower to be less stringent, but don't go too low or you're not detecting outliers anymore
+- `workers`: Number of cores for parallel processing; Default is 1
+
+This function returns an `SPE` object with added `colData` columns we can use to find all the local outliers.
+
+Let's start off by looking for library size ("sum" column) outliers:
+
+```{r spotsweeper-sum, live = TRUE}
+# specify defaults for sum to be explicit
+filtered_spe <- SpotSweeper::localOutliers(
+  filtered_spe, 
+  metric = "sum", 
+  direction = "lower", 
+  n_neighbors = 36, 
+  log = TRUE,
+  cutoff = 3
+)
+```
+
+
+What do we have now?
+
+```{r coldata-spotsweeper-sum, live = TRUE}
+colData(filtered_spe)
+```
+New columns include:
+
+- `sum_log`: The `log1p()` (i.e., `log(x+1)`) of the `sum` column
+- `sum_outliers`: Logical whether or not the spot is an outlier
+- `sum_z`: The _local_ z-score for `sum_log`, among spots in the local neighborhood.
+  - 0: same as neighbors on average
+  - high positive value: much higher `sum` than neighbors
+  - low negative value: much lower `sum` than neighbors, which in this case would be the ones to filter
+  
+We can see some of this relationship - the spots flagged as outliers are those with a `sum_z` less than -3, the default cutoff for the lower direction:
+  
+```{r outliers-boxplot}
+filtered_spe_coldata <- colData(filtered_spe) |>
+  as.data.frame() 
+
+# TODO: Does having this plot help explain or not?
+# I chose jitter because we can see all the points and know right away most are not outliers
+ggplot2::ggplot(filtered_spe_coldata) + 
+  ggplot2::aes(x = sum_outliers, y = sum_z) + 
+  ggplot2::geom_jitter(size = 0.5) + 
+  ggplot2::geom_hline(yintercept = -3, color = "red")
+```
+
+
+Based on this metric, most spots are not outliers, and while most are fairly close to the 3 cutoff, several are are more extreme outliers!
+Let's plot this next to the H&E:
+We'll use a plotting function from `SpotSweeper` )which turns out to be a bit easier to see that a `ggspavis` plot.
+
+```{r spotsweeper-plotqc-sum}
+SpotSweeper::plotQCmetrics(
+  filtered_spe, 
+  metric = "sum_log", # how to color spots
+  outliers = "sum_outliers", # which spots to highlight with an outline
+  colors = c("blue", "yellow") # low -> high palette colors. TODO: right now this is for Ally, but we don't need to do this; can use ggplot2::scale_fill_distiller instead and turn off messages
+) 
+```
+Here, we can see how spots are distributed across the slide and can clearly tell that see some outliers are more outlying than others.
+Would we have caught these if we had filtered with global thresholds?
+
+```{r spotsweeper-vs-global}
+filtered_spe_coldata |>
+  dplyr::filter(sum_outliers) |>
+  # rename for clarity
+  dplyr::select(
+    global_sum = sum, 
+    spotsweeper_sum_z = sum_z
+  ) |>
+  dplyr::arrange(global_sum)
+```
+
+It's likely we would have caught a lot of these, but not all, especially the flagged spots with more than 5000 UMIs (a typical single-cell threshold for library size which we are learning is not necessarily the right way to think about spatial data).
+
+**TODO: I don't know how I feel about including the next chunk - who has thoughts? Leaning very much towards removing it, but wanted to include for now in case it sparks an idea during review!** 
+How would this have changed if shifted the neighborhood size?
+To not clutter up our existing object, we'll save to new objects and plot as a exploration to learn about neighborhood size.
+
+```{r spotsweeper-sum-compare-k}
+#| fig.width = 8
+
+# Detect outliers with a very large neighborhood
+filtered_spe_large_neighborhood <- SpotSweeper::localOutliers(
+  filtered_spe, 
+  metric = "sum", 
+  direction = "lower", 
+  n_neighbors = 1000, 
+  log = TRUE,
+  cutoff = 3
+)
+
+
+filtered_spe_small_neighborhood <- SpotSweeper::localOutliers(
+  filtered_spe, 
+  metric = "sum", 
+  direction = "lower", 
+  n_neighbors = 5, 
+  log = TRUE,
+  cutoff = 3
+)
+
+
+large_plot <- SpotSweeper::plotQCmetrics(
+  filtered_spe_large_neighborhood, 
+  metric = "sum_z",
+  outliers = "sum_outliers", 
+  colors = c("blue", "yellow")
+) +
+  ggplot2::ggtitle("neighborhood k = 1000")
+
+small_plot <- SpotSweeper::plotQCmetrics(
+  filtered_spe_small_neighborhood, 
+  metric = "sum_z",
+  outliers = "sum_outliers", 
+  colors = c("blue", "yellow")
+) +
+  ggplot2::ggtitle("neighborhood k = 5")
+
+large_plot + small_plot
+```
+
+Some spots are the same, but a lot are not! 
+Note that for a high k, we are starting to identify tissue regions because we are getting closer to a global view. 
+But for a low k, we are assuming a _ton_ of local structure. 
+
+The point is, changing the cutoff or changing the neighborhood size will influence stringency - plot your data!
+If you have specific biolgoical intuition, you might want to use that!
+
+Back on track: let's do the same outlier detection for `detected` and `subsets_mito_percent`, but for the mitochondrial statistic let's use a more stringent cutoff since we know that values are low across the board here.
+TODO: more intermediate plotting?
+
+
+```{r spotsweeper-detected, live = TRUE}
+filtered_spe <- SpotSweeper::localOutliers(
+  filtered_spe, 
+  metric = "detected", 
+  direction = "lower"
+)
+SpotSweeper::plotQCmetrics(
+  filtered_spe, 
+  metric = "detected_log",
+  outliers = "detected_outliers", 
+  colors = c("blue", "yellow")
+) 
+```
+
+
+```{r spotsweeper-mito, live = TRUE}
+filtered_spe <- SpotSweeper::localOutliers(
+  filtered_spe, 
+  metric = "subsets_mito_percent", 
+  direction = "higher", # we want to remove HIGHER values 
+  log = FALSE, # don't log, already bounded
+  cutoff = 5 # make this one really strict since we already know mito % is low everywhere
+)
+
+SpotSweeper::plotQCmetrics(
+  filtered_spe, 
+  metric = "subsets_mito_percent", # not log!
+  outliers = "subsets_mito_percent_outliers", 
+  colors = c("blue", "yellow")
+) 
+```
+
+
+How many of each kind of outlier?
+
+```{r count-local-outliers}
+c("sum_outliers", "detected_outliers", "subsets_mito_percent_outliers") |>
+  purrr::set_names() |>
+  purrr::map(\(outlier_column) {
+    table(filtered_spe[[outlier_column]])
+  })
+```
+
+Let's go ahead and filter all these spots out:
+
+```{r build-local-filter}
+# combine all outliers into "local_outliers" column to filter on
+filtered_spe$local_outliers <- as.logical(filtered_spe$sum_outliers) |
+    as.logical(filtered_spe$detected_outliers) |
+    as.logical(filtered_spe$subsets_mito_percent_outliers)
+```
+
+
+```{r perform-local-filter, live = TRUE}
+# keep only spots where `local_outliers` is FALSE
+filtered_spe <- filtered_spe[, filtered_spe$local_outliers == FALSE]
+
+# print resulting SPE
+filtered_spe
+```
+
 
 
 ## Normalization
