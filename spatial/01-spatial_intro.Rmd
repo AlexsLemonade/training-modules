@@ -416,7 +416,8 @@ Placeholder text to introduce [`SpotSweeper`](https://www.bioconductor.org/packa
 - Evaluates spots relative to their local neighborhood which is defined with `kNN`
 - Calculates local means and variances of standard QC metrics to flag outliers for removal within a local tissue context
 - Can be used to find both individual outlying spots as well as so-called "hangnails" which are regional artifacts caused by e.g. issues in tissue prep or other technical issues
-  - Note that hangnail detection tends to be really aggressive, so don't trust the defaults!
+  - Note that hangnail detection is performed using variance in mitochondrial percentages. 
+  Since our values for mitochondrial percentage are very low with minimal variance, hangnail detection won't be relevant for us here
 
 We'll detect local outliers based using `SpotSweeper::localOutliers()` which takes these arguments:
 
@@ -506,7 +507,7 @@ filtered_spe_coldata |>
 
 It's likely we would have caught a lot of these, but not all, especially the flagged spots with more than 5000 UMIs (a typical single-cell threshold for library size which we are learning is not necessarily the right way to think about spatial data).
 
-**TODO: I don't know how I feel about including the next chunk - who has thoughts? Leaning very much towards removing it, but wanted to include for now in case it sparks an idea during review!** 
+**TODO: I don't know how I feel about including the next chunk - who has thoughts? Leaning heavily much towards removing it, but I wanted to include for now in case it sparks an idea during review!** 
 How would this have changed if shifted the neighborhood size?
 To not clutter up our existing object, we'll save to new objects and plot as a exploration to learn about neighborhood size.
 
@@ -546,7 +547,7 @@ small_plot <- SpotSweeper::plotQCmetrics(
   filtered_spe_small_neighborhood, 
   metric = "sum_z",
   outliers = "sum_outliers", 
-  colors = c("blue", "yellow")
+  colors = c("blue", "yellow"), 
 ) +
   ggplot2::ggtitle("neighborhood k = 5")
 
@@ -561,7 +562,7 @@ The point is, changing the cutoff or changing the neighborhood size will influen
 If you have specific biolgoical intuition, you might want to use that!
 
 Back on track: let's do the same outlier detection for `detected` and `subsets_mito_percent`, but for the mitochondrial statistic let's use a more stringent cutoff since we know that values are low across the board here.
-TODO: more intermediate plotting?
+**TODO: more intermediate exploration of each filter?**
 
 
 ```{r spotsweeper-detected, live = TRUE}
@@ -624,6 +625,7 @@ filtered_spe <- filtered_spe[, filtered_spe$local_outliers == FALSE]
 # print resulting SPE
 filtered_spe
 ```
+
 
 
 
