@@ -77,7 +77,7 @@ You can also test the Docker image locally, which may be more convenient for tes
 To test the Docker image locally, you can use the following commands to pull the Docker image and run launch the container with an RStudio server session:
 
 ```bash
-docker pull --platform linux/amd64 ccdl/training_rstudio:edge
+docker pull ccdl/training_rstudio:edge
 docker run \
   -e PASSWORD={PASSWORD} \
   -p 8787:8787 \

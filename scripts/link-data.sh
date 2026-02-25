@@ -63,6 +63,8 @@ link_locs=(
   RNA-seq/data/gastric-cancer/salmon_quant/SRR585577
   RNA-seq/QC/gastric-cancer/fastp/SRR585571
   RNA-seq/QC/gastric-cancer/fastqc/SRR585571
+  RNA-seq/QC/gastric-cancer/fastp/SRR585574
+  RNA-seq/QC/gastric-cancer/fastqc/SRR585574
   RNA-seq/data/NB-cell/NB-cell_metadata.tsv
   RNA-seq/data/NB-cell/salmon_quant
   RNA-seq/data/leukemia/SRP049821_metadata.tsv
@@ -86,6 +88,7 @@ link_locs=(
   scRNA-seq-advanced/analysis/mouse-liver/markers
   scRNA-seq-advanced/data/PBMC-TotalSeqB/raw_feature_bc_matrix
   scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized/PBMC_TotalSeqB_normalized_sce.rds
+  scRNA-seq-advanced/data/glioblastoma-10x/filtered_feature_bc_matrix
   scRNA-seq-advanced/data/glioblastoma-10x/raw_feature_bc_matrix
   scRNA-seq-advanced/data/ewing-sarcoma/annotations/ewing_sarcoma_sample_metadata.tsv
   scRNA-seq-advanced/data/ewing-sarcoma/processed

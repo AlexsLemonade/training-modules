@@ -29,6 +29,7 @@ These quantities are explained more in depth when they are introduced, but you c
 - The `bluster` package vignette on cluster evaluation: <https://www.bioconductor.org/packages/3.19/bioc/vignettes/bluster/inst/doc/diagnostics.html>
 - The "Clustering Redux" chapter in _Orchestrating Single Cell Analysis_: <https://bioconductor.org/books/3.19/OSCA.advanced/clustering-redux.html>
 
+We'll specifically run `bluster` using the [`scran::clusterCells()`](https://rdrr.io/github/MarioniLab/scran/man/clusterCells.html) function.
 
 Before we dive in, it's important to bear some language caveats in mind:
 We sometimes use phrasing like "the best clusters" or "the optimal clusters," but the truth is, it's quite hard (if even possible) to know which clustering assignments are truly _the best._
@@ -149,15 +150,6 @@ We will begin by calculating clusters using different values of the `resolution`
 Then, we'll compare results to one another with the ultimate goal of identifying a reasonable `resolution` parameter to achieve reliable clusters.
 To specifically explore the effect of different `resolution` parameters, we won't vary any other parameters; we'll also use 20 nearest neighbors and Jaccard weighting for all clusterings.
 
-To begin, extract the PCA matrix from the SCE using the `reducedDim()` function, and save it to a variable called `pca_matrix`.
-You'll need to provide two arguments to this function: The SCE object, and the name of the reduced dimension we'd like to pull out; here, it's `"PCA"`.
-
-We'll need this matrix to both perform and evaluate clusters.
-
-```{r extract pca matrix, solution = TRUE}
-
-```
-
 We'll define our vector of values to try out for the `resolution` parameter.
 For the `modularity` objective function, `resolution` values around 1 tend to perform well, so we'll explore a range of values around 1:
 
@@ -166,9 +158,12 @@ res_params <- seq(0.25, 1.5, 0.25)
 res_params
 ```
 
-Now, we're going to use `purrr::map()` to perform clustering for each of these values using `bluster::clusterRows()`.
+Now, we're going to use `purrr::map()` to perform clustering for each of these values using `scran::clusterCells()` which uses `bluster` to perform clustering.
+The `scran::clusterCells()` function takes an SCE object and a specification of which assay or reduced dimension to use for clustering - here, we want to use the PCA reduced dimension, which is a very standard choice for single-cell clustering.
+The other argument that `scran::clusterCells()` takes is `BLUSPARAM`, which will specify the algorithm and any additional algorithm parameters for `bluster` to use.
+This argument is made with a special `bluster` function, for example `bluster::KMeansParam()` or `bluster::NNGraphParam()` which respectively specify k-means clustering and graph-based clustering.
 
-The result will be a list of vectors containing cluster assignments for each cell.
+When we run `purrr::map()` over our different resolution parameters, we'll end up with a list of vectors containing cluster assignments for each cell.
 Before we do this, we'll name our `res_params` vector with the `resolution` values themselves. 
 This will ensure the output from `purrr::map()` is also named according to these resolution parameters, which will help us keep track of which clustering is which!
 
@@ -178,7 +173,7 @@ names(res_params) <- res_params
 ```
 
 Time to cluster!
-To make this code a bit easier to follow, we'll define our clustering parameters first using `bluster::NNGraphParam()`, and then we'll call `bluster::clusterRows()`.
+To make this code a bit easier to follow, we'll define our clustering parameters first using `bluster::NNGraphParam()` for graph-based clustering, and then we'll call `scran::clusterCells()`.
 
 ```{r perform clustering}
 cluster_list <- res_params |>
@@ -200,13 +195,17 @@ cluster_list <- res_params |>
       )
 
       # Perform clustering
-      bluster::clusterRows(pca_matrix, cluster_params)
+      scran::clusterCells(
+        sce, 
+        use.dimred = "PCA", # specify to use the PCA matrix for clustering
+        BLUSPARAM = cluster_params
+      )
     }
   )
 ```
 
 How many clusters were created for each `resolution` parameter?
-The cluster vector created by `bluster::clusterRows()` is a factor, so we can answer this by finding the length of each clustering's levels using `purrr::map()`.
+The cluster vector created by `scran::clusterCells()` is a factor, so we can answer this by finding the length of each clustering's levels using `purrr::map()`.
 
 In the chunk below, use `purrr::map()` to get, for each clustering, the `length()` of its `levels()`.
 
@@ -269,6 +268,12 @@ How does one choose among these potential results?
 ## Part B: Evaluate and compare clustering results
 
 In this section, we'll walk through several metrics to evaluate cluster quality and their interpretations.
+
+Part of evaluating these clusters will involve working directly with the PCA matrix we clustered, so we'll go ahead and pull that out into its own variable called `pca_matrix` for convenience:
+
+```{r extract pca matrix, solution = TRUE}
+
+```
 
 
 ### Silhouette width
@@ -391,7 +396,7 @@ This function returns a capital-D `DataFrame` with one row per cell and the foll
 
 In the chunk below, use `purrr::map()` to calculate the neighborhood purity on each vector of clusters.
 Just like we did for calculating silhouette width, you'll want to coerce the `bluster::neighborPurity()` output into a small-d `data.frame` with row names moved into a new column `barcodes`.
-_Unlike_ for silhouette width though, the `bluster::neighborhoodPurity()` function does not automatically save the cluster assignments to the output data frame, so you'll also want to add a `dplyr::mutate()` statement to ensure there is a `cluster` column in the output.
+_Unlike_ for silhouette width though, the `bluster::neighborPurity()` function does not automatically save the cluster assignments to the output data frame, so you'll also want to add a `dplyr::mutate()` statement to ensure there is a `cluster` column in the output.
 
 Finally, after the `purrr:map()` statement, bind (hint!) all rows together, specifying `.id = "resolution"`, to create one data frame with all results.
 Save this result to `cluster_purity_df`, and print the data frame once you have created it (again, remember that R Markdown will only print 1000 rows, even when there are more!)

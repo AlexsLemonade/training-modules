@@ -55,7 +55,7 @@ library(msigdbr)
 
 #### Directories
 
-```{r create_dir, live = TRUE}
+```{r create_dir}
 # We'll use the differential expression results as GSEA input
 rms_analysis_dir <- file.path("analysis", "rms")
 
@@ -69,9 +69,11 @@ fs::dir_create(results_dir)
 
 
 ```{r input_files}
-input_file <- file.path(rms_analysis_dir,
-                        "deseq",
-                        "rms_myoblast_deseq_results.tsv")
+input_file <- file.path(
+  rms_analysis_dir,
+  "deseq",
+  "rms_myoblast_deseq_results.tsv"
+)
 ```
 
 #### Output files
@@ -79,8 +81,10 @@ input_file <- file.path(rms_analysis_dir,
 We'll save our table of GSEA results as a TSV.
 
 ```{r output_files}
-output_file <- file.path(results_dir,
-                         "rms_myoblast_gsea_results.tsv")
+output_file <- file.path(
+  results_dir,
+  "rms_myoblast_gsea_results.tsv"
+)
 ```
 
 ## Gene sets
@@ -113,11 +117,13 @@ Here's an excerpt of the [collection description](https://www.gsea-msigdb.org/gs
 Notably, there are only 50 gene sets included in this collection.
 The fewer gene sets we test, the lower our multiple hypothesis testing burden.
 
-We can retrieve only the Hallmark gene sets by specifying `category = "H"` to the `msigdbr()` function.
+We can retrieve only the Hallmark gene sets by specifying `collection = "H"` to the `msigdbr()` function.
 
 ```{r immunologic_sets, live = TRUE}
-hs_hallmarks_df <- msigdbr(species = "Homo sapiens",
-                           category = "H")
+hs_hallmarks_df <- msigdbr(
+  species = "Homo sapiens",
+  collection = "H"
+)
 ```
 
 ## Gene Set Enrichment Analysis
@@ -137,7 +143,7 @@ The enrichment score for a pathway is the running sum's maximum deviation from z
 GSEA also assesses statistical significance of the scores for each pathway through permutation testing.
 As a result, each input pathway will have a p-value associated with it that is then corrected for multiple hypothesis testing ([Subramanian _et al._ 2005](https://doi.org/10.1073/pnas.0506580102); [Yu](http://yulab-smu.top/clusterProfiler-book/chapter2.html#gene-set-enrichment-analysis)).
 
-The implementation of GSEA we use in here examples requires a gene list ordered by some statistic and input gene sets.
+The implementation of GSEA we use here requires a gene list ordered by some statistic and input gene sets.
 When you use previously computed gene-level statistics with GSEA, it is called GSEA pre-ranked.
 
 ## DESeq2 results
@@ -167,7 +173,7 @@ You can see an example in this Harvard Chan Bioinformatics Core Training materia
 One good thing about Ensembl gene identifiers is that they are less likely to be duplicated than, for example, gene symbols.
 (Multiple Ensembl gene identifiers can map to the same symbol.)
 
-The GSEA approach requires on discriminating between genes that are in a gene set and those that are not.
+The GSEA approach requires discriminating between genes that are in a gene set and those that are not.
 Practically speaking, gene sets are just collections of gene identifiers!
 When the function we use for GSEA pre-ranked gets a list with duplicated gene identifiers, it can produce unexpected results.
 So, let's check for duplicates in the data frame of DESeq2 results.
@@ -211,20 +217,23 @@ Now for the analysis!
 We can use the `GSEA()` function to perform GSEA with any generic set of gene sets, but there are several functions for using specific, commonly used gene sets (e.g., `gseKEGG()`).
 
 ```{r run_gsea}
-gsea_results <- GSEA(geneList = lfc_vector,  # ordered ranked gene list
-                     minGSSize = 25,  # minimum gene set size
-                     maxGSSize = 500,  # maximum gene set set
-                     pvalueCutoff = 0.05,
-                     pAdjustMethod = "BH",  # correction for multiple hypothesis testing
-                     TERM2GENE = dplyr::select(hs_hallmarks_df,
-                                               gs_name,
-                                               ensembl_gene))  # pass the correct identifier column
+gsea_results <- GSEA(
+  geneList = lfc_vector,  # ordered ranked gene list
+  minGSSize = 25,  # minimum gene set size
+  maxGSSize = 500,  # maximum gene set set
+  pvalueCutoff = 0.05,
+  pAdjustMethod = "BH",  # correction for multiple hypothesis testing
+  TERM2GENE = dplyr::select(hs_hallmarks_df,
+                            gs_name,
+                            ensembl_gene) # pass the correct identifier column
+)  
 ```
 Let's take a look at the GSEA results.
 
 ```{r view_gsea, live = TRUE, eval = FALSE}
-View(gsea_results@result |>
-       dplyr::arrange(dplyr::desc(NES))
+View(
+  gsea_results@result |>
+    dplyr::arrange(dplyr::desc(NES))
 )
 ```
 
@@ -232,10 +241,11 @@ Normalized enrichment scores (NES) are enrichment scores that are scaled to make
 
 Pathways with significant, highly positive NES are enriched in ERMS myoblasts, whereas pathways with significant, highly negative NES are enriched in ARMS myoblasts.
 
-Let's write these results to file.
+Let's write these results to a file.
 
 ```{r write_gsea}
-gsea_results@result |> readr::write_tsv(output_file)
+gsea_results@result |> 
+  readr::write_tsv(output_file)
 ```
 
 ### Visualizing GSEA results
@@ -248,10 +258,12 @@ Let's take a look at 3 different pathways -- one with a highly positive NES, one
 Let's take look at a pathway with a highly positive NES (`HALLMARK_MYC_TARGETS_V2`) using a GSEA plot.
 
 ```{r highly_pos}
-enrichplot::gseaplot(gsea_results,
-                     geneSetID = "HALLMARK_MYC_TARGETS_V2",
-                     title = "HALLMARK_MYC_TARGETS_V2",
-                     color.line = "#0066FF")
+enrichplot::gseaplot(
+  gsea_results,
+  geneSetID = "HALLMARK_MYC_TARGETS_V2",
+  title = "HALLMARK_MYC_TARGETS_V2",
+  color.line = "#0066FF"
+)
 ```
 
 Notice how the genes that are in the gene set, indicated by the black bars, tend to be on the left side of the graph indicating that they have positive gene-level scores.
@@ -261,10 +273,12 @@ Notice how the genes that are in the gene set, indicated by the black bars, tend
 The gene set `HALLMARK_MYOGENESIS` had a highly negative NES.
 
 ```{r highly_neg}
-enrichplot::gseaplot(gsea_results,
-                     geneSetID = "HALLMARK_MYOGENESIS",
-                     title = "HALLMARK_MYOGENESIS",
-                     color.line = "#0066FF")
+enrichplot::gseaplot(
+  gsea_results,
+  geneSetID = "HALLMARK_MYOGENESIS",
+  title = "HALLMARK_MYOGENESIS",
+  color.line = "#0066FF"
+)
 ```
 
 This gene set shows the opposite pattern -- genes in the pathway tend to be on the right side of the graph.
@@ -275,10 +289,12 @@ The `@results` slot will only show gene sets that pass the `pvalueCutoff` thresh
 Let's look at `HALLMARK_P53_PATHWAY`, which was not in the results we viewed earlier.
 
 ```{r p53, live = TRUE}
-enrichplot::gseaplot(gsea_results,
-                     geneSetID = "HALLMARK_P53_PATHWAY",
-                     title = "HALLMARK_P53_PATHWAY",
-                     color.line = "#0066FF")
+enrichplot::gseaplot(
+  gsea_results,
+  geneSetID = "HALLMARK_P53_PATHWAY",
+  title = "HALLMARK_P53_PATHWAY",
+  color.line = "#0066FF"
+)
 ```
 
 Genes in the pathway are distributed more evenly throughout the ranked list, resulting in a more "middling" score.

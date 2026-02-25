@@ -36,3 +36,6 @@ library(scDblFinder)
 
 # Loom file format functions for Single Cell data
 library(LoomExperiment)
+
+# Needed for SingleR to run de with wilcox, for cell type exercises
+library(scrapper)
