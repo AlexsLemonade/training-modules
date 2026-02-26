@@ -37,6 +37,7 @@ library(SpatialExperiment)
 
 # To support plotting
 library(patchwork)
+# library(eurlerr) TODO: uncomment (needs to be loaded since it uses plot())
 
 # Set ggplot2 theme
 ggplot2::theme_set(ggplot2::theme_bw())
@@ -430,7 +431,7 @@ We'll detect local outliers based using `SpotSweeper::localOutliers()` which tak
   - logging "detected" and "sum" is often recommended because these distributions are unbounded and span orders of magnitude
   - logging "mitochondrial" is not often recommended because it's bounded `[0,100]` and logging percentages can distort the distribution
 - `cutoff`: Threshold for identifying outliers; Default is 3, meaning 3 standard deviations from the mean (think z-scores)
-  - Can make this higher to be more stringent, lower to be less stringent, but don't go too high or low or you're not detecting outliers anymore
+  - Can make this lower to be more strict (more spots will get removed), lower to be less strict (more tolerant of outliers), but don't go too high or low or you're not really detecting outliers anymore
 - `workers`: Number of cores for parallel processing; Default is 1
 
 This function returns an `SPE` object with added `colData` columns we can use to find all the local outliers.
@@ -524,62 +525,124 @@ log_plot + z_plot
 Here, we can see how spots are distributed across the slide.
 What patterns do you see between these plots?
 
-**TODO: I don't know how I feel about including the next chunk - who has thoughts? Leaning heavily much towards removing it, but I wanted to include for now in case it sparks an idea during review!** 
+
 How would this have changed if shifted the neighborhood size?
 To not clutter up our existing object, we'll save to new objects and plot as a exploration to learn about neighborhood size.
 
-```{r spotsweeper-sum-compare-k}
-#| fig.width = 8
+```{r spotsweeper-large-k}
+#| fig.width: 10
+#| message: FALSE
 
-# Detect outliers with a very large neighborhood
-filtered_spe_large_neighborhood <- SpotSweeper::localOutliers(
+# Detect outliers with a very large neighborhood and make associated plot
+filtered_spe_n100 <- SpotSweeper::localOutliers(
   filtered_spe, 
   metric = "sum", 
   direction = "lower", 
-  n_neighbors = 1000, 
+  n_neighbors = 100, 
   log = TRUE,
   cutoff = 3
 )
+outlier_plot_n100 <- SpotSweeper::plotQCmetrics(
+  filtered_spe_n100, 
+  metric = "sum_log",
+  outliers = "sum_outliers", 
+  stroke = 0.75 
+) +
+  ggplot2::scale_fill_viridis_c() +
+  ggplot2::ggtitle("neighborhood k = 100")
 
 
-filtered_spe_small_neighborhood <- SpotSweeper::localOutliers(
+# Detect outliers with a very small neighborhood and make associated plot
+filtered_spe_n10 <- SpotSweeper::localOutliers(
   filtered_spe, 
   metric = "sum", 
   direction = "lower", 
-  n_neighbors = 5, 
+  n_neighbors = 10, 
   log = TRUE,
   cutoff = 3
 )
-
-
-large_plot <- SpotSweeper::plotQCmetrics(
-  filtered_spe_large_neighborhood, 
-  metric = "sum_z",
-  outliers = "sum_outliers", 
-  colors = c("blue", "yellow")
+outlier_plot_n10 <- SpotSweeper::plotQCmetrics(
+  filtered_spe_n10, 
+  metric = "sum_log",
+  outliers = "sum_outliers",
+  stroke = 0.75 
 ) +
-  ggplot2::ggtitle("neighborhood k = 1000")
+  ggplot2::scale_fill_viridis_c() +
+  ggplot2::ggtitle("neighborhood k = 10")
 
-small_plot <- SpotSweeper::plotQCmetrics(
-  filtered_spe_small_neighborhood, 
-  metric = "sum_z",
-  outliers = "sum_outliers", 
-  colors = c("blue", "yellow"), 
-) +
-  ggplot2::ggtitle("neighborhood k = 5")
 
-large_plot + small_plot
+# Plot outliers detected with different neighborhood sizes
+outlier_plot_n100 + outlier_plot_n10
+```
+We can see the relationship more clearly with some scatterplots:
+
+```{r neighborhood-size-scatterplots}
+#| fig.width: 10
+#| fig.height: 5
+
+# Extract data frames for each object
+n100_spe <- colData(filtered_spe_n100) |>
+  as.data.frame()
+n10_spe <- colData(filtered_spe_n10) |>
+  as.data.frame()
+
+# Plot sum_z against sum_log for each object
+scatter_n100 <- ggplot2::ggplot(n100_spe) + 
+  ggplot2::aes(
+    x = sum_log,
+    y = sum_z,
+    color = sum_outliers
+  ) +
+  ggplot2::geom_point(alpha = 0.5) + 
+  ggplot2::geom_hline(yintercept = -3, color = "red") + 
+  ggplot2::ggtitle("k = 100")
+
+
+scatter_n10 <- ggplot2::ggplot(n10_spe) + 
+  ggplot2::aes(
+    x = sum_log,
+    y = sum_z,
+    color = sum_outliers
+  ) +
+  ggplot2::geom_point(alpha = 0.5) + 
+  ggplot2::geom_hline(yintercept = -3, color = "red") + 
+  ggplot2::ggtitle("k = 10")
+
+# Plot together with patchwork, with a single shared legend
+scatter_n100 + scatter_n10 + patchwork::plot_layout(guides = "collect")
 ```
 
+We can also compares the z-scores directly:
+
+```{r sum-z-scatterplots}
+compare_z_df <- data.frame(
+    n100 = n100_spe$sum_z, 
+    n10 = n10_spe$sum_z, 
+    sum_log = n10_spe$sum_log
+  )
+
+ggplot2::ggplot(compare_z_df) + 
+  ggplot2::aes(x = n100, y = n10, color = sum_log) +
+  ggplot2::geom_point(alpha = 0.5) + 
+  ggplot2::labs(
+    x = "k = 100 sum_z", 
+    y = "k = 10 sum_z"
+  ) + 
+  ggplot2::geom_hline(yintercept = -3, color = "red") +
+  ggplot2::geom_vline(xintercept = -3, color = "red") +
+  ggplot2::theme(aspect.ratio = 1)
+```
+The top right quadrant shows spots that both neighborhood sizes retain, and the bottom left quadrant shows spots that both neighborhood sizes will filter out.
+The top left shows spots that will only be filtered out for `k = 100`, and the bottom right shows spots that will only be filtered out for `k = 10`.
+
 Some spots are the same, but a lot are not! 
-Note that for a high k, we are starting to identify tissue regions because we are getting closer to a global view. 
-But for a low k, we are assuming a _ton_ of local structure. 
+What do we think?
 
 The point is, changing the cutoff or changing the neighborhood size will influence which spots are flagged for removal - plot your data!
 If you have specific biological intuition about how much variation you expect in the tissue, you might want to use that to inform cutoffs and the neighborhood size, and it's ok to explore.
 
-Back on track: let's do the same outlier detection for `detected` and `subsets_mito_percent`, but for the mitochondrial statistic let's use a more stringent cutoff since we know that values are low across the board here.
-**TODO: probably add more intermediate exploration of each filter?**
+
+Let's get back on track: let's do the same outlier detection for `detected` and `subsets_mito_percent`, again using the default cutoff of 3 with the default neighborhood size of 36.
 
 
 ```{r spotsweeper-detected, live = TRUE}
@@ -593,9 +656,9 @@ filtered_spe <- SpotSweeper::localOutliers(
 SpotSweeper::plotQCmetrics(
   filtered_spe, 
   metric = "detected_log",
-  outliers = "detected_outliers", 
-  colors = c("blue", "yellow")
-) 
+  outliers = "detected_outliers"
+) +
+  ggplot2::scale_fill_viridis_c()
 ```
 
 
@@ -607,26 +670,49 @@ filtered_spe <- SpotSweeper::localOutliers(
   metric = "subsets_mito_percent", 
   direction = "higher", # we want to remove HIGHER values 
   log = FALSE, # don't log, already bounded
-  cutoff = 5 # make this one really strict since we already know mito % is low everywhere
+  cutoff = 3
 )
 
 SpotSweeper::plotQCmetrics(
   filtered_spe, 
   metric = "subsets_mito_percent", # not log!
   outliers = "subsets_mito_percent_outliers", 
-  colors = c("blue", "yellow")
-) 
+) +
+  ggplot2::scale_fill_viridis_c()
 ```
 
 
 How many of each kind of outlier?
 
 ```{r count-local-outliers}
-c("sum_outliers", "detected_outliers", "subsets_mito_percent_outliers") |>
-  purrr::set_names() |>
-  purrr::map(\(outlier_column) {
-    table(filtered_spe[[outlier_column]])
-  })
+outliers_df <- colData(filtered_spe) |>
+  as.data.frame() |>
+  dplyr::select(ends_with("_outliers"))
+
+outliers_df |>
+  dplyr::summarize(
+    sum_outlier_count = sum(sum_outliers),
+    detected_outlier_count = sum(detected_outliers),
+    mito_outlier_count = sum(subsets_mito_percent_outliers)
+  )
+```
+
+Let's visualize how these outliers relate to one another with a proportional Venn Diagram, using the `eulerr` package to help us:
+
+```{r outliers-venn-diagram}
+#| eval: FALSE 
+
+# TODO: EVAL THIS CHUNK ONCE THE PACKAGE GOES IN
+eulerr_data <- eulerr::euler(outliers_df)
+
+plot(
+  eulerr_data, 
+  quantities = TRUE, 
+  # TODO: Can pick a style in review
+  legend = TRUE,
+  labels = TRUE,
+  fills = c("#F0E442", "#56B4E9", "#009E73")
+)
 ```
 
 Let's go ahead and filter all these spots out:
@@ -647,7 +733,7 @@ filtered_spe <- filtered_spe[, filtered_spe$local_outliers == FALSE]
 filtered_spe
 ```
 
-From the full set of 4992 spots, we are left with 4210 spots that both overlap tissue and don't have obvious quality issues. 
+From the full set of 4992 spots, we are left with 4149 spots that both overlap tissue and don't have obvious quality issues. 
 
 
 ## Normalization
