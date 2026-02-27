@@ -37,7 +37,6 @@ library(SpatialExperiment)
 
 # To support plotting
 library(patchwork)
-# library(eurlerr) TODO: uncomment (needs to be loaded since it uses plot())
 
 # Set ggplot2 theme
 ggplot2::theme_set(ggplot2::theme_bw())
@@ -479,11 +478,11 @@ ggplot2::ggplot(filtered_spe_coldata) +
   ) +
   ggplot2::geom_point(alpha = 0.5) + 
   # add guiding line at outlier cutoff
-  ggplot2::geom_hline(yintercept = -3, color = "red")
+  ggplot2::geom_hline(yintercept = -3, color = "blue")
 ```
 
 Based on this metric, most spots are not outliers, and while most are fairly close to the 3 cutoff, several are are more extreme outliers!
-We also gain some insight about how global vs local filtering.
+We also gain some insight about how global vs local filtering would play out.
 Let's imagine we did global filtering with a threshold of 500, whose log is 6.21.
 Looking at the x-axis here, that means we would only have removed three spots.
 But with local filtering, we are catching additional spots that deviate from their local neighborhood and filtering a few more out, but on the whole this dataset seems to be fairly good quality so it's not a ton.
@@ -499,7 +498,7 @@ When using this function, the point color is a "fill" aesthetic (which can be cu
 #| fig.width: 10
 #| message: FALSE
 
-log_plot <- SpotSweeper::plotQCmetrics(
+sum_log_plot <- SpotSweeper::plotQCmetrics(
   filtered_spe, 
   metric = "sum_log", # how to *fill* spots
   outliers = "sum_outliers", # which spots to *color* with an outline
@@ -510,7 +509,7 @@ log_plot <- SpotSweeper::plotQCmetrics(
   ggplot2::ggtitle("Log of total UMI")
 
 
-z_plot <- SpotSweeper::plotQCmetrics(
+sum_z_plot <- SpotSweeper::plotQCmetrics(
   filtered_spe, 
   metric = "sum_z", # how to *fill* spots
   outliers = "sum_outliers", # which spots to *color* with an outline
@@ -520,27 +519,26 @@ z_plot <- SpotSweeper::plotQCmetrics(
   ggplot2::scale_fill_viridis_c() +
   ggplot2::ggtitle("Local z-score for total UMI")
 
-log_plot + z_plot
+sum_log_plot + sum_z_plot
 ```
 Here, we can see how spots are distributed across the slide.
-What patterns do you see between these plots?
+Are there spots you would expect to be flagged for filtering based on the `sum_log` plot?
+Are there spots you might not have expected to be filtered based on the `sum_log` plot?
 
-
-How would this have changed if shifted the neighborhood size?
+One key parameter that this relies on is the "neighborhood size" (`n_neighbors` argument).
+How would this have changed if we shifted the neighborhood size?
 To not clutter up our existing object, we'll save to new objects and plot as a exploration to learn about neighborhood size.
 
-```{r spotsweeper-large-k}
+```{r spotsweeper-compare-k}
 #| fig.width: 10
 #| message: FALSE
 
-# Detect outliers with a very large neighborhood and make associated plot
+# Detect outliers with a large neighborhood and make associated plot
 filtered_spe_n100 <- SpotSweeper::localOutliers(
   filtered_spe, 
   metric = "sum", 
   direction = "lower", 
-  n_neighbors = 100, 
-  log = TRUE,
-  cutoff = 3
+  n_neighbors = 100
 )
 outlier_plot_n100 <- SpotSweeper::plotQCmetrics(
   filtered_spe_n100, 
@@ -552,14 +550,12 @@ outlier_plot_n100 <- SpotSweeper::plotQCmetrics(
   ggplot2::ggtitle("neighborhood k = 100")
 
 
-# Detect outliers with a very small neighborhood and make associated plot
+# Detect outliers with a small neighborhood and make associated plot
 filtered_spe_n10 <- SpotSweeper::localOutliers(
   filtered_spe, 
   metric = "sum", 
   direction = "lower", 
-  n_neighbors = 10, 
-  log = TRUE,
-  cutoff = 3
+  n_neighbors = 10
 )
 outlier_plot_n10 <- SpotSweeper::plotQCmetrics(
   filtered_spe_n10, 
@@ -574,7 +570,13 @@ outlier_plot_n10 <- SpotSweeper::plotQCmetrics(
 # Plot outliers detected with different neighborhood sizes
 outlier_plot_n100 + outlier_plot_n10
 ```
-We can see the relationship more clearly with some scatterplots:
+There's definitely some overlap, but also spots that are only filtered out for one of these neighborhood sizes.
+In particular, the spot on the top left: With a large neighborhood, its low value is an outlier, but with a small neighborhood it is not and outlier because the immediately surrounding spots are also lower.
+
+
+**TODO: too many scatterplots probably, anyone have a preference?**
+
+We can also see some of these differences with scatterplots:
 
 ```{r neighborhood-size-scatterplots}
 #| fig.width: 10
@@ -595,7 +597,7 @@ scatter_n100 <- ggplot2::ggplot(n100_spe) +
   ) +
   ggplot2::geom_point(alpha = 0.5) + 
   ggplot2::geom_hline(yintercept = -3, color = "red") + 
-  ggplot2::ggtitle("k = 100")
+  ggplot2::ggtitle("n_neighbors = 100")
 
 
 scatter_n10 <- ggplot2::ggplot(n10_spe) + 
@@ -606,7 +608,7 @@ scatter_n10 <- ggplot2::ggplot(n10_spe) +
   ) +
   ggplot2::geom_point(alpha = 0.5) + 
   ggplot2::geom_hline(yintercept = -3, color = "red") + 
-  ggplot2::ggtitle("k = 10")
+  ggplot2::ggtitle("n_neighbors = 10")
 
 # Plot together with patchwork, with a single shared legend
 scatter_n100 + scatter_n10 + patchwork::plot_layout(guides = "collect")
@@ -614,7 +616,7 @@ scatter_n100 + scatter_n10 + patchwork::plot_layout(guides = "collect")
 
 We can also compares the z-scores directly:
 
-```{r sum-z-scatterplots}
+```{r sum-z-scatterplot}
 compare_z_df <- data.frame(
     n100 = n100_spe$sum_z, 
     n10 = n10_spe$sum_z, 
@@ -625,38 +627,41 @@ ggplot2::ggplot(compare_z_df) +
   ggplot2::aes(x = n100, y = n10, color = sum_log) +
   ggplot2::geom_point(alpha = 0.5) + 
   ggplot2::labs(
-    x = "k = 100 sum_z", 
-    y = "k = 10 sum_z"
+    x = "n_neighbors = 100", 
+    y = "n_neighbors = 10", 
+    title = "sum_z scores"
   ) + 
   ggplot2::geom_hline(yintercept = -3, color = "red") +
   ggplot2::geom_vline(xintercept = -3, color = "red") +
   ggplot2::theme(aspect.ratio = 1)
 ```
 The top right quadrant shows spots that both neighborhood sizes retain, and the bottom left quadrant shows spots that both neighborhood sizes will filter out.
-The top left shows spots that will only be filtered out for `k = 100`, and the bottom right shows spots that will only be filtered out for `k = 10`.
+The top left shows spots that will only be filtered out for `n_neighbors = 100`, and the bottom right shows spots that will only be filtered out for `n_neighbors = 10`.
 
-Some spots are the same, but a lot are not! 
-What do we think?
 
 The point is, changing the cutoff or changing the neighborhood size will influence which spots are flagged for removal - plot your data!
 If you have specific biological intuition about how much variation you expect in the tissue, you might want to use that to inform cutoffs and the neighborhood size, and it's ok to explore.
 
 
-Let's get back on track: let's do the same outlier detection for `detected` and `subsets_mito_percent`, again using the default cutoff of 3 with the default neighborhood size of 36.
+Let's get back on track: let's do the same outlier detection for `detected` and `subsets_mito_percent`, and we'll proceed with the default cutoff of 3 with the default neighborhood size of 36.
 
 
 ```{r spotsweeper-detected, live = TRUE}
 #| fig.width: 7
 
+# Calculate local outliers for the `detected` metric
 filtered_spe <- SpotSweeper::localOutliers(
   filtered_spe, 
   metric = "detected", 
   direction = "lower"
 )
+
+# Plot the slide showing outliers
 SpotSweeper::plotQCmetrics(
   filtered_spe, 
   metric = "detected_log",
-  outliers = "detected_outliers"
+  outliers = "detected_outliers", 
+  stroke = 0.75
 ) +
   ggplot2::scale_fill_viridis_c()
 ```
@@ -665,30 +670,37 @@ SpotSweeper::plotQCmetrics(
 ```{r spotsweeper-mito, live = TRUE}
 #| fig.width: 7
 
+# Calculate local outliers for the `subsets_mito_percent` metric
 filtered_spe <- SpotSweeper::localOutliers(
   filtered_spe, 
   metric = "subsets_mito_percent", 
   direction = "higher", # we want to remove HIGHER values 
-  log = FALSE, # don't log, already bounded
+  log = FALSE, # don't log
   cutoff = 3
 )
 
+# Plot the slide showing outliers
 SpotSweeper::plotQCmetrics(
   filtered_spe, 
-  metric = "subsets_mito_percent", # not log!
+  metric = "subsets_mito_percent",
   outliers = "subsets_mito_percent_outliers", 
+  stroke = 0.75
 ) +
-  ggplot2::scale_fill_viridis_c()
+  # switch palette direction to make outliers are darker colors, matching other plots
+  ggplot2::scale_fill_viridis_c(direction = -1)
 ```
+Even though mitochondrial percentages are fairly low across all spots, this approach helps us find spots that are abberantly low within their neighborhood, all of which we would miss with global filtering (where we might pick a threshold of 15-25% for single-cell data).
 
 
-How many of each kind of outlier?
+Now that we've calculated all this, how many of each kind of outlier are there?
 
 ```{r count-local-outliers}
+# Prepare data frame to count outliers
 outliers_df <- colData(filtered_spe) |>
   as.data.frame() |>
   dplyr::select(ends_with("_outliers"))
 
+# Count total outliers for each metric: The total TRUE values in the `sum_` columns
 outliers_df |>
   dplyr::summarize(
     sum_outlier_count = sum(sum_outliers),
@@ -700,15 +712,19 @@ outliers_df |>
 Let's visualize how these outliers relate to one another with a proportional Venn Diagram, using the `eulerr` package to help us:
 
 ```{r outliers-venn-diagram}
-#| eval: FALSE 
-
-# TODO: EVAL THIS CHUNK ONCE THE PACKAGE GOES IN
-eulerr_data <- eulerr::euler(outliers_df)
+eulerr_data <- outliers_df |>
+  # reorder & rename columns columns for display
+  dplyr::select(
+    mito_percent = subsets_mito_percent_outliers, 
+    detected = detected_outliers, 
+    sum = sum_outliers
+  ) |>
+  # venn diagram calculations
+  eulerr::euler()
 
 plot(
   eulerr_data, 
   quantities = TRUE, 
-  # TODO: Can pick a style in review
   legend = TRUE,
   labels = TRUE,
   fills = c("#F0E442", "#56B4E9", "#009E73")
