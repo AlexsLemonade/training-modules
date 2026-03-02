@@ -274,13 +274,12 @@ filtered_spe <- spe[, spe$in_tissue == 1]
 filtered_spe
 ```
 
-
-Now, we're down to 4120 spots from the original 4992, but that's still a pretty good amount. 
+Now, we're down to 4210 spots from the original 4992, but that's still a pretty good amount. 
 But not all of these spots are necessarily good quality, so we'll want to do some additional QC filtering next.
 
 ## Filtering low-quality spots
 
-### Filtering with global QC thresholds
+### Exploring global QC thresholds
 
 As a first step towards filtering, we can borrow some approaches from scRNA-seq and calculate some quality-control measures. 
 Let's do that and have a look - we'll get our mitochondrial genes for QC calculations and we'll use `scran::addPerCellQC()` like we might for single-cell (except here it adds per spot).
@@ -476,12 +475,10 @@ ggplot2::ggplot(filtered_spe_coldata) +
     y = sum_z,
     color = sum_outliers
   ) +
-  ggplot2::geom_point(alpha = 0.5) + 
-  # add guiding line at outlier cutoff
-  ggplot2::geom_hline(yintercept = -3, color = "blue")
+  ggplot2::geom_point(alpha = 0.5)
 ```
 
-Based on this metric, most spots are not outliers, and while most are fairly close to the 3 cutoff, several are are more extreme outliers!
+Based on this metric, most spots are not outliers, and while most of the spots classified as outliers are fairly close to the 3 cutoff, several are are more extreme outliers!
 We also gain some insight about how global vs local filtering would play out.
 Let's imagine we did global filtering with a threshold of 500, whose log is 6.21.
 Looking at the x-axis here, that means we would only have removed three spots.
@@ -532,7 +529,7 @@ One key parameter that this relies on is the "neighborhood size" (`n_neighbors` 
 How would this have changed if we shifted the neighborhood size?
 To not clutter up our existing object, we'll save to new objects and plot as a exploration to learn about neighborhood size.
 
-```{r spotsweeper-compare-k}
+```{r spotsweeper-compare-n-neighbors}
 #| fig.width: 10
 #| message: FALSE
 
