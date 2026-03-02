@@ -492,9 +492,10 @@ We'll use a plotting function from `SpotSweeper`, `SpotSweeper::plotQCmetrics()`
 Well plot the `sum_log` side-by-side with `sum_z` to compare.
 
 Tip!
-When using this function, the point color is a "fill" aesthetic (which can be customized), and the point outline is a "color" aesthetic (the color of which is quite finicky to customize so we'll leave that alone, but we can customize its `linewidth` parameter).
+When using this function, the point color is a "fill" aesthetic (which can be customized), and the point outline is a "color" aesthetic.
+This insight will help us to customize the plot colors
 
-```{r spotsweeper-plotqc-sum, live = TRUE}
+```{r spotsweeper-plotqc-sum}
 #| fig.width: 10
 #| message: FALSE
 
@@ -505,7 +506,9 @@ sum_log_plot <- SpotSweeper::plotQCmetrics(
   stroke = 0.75 # size of outline
 ) +
   # customize the palette for filling spots
-  ggplot2::scale_fill_distiller(palette = "Blues") +
+  ggplot2::scale_fill_viridis_c(option = "magma") +
+  # customize the outlier outline
+  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
   ggplot2::ggtitle("Log of total UMI")
 
 
@@ -514,9 +517,9 @@ sum_z_plot <- SpotSweeper::plotQCmetrics(
   metric = "sum_z", # how to *fill* spots
   outliers = "sum_outliers", # which spots to *color* with an outline
   stroke = 0.75 # size of outline
-
 ) +
   ggplot2::scale_fill_viridis_c() +
+  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
   ggplot2::ggtitle("Local z-score for total UMI")
 
 sum_log_plot + sum_z_plot
@@ -547,6 +550,7 @@ outlier_plot_n100 <- SpotSweeper::plotQCmetrics(
   stroke = 0.75 
 ) +
   ggplot2::scale_fill_viridis_c() +
+  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
   ggplot2::ggtitle("neighborhood k = 100")
 
 
@@ -564,6 +568,7 @@ outlier_plot_n10 <- SpotSweeper::plotQCmetrics(
   stroke = 0.75 
 ) +
   ggplot2::scale_fill_viridis_c() +
+  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
   ggplot2::ggtitle("neighborhood k = 10")
 
 
@@ -663,6 +668,7 @@ SpotSweeper::plotQCmetrics(
   outliers = "detected_outliers", 
   stroke = 0.75
 ) +
+  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
   ggplot2::scale_fill_viridis_c()
 ```
 
@@ -687,7 +693,9 @@ SpotSweeper::plotQCmetrics(
   stroke = 0.75
 ) +
   # switch palette direction to make outliers are darker colors, matching other plots
-  ggplot2::scale_fill_viridis_c(direction = -1)
+  ggplot2::scale_fill_viridis_c(direction = -1) +
+  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent"))
+
 ```
 Even though mitochondrial percentages are fairly low across all spots, this approach helps us find spots that are aberrantly low within their neighborhood, all of which we would miss with global filtering (where we might pick a threshold of 15-25% for single-cell data).
 
