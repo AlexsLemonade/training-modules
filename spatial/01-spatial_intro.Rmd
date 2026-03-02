@@ -213,7 +213,7 @@ ggspavis::plotVisium(
 ) 
 ```
 
-TODO: save this text for when we actually plot genes?
+**TODO: save this text for when we actually plot genes?**
 Let's take a moment to chat about Wilms Tumor - these tumors in the developing kidney are often composed of a couple histologic compartments, blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
 In this tissue section, we can see two major components: the bluer indicating densely cellular, ECM-poor regions consistent with blastema, and paler pink regions consistent with stromal tissue.
 
@@ -575,73 +575,37 @@ outlier_plot_n10 <- SpotSweeper::plotQCmetrics(
 # Plot outliers detected with different neighborhood sizes
 outlier_plot_n100 + outlier_plot_n10
 ```
+
 There's definitely some overlap, but also spots that are only filtered out for one of these neighborhood sizes.
-In particular, the spot on the top left: With a large neighborhood, its low value is an outlier, but with a small neighborhood it is not and outlier because the immediately surrounding spots are also lower.
+In particular, the spot on the top left: With a large neighborhood, its low value is an outlier, but with a small neighborhood it is not an outlier because the immediately surrounding spots are also lower.
 
-
-**TODO: too many scatterplots probably, anyone have a preference?**
-
-We can also see some of these differences with scatterplots:
-
-```{r neighborhood-size-scatterplots}
-#| fig.width: 10
-#| fig.height: 5
-
-# Extract data frames for each object
-n100_spe <- colData(filtered_spe_n100) |>
-  as.data.frame()
-n10_spe <- colData(filtered_spe_n10) |>
-  as.data.frame()
-
-# Plot sum_z against sum_log for each object
-scatter_n100 <- ggplot2::ggplot(n100_spe) + 
-  ggplot2::aes(
-    x = sum_log,
-    y = sum_z,
-    color = sum_outliers
-  ) +
-  ggplot2::geom_point(alpha = 0.5) + 
-  ggplot2::geom_hline(yintercept = -3, color = "red") + 
-  ggplot2::ggtitle("n_neighbors = 100")
-
-
-scatter_n10 <- ggplot2::ggplot(n10_spe) + 
-  ggplot2::aes(
-    x = sum_log,
-    y = sum_z,
-    color = sum_outliers
-  ) +
-  ggplot2::geom_point(alpha = 0.5) + 
-  ggplot2::geom_hline(yintercept = -3, color = "red") + 
-  ggplot2::ggtitle("n_neighbors = 10")
-
-# Plot together with patchwork, with a single shared legend
-scatter_n100 + scatter_n10 + patchwork::plot_layout(guides = "collect")
-```
-
-We can also compares the z-scores directly:
+We can also see this difference by plotting the `sum_z` for each neighborhood size against each other on a scatterplot, coloring the global `sum_log`. 
 
 ```{r sum-z-scatterplot}
+# create data frame for plotting
 compare_z_df <- data.frame(
-    n100 = n100_spe$sum_z, 
-    n10 = n10_spe$sum_z, 
-    sum_log = n10_spe$sum_log
+    n100_sum_z = filtered_spe_n100$sum_z, 
+    n10_sum_z = filtered_spe_n10$sum_z, 
+    # both versions have same value here since it's a global stat 
+    sum_log = filtered_spe_n10$sum_log
   )
 
 ggplot2::ggplot(compare_z_df) + 
-  ggplot2::aes(x = n100, y = n10, color = sum_log) +
-  ggplot2::geom_point(alpha = 0.5) + 
+  ggplot2::aes(x = n100_sum_z, y = n10_sum_z, color = sum_log) +
+  ggplot2::geom_point(alpha = 0.6) + 
   ggplot2::labs(
     x = "n_neighbors = 100", 
     y = "n_neighbors = 10", 
-    title = "sum_z scores"
+    title = "sum_z scores between neighorbhood sizes"
   ) + 
-  ggplot2::geom_hline(yintercept = -3, color = "red") +
-  ggplot2::geom_vline(xintercept = -3, color = "red") +
+  ggplot2::geom_hline(yintercept = -3, color = "blue") +
+  ggplot2::geom_vline(xintercept = -3, color = "blue") +
+  ggplot2::scale_color_viridis_c(option = "magma") +
   ggplot2::theme(aspect.ratio = 1)
 ```
 The top right quadrant shows spots that both neighborhood sizes retain, and the bottom left quadrant shows spots that both neighborhood sizes will filter out.
 The top left shows spots that will only be filtered out for `n_neighbors = 100`, and the bottom right shows spots that will only be filtered out for `n_neighbors = 10`.
+Note there's at least one pretty low `sum_log` value retained in both versions.
 
 
 The point is, changing the cutoff or changing the neighborhood size will influence which spots are flagged for removal - plot your data!
