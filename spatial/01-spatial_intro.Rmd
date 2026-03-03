@@ -760,17 +760,17 @@ norm_spe
 ```
 
 
-## Exploring marker gene expression
+## Exploring gene expression
 
 Finally, the moment you've all been waiting for: pretty plots!
-Even though spots aren't exactly cells, we can still color by gene expression to get a general sense of patterns in our sample.
+Even though spots aren't exactly cells, we can still color by expression of genes of interest to get a general sense of patterns in our sample.
 As a reminder, here's the H&E:
 
 ```{r show-he}
 he_plot
 ```
 Wilms Tumors are often composed of a couple histologic compartments: blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
-We can see some of this biology reflected in this tissue section that appears to have these two major components: bluer regions indicating ECM-poor areas with high cellular density consistent with blastemal biology, and paler pink regions consistent with stromal tissue.
+We can see some of this biology reflected in this tissue section that appears to have these two major components: bluer regions indicating ECM-poor areas with high cellular density consistent with blastemal biology, and paler pink regions consistent with stromal tissue that may have an endothelial presence.
 
 We've picked out a couple genes of interest to color by:
 
@@ -785,8 +785,8 @@ We've picked out a couple genes of interest to color by:
 | `PECAM1`  | epithelial compartment marker                |
 
 
-```{r define-goi}
-marker_genes <- c(
+```{r define-gois}
+goi_list <- c(
   "WT1" = "ENSG00000184937",
   "SIX1" = "ENSG00000126778",
   "MYCN" = "ENSG00000134323",
@@ -806,13 +806,13 @@ gene_index <- 1
 wt1_plot <- ggspavis::plotCoords(
   norm_spe, 
   # name of variable to color by
-  annotate = marker_genes[gene_index],
+  annotate = goi_list[gene_index],
   # counts are plotted by default, so we need to override this
   assay = "logcounts", 
   point_size = 1
 ) + 
   ggplot2::scale_color_viridis_c() +
-  ggplot2::labs(title = names(marker_genes[gene_index]))
+  ggplot2::labs(title = names(goi_list[gene_index]))
 
 # plot alongside H&E
 he_plot + wt1_plot
@@ -834,13 +834,13 @@ gene_index <- 5
 col1a1_plot <- ggspavis::plotCoords(
   norm_spe, 
   # name of variable to color by
-  annotate = marker_genes[gene_index],
+  annotate = goi_list[gene_index],
   # counts are plotted by default, so we need to override this
   assay = "logcounts", 
   point_size = 1
 ) + 
   ggplot2::scale_color_viridis_c() +
-  ggplot2::labs(title = names(marker_genes[gene_index]))
+  ggplot2::labs(title = names(goi_list[gene_index]))
 
 he_plot + col1a1_plot
 ```
@@ -850,7 +850,7 @@ Did you expect this based on the H&E?
 
 
 Finally, choose your own adventure! 
-We have a few more genes listed in the table, take a moment to plot one below.
+We have a few more genes listed in the table, take a moment to plot one (or more!) below.
 Do you see any spatial structure that seems consistent with the H&E? 
 Different from the H&E?
 Are there regions of shared expression among genes, and would you expect that based on WT biology?
@@ -868,7 +868,7 @@ Let's use some `purrr` magic to plot this all at once!
 #| message: false
 #| fig.width: 10
 
-plot_list <- marker_genes |>
+plot_list <- goi_list |>
   # map over value and name at once
   purrr::imap(
     \(ensembl_id, gene_name) {
