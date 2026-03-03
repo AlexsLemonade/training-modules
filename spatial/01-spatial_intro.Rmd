@@ -727,10 +727,40 @@ filtered_spe <- filtered_spe[, filtered_spe$local_outliers == FALSE]
 # print resulting SPE
 filtered_spe
 ```
+
 After removing these additional 61 spots, we are left with 4149 spots that both overlap tissue and don't have obvious quality issues.
 
 
 ## Normalization
+
+We'll proceed to normalize counts.
+In single-cell data, we often use a deconvolution approach which does a quick clustering, calculates a scaling factor for each cluster, and then performs normalization using the cell's associated scaling factor. 
+But, this isn't quite what we want for spot data since Visium spots are heterogeneous compositions of 1-10 cells.
+So, we'll instead use a "library size normalization approach" which treats each spot independently using the `scuttle` package. 
+
+It's worth noting this approach doesn't take spatial information directly into account; there are some approaches out there which account for spatial information, but this aspect of analysis seems to be pretty in flux. 
+
+```{r calculate-size-factors, live = TRUE}
+# calculate size factors
+filtered_spe <- scuttle::computeLibraryFactors(filtered_spe)
+
+
+# TODO: do we need? can't hurt. tiny potatoes.
+# view size factors
+head(colData(filtered_spe))
+```
+
+
+```{r normalize-spe, live = TRUE}
+# perform normalization
+norm_spe <- scuttle::logNormCounts(filtered_spe)
+
+# view normalized SPE
+norm_spe
+```
+
+
+
 
 ## Exploring marker gene expression
 
