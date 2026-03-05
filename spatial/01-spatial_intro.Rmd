@@ -772,7 +772,85 @@ he_plot
 Wilms Tumors are often composed of a couple histologic compartments: blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
 We can see some of this biology reflected in this tissue section that appears to have these two major components: bluer regions indicating ECM-poor areas with high cellular density consistent with blastemal biology, and paler pink regions consistent with stromal tissue that may have an endothelial presence.
 
-We've picked out a couple genes of interest to color by:
+Let's see if we can detect regions that might represent these compartments using marker gene expression.
+For this, we'll plot expression using `ggpsavis::plotCoords()` for two genes:
+
+* `WT1`: A transcription factor that regulates kidney development.
+We expect this gene to be highly expressed in Wilms Tumor blastemal compartments
+* `COL1A1`: A collagen protein that we expect to be highly expressed in stromal/mesenchymal compartments
+
+We'll need to provide the gene's corresponding row name, which is its Ensembl gene id, to `ggpsavis::plotCoords()` so let's go ahead and find those first.
+
+The `rowData` slot helpfully provides a gene symbol/Ensembl id mapping, if you haven't memorized all the ids yet:
+
+```{r show-rowdata}
+rowData(spe) |> head()
+```
+
+
+
+```{r get-ensembl, live = TRUE}
+# define gene symbols
+gene_symbols <- c("WT1", "COL1A1")
+
+# filter rowData to genes of interest
+rowData(spe) |>
+  as.data.frame() |>
+  dplyr::filter(Symbol %in% gene_symbols)
+```
+
+Great, let's plot!
+First `WT1`, which we'll show next to the H&E for context:
+
+```{r plot-wt1, live = TRUE}
+#| message: false
+
+# save plot of WT1 to a variable
+wt1_plot <- ggspavis::plotCoords(
+  norm_spe, 
+  annotate = "ENSG00000184937", # name of variable to color by. here, an ensembl id
+  assay = "logcounts", # counts are plotted by default, so we need to override this
+  point_size = 1.25
+) + 
+  ggplot2::scale_color_viridis_c() + # custom color scale
+  ggplot2::labs(title = "WT1")
+
+# plot h&e with WT1 plot
+he_plot + wt1_plot 
+```
+
+
+
+What patterns do you see here?
+Do you think there is potentially spatial structure to `WT1` expression?
+Notice that little yellow band inside the dark region on top that matches nicely with the nucleated bit of that tissue image?
+It's very satisfying.
+
+Let's compare this to `COL1A1` expression, whose Ensembl id we determined is `ENSG00000108821`. 
+Again, we'll plot this alongside the H&E.
+
+```{r plot-col1a1}
+#| message: false
+
+# create COL1A1 plot and save to variable
+col1a1_plot <- ggspavis::plotCoords(
+  norm_spe, 
+  annotate = "ENSG00000108821",
+  assay = "logcounts",
+  point_size = 1.25
+) + 
+  ggplot2::scale_color_viridis_c() + 
+  ggplot2::labs(title = "COL1A1")
+
+# plot h&e with COL1A1 plot
+he_plot + col1a1_plot 
+```
+
+What differences do you see in gene expression compared to `WT1`?
+Did you expect this based on the H&E?
+
+Now, this was only two genes, but more pretty plots is more, and in this case better.
+Here's a table of genes of interest we might want to plot:
 
 | Gene name | Description                                  |
 | --------- | -------------------------------------------- |
@@ -784,91 +862,41 @@ We've picked out a couple genes of interest to color by:
 | `TAGLN`   | myofibroblast/mesenchymal compartment marker |
 | `PECAM1`  | epithelial compartment marker                |
 
+Let's see how we can automate plotting all of this at once using some `purrr::map()` magic.
+
+
+First, we'll define a named list of Ensembl ids, named with their gene names, for use in plotting.
 
 ```{r define-gois}
-goi_list <- c(
-  "WT1" = "ENSG00000184937",
-  "SIX1" = "ENSG00000126778",
-  "MYCN" = "ENSG00000134323",
-  "NCAM1" = "ENSG00000149294",
-  "COL1A1" = "ENSG00000108821",
-  "TAGLN" = "ENSG00000149591", 
-  "PECAM1" = "ENSG00000261371"
+# define vector of genes of interest
+goi_vector <- c(
+  "WT1",
+  "SIX1",
+  "MYCN",
+  "NCAM1", 
+  "COL1A1",
+  "TAGLN", 
+  "PECAM1"
 )
+
+# create named vector with ensembl ids as values values
+named_goi_list <- goi_vector |>
+  # set names of this vector as the vector values themselves
+  purrr::set_names() |>
+  # extract ensembl for each gene symbol
+  purrr::map(
+    \(gene_symbol) rownames(norm_spe)[rowData(norm_spe)$Symbol == gene_symbol]
+  )
+
+# show the named list of genes
+named_goi_list
 ```
-
-To start, let's color by `WT1` expression.
-We expect this to be expressed across developing kidney cells and in particular malignant cells. 
-
-```{r color-wt1, live = TRUE}
-gene_index <- 1
-
-wt1_plot <- ggspavis::plotCoords(
-  norm_spe, 
-  # name of variable to color by
-  annotate = goi_list[gene_index],
-  # counts are plotted by default, so we need to override this
-  assay = "logcounts", 
-  point_size = 1
-) + 
-  ggplot2::scale_color_viridis_c() +
-  ggplot2::labs(title = names(goi_list[gene_index]))
-
-# plot alongside H&E
-he_plot + wt1_plot
-```
-
-
-What patterns do you see here?
-Do you think there is potentially spatial structure to `WT1` expression?
-Notice that little yellow band inside the dark region on top that matches nicely with the tissue image?
-It's very satisfying.
-
-Let's compare this to `COL1A1` expression (the 5th gene), which we expect to be more prevalent in stromal regions.
-Again, we'll plot this alongside the H&E.
-
-```{r color-col1a1}
-#| message: false
-gene_index <- 5
-
-col1a1_plot <- ggspavis::plotCoords(
-  norm_spe, 
-  # name of variable to color by
-  annotate = goi_list[gene_index],
-  # counts are plotted by default, so we need to override this
-  assay = "logcounts", 
-  point_size = 1
-) + 
-  ggplot2::scale_color_viridis_c() +
-  ggplot2::labs(title = names(goi_list[gene_index]))
-
-he_plot + col1a1_plot
-```
-
-What differences do you see in gene expression compared to `WT1`?
-Did you expect this based on the H&E?
-
-
-Finally, choose your own adventure! 
-We have a few more genes listed in the table, take a moment to plot one (or more!) below.
-Do you see any spatial structure that seems consistent with the H&E? 
-Different from the H&E?
-Are there regions of shared expression among genes, and would you expect that based on WT biology?
-
-```{r pick-your-gene}
-#| message: false
-
-```
-
-**OR**
-
-Let's use some `purrr` magic to plot this all at once!
 
 ```{r plot-all-genes}
 #| message: false
 #| fig.width: 10
 
-plot_list <- goi_list |>
+plot_list <- named_goi_list |>
   # map over value and name at once
   purrr::imap(
     \(ensembl_id, gene_name) {
@@ -883,10 +911,14 @@ plot_list <- goi_list |>
     }
 ) 
 
-# include H&E in plot
-patchwork::wrap_plots(c(list(he_plot), plot_list), nrow = 3)
+# plot coordindates for all genes, including the H&E 
+patchwork::wrap_plots(
+  c( list(he_plot), plot_list ), 
+  nrow = 2
+)
 ```
-All of this taken together, which regions likely contain malignant vs normal cells?
+All of this taken together, do you think there is evidence for blastemal and stromal compartments in this sample?
+Based on this, which regions do you think likely contain malignant vs normal cells?
 
 
 ## Session info
