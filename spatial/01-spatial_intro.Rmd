@@ -903,83 +903,14 @@ col1a1_plot <- ggspavis::plotCoords(
   ggplot2::scale_color_viridis_c() + 
   ggplot2::labs(title = "COL1A1")
 
-# plot h&e with COL1A1 plot
+# plot H&E with COL1A1 plot
 he_plot + col1a1_plot 
 ```
 
 What differences do you see in gene expression compared to `WT1`?
 Did you expect this based on the H&E?
 
-Now, this was only two genes, but more pretty plots is more, and in this case better.
-Here's a table of genes of interest we might want to plot:
-
-| Gene name | Description                                  |
-| --------- | -------------------------------------------- |
-| `WT1`     | Developing kidney marker                     |
-| `MYCN`    | malignant marker                             |
-| `NCAM1`   | malignant blastema compartment marker        |
-| `SIX1`    | malignant blastema compartment marker        |
-| `COL1A1`  | fibroblast/mesenchymal compartment marker    |
-| `TAGLN`   | myofibroblast/mesenchymal compartment marker |
-| `PECAM1`  | epithelial compartment marker                |
-
-Let's see how we can automate plotting all of this at once using some `purrr::map()` magic.
-
-
-First, we'll define a named list of Ensembl ids, named with their gene names, for use in plotting.
-
-```{r define-gois}
-# define vector of genes of interest
-goi_vector <- c(
-  "WT1",
-  "SIX1",
-  "MYCN",
-  "NCAM1", 
-  "COL1A1",
-  "TAGLN", 
-  "PECAM1"
-)
-
-# create named vector with ensembl ids as values values
-named_goi_list <- goi_vector |>
-  # set names of this vector as the vector values themselves
-  purrr::set_names() |>
-  # extract ensembl for each gene symbol
-  purrr::map(
-    \(gene_symbol) rownames(norm_spe)[rowData(norm_spe)$Symbol == gene_symbol]
-  )
-
-# show the named list of genes
-named_goi_list
-```
-
-```{r plot-all-genes}
-#| message: false
-#| fig.width: 10
-
-plot_list <- named_goi_list |>
-  # map over value and name at once
-  purrr::imap(
-    \(ensembl_id, gene_name) {
-      ggspavis::plotCoords(
-        norm_spe, 
-        annotate = ensembl_id,
-        assay = "logcounts",
-        point_size = 0.75
-        ) + 
-        ggplot2::scale_color_viridis_c() +
-        ggplot2::labs(title = gene_name)
-    }
-) 
-
-# plot coordindates for all genes, including the H&E 
-patchwork::wrap_plots(
-  c( list(he_plot), plot_list ), 
-  nrow = 2
-)
-```
-All of this taken together, do you think there is evidence for blastemal and stromal compartments in this sample?
-Based on this, which regions do you think likely contain malignant vs normal cells?
+Based on these (very few, very cursory, and highly exploratory!) plots, do you think there is evidence for blastemal and stromal compartments in this sample?
 
 
 ## Session info
