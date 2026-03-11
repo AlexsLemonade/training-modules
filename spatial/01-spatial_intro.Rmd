@@ -213,10 +213,8 @@ ggspavis::plotVisium(
 ) 
 ```
 
-**TODO: save this text for when we actually plot genes?**
-Let's take a moment to chat about Wilms Tumor - these tumors in the developing kidney are often composed of a couple histologic compartments, blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
-In this tissue section, we can see two major components: the bluer indicating densely cellular, ECM-poor regions consistent with blastema, and paler pink regions consistent with stromal tissue.
-
+Any histology experts see patterns they want to share? 
+We'll talk more about this slide later in the notebook.
 
 There's another function in `ggspavis` called `plotCoords` which hides the H&E to just show the spots; this plot is not currently very compelling without any colors, but we'll add those soon!
 
@@ -727,12 +725,123 @@ filtered_spe <- filtered_spe[, filtered_spe$local_outliers == FALSE]
 # print resulting SPE
 filtered_spe
 ```
+
 After removing these additional 61 spots, we are left with 4149 spots that both overlap tissue and don't have obvious quality issues.
 
 
 ## Normalization
 
-## Exploring marker gene expression
+We'll proceed to normalize counts.
+In single-cell data, we often use a deconvolution approach which does a quick clustering, calculates a scaling factor for each cluster, and then performs normalization using the cell's associated scaling factor. 
+But, this isn't quite what we want for spot data since Visium spots are heterogeneous compositions of 1-10 cells.
+So, we'll instead use a "library size normalization approach" which treats each spot independently using the `scuttle` package. 
+It corrects for sequencing depth without smoothing out any heterogeneous signal.
+
+It's worth noting this approach doesn't take spatial information directly into account; there are some approaches out there which account for spatial information, but this aspect of analysis seems to be pretty in flux. 
+Also, bear in mind the caveat that in some cases library size itself is [also confounded with spatial structure](https://link.springer.com/article/10.1186/s13059-024-03241-7); so, keep your eyes peeled for normalization developments, since this space is evolving rapidly!
+
+```{r normalize-spe, live = TRUE}
+# calculate size factors
+filtered_spe <- scuttle::computeLibraryFactors(filtered_spe)
+
+# perform normalization
+norm_spe <- scuttle::logNormCounts(filtered_spe)
+
+# view normalized SPE
+norm_spe
+```
+
+
+## Exploring gene expression
+
+Finally, the moment you've all been waiting for: pretty plots!
+Even though spots aren't exactly cells, we can still color by expression of genes of interest to get a general sense of patterns in our sample.
+As a reminder, here's the H&E:
+
+```{r show-he}
+he_plot
+```
+Wilms Tumors are often composed of a couple histologic compartments: blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
+We can see some of this biology reflected in this tissue section that appears to have these two major components: bluer regions indicating ECM-poor areas with high cellular density consistent with blastemal biology, and paler pink regions consistent with stromal tissue that may have an endothelial presence.
+
+Let's see if we can detect regions that might represent these compartments using marker gene expression.
+For this, we'll plot expression using `ggpsavis::plotCoords()` for two genes:
+
+* `WT1`: A transcription factor that regulates kidney development.
+We expect this gene to be highly expressed in Wilms Tumor blastemal compartments
+* `COL1A1`: A collagen protein that we expect to be highly expressed in stromal/mesenchymal compartments
+
+We'll need to provide the gene's corresponding row name, which is its Ensembl gene id, to `ggpsavis::plotCoords()` so let's go ahead and find those first.
+
+The `rowData` slot helpfully provides a gene symbol/Ensembl id mapping, if you haven't memorized all the ids yet:
+
+```{r show-rowdata}
+rowData(spe) |> head()
+```
+
+
+
+```{r get-ensembl, live = TRUE}
+# define gene symbols
+gene_symbols <- c("WT1", "COL1A1")
+
+# filter rowData to genes of interest
+rowData(spe) |>
+  as.data.frame() |>
+  dplyr::filter(Symbol %in% gene_symbols)
+```
+
+Great, let's plot!
+First `WT1`, which we'll show next to the H&E for context:
+
+```{r plot-wt1, live = TRUE}
+#| message: false
+
+# save plot of WT1 to a variable
+wt1_plot <- ggspavis::plotCoords(
+  norm_spe, 
+  annotate = "ENSG00000184937", # name of variable to color by. here, an ensembl id
+  assay = "logcounts", # counts are plotted by default, so we need to override this
+  point_size = 1.25
+) + 
+  ggplot2::scale_color_viridis_c() + # custom color scale
+  ggplot2::labs(title = "WT1")
+
+# plot h&e with WT1 plot
+he_plot + wt1_plot 
+```
+
+
+
+What patterns do you see here?
+Do you think there is potentially spatial structure to `WT1` expression?
+Notice that little yellow band inside the dark region on top that matches nicely with the nucleated bit of that tissue image?
+It's very satisfying.
+
+Let's compare this to `COL1A1` expression, whose Ensembl id we determined is `ENSG00000108821`. 
+Again, we'll plot this alongside the H&E.
+
+```{r plot-col1a1}
+#| message: false
+
+# create COL1A1 plot and save to variable
+col1a1_plot <- ggspavis::plotCoords(
+  norm_spe, 
+  annotate = "ENSG00000108821",
+  assay = "logcounts",
+  point_size = 1.25
+) + 
+  ggplot2::scale_color_viridis_c() + 
+  ggplot2::labs(title = "COL1A1")
+
+# plot H&E with COL1A1 plot
+he_plot + col1a1_plot 
+```
+
+What differences do you see in gene expression compared to `WT1`?
+Did you expect this based on the H&E?
+
+Based on these (very few, very cursory, and highly exploratory!) plots, do you think there is evidence for blastemal and stromal compartments in this sample?
 
 
 ## Session info
