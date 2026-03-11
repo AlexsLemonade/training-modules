@@ -22,7 +22,7 @@ output:
 In this notebook, we'll learn some basics of import, processing, and visualization of a Visium data set.
 
 We will be using an anaplastic Wilms Tumor sample from the the [Single-cell Pediatric Cancer Atlas](https://scpca.alexslemonade.org/projects/SCPCP000006).
-This sample was processed using first-generation 3' Visium technology, and it was quantified with `Space Ranger 1.3.1`.
+This sample was processed using first-generation Visium technology, and it was quantified with `Space Ranger 1.3.1`.
 
 
 ## Set up
@@ -48,9 +48,8 @@ Next we'll define input paths and files that we'll use in this notebook.
 There are a variety of files that you will often see as part of the standard `Space Ranger` output.
 The specific files present will depend on which specific spatial technology you are using, but they are all described in detail in [10x Genomics documentation](https://www.10xgenomics.com/support/software/space-ranger/latest/analysis/outputs/output-overview).
 
-We've placed the core outputs you'll need for reading this Visium v1 data into R in the directory `data/wilms-tumor/SCPCS000190/outs`, organized just as `Space Ranger` returns them.
+We've placed the core outputs you'll need for reading this first-generation Visium data into R in the directory `data/wilms-tumor/SCPCS000190/outs`, organized as `Space Ranger` returns them.
 We'll define that input path, along with other inputs we'll need, here.
-
 
 ```{r inputs}
 # define sample id we'll be analyzing 
@@ -91,13 +90,12 @@ output_spe_file <- file.path(
 ## Reading Space Ranger data
 
 `Space Ranger` output includes both count data and spatial/image information. 
-The count data is provided in two main formats, just as `Cell Ranger` would provide them for single-cell data: 1) A folder with a feature list, a barcode list, and a sparse matrix in ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html), and 2) an `HDF5` formatted file containing all this information.
+The count data is generally provided in two main formats, just as `Cell Ranger` would provide them for single-cell data: 1) A folder with a feature list, a barcode list, and a sparse matrix in ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html), and 2) an `HDF5` formatted file containing all this information.
 Because the data we're working with comes from the ScPCA Portal which only provides the folder format, that's what we'll read in here!
 
-`Space Ranger` also outputs both filtered and raw matrices; today we will start with the raw matrix and perform our own filtering.
+`Space Ranger` also outputs both filtered and raw matrices; today we will start with the raw matrix and perform all of our own filtering.
 
-We'll get started by reading in the Visium data directly from its `Space Ranger` output, using the package `VisiumIO`.
-Before reading it in, let's go ahead and look at our files:
+Before importing the data, let's go ahead and look what files we have:
 
 
 ```{r dir-spaceranger, live = TRUE}
@@ -109,9 +107,9 @@ However, **unlike** single-cell data where these barcodes correspond to droplets
 Here, each spot corresponds to a 55 µm diameter area on the slide that contains roughly 1-10 cells, depending on the tissue type being analyzed.
 In this particular Visium data set, spots are laid out on a 6.5x6.5 mm slide (although other experiments may be 11x11 mm for larger tissue sections).
 
-In a Visium dataset such as this, the `raw_feature_bc_matrix` contains data for all possible spots, but the `filtered_feature_bc_matrix` contains data only for spots that overlap tissue. 
+While the `raw_feature_bc_matrix` contains data for all possible spots, but the `filtered_feature_bc_matrix` contains data only for spots that overlap tissue. 
 
-Parallel to these directories is the `spatial` directory which contains - you guessed it - information that proves the full spatial context to go along with the feature-by-barcode count matrices. 
+Parallel to these directories is the `spatial` directory which contains - you guessed it - files that provide the full spatial context to go along with the feature-by-barcode count matrices. 
 Let's take a closer look at what's in the `spatial` directory:
 
 ```{r dir-spatial, live = TRUE}
@@ -121,15 +119,15 @@ dir(
 ```
 
 We see several different files here, which we'll go ahead and look at directly by clicking on them in the Files Pane.
-Below are some brief descriptions of each file we see here.
+Below are some brief descriptions of each file we see here, and more that would be represent with more recent Visium technologies.
 
-##### "aligned_fiducials.jpg"
+##### `"aligned_fiducials.jpg"`
 
 This image file shows the provided tissue image with a border of the _fiducials_, which are small dots surrounding the slide capture area.
 `Space Ranger` uses fiducials to anchor the quantified gene expression onto the tissue image itself, and this image can help you see how successful that _fiducial alignment_ was. 
 If something looks really off in this image (e.g. it looks distorted, or some fiducials are missing), that's a sign you may need to manually adjust the alignment and run `Space Ranger` again.
 
-##### "detected_tissue_image.jpg"
+##### `"detected_tissue_image.jpg"`
 
 Part of `Space Ranger`'s algorithm involves identifying which spots overlay tissue and which do not.
 This image file shows the Visium grid of spots overlaid on the tissue, where spots that overlay tissue are shaded in.
@@ -137,33 +135,33 @@ It's important to filter out spots that do not overlay tissue before proceeding 
 This is because those spots will have 0 gene expression, but that doesn't mean that genes actuallt weren't expressed!
 Those values of 0 mean that there was simply nothing to sequence, and we don't want them to contribute noise. 
 
-##### "tissue_hires_image.png" and "tissue_lowres_image.png"
+##### `"tissue_hires_image.png"` and `"tissue_lowres_image.png"`
 
 These are two different versions of the provided tissue image that have each been downscaled for size to, respectively, ~2000 pixels and ~600 pixels.
 
-##### "tissue_positions_list.csv"
+##### `"tissue_positions_list.csv"`
 
 This CSV file provides the tissue coordinates for each spot, indexed by its barcode.
 
-##### "scalefactors_json.json" 
+##### `"scalefactors_json.json"` 
 
-This JSON file stores the specific scaling factors used to downsize the provided tissue image to the provided image resolutions
+This JSON file stores the specific scaling factors used to downsize the provided tissue image to the provided image resolutions.
 
 
-##### Other files not shown
+##### Other files you might see
 
 In other Visium datasets, you may see more files in `spatial/` than you see here.
-In particular, this data was prepared with the original Visium technology, in which tissue was manually placed directly onto a Visium capture slide.
-Most current Visium experiments use an upgraded technology called CytAssist, an instrument that assists in transferring tissue from a standard slide to the Visium capture slide, and dramatically facilitates FFPE tissue processing.
+In particular, this data was prepared with the first-generation Visium technology, in which tissue was manually placed directly onto a Visium capture slide.
+Most current Visium experiments use an upgraded technology called CytAssist, an instrument that assists in transferring tissue from a standard slide to the Visium capture slide and dramatically facilitates FFPE tissue processing.
 
 In Visium CytAssist datasets, there will be two additional image files you should be aware of:
 
-- `cytassist_image.tif`: This is the image captured by the CytAssist instrument itself and is the primary image file that `Space Ranger` uses when processing CytAssist data
-- `aligned_tissue_image.jpg`: If you provided a microscope image along with the CytAssist image to a CytAssist run, `Space Ranger` will also return the microscope image aligned to the CytAssist image's coordinates
+- `"cytassist_image.tif"`: This is the image captured by the CytAssist instrument itself and is the primary image file that `Space Ranger` uses when processing CytAssist data
+- `"aligned_tissue_image.jpg"`: If you provided a microscope image along with the CytAssist image to a CytAssist run, `Space Ranger` will also return the microscope image aligned to the CytAssist image's coordinates
 
 ### Import with VisiumIO
 
-We'll begin by importing the raw counts and spatial information as a `SpatialExperiment` (SPE) object.
+We'll begin by importing the raw counts and spatial information into a `SpatialExperiment` (SPE) object.
 This object is a derived version of the `SingleCellExperiment` (SCE) object that contains a couple more slots that augment the object with spatial information.
 This means there are some functions we'll use to interact with the object that you might recognize from your adventures with SCE objects, but there will also be some new functions that are just used for SPE objects.
 
@@ -171,13 +169,13 @@ This means there are some functions we'll use to interact with the object that y
 ![Structure of a SpatialExperiment object. Image from [Orchestrating Spatial Transcriptomics Analysis](https://bioconductor.org/books/release/OSTA)](diagrams/SpatialExperiment.png)
 <br><br>
 
-To import Visium data with the `VisiumIO` package, you need to specify three items (the rest should be automatically detected):
+To import Visium data with the `VisiumIO` package, we'll need to specify three items (the rest should be automatically detected):
 
 - The path to the `Space Ranger` count output, which in this case is the `raw_feature_bc_matrix` folder
 - The path to the `Space Ranger` spatial output, which corresponds to the `spatial` directory
 - Which image(s) should be imported into the object
-By default, this function will try to import all types of possible images, including the CytAssist image which we don't have here! 
-So, we'll just specify to import the `lowres` version of the image which will keep this notebook size smaller.
+By default, this function will try to import several images types, including the CytAssist image which we don't have here! 
+So, we'll just specify to import the `lowres` version of the image.
 
 
 ```{r import-visium, live = TRUE}
@@ -200,7 +198,6 @@ spe <- VisiumIO::import(
 )
 ```
 
-
 Let's have a look:
 
 ```{r print-spe, live = TRUE}
@@ -208,12 +205,11 @@ Let's have a look:
 spe
 ```
 
-Let's get to know our `SPE` object!
 First, have a look at the dimensions: We have 60664 genes (roughly a full transcriptome) and 4992 spots.
 This 4992 is not a random value, but it's the exact the number of spots on a Visium 6.5x6.5 mm slide. 
 In this raw object, some of these spots but not all overlap tissue and contain meaningful expression data.
 
-Like SCE objects, this SPE objeect has slots like `assays` for count matrices, `rowData` for feature metadata, and `colData` for spot metadata.
+Like SCE objects, this SPE object has slots like `assays` for count matrices, `rowData` for feature metadata, and `colData` for spot metadata.
 
 Let's take a tour:
 
@@ -235,18 +231,18 @@ The `colData` shows us spot coordinate information on the Visium slide, as well 
 Rows with 0 correspond to spots that do _not_ overlap tissue, so we'll need to filter those out before processing or analyzing this data further. 
 `Space Ranger` determines which spots overlay tissue using the fiducial alignment frame, which we saw in this "aligned_fiducials.jpg" image. 
 
-_Unlike_ SCE objects, SPE objects contain two additional slots with spatial information.
+**Unlike** SCE objects, SPE objects contain two additional slots with spatial information.
 
-First is a dedicated `spatialCoords` slot which contains the x/y coordinates on the slide represented as pixels.
-(These are the coordinates that will be used when we plot this object.)
+First is a dedicated `spatialCoords` slot which contains the x/y coordinates on the slide in pixel units.
+These are the coordinates that will be used when we plot this object.
 
 ```{r spe-spatialcoords, live = TRUE}
 # handy function from our code package SpatialExperiment
 spatialCoords(spe) |> head()
 ```
 
-There is also a slot called `imgData` with a `DataFrame` of the imported images themselves, although looking at it directly isn't very interesting (but it does allow us to make pretty pictures!).
-This `DataFrame` will have a row for each image imported, and in this case we only imported the "lowres" image.
+There is also a slot called `imgData` with a DataFrame of the imported images themselves, although looking at it directly isn't very interesting (but it does allow us to make pretty pictures!).
+This DataFrame will have a row for each image imported, and in this case we only imported the `lowres` image.
 We can also see its associated `scaleFactor`, which `VisiumIO` parsed from the input file `spatial/scalefactors_json.json".
 
 ```{r spe-imgdata, live = TRUE}
