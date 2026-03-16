@@ -1,4 +1,4 @@
-# Build awsli, fastp, and salmon from source in a separate image
+# Build awscli, fastp, and salmon from source in a separate image
 # matching base image from https://github.com/rocker-org/rocker-versioned2/blob/master/dockerfiles/r-ver_4.5.2.Dockerfile
 FROM docker.io/library/ubuntu:noble AS build
 
