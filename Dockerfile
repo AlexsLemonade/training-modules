@@ -31,8 +31,7 @@ RUN unzip awscliv2.zip
 RUN ./aws/install
 
 # Get rclone
-RUN curl -LO https://rclone.org/install.sh
-RUN bash install.sh
+RUN curl -L https://rclone.org/install.sh | bash
 
 # Build salmon
 ARG SALMON_VERSION=1.10.3
