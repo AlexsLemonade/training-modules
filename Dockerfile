@@ -30,6 +30,9 @@ RUN curl -o awscliv2.zip "https://awscli.amazonaws.com/awscli-exe-linux-$(arch).
 RUN unzip awscliv2.zip
 RUN ./aws/install
 
+# Get rclone
+RUN curl -L https://rclone.org/install.sh | bash
+
 # Build salmon
 ARG SALMON_VERSION=1.10.3
 RUN curl -LO https://github.com/COMBINE-lab/salmon/archive/refs/tags/v${SALMON_VERSION}.tar.gz
