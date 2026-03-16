@@ -1,4 +1,4 @@
-# Build salmon from source in a separate image
+# Build awscli, fastp, and salmon from source in a separate image
 # matching base image from https://github.com/rocker-org/rocker-versioned2/blob/master/dockerfiles/r-ver_4.5.2.Dockerfile
 FROM docker.io/library/ubuntu:noble AS build
 
@@ -29,9 +29,6 @@ WORKDIR /usr/local/src
 RUN curl -o awscliv2.zip "https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip"
 RUN unzip awscliv2.zip
 RUN ./aws/install
-
-# Get rclone
-RUN curl -L https://rclone.org/install.sh | bash
 
 # Build salmon
 ARG SALMON_VERSION=1.10.3
@@ -68,6 +65,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     fastqc \
     && apt-get clean
+
+# Get rclone
+RUN curl -L https://rclone.org/install.sh | bash
 
 # Python packages
 COPY requirements.txt requirements.txt
