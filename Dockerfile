@@ -1,4 +1,4 @@
-# Build salmon from source in a separate image
+# Build awsli, fastp, and salmon from source in a separate image
 # matching base image from https://github.com/rocker-org/rocker-versioned2/blob/master/dockerfiles/r-ver_4.5.2.Dockerfile
 FROM docker.io/library/ubuntu:noble AS build
 
@@ -29,9 +29,6 @@ WORKDIR /usr/local/src
 RUN curl -o awscliv2.zip "https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip"
 RUN unzip awscliv2.zip
 RUN ./aws/install
-
-# Get rclone
-RUN curl -L https://rclone.org/install.sh | bash
 
 # Build salmon
 ARG SALMON_VERSION=1.10.3
@@ -69,6 +66,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     fastqc \
     && apt-get clean
 
+# Get rclone
+RUN curl -L https://rclone.org/install.sh | bash
+
 # Python packages
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt --break-system-packages
@@ -85,11 +85,10 @@ RUN Rscript -e "options(pkgType='binary'); renv::restore(repos = c(CRAN = 'https
     && rm -rf /tmp/downloaded_packages \
     && rm -rf /tmp/Rtmp*
 
-# copy aws, rclone, salmon, and fastp binaries from the build image
+# copy aws, salmon, and fastp binaries from the build image
 COPY --from=build /usr/local/aws-cli/ /usr/local/aws-cli/
 RUN ln -s /usr/local/aws-cli/v2/current/bin/aws /usr/local/bin/aws
 RUN ln -s /usr/local/aws-cli/v2/current/bin/aws_completer /usr/local/bin/aws_completer
-COPY --from=build /usr/bin/rclone /usr/local/bin/rclone
 COPY --from=build /usr/local/salmon/ /usr/local/
 COPY --from=build /usr/local/bin/fastp /usr/local/bin/fastp
 
