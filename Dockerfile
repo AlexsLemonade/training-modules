@@ -85,10 +85,11 @@ RUN Rscript -e "options(pkgType='binary'); renv::restore(repos = c(CRAN = 'https
     && rm -rf /tmp/downloaded_packages \
     && rm -rf /tmp/Rtmp*
 
-# copy aws, salmon, and fastp binaries from the build image
+# copy aws, rclone, salmon, and fastp binaries from the build image
 COPY --from=build /usr/local/aws-cli/ /usr/local/aws-cli/
 RUN ln -s /usr/local/aws-cli/v2/current/bin/aws /usr/local/bin/aws
 RUN ln -s /usr/local/aws-cli/v2/current/bin/aws_completer /usr/local/bin/aws_completer
+COPY --from=build /usr/bin/rclone /usr/local/bin/rclone
 COPY --from=build /usr/local/salmon/ /usr/local/
 COPY --from=build /usr/local/bin/fastp /usr/local/bin/fastp
 
