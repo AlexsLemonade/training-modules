@@ -220,23 +220,25 @@ Like SCE objects, this SPE object has slots like `assays` for count matrices, `r
 
 Let's take a tour:
 
-```{r spe-rowdata}
-# print the rowData
-rowData(spe)
-```
-
 ```{r spe-assays}
 # print the top corner of the count data
 counts(spe)[1:10, 1:10]
 ```
 
+```{r spe-rowdata}
+# print the rowData
+rowData(spe) |>
+  head()
+```
+
 ```{r spe-coldata, live = TRUE}
 # print the colData
-colData(spe)
+colData(spe) |>
+  head()
 ```
+
 The `colData` shows us spot coordinate information on the Visium slide, as well as an `in_tissue` column --- it's an important one!
-An `in_tissue` value of 0 indicates spots that do _not_ overlap tissue, so we'll need to filter those rows out before processing or analyzing this data further. 
-Space Ranger determines which spots overlay tissue using the fiducial alignment frame, which we saw in this `aligned_fiducials.jpg` image. 
+An `in_tissue` value of 1 indicates spots that do overlap tissue, and a value of 0 indicates spots that don't.
 
 **Unlike** SCE objects, SPE objects contain two additional slots with spatial information.
 
@@ -245,7 +247,8 @@ These are the coordinates that will be used when we plot this object.
 
 ```{r spe-spatialcoords, live = TRUE}
 # handy function from our code package SpatialExperiment
-spatialCoords(spe) |> head()
+spatialCoords(spe) |> 
+  head()
 ```
 
 There is also a slot called `imgData` with a `DataFrame` of the imported images themselves, although looking at it directly isn't very interesting (but it does allow us to make pretty pictures!).
@@ -303,9 +306,10 @@ ggspavis::plotCoords(spe)
 ```
 
 Hm, the spot layout looks a bit different.
-By default, this function only plot spots that overlay tissue (i.e. where `in_tissue` is 1) and ignore spots that do not overlay tissue.
-We can override this if we want, but again, what we really want to do is actually remove those spots entirely.
-
+By default, this function only plots spots that overlay tissue and ignores spots that do not overlay tissue.
+Space Ranger determines which spots overlay tissue using the fiducial alignment frame, which we saw in the `aligned_fiducials.jpg` image.
+Any spots that do not overlay tissue are indicated with a `0` in the `in_tissue` column of the `colData`.
+We can override this if we want, but we really want to remove those spots entirely. 
 
 ## Filtering empty spots
 
