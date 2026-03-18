@@ -17,6 +17,9 @@ on:
 jobs:
   test-render:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Free disk space
@@ -30,22 +33,19 @@ jobs:
           df -h
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Load 1Password secrets
-        uses: 1password/load-secrets-action@v2
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          export-env: true
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.TRAINING_OP_SERVICE_ACCOUNT_TOKEN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.OP_TRAINING_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.OP_TRAINING_SECRET_ACCESS_KEY }}
-
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_TRAINING_ACCOUNT }}:role/gha-training-data-read-role
+          role-session-name: githubActionSession
+          aws-region: us-east-1
       - name: Download data from S3
         env:
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          aws s3 sync s3://ccdl-training-data/training-modules/ . --no-progress
+          aws s3 sync s3://alsf-datalab-training-data/training-modules/ . --no-progress
 
       - name: Pull latest Docker image
         run: |
