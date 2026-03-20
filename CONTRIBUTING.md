@@ -150,9 +150,10 @@ Because this script is also used to set up directories for training, the links s
 
 Note that only Data Lab members have access to S3.
 
-To facilitate automated testing of training notebooks, all needed input files for training notebooks should be placed in the `ccdl-training-data` bucket on S3 and made publicly accessible.
+To facilitate automated testing of training notebooks, all needed input files for training notebooks should be placed in the `alsf-datalab-training-data` bucket on S3 and made publicly accessible.
 This is facilitated by the `scripts/syncup-s3.sh` bash script, which includes the needed commands for upload/sync, and should include all directories and files needed to run the training notebooks.
-You will need to set up your AWS credentials with `aws configure` before running the `syncup-s3.sh` script
+You will need to have a profile with write access to the data bucket to run the `syncup-s3.sh` script.
+This can be activated with the `AWS_PROFILE` environment variable or the `--profile` argument to the script.
 As input files are added or change, those changes should be reflected in updates to `syncup-s3.sh`
 
 ## Development with `renv`
