@@ -315,7 +315,7 @@ We can override this if we want, but we really want to remove those spots entire
 ## Filtering empty spots
 
 As stated, let's go ahead and remove those spots entirely.
-As a rough analogy, this analysis step is reminiscent of filtering empty droplets from single-cell data retain only droplets with cells, but in this case we want to retain only spots that overlap tissue.
+As a rough analogy, this analysis step is reminiscent of filtering empty droplets from single-cell data to retain only droplets with cells, but in this case, we want to retain only spots that overlap tissue.
 
 Again, we need to take this step because we read in the `raw_feature_bc_matrix` output from 10x. 
 Had we read in the `filtered_feature_bc_matrix` instead, the data would already be filtered to only contain spots overlapping tissue. 
@@ -350,7 +350,7 @@ ggspavis::plotVisium(
 
 In this plot, we see the following:
 
-* The purple tissue overhang on the left isn't colored at all; these spots are outside fiducial alignment frame and have no corresponding spots
+* The purple tissue overhang on the left isn't colored at all; these spots are outside the fiducial alignment frame and have no corresponding spots
 * The red points represent those we want to filter out as uninformative
 
 Let's go ahead and filter:
@@ -404,7 +404,7 @@ filtered_spe <- scuttle::addPerCellQC(
 colData(filtered_spe) |> head()
 ```
 
-We'll first look at the distributions of these statistics (always plots your data!) to see how many spots appear to be low-quality.
+We'll first look at the distributions of these statistics (always plot your data!) to see how many spots appear to be low-quality.
 
 ```{r global qc distributions}
 #| fig.width: 12
@@ -502,7 +502,7 @@ Compare the H&E image to these statistics: do you notice any patterns that sugge
 
 This shows us that if we were to filter out, for example, spots with overall lower total UMIs or detected genes, we would end up primarily (if not only) removing spots in stromal regions, which is probably not what we want! 
 As such, using global thresholds is not going to be suitable for spatial data, so we'll need a different approach to filter spots.
-(It's worth noting that this is not strictly a spatial transcriptomics issue; it's very possible for differences among cell types to confound QC statistics in single-cell data too!
+(It's worth noting that this is not strictly a spatial transcriptomics issue; it's very possible for differences among cell types to confound QC statistics in single-cell data too.
 Always plot your data to make sure your filters make sense for your data!)
 
 ### Filtering with local QC thresholds
@@ -511,12 +511,12 @@ Rather than finding outliers based on overall QC statistics derived across biolo
 These are spots whose properties differ from their local neighborhood of nearby spots. 
 For this, we'll use the [`SpotSweeper`](https://www.bioconductor.org/packages/3.22/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html) package, which offers several useful tools for quality control of spot-based data.
 
-We'll specifically their local outlier detection function `SpotSweeper::localOutliers()`.
+We'll specifically use their local outlier detection function `SpotSweeper::localOutliers()`.
 This function uses a k-nearest neighbors approach to define the neighborhood for each spot and then calculates _local_ means and variances of standard QC metrics to identify outlying spots within their local tissue context.
 This approach reduces the chance that we'll bias filtering by tissue biology because we generally expect nearby spots in the same tissue region to be more biologically similar to each other. 
 
-(It's also worth noting that `SpotSweeper` also has the ability to detect so-called "hangnails," which are regional technical artifacts resulting from issues with tissue preparation.
-Their hangnail detection uses variance in mitochondrial percentages, and since our mitochondrial percentage are very low with minimal variance, hangnail detection won't be relevant for us here.)
+It's also worth noting that `SpotSweeper` also has the ability to detect so-called "hangnails," which are regional technical artifacts resulting from issues with tissue preparation.
+Their hangnail detection uses variance in mitochondrial percentages, and since our mitochondrial percentage are very low with minimal variance, hangnail detection won't be relevant for us here.
 
 
 `SpotSweeper::localOutliers()` returns an `SPE` object with added `colData` columns we can use to find all the local outliers and takes these arguments:
@@ -531,7 +531,7 @@ Their hangnail detection uses variance in mitochondrial percentages, and since o
   * We'll want to set `log = FALSE` for `subsets_mito_percent` because it's bounded between 0-100 so logging would distort the distribution
 - `cutoff`: Number of standard deviations for for identifying outliers; Default is 3
   * Higher values mean filtering will be more permissive (more tolerant of outliers, so fewer spots will be removed)
-  * Lower values mean filtering will more strict (less tolerant of outliers, so more spots will be removed)
+  * Lower values mean filtering will be more strict (less tolerant of outliers, so more spots will be removed)
 
 
 Let's start off by looking for outliers in the `sum` column, which represents library size (total UMIs).
@@ -683,10 +683,10 @@ SpotSweeper::plotQCmetrics(
 
 ```
 Importantly, we see here that spots to remove are _not_ concentrated in tissue regions with higher mitochondrial percentages, but are instead spread across the tissue. 
-This shows us again that our local outlier detection approach allows us to avoid the confounding effects  of spatial heterogeneity. 
+This shows us again that our local outlier detection approach allows us to avoid the confounding effects of spatial heterogeneity. 
 It's also worth noting that none of these spots would have been removed with a typical global threshold used for single-cell data (e.g., 10-25%).
 
-Now that we've calculated all this, we can pool out outliers together: how many of outlier for each statistic are there?
+Now that we've calculated all this, we can pool our outliers together: how many outliers are there for each statistic?
 
 ```{r count-local-outliers}
 # Prepare data frame to count outliers
