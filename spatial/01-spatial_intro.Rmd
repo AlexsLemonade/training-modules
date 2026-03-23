@@ -495,35 +495,36 @@ Always plot your data to make sure your filters make sense for your data!)
 
 ### Filtering with local QC thresholds
 
-Rather than finding outliers based on overall QC statistics derived across biologically distinct tissue regions, we can instead look for _local_ outliers to filter, i.e. spots with properties that deviate from their neighborhood of nearby spots.
-Placeholder text to introduce [`SpotSweeper`](https://www.bioconductor.org/packages/3.22/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html):
+Rather than finding outliers based on overall QC statistics derived across biologically distinct tissue regions, we can instead look for _local_ outliers to filter.
+These are spots whose properties differ from their local neighborhood of nearby spots. 
+For this, we'll use the [`SpotSweeper`](https://www.bioconductor.org/packages/3.22/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html) package, which offers several useful tools for quality control of spot-based data:
 
-- Evaluates spots relative to their local neighborhood which is defined with `kNN`
-- Calculates local means and variances of standard QC metrics to flag outliers for removal within a local tissue context
-- Can be used to find both individual outlying spots as well as so-called "hangnails" which are regional artifacts caused by e.g. issues in tissue prep or other technical issues
-  - Note that hangnail detection is performed using variance in mitochondrial percentages. 
-  Since our values for mitochondrial percentage are very low with minimal variance, hangnail detection won't be relevant for us here
+We'll specifically their local outlier detection function `SpotSweeper::localOutliers()`.
+This function uses a k-nearest neighbors approach to define the neighbhorhood for each spot and then calculates _local_ means and variances of standard QC metrics to identify outlying spots within their local tissue context.
+This approach reduces the chance that we'll bias filtering by tissue biology because we generally expect nearby spots in the same tissue region to be more biologically similar to each other. 
 
-We'll detect local outliers based using `SpotSweeper::localOutliers()` which takes these arguments:
+(It's also worth noting that `SpotSweeper` also has the ability to detect so-called "hangnails," which are regional technical artifacts resulting from issues with tissue preparation.
+Their hangnail detection uses variance in mitochondrial percentages, and since our mitochondrial percentage are very low with minimal variance, hangnail detection won't be relevant for us here.)
 
-- `metric`: name of column in `colData` with QC stat of interest
-- `direction`: are lower value or higher value outliers bad?
-  - e.g. we'd say "lower" for detected (we don't want low detected values), and we'd say "higher" for mitochondrial percentage
-- `n_neighbors`: number of neighbors for building the `kNN` graph; Default is 36
-- `log`: whether to consider the `log1p` of the metric; Default is `FALSE`
-  - The method assumes a normal distribution, so logging a metric may be needed to meet assumptions
-  - logging "detected" and "sum" is often recommended because these distributions are unbounded and span orders of magnitude
-  - logging "mitochondrial" is not often recommended because it's bounded `[0,100]` and logging percentages can distort the distribution
-- `cutoff`: Threshold for identifying outliers; Default is 3, meaning 3 standard deviations from the mean (think z-scores)
-  - Can make this lower to be more strict (more spots will get removed), lower to be less strict (more tolerant of outliers), but don't go too high or low or you're not really detecting outliers anymore
-- `workers`: Number of cores for parallel processing; Default is 1
 
-This function returns an `SPE` object with added `colData` columns we can use to find all the local outliers.
+`SpotSweeper::localOutliers()` returns an `SPE` object with added `colData` columns we can use to find all the local outliers and takes these arguments:
 
-Let's start off by looking for library size ("sum" column) outliers:
+* `metric`: Name of column in `colData` with QC stat of interest
+* `direction`: Either "lower" or "upper" depending on which direction should be filtered 
+  * We'll want to use "lower" for `detected` and `sum` (we don't want overly-low values), and we'll want to use `higher` for `subsets_mito_percent` (we don't want overly-high values)
+* `n_neighbors`: Number of neighbors for building the `kNN` graph; Default is 36
+* `log`: Whether to consider the `log1p` of the metric; Default is `FALSE`
+  * Because the outlier detection method used assumes a normal distribution, we often need to take the log of our statistics to meet assumptions
+  * We'll want to set `log = TRUE` for `detected` and `sum` because these distributions are unbounded and can span orders of magnitude
+  * We'll want to set `log = FALSE` for `subsets_mito_percent` because it's bounded between 0-100 so logging would distort the distribution
+- `cutoff`: Number of standard deviations for for identifying outliers; Default is 3
+  * Higher values mean filtering will be more permissive (more tolerant of outliers, so fewer spots will be removed)
+  * Lower values mean filtering will more strict (less tolerant of outliers, so more spots will be removed)
+
+
+Let's start off by looking for library size (column `sum` column) outliers:
 
 ```{r spotsweeper-sum, live = TRUE}
-# specify defaults for sum to be explicit
 filtered_spe <- SpotSweeper::localOutliers(
   filtered_spe, 
   metric = "sum", 
@@ -540,21 +541,26 @@ What do we have now?
 ```{r coldata-spotsweeper-sum, live = TRUE}
 colData(filtered_spe)
 ```
-New columns include:
 
-- `sum_log`: The `log1p()` (i.e., `log(x+1)`) of the `sum` column
-- `sum_outliers`: Logical whether or not the spot is an outlier
-- `sum_z`: The _local_ z-score for `sum_log`, among spots in the local neighborhood.
-  - 0: same as neighbors on average
-  - high positive value: much higher `sum` than neighbors
-  - low negative value: much lower `sum` than neighbors, which in this case would be the ones to filter
+`SpotSweeper` gave us a couple new columns:
+
+* `sum_log`: The `log1p()` (i.e., `log(x+1)`) of the `sum` column
+* `sum_outliers`: Whether or not the spot is a _local_ outlier in its local neighborhood.
+Generally we'll want to filter out rows where this is `FALSE`
+* `sum_z`: The _local_ z-score for `sum_log` used for identifying outliers relative to the specified cutff (here, 3)
+  * A value of 0 means the spot is, on average, the same as its neighbors
+  * A high positive value means the spot has a much higher `sum` than its local neighborhood
+  * A low negative value means the spot has a much lower `sum` than its local neighborhood.
+  These are the spots we'll want to filter out
   
-Let's see some of this relationship - we'll plot `sum_log` (log of a globally-calculated stat) against `sum_z` (stat for _local_ outlier), with a guiding line for the cutoff.
+Let's look at some of these values directly by plotting `sum_z` (local outlier statistics) against `sum_log` (log of a globally-calculated stat).
 
 ```{r sum_log_z_plot}
+# extract data frame for plotting
 filtered_spe_coldata <- colData(filtered_spe) |>
   as.data.frame()
 
+# Plot sum_z across sum_log
 ggplot2::ggplot(filtered_spe_coldata) + 
   ggplot2::aes(
     x = sum_log,
@@ -564,19 +570,21 @@ ggplot2::ggplot(filtered_spe_coldata) +
   ggplot2::geom_point(alpha = 0.5)
 ```
 
-Based on this metric, most spots are not outliers, and while most of the spots classified as outliers are fairly close to the 3 cutoff, several are are more extreme outliers!
-We also gain some insight about how global vs local filtering would play out.
-Let's imagine we did global filtering with a threshold of 500, whose log is 6.21.
-Looking at the x-axis here, that means we would only have removed three spots.
-But with local filtering, we are catching additional spots that deviate from their local neighborhood and filtering a few more out, but on the whole this dataset seems to be fairly good quality so it's not a ton.
+We see here that most spots are not outliers for the `sum` metric.
+Most of the spots classified as outliers are fairly close to the -3 cutoff, but several are more extreme outliers.
 
-Let's plot this next to the H&E:
-We'll use a plotting function from `SpotSweeper`, `SpotSweeper::plotQCmetrics()`, which will allow us to both color by a statistic and highlight outlier points.
-Well plot the `sum_log` side-by-side with `sum_z` to compare.
+We also gain some insight from this plot about how performing filtering using global vs local outliers would play out.
+Imagine if we had performed global filtering with a threshold of 500, which has a log of 6.21.
+At a cutoff of `sum_log = 6.21, we would only have removed three spots.
+But, by using local outlier detection, we have identified several more spots to remove whose `sum` is much lower than their immediately surrounding spots, suggesting potential quality issues.
+On the whole though, this dataset is fairly good quality so there aren't many of these low-quality spots.
+
+We can also plot these results on the coordinates themselves, using the H&E image as a guide for interpretation.
+For this, we'll use the function `SpotSweeper::plotQCmetrics()` which lets you both color by a statistic and highlight outlier points, so we'll plot both `sum_log` and `sum_z` with outliers highlighted.
 
 Tip!
-When using this function, the point color is a "fill" aesthetic (which can be customized), and the point outline is a "color" aesthetic.
-This insight will help us to customize the plot colors
+When using this function, the point color is a "fill" `ggplot2` aesthetic, and the point outline is a "color" `ggplot2` aesthetic.
+This insight will help us to customize the plot colors.
 
 ```{r spotsweeper-plotqc-sum}
 #| fig.width: 10
@@ -607,102 +615,13 @@ sum_z_plot <- SpotSweeper::plotQCmetrics(
 
 sum_log_plot + sum_z_plot
 ```
-Here, we can see how spots are distributed across the slide.
+These plots show us how spots are distributed across the tissue.
 Are there spots you would expect to be flagged for filtering based on the `sum_log` plot?
 Are there spots you might not have expected to be filtered based on the `sum_log` plot?
 
-#### Effect of neighborhood size
 
-**TODO: Decide final placement for this section. May move to an exercise, or may shift to a more open-ended individual exploration.**
-One key parameter that this relies on is the "neighborhood size" (`n_neighbors` argument).
-How would this have changed if we shifted the neighborhood size?
-To not clutter up our existing object, we'll save to new objects and plot as a exploration to learn about neighborhood size.
-
-```{r spotsweeper-compare-n-neighbors}
-#| fig.width: 10
-#| message: false
-
-# Detect outliers with a large neighborhood and make associated plot
-filtered_spe_n100 <- SpotSweeper::localOutliers(
-  filtered_spe, 
-  metric = "sum", 
-  direction = "lower", 
-  n_neighbors = 100
-)
-outlier_plot_n100 <- SpotSweeper::plotQCmetrics(
-  filtered_spe_n100, 
-  metric = "sum_log",
-  outliers = "sum_outliers", 
-  stroke = 0.75 
-) +
-  ggplot2::scale_fill_viridis_c() +
-  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
-  ggplot2::ggtitle("neighborhood k = 100")
-
-
-# Detect outliers with a small neighborhood and make associated plot
-filtered_spe_n10 <- SpotSweeper::localOutliers(
-  filtered_spe, 
-  metric = "sum", 
-  direction = "lower", 
-  n_neighbors = 10
-)
-outlier_plot_n10 <- SpotSweeper::plotQCmetrics(
-  filtered_spe_n10, 
-  metric = "sum_log",
-  outliers = "sum_outliers",
-  stroke = 0.75 
-) +
-  ggplot2::scale_fill_viridis_c() +
-  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
-  ggplot2::ggtitle("neighborhood k = 10")
-
-
-# Plot outliers detected with different neighborhood sizes
-## TODO: Include all tested neighborhood values
-outlier_plot_n100 + outlier_plot_n10
-```
-
-There's definitely some overlap, but also spots that are only filtered out for one of these neighborhood sizes.
-In particular, the spot on the top left: With a large neighborhood, its low value is an outlier, but with a small neighborhood it is not an outlier because the immediately surrounding spots are also lower.
-
-We can also see this difference by plotting the `sum_z` for each neighborhood size against each other on a scatterplot, coloring the global `sum_log`. 
-
-```{r sum-z-scatterplot}
-# create data frame for plotting
-compare_z_df <- data.frame(
-    n100_sum_z = filtered_spe_n100$sum_z, 
-    n10_sum_z = filtered_spe_n10$sum_z, 
-    # both versions have same value here since it's a global stat 
-    sum_log = filtered_spe_n10$sum_log
-  )
-
-ggplot2::ggplot(compare_z_df) + 
-  ggplot2::aes(x = n100_sum_z, y = n10_sum_z, color = sum_log) +
-  ggplot2::geom_point(alpha = 0.6) + 
-  ggplot2::labs(
-    x = "n_neighbors = 100", 
-    y = "n_neighbors = 10", 
-    title = "sum_z scores between neighorbhood sizes"
-  ) + 
-  ggplot2::geom_hline(yintercept = -3, color = "blue") +
-  ggplot2::geom_vline(xintercept = -3, color = "blue") +
-  ggplot2::scale_color_viridis_c(option = "magma") +
-  ggplot2::theme(aspect.ratio = 1)
-```
-The top right quadrant shows spots that both neighborhood sizes retain, and the bottom left quadrant shows spots that both neighborhood sizes will filter out.
-The top left shows spots that will only be filtered out for `n_neighbors = 100`, and the bottom right shows spots that will only be filtered out for `n_neighbors = 10`.
-Note there's at least one pretty low `sum_log` value retained in both versions.
-
-
-The point is, changing the cutoff or changing the neighborhood size will influence which spots are flagged for removal - plot your data!
-If you have specific biological intuition about how much variation you expect in the tissue, you might want to use that to inform cutoffs and the neighborhood size, and it's ok to explore.
-
-
-#### Detected gene and mitochondrial outliers
-
-Let's get back on track: let's do the same outlier detection for `detected` and `subsets_mito_percent`, and we'll proceed with the default cutoff of 3 with the default neighborhood size of 36.
-
+We can take the same approach for local outlier detection for the `detected` and `subsets_mito_percent` columns, and we'll proceed with the default cutoff of 3 with the default neighborhood size of 36.
+We'll do this one at a time below.
 
 ```{r spotsweeper-detected, live = TRUE}
 #| fig.width: 7
@@ -725,6 +644,9 @@ SpotSweeper::plotQCmetrics(
   ggplot2::scale_fill_viridis_c()
 ```
 
+As with local `sum` outliers, we see that the `detected` outliers are spread out across the whole tissue and not concentrated in specific tissue regions.
+
+Next, when calculating outliers for `subsets_mito_percent`, we'll need to specify `log = FALSE` and `direction = higher` since this is a bounded metric where we want to remove spots with higher than average values.
 
 ```{r spotsweeper-mito, live = TRUE}
 #| fig.width: 7
@@ -750,10 +672,11 @@ SpotSweeper::plotQCmetrics(
   ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent"))
 
 ```
-Even though mitochondrial percentages are fairly low across all spots, this approach helps us find spots that are much lower within their neighborhood, all of which we would miss with global filtering (where we might pick a threshold of 15-25% for single-cell data).
+Importantly, we see here that spots to remove are _not_ concentrated in tissue regions with higher mitochondrial percentages, but are instead spread across the tissue. 
+This shows us again that our local outlier detection approach allows us to avoid the confounding effects  of spatial heterogeneity. 
+It's also worth noting that none of these spots would have been removed with a typical global threshold used for single-cell data (e.g., 10-25%).
 
-
-Now that we've calculated all this, how many of each kind of outlier are there?
+Now that we've calculated all this, we can pool out outliers together: how many of outlier for each statistic are there?
 
 ```{r count-local-outliers}
 # Prepare data frame to count outliers
@@ -791,8 +714,10 @@ plot(
   fills = c("#F0E442", "#56B4E9", "#009E73")
 )
 ```
+We see substantial overlap between `sum` and `detected` outliers, but the `subsets_mito_percent` outliers appear to be mostly distinct. 
 
-Let's go ahead and filter all these spots out:
+Next, we'll build a filter representing the union of all types of outliers and use it to filter the SPE object.
+
 
 ```{r build-local-filter}
 # combine all outliers into "local_outliers" column to filter on
