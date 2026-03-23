@@ -14,6 +14,9 @@ jobs:
   make-live:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Free disk space
@@ -28,24 +31,29 @@ jobs:
 
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Load 1Password secrets
-        uses: 1password/load-secrets-action@v2
+        uses: 1password/load-secrets-action@v3
         with:
           export-env: true
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.TRAINING_OP_SERVICE_ACCOUNT_TOKEN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.OP_TRAINING_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.OP_TRAINING_SECRET_ACCESS_KEY }}
           DOCS_BOT_GITHUB_TOKEN: ${{ secrets.OP_DOCS_BOT_GITHUB_TOKEN }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_TRAINING_ACCOUNT }}:role/gha-training-data-read-role
+          role-session-name: githubActionSession
+          aws-region: us-east-1
 
       - name: Download data from S3
         if: github.event.inputs.rendering == 'TRUE'
         env:
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          aws s3 sync s3://ccdl-training-data/training-modules/ . --no-progress
+          aws s3 sync s3://alsf-datalab-training-data/training-modules/ . --no-progress
 
       - name: Pull latest Docker image
         run: |
@@ -87,7 +95,7 @@ jobs:
           reviewers: $GITHUB_ACTOR
 
       # Write PR info
-      - name: Check outputs
+      - name: Display PR info
         run: |
-          echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
-          echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
+          echo "## Pull Request Info" >> "$GITHUB_STEP_SUMMARY"
+          echo "- [Pull Request #${{ steps.cpr.outputs.pull-request-number }}](${{ steps.cpr.outputs.pull-request-url }})" >> "$GITHUB_STEP_SUMMARY"

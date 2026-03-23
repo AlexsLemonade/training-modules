@@ -1,21 +1,31 @@
 #! /bin/bash
 
 # This script is used to sync files required for training module notebooks to S3
-# To run this script, you must have write permission to the destination bucket
-# and have set up credentials with `aws configure`
+# To run this script, you must have an AWS profile with write permission
+# to the destination bucket.
 
 # As new directories and files are required, they should be added to the
 # the `sync_dirs` or `sync_files` arrays below, followed by running this script
 
 set -euo pipefail
 
+# get aws profile if provided with --profile flag, otherwise use default
+profile_flag=""
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --profile) profile_flag="--profile $2"; shift ;;
+    *) echo "Unknown parameter passed: $1" ; exit 1 ;;
+  esac
+  shift
+done
+
 # Set the working directory to the directory of this file
 cd "$(dirname "${BASH_SOURCE[0]}")"
 # move back up to the training modules root
 cd ..
 
-# destination bucket
-bucket=s3://ccdl-training-data/training-modules
+# destination bucket and prefix on S3 (no trailing slash)
+bucket="s3://alsf-datalab-training-data/training-modules"
 
 # Directories and files are listed separately so that we can take advantage
 # of the ability of `aws s3 sync` to avoid copying files inside directories that
@@ -72,14 +82,15 @@ output_files=(
 )
 
 # combine into one list of files
-sync_files+=(${output_files[@]})
+sync_files+=("${output_files[@]}")
 
-for loc in ${sync_dirs[@]}
-do
+for loc in "${sync_dirs[@]}"; do
   if [[ -d ${loc} ]]; then
     # upload directories to S3, ignore timestamps, ignore hidden files
-    aws s3 sync ${loc} ${bucket}/${loc} \
+    aws s3 sync "${loc}" "${bucket}/${loc}" \
+    ${profile_flag} \
     --size-only \
+    --no-progress \
     --exclude ".*"
   else
     echo "${loc} does not exist."
@@ -88,11 +99,12 @@ done
 
 echo "Directories synced"
 
-for loc in ${sync_files[@]}
-do
+for loc in "${sync_files[@]}"; do
   if [[ -f ${loc} ]]; then
     # upload individual files to S3
-    aws s3 cp ${loc} ${bucket}/${loc}
+    aws s3 cp "${loc}" "${bucket}/${loc}" \
+    ${profile_flag} \
+    --no-progress
   else
     echo "${loc} does not exist."
   fi
