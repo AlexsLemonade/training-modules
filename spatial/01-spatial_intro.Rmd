@@ -313,12 +313,18 @@ We can override this if we want, but we really want to remove those spots entire
 
 ## Filtering empty spots
 
-We only care about spots on top of tissue, so let's begin by removing the `in_tissue = 0` spots.
-Note that if we had read in the `filtered_feature_bc_matrix` instead, the data would already be filtered to only `1` in this column, but we need to take this step because we read in the `raw`. 
-We can make a rough analogy, that this analysis step is like filtering empty droplets to retain only droplets with cells in scRNA-seq, but here we're retaining only spots over tissue.
+As stated, let's go ahead and remove those spots entirely.
+As a rough analogy, this analysis step is reminiscent of filtering empty droplets from single-cell data retain only droplets with cells, but in this case we want to retain only spots that overlap tissue.
 
-We can visualize which spots those are, and we'll do it over the H&E to clearly see the relationship.
-We'll use the `annotate` argument, but `plotVisium` sees that this column is an integer and forces it to use a continuous color scale; we'll go ahead and make it a factor version of it to plot with.
+Again, we need to take this step because we read in the `raw_feature_bc_matrix` output from 10x. 
+Had we read in the `filtered_feature_bc_matrix` instead, the data would already be filtered to only contain spots overlapping tissue. 
+Generally in your own analyses, it's very safe (and with other related Visium technologies, it's in fact recommended!) to start by reading in the `filtered_feature_bc_matrix`.
+Here, we're taking these steps to ensure a thorough exploration of the SPE object.
+
+Before we filter, it can help to visualize which spots we'll remove.
+We'll plot this on top of the H&E using `ggspavis::plotVisium()` to be able to clearly see the relationship between coordinates and tissue.
+For this, we'd like to  use the `annotate` argument to color by the `in_tissue` column, but `ggspavis` interprets this column as an integer and forces it to use a continuous color scale.
+So, before plotting, we'll recast this value to a factor so we can plot it as a discrete variable.
 
 ```{r plot_in_tissue}
 #| fig.width: 7
@@ -341,8 +347,12 @@ ggspavis::plotVisium(
   )
 ```
 
-- The purple tissue overhang on the left isn't colored at all - indeed, there aren't spots at those coordinates outside the slide
-- Red points are those to filter out - they are uninformative since they don't overlap tissue.
+In this plot, we see the following:
+
+* The purple tissue overhang on the left isn't colored at all; these spots are outside fiducial alignment frame and have no corresponding spots
+* The red points represent those we want to filter out as uninformative
+
+Let's go ahead and filter:
 
 ```{r filter_in_tissue, live = TRUE}
 # keep only spots that are in the tissue and save to filtered_spe
@@ -352,8 +362,8 @@ filtered_spe <- spe[, spe$in_tissue == 1]
 filtered_spe
 ```
 
-Now, we're down to 4210 spots from the original 4992, but that's still a pretty good amount. 
-But not all of these spots are necessarily good quality, so we'll want to do some additional QC filtering next.
+We've kept 4210 spots of the original 4992, meaning that the vast majority of spots are over tissue.
+But not all of those spots are necessarily good quality, so we'll want to do some additional QC filtering next.
 
 ## Filtering low-quality spots
 
@@ -363,8 +373,8 @@ When identifying low-quality spots in Visium data, we can use similar QC statist
 * Number of unique detected genes
 * Percentage of mitochondrial reads, where high values indicate cell damage
 
-However, unlike with scRNA-seq data, how we interpret and use these statistics is going to be somewhat different. 
-    
+However, we'll learn in the following sections that we interpret and use these statistics is somewhat differently from single-cell data.
+
 ### Exploring global QC thresholds
 
 As a first step towards filtering, we'll calculate QC statitics and explore their distributions.
@@ -393,7 +403,7 @@ filtered_spe <- scuttle::addPerCellQC(
 colData(filtered_spe) |> head()
 ```
 
-Let's go ahead and look at the distributions of these statistics to see how many spots appear to be low-quality.
+We'll first look at the distributions of these statistics (always plots your data!) to see how many spots appear to be low-quality.
 
 ```{r global qc distributions}
 #| fig.width: 12
@@ -427,23 +437,24 @@ qc_plot_sum + qc_plot_detected + qc_plot_mito
 ```
 
 If you've worked with single-cell data lately, these distributions might look different from what you might have expected.
-In single-cell data, these distributions usually show a strong skew for low-quality cells, either with very few total UMIs or detected genes or with a very high mitochondrial percentage.
+In single-cell data, these distributions usually have long tails comprising low-quality cells that either have very few total UMIs, very few detected genes, or a very high mitochondrial percentage.
 
-But here, we see three unimodal distributions, and the tails seen in the `detected` and `subsets_mito_percent` distributions aren't really suggestive of low-quality spots. 
-We might be tempted to use these tails to inform global thresholds for filtering, but a closer look suggests that might not be what we want.
-For example, a natural threshold for this `subsets_mito_percent` distribution might be around 4%, but that's actually quite low mitochondrial percentage that does _not_ actually suggest cell damage so removing those spots would not actually help us here. 
+Here, we see three unimodal distributions without much skew, although the `detected` and `subsets_mito_percent` distributions do show some tails potentially indicating low-quality spots.
+We might be tempted to use these tails to inform global thresholds for filtering, but a closer look suggests that likely wouldn't help remove low-quality spots.
+For example, a natural threshold for this `subsets_mito_percent` distribution might be around 4%, but that's actually quite low mitochondrial percentage that does _not_ actually suggest those spots contain damaged cells. 
 
 What's actually going on here, and what should we do about it?
 
-* First, because each sequenced spot is an aggregate of cells, quality issues in individual cells can end up being smoothed out by their neighbors, so we may not easily perceive those signatures in per-spot statistics. 
+* First, because each sequenced spot is an aggregate of cells, quality issues in individual cells can end up being smoothed out by their neighbors, so we may not easily perceive those signatures in per-spot statistics.
 * Second, the technical factors that affect spatial transcriptomic data quality are fundamentally different from the factors that affect single-cell data quality.
 In single-cell data, differences in cell capture across droplets are a main source of quality issues that lead to cell damage or cells with very few UMIs or genes.
 Due to fundamental differences in library preparation, this is not a factor in spatial transcriptomic data; instead, problems with tissue preparation (e.g., tissue did not lay flat on the slide or was not permeabilized homogeneously) tend to be a more significant factor driving differences in QC statistics. 
 * Third, the biological heterogeneity in the tissue means that using global thresholds to filter has substantial potential to _bias_ analysis.
 For example, if a particular tissue compartment is dominated by cell types which naturally have lower expression, we might end up filtering out meaningful regions of the tissue.
-As such, the QC statistics themselves can be confounded with spatial biology, we we need to be mindful to not filter too aggressively.
+As such, the QC statistics themselves can be confounded with spatial biology.
+Filtering using global thresholds assumes that signal from low-quality cells (or spots) should trump signal from biological heterogeneity, but this assumption is not clearly met for spatial data.
 
-To get a clearer view of the relationship between QC statistics and tissue biology, we'll plot those same QC statistics directly on the slide coordinates to see their full spatial context.
+To see their full spatial context, we'll plot those same QC statistics directly on the slide coordinates to see their full spatial context.
 We'll also include the H&E plot here to be able to quickly compare patterns seen in each panel.
 
 ```{r global qc coords}
@@ -488,16 +499,16 @@ patchwork::wrap_plots(
 
 Compare the H&E image to these statistics: do you notice any patterns that suggest the statistics are confounded by spatial biology, in particular between stromal and blastemal regions?
 
-This shows us that if we were to filter out, for example, spots with overall lower total UMIs or detected genes, we would end up primarily if not only removing spots in stromal regions, which is probably not what we want! 
-As such, using global thresholds is not going to be suitable for spatial data, so we'll want to use a different approach to filter spots.
-(It's worth noting however this is not strictly a spatial transcriptomics issue; it's very possible for differences among cell types to confound QC statistics in single-cell data.
+This shows us that if we were to filter out, for example, spots with overall lower total UMIs or detected genes, we would end up primarily (if not only) removing spots in stromal regions, which is probably not what we want! 
+As such, using global thresholds is not going to be suitable for spatial data, so we'll need a different approach to filter spots.
+(It's worth noting that this is not strictly a spatial transcriptomics issue; it's very possible for differences among cell types to confound QC statistics in single-cell data too!
 Always plot your data to make sure your filters make sense for your data!)
 
 ### Filtering with local QC thresholds
 
 Rather than finding outliers based on overall QC statistics derived across biologically distinct tissue regions, we can instead look for _local_ outliers to filter.
 These are spots whose properties differ from their local neighborhood of nearby spots. 
-For this, we'll use the [`SpotSweeper`](https://www.bioconductor.org/packages/3.22/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html) package, which offers several useful tools for quality control of spot-based data:
+For this, we'll use the [`SpotSweeper`](https://www.bioconductor.org/packages/3.22/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html) package, which offers several useful tools for quality control of spot-based data.
 
 We'll specifically their local outlier detection function `SpotSweeper::localOutliers()`.
 This function uses a k-nearest neighbors approach to define the neighbhorhood for each spot and then calculates _local_ means and variances of standard QC metrics to identify outlying spots within their local tissue context.
@@ -522,7 +533,7 @@ Their hangnail detection uses variance in mitochondrial percentages, and since o
   * Lower values mean filtering will more strict (less tolerant of outliers, so more spots will be removed)
 
 
-Let's start off by looking for library size (column `sum` column) outliers:
+Let's start off by looking for outliers in the `sum` column, which represents library size (total UMIs).
 
 ```{r spotsweeper-sum, live = TRUE}
 filtered_spe <- SpotSweeper::localOutliers(
@@ -535,8 +546,7 @@ filtered_spe <- SpotSweeper::localOutliers(
 )
 ```
 
-
-What do we have now?
+What's in our `colData` now?
 
 ```{r coldata-spotsweeper-sum, live = TRUE}
 colData(filtered_spe)
@@ -544,7 +554,7 @@ colData(filtered_spe)
 
 `SpotSweeper` gave us a couple new columns:
 
-* `sum_log`: The `log1p()` (i.e., `log(x+1)`) of the `sum` column
+* `sum_log`: The `log1p()` (i.e., `log(x+1)`) of the `sum` column.
 * `sum_outliers`: Whether or not the spot is a _local_ outlier in its local neighborhood.
 Generally we'll want to filter out rows where this is `FALSE`
 * `sum_z`: The _local_ z-score for `sum_log` used for identifying outliers relative to the specified cutff (here, 3)
@@ -553,7 +563,7 @@ Generally we'll want to filter out rows where this is `FALSE`
   * A low negative value means the spot has a much lower `sum` than its local neighborhood.
   These are the spots we'll want to filter out
   
-Let's look at some of these values directly by plotting `sum_z` (local outlier statistics) against `sum_log` (log of a globally-calculated stat).
+Let's look at some of these values directly by plotting `sum_z against `sum_log`.
 
 ```{r sum_log_z_plot}
 # extract data frame for plotting
@@ -573,10 +583,10 @@ ggplot2::ggplot(filtered_spe_coldata) +
 We see here that most spots are not outliers for the `sum` metric.
 Most of the spots classified as outliers are fairly close to the -3 cutoff, but several are more extreme outliers.
 
-We also gain some insight from this plot about how performing filtering using global vs local outliers would play out.
+We also learn from this plot how performing filtering using global vs local outliers would play out.
 Imagine if we had performed global filtering with a threshold of 500, which has a log of 6.21.
-At a cutoff of `sum_log = 6.21, we would only have removed three spots.
-But, by using local outlier detection, we have identified several more spots to remove whose `sum` is much lower than their immediately surrounding spots, suggesting potential quality issues.
+At a cutoff of `sum_log = 6.21`, we would only have removed three spots.
+By using local outlier detection, we have identified several more spots to remove whose `sum` is much lower than their immediately surrounding spots, suggesting potential quality issues.
 On the whole though, this dataset is fairly good quality so there aren't many of these low-quality spots.
 
 We can also plot these results on the coordinates themselves, using the H&E image as a guide for interpretation.
@@ -618,7 +628,6 @@ sum_log_plot + sum_z_plot
 These plots show us how spots are distributed across the tissue.
 Are there spots you would expect to be flagged for filtering based on the `sum_log` plot?
 Are there spots you might not have expected to be filtered based on the `sum_log` plot?
-
 
 We can take the same approach for local outlier detection for the `detected` and `subsets_mito_percent` columns, and we'll proceed with the default cutoff of 3 with the default neighborhood size of 36.
 We'll do this one at a time below.
