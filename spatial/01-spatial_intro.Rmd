@@ -278,7 +278,7 @@ ggspavis::plotVisium(spe)
 ```
 
 Here, we see the spots overlaid on the slide as well as slide boundaries.
-You'll notice that every single spot is shown, including ones that don't overlap tissue directly --- indeed, all 4992 spots are present in the object right now!
+You'll notice that every single spot is shown, including ones that don't overlap tissue directly --- indeed, all 4992 spots are present in the object right now.
 
 By default, `ggspavis::plotVisium()` shows the spots, but we can hide them and zoom into the tissue on the slide.
 This is a helpful way to pop up the H&E for side-by-side comparisons with other plots we might make (foreshadowing!).
@@ -357,10 +357,20 @@ But not all of these spots are necessarily good quality, so we'll want to do som
 
 ## Filtering low-quality spots
 
+When identifying low-quality spots in Visium data, we can use similar QC statistics that we might use for filtering scRNA-seq data, such as:
+
+* Total UMIs, or library size
+* Number of unique detected genes
+* Percentage of mitochondrial reads, where high values indicate cell damage
+
+However, unlike with scRNA-seq data, how we interpret and use these statistics is going to be somewhat different. 
+    
 ### Exploring global QC thresholds
 
-As a first step towards filtering, we can borrow some approaches from scRNA-seq and calculate some quality-control measures. 
-Let's do that and have a look - we'll get our mitochondrial genes for QC calculations and we'll use `scran::addPerCellQC()` like we might for single-cell (except here it adds per spot).
+As a first step towards filtering, we'll calculate QC statitics and explore their distributions.
+We'll use `scran::addPerCellQC()` to calculate these statistics; even though the function is called "per-cell," in this case it will calculate per _spot_.
+
+First we need to import our list of mitochondrial genes to use as part of these calculations.
 
 ```{r get mitochondrial genes}
 # read in a table of mitochondrial genes and extract ids
@@ -371,7 +381,9 @@ mito_genes <- readr::read_tsv(mito_file) |>
   dplyr::pull(gene_id)
 ```
 
+
 ```{r calculate qc, live = TRUE}
+# calculate per-spot statistics
 filtered_spe <- scuttle::addPerCellQC(
   filtered_spe,
   subsets = list(mito = mito_genes)
@@ -381,8 +393,7 @@ filtered_spe <- scuttle::addPerCellQC(
 colData(filtered_spe) |> head()
 ```
 
-`ggspavis` comes with a helpful QC plotter (makes histograms by default but has a couple more options!).
-These are `ggplot2` objects, so we can use `ggplot2` code with them like add a title to each.
+Let's go ahead and look at the distributions of these statistics to see how many spots appear to be low-quality.
 
 ```{r global qc distributions}
 #| fig.width: 12
@@ -415,27 +426,29 @@ qc_plot_mito <- ggplot2::ggplot(coldata_df) +
 qc_plot_sum + qc_plot_detected + qc_plot_mito
 ```
 
-These distributions all look unimodal without too much skew, which is different from how distributions from single-cell data might look. 
+If you've worked with single-cell data lately, these distributions might look different from what you might have expected.
+In single-cell data, these distributions usually show a strong skew for low-quality cells, either with very few total UMIs or detected genes or with a very high mitochondrial percentage.
 
-Placeholder for discussion about differences/similarities in technical artifacts between data types:
+But here, we see three unimodal distributions, and the tails seen in the `detected` and `subsets_mito_percent` distributions aren't really suggestive of low-quality spots. 
+We might be tempted to use these tails to inform global thresholds for filtering, but a closer look suggests that might not be what we want.
+For example, a natural threshold for this `subsets_mito_percent` distribution might be around 4%, but that's actually quite low mitochondrial percentage that does _not_ actually suggest cell damage so removing those spots would not actually help us here. 
 
-- One of the reasons we filter on these metrics in single cell is due to potential differences in cell capture across droplets
-- This isn't a factor in spatial where QC stats are calculated per spot aka for aggregates of cells, extremes end up getting smoothed out
-  - Differences in capture aren't due to heterogeneity from droplet capture but because of tissue biology/prep:
-  - We have distinct regions of tissue or groups of cells that have less genes detected than other ones (biology) or because the tissue didn't lay on the slide completely flat or wasn't completely permeabilized in all spots equally
+What's actually going on here, and what should we do about it?
 
-For example, let's consider the mitochondria percent distribution:
+* First, because each sequenced spot is an aggregate of cells, quality issues in individual cells can end up being smoothed out by their neighbors, so we may not easily perceive those signatures in per-spot statistics. 
+* Second, the technical factors that affect spatial transcriptomic data quality are fundamentally different from the factors that affect single-cell data quality.
+In single-cell data, differences in cell capture across droplets are a main source of quality issues that lead to cell damage or cells with very few UMIs or genes.
+Due to fundamental differences in library preparation, this is not a factor in spatial transcriptomic data; instead, problems with tissue preparation (e.g., tissue did not lay flat on the slide or was not permeabilized homogeneously) tend to be a more significant factor driving differences in QC statistics. 
+* Third, the biological heterogeneity in the tissue means that using global thresholds to filter has substantial potential to _bias_ analysis.
+For example, if a particular tissue compartment is dominated by cell types which naturally have lower expression, we might end up filtering out meaningful regions of the tissue.
+As such, the QC statistics themselves can be confounded with spatial biology, we we need to be mindful to not filter too aggressively.
 
-- We do see a long right-tail for mitochondrial percentages, but the values are all really low which doesn't suggest any major quality issues.
-- The lower values here vs in single-cell data make sense because cells weren't stressed in the same way they would be for single-cell library prep; more likely to tell you about the tissue quality itself (biology) and not spot quality (technical) 
-
-Let's plot the same stats on the slide.
-We'll include the H&E plot here as well for an immediate comparison.
+To get a clearer view of the relationship between QC statistics and tissue biology, we'll plot those same QC statistics directly on the slide coordinates to see their full spatial context.
+We'll also include the H&E plot here to be able to quickly compare patterns seen in each panel.
 
 ```{r global qc coords}
 #| fig.width: 10
 #| message: false
-
 
 he_plot <- ggspavis::plotVisium(filtered_spe, spots = FALSE, zoom = TRUE) +
   ggplot2::ggtitle("H&E") +
@@ -473,22 +486,16 @@ patchwork::wrap_plots(
 )
 ```
 
-Now, we start to see there's more to the story.
-There is spatial heterogeneity in these QC stats:
+Compare the H&E image to these statistics: do you notice any patterns that suggest the statistics are confounded by spatial biology, in particular between stromal and blastemal regions?
 
-- the likely stromal regions have distinctly higher mitochondrial percentages (although again, these values are pretty low all around!) and fewer detected UMIs/genes
-- the likely blastema regions tend to have more detected UMIs/genes
-
-This tells us that there is local structure in the data that we might like our QC approach to take into consideration.
-Using these global thresholds, we can see that QC is confounded by biology. 
-If we filter these spots, we'll be removing spots associated with a particular tissue region.
-This shows that global thresholds may not be suitable for data with this kind of heterogeneity, so a different approach could be warranted.
-Worth noting, this is not strictly a spatial transcriptomics issue; there can be quite a bit of heterogeneity in scRNA-seq data too depending on what was sequenced!
-Always plot your data!
+This shows us that if we were to filter out, for example, spots with overall lower total UMIs or detected genes, we would end up primarily if not only removing spots in stromal regions, which is probably not what we want! 
+As such, using global thresholds is not going to be suitable for spatial data, so we'll want to use a different approach to filter spots.
+(It's worth noting however this is not strictly a spatial transcriptomics issue; it's very possible for differences among cell types to confound QC statistics in single-cell data.
+Always plot your data to make sure your filters make sense for your data!)
 
 ### Filtering with local QC thresholds
 
-Rather than finding outliers based on overall QC stats derived across biologically distinct domains/tissue regions, we can instead look for _local_ outliers to filter, i.e. spots with properties that deviate from their neighborhood of nearby spots.
+Rather than finding outliers based on overall QC statistics derived across biologically distinct tissue regions, we can instead look for _local_ outliers to filter, i.e. spots with properties that deviate from their neighborhood of nearby spots.
 Placeholder text to introduce [`SpotSweeper`](https://www.bioconductor.org/packages/3.22/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html):
 
 - Evaluates spots relative to their local neighborhood which is defined with `kNN`
