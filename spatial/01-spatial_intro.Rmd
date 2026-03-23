@@ -392,7 +392,6 @@ mito_genes <- readr::read_tsv(mito_file) |>
   dplyr::pull(gene_id)
 ```
 
-
 ```{r calculate qc, live = TRUE}
 # calculate per-spot statistics
 filtered_spe <- scuttle::addPerCellQC(
@@ -626,6 +625,7 @@ sum_z_plot <- SpotSweeper::plotQCmetrics(
 
 sum_log_plot + sum_z_plot
 ```
+
 These plots show us how spots are distributed across the tissue.
 Are there spots you would expect to be flagged for filtering based on the `sum_log` plot?
 Are there spots you might not have expected to be filtered based on the `sum_log` plot?
@@ -682,6 +682,7 @@ SpotSweeper::plotQCmetrics(
   ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent"))
 
 ```
+
 Importantly, we see here that spots to remove are _not_ concentrated in tissue regions with higher mitochondrial percentages, but are instead spread across the tissue. 
 This shows us again that our local outlier detection approach allows us to avoid the confounding effects of spatial heterogeneity. 
 It's also worth noting that none of these spots would have been removed with a typical global threshold used for single-cell data (e.g., 10-25%).
@@ -724,10 +725,10 @@ plot(
   fills = c("#F0E442", "#56B4E9", "#009E73")
 )
 ```
+
 We see substantial overlap between `sum` and `detected` outliers, but the `subsets_mito_percent` outliers appear to be mostly distinct. 
 
 Next, we'll build a filter representing the union of all types of outliers and use it to filter the SPE object.
-
 
 ```{r build-local-filter}
 # combine all outliers into "local_outliers" column to filter on
@@ -739,7 +740,6 @@ filtered_spe$local_outliers <- filtered_spe$sum_outliers |
 sum(filtered_spe$local_outliers)
 ```
 
-
 ```{r perform-local-filter, live = TRUE}
 # keep only spots where `local_outliers` is FALSE
 filtered_spe <- filtered_spe[, filtered_spe$local_outliers == FALSE]
@@ -750,20 +750,23 @@ filtered_spe
 
 After removing these additional 61 spots, we are left with 4149 spots that both overlap tissue and don't have obvious quality issues.
 
-
 ## Normalization
 
-We'll proceed to normalize counts.
-In single-cell data, we often use a deconvolution approach which does a quick clustering, calculates a scaling factor for each cluster, and then performs normalization using the cell's associated scaling factor. 
-But, this isn't quite what we want for spot data since Visium spots are heterogeneous compositions of 1-10 cells.
-So, we'll instead use a "library size normalization approach" which treats each spot independently using the `scuttle` package. 
-It corrects for sequencing depth without smoothing out any heterogeneous signal.
+Our next step is to normalize counts. 
+In single-cell data, we often use a [deconvolution-based approach](https://bioconductor.org/books/3.22/OSCA.basic/normalization.html#normalization-by-deconvolution) for normalization.
+This entails performing a quick clustering across cells, calculating a scaling factor for each cluster, and then normalizing using each cell's associated scaling factor. 
 
-It's worth noting this approach doesn't take spatial information directly into account; there are some approaches out there which account for spatial information, but this aspect of analysis seems to be pretty in flux. 
-Also, bear in mind the caveat that in some cases library size itself is [also confounded with spatial structure](https://link.springer.com/article/10.1186/s13059-024-03241-7); so, keep your eyes peeled for normalization developments, since this space is evolving rapidly.
+However, this approach isn't quite suitable for our Visium spatial transcriptomics data since each spot is a heterogeneous composition of 1-10 cells.
+We'll therefore use a so-called ["library-size normalization approach"](https://bioconductor.org/books/3.22/OSTA/pages/seq-intermediate-processing.html#library-size-normalization) which treats each spot fully independently and thereby corrects for sequencing depth without smoothing out any heterogeneous signal.
+
+It's important to note that this approach doesn't take spatial information directly into account, although there are [some proposed methods](https://bioconductor.org/books/3.22/OSTA/pages/seq-intermediate-processing.html#spatially-aware-normalization) which do.
+It's just as important to note that the normalization approach we're using here could also be problematic, as there's some evidence that library size itself [can be confounded with spatial structure](https://link.springer.com/article/10.1186/s13059-024-03241-7).
+All this means is: Keep your peeled as the spatial transcriptimics analysis field matures, because we're still in the early days of method development.
+
+Either way, we'll now proceed to normalize using `scuttle::computeLibraryFactors()` to calculate our spot-specific size factors.
 
 ```{r normalize-spe, live = TRUE}
-# calculate size factors
+# calculate per-spot size factors
 filtered_spe <- scuttle::computeLibraryFactors(filtered_spe)
 
 # perform normalization
@@ -771,6 +774,13 @@ norm_spe <- scuttle::logNormCounts(filtered_spe)
 
 # view normalized SPE
 norm_spe
+```
+
+We now have a new `logcounts` slot with normalized count data:
+
+```{r show logcounts}
+# show top corner of logcounts assay
+logcounts(norm_spe)[1:6, 1:6]
 ```
 
 
