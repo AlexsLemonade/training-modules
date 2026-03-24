@@ -25,7 +25,6 @@ We will be using an anaplastic Wilms Tumor sample from the the [Single-cell Pedi
 This sample was processed using first-generation Visium technology, and it was quantified with `Space Ranger 1.3.1`.
 We will use the outputs from Space Ranger as our starting point for analysis in this notebook.
 
-
 ## Set up
 
 To begin, we'll load `SpatialExperiment`, the core package for spatial transcriptomic objects in Bioconductor, as well as some packages for plotting.
@@ -174,6 +173,8 @@ This means there are some functions we'll use to interact with the object that y
 
 ![Structure of a `SpatialExperiment` object. Image from [Orchestrating Spatial Transcriptomics Analysis](https://bioconductor.org/books/release/OSTA)](diagrams/SpatialExperiment.png)
 <br><br>
+
+For more information on `SpatialExperiment` objects, as well as many other topics related to this course, we highly recommend the e-book [_Orchestrating Spatial Transcriptomics with Bioconductor_ (OSTA)](http://bioconductor.org/books/release/OSTA/).
 
 To import Visium data with the `VisiumIO` package, we'll need to specify three items (the rest should be automatically detected):
 
@@ -391,7 +392,6 @@ mito_genes <- readr::read_tsv(mito_file) |>
   # create a vector from the gene_id column
   dplyr::pull(gene_id)
 ```
-
 
 ```{r calculate qc, live = TRUE}
 # calculate per-spot statistics
@@ -626,6 +626,7 @@ sum_z_plot <- SpotSweeper::plotQCmetrics(
 
 sum_log_plot + sum_z_plot
 ```
+
 These plots show us how spots are distributed across the tissue.
 Are there spots you would expect to be flagged for filtering based on the `sum_log` plot?
 Are there spots you might not have expected to be filtered based on the `sum_log` plot?
@@ -682,6 +683,7 @@ SpotSweeper::plotQCmetrics(
   ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent"))
 
 ```
+
 Importantly, we see here that spots to remove are _not_ concentrated in tissue regions with higher mitochondrial percentages, but are instead spread across the tissue. 
 This shows us again that our local outlier detection approach allows us to avoid the confounding effects of spatial heterogeneity. 
 It's also worth noting that none of these spots would have been removed with a typical global threshold used for single-cell data (e.g., 10-25%).
@@ -724,10 +726,10 @@ plot(
   fills = c("#F0E442", "#56B4E9", "#009E73")
 )
 ```
+
 We see substantial overlap between `sum` and `detected` outliers, but the `subsets_mito_percent` outliers appear to be mostly distinct. 
 
 Next, we'll build a filter representing the union of all types of outliers and use it to filter the SPE object.
-
 
 ```{r build-local-filter}
 # combine all outliers into "local_outliers" column to filter on
@@ -739,7 +741,6 @@ filtered_spe$local_outliers <- filtered_spe$sum_outliers |
 sum(filtered_spe$local_outliers)
 ```
 
-
 ```{r perform-local-filter, live = TRUE}
 # keep only spots where `local_outliers` is FALSE
 filtered_spe <- filtered_spe[, filtered_spe$local_outliers == FALSE]
@@ -750,20 +751,23 @@ filtered_spe
 
 After removing these additional 61 spots, we are left with 4149 spots that both overlap tissue and don't have obvious quality issues.
 
-
 ## Normalization
 
-We'll proceed to normalize counts.
-In single-cell data, we often use a deconvolution approach which does a quick clustering, calculates a scaling factor for each cluster, and then performs normalization using the cell's associated scaling factor. 
-But, this isn't quite what we want for spot data since Visium spots are heterogeneous compositions of 1-10 cells.
-So, we'll instead use a "library size normalization approach" which treats each spot independently using the `scuttle` package. 
-It corrects for sequencing depth without smoothing out any heterogeneous signal.
+Our next step is to normalize counts. 
+In single-cell data, we often use a [deconvolution-based approach](https://bioconductor.org/books/3.22/OSCA.basic/normalization.html#normalization-by-deconvolution) for normalization.
+This entails performing a quick clustering across cells, calculating a scaling factor for each cluster, and then normalizing using each cell's associated scaling factor. 
 
-It's worth noting this approach doesn't take spatial information directly into account; there are some approaches out there which account for spatial information, but this aspect of analysis seems to be pretty in flux. 
-Also, bear in mind the caveat that in some cases library size itself is [also confounded with spatial structure](https://link.springer.com/article/10.1186/s13059-024-03241-7); so, keep your eyes peeled for normalization developments, since this space is evolving rapidly.
+However, this approach isn't quite suitable for our Visium spatial transcriptomics data since each spot is a heterogeneous composition of 1-10 cells.
+We'll therefore use a so-called ["library-size normalization approach"](https://bioconductor.org/books/3.22/OSTA/pages/seq-intermediate-processing.html#library-size-normalization) which treats each spot fully independently and thereby corrects for sequencing depth without smoothing out any heterogeneous signal.
+
+That said, it's important to note that this normalization approach might not be ideal either, as there's some evidence that library size itself [can be confounded with spatial structure](https://link.springer.com/article/10.1186/s13059-024-03241-7).
+Some methods [have been proposed](https://bioconductor.org/books/3.22/OSTA/pages/seq-intermediate-processing.html#spatially-aware-normalization) to circumvent this by taking spatial information into account.
+The takeaway: Method development in spatial transcriptomics is ongoing and a scientific consensus is still forming, so keep your eyes peeled for fresh developments in this space.
+
+Either way, we'll now proceed to normalize using `scuttle::computeLibraryFactors()` to first calculate our spot-specific size factors.
 
 ```{r normalize-spe, live = TRUE}
-# calculate size factors
+# calculate per-spot size factors
 filtered_spe <- scuttle::computeLibraryFactors(filtered_spe)
 
 # perform normalization
@@ -773,20 +777,33 @@ norm_spe <- scuttle::logNormCounts(filtered_spe)
 norm_spe
 ```
 
+We now have a new `logcounts` slot with normalized count data:
+
+```{r show logcounts}
+# show top corner of logcounts assay
+logcounts(norm_spe)[1:6, 1:6]
+```
+
 
 ## Exploring gene expression
 
-Finally, the moment you've all been waiting for: pretty plots!
-Even though spots aren't exactly cells, we can still color by expression of genes of interest to get a general sense of patterns in our sample.
-As a reminder, here's the H&E:
+Finally, the moment we've all been waiting for: Let's make some pretty plots!
+Spatial data, by definition, already has a handy coordinate system, which gives us a meaningful layout for visualizing spatial data.
+Although each spot isn't a cell, we can still color spots by expression of genes of interest to get a general sense of what cell types or tissue regions might be in our sample.
+
+To orient us once again, here is the H&E image:
 
 ```{r show-he}
 he_plot
 ```
-Wilms Tumors are often composed of a couple histologic compartments: blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
-We can see some of this biology reflected in this tissue section that appears to have these two major components: bluer regions indicating ECM-poor areas with high cellular density consistent with blastemal biology, and paler pink regions consistent with stromal tissue that may have an endothelial presence.
+We'll take a bit of time to interpret this image (with the caveat that we are not histology experts, but we'll do our best).
+Generally speaking, Wilms Tumors are composed of a several histologic compartments: blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
+The H&E shows some evidence for the first two compartments at least:
 
-Let's see if we can detect regions that might represent these compartments using marker gene expression.
+* Bluer regions indicating ECM-poor areas with high cellular density likely represent a blastemal compartment
+* Paler pink regions likely represent a stromal compartment that may have an endothelial presence
+
+We'll now use some exploratory visualization to see if we can have evidence for these compartments.
 For this, we'll plot expression using `ggpsavis::plotCoords()` for two genes:
 
 * `WT1`: A transcription factor that regulates kidney development.
@@ -795,13 +812,13 @@ We expect this gene to be highly expressed in Wilms Tumor blastemal compartments
 
 We'll need to provide the gene's corresponding row name, which is its Ensembl gene id, to `ggpsavis::plotCoords()` so let's go ahead and find those first.
 
-The `rowData` slot helpfully provides a gene symbol/Ensembl id mapping, if you haven't memorized all the ids yet:
+Recall, the `rowData` slot helpfully maps between gene symbols and Ensembl ids:
 
 ```{r show-rowdata}
 rowData(spe) |> head()
 ```
 
-
+In the next chunk, we'll filter the `rowData` to our genes of interest so we can grab Ensembl ids for plotting.
 
 ```{r get-ensembl, live = TRUE}
 # define gene symbols
@@ -813,8 +830,8 @@ rowData(spe) |>
   dplyr::filter(Symbol %in% gene_symbols)
 ```
 
-Great, let's plot!
-First `WT1`, which we'll show next to the H&E for context:
+First up, we'll plot the expression of `WT1` using `ggpspavis::plotCoords()`.
+We'll also show the H&E plot next to it to help us interpret it.
 
 ```{r plot-wt1, live = TRUE}
 #| message: false
@@ -833,12 +850,10 @@ wt1_plot <- ggspavis::plotCoords(
 he_plot + wt1_plot 
 ```
 
-
-
 What patterns do you see here?
 Do you think there is potentially spatial structure to `WT1` expression?
-Notice that little yellow band inside the dark region on top that matches nicely with the nucleated bit of that tissue image?
-It's very satisfying.
+You might also notice a band of spots with high `WT1` expression embedded in a band of spots with lower `WT1` expression along the top of the coordinates plot; can you see how this related back to the H&E?
+
 
 Let's compare this to `COL1A1` expression, whose Ensembl id we determined is `ENSG00000108821`. 
 Again, we'll plot this alongside the H&E.
@@ -860,7 +875,8 @@ col1a1_plot <- ggspavis::plotCoords(
 he_plot + col1a1_plot 
 ```
 
-What differences do you see in gene expression compared to `WT1`?
+What differences do you see in this plot of `COL1A1` gene expression compared to `WT1`?
+Do they appear to be expressed in different tissue regions?
 Did you expect this based on the H&E?
 
 Based on these (very few, very cursory, and highly exploratory!) plots, do you think there is evidence for blastemal and stromal compartments in this sample?
