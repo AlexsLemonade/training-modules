@@ -19,6 +19,7 @@ If you have a different version of R or other R packages, the documentation may 
 - [`ggspavis`](#ggspavis)
 - [`SpotSweeper`](#spotsweeper)
 - [`scuttle`](#scuttle)
+- [`patchwork`](#patchwork)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -102,3 +103,13 @@ Read the [`scuttle` package documentation](https://rdrr.io/bioc/scuttle/), and a
 | `scuttle` | [`computeLibraryFactors()`](https://www.bioconductor.org/packages/release/bioc/vignettes/scuttle/inst/doc/norm.html#2_Computing_size_factors)  | Compute Library Factors | Returns a numeric vector of computed size factors for each spot (or cell) stored in a `SpatialExperiment` (or `SingleCellExperiment`) object. The size factor is computed as the library size of each spot/cell after scaling them to have a mean of 1 across all spots/cells |
 | `scuttle`| [`logNormCounts()`](https://www.bioconductor.org/packages/release/bioc/vignettes/scuttle/inst/doc/norm.html#2_Computing_size_factors)| Normalize log counts | Returns the `SpatialExperiment` (or `SingleCellExperiment`) object with normalized expression values for each spot (cell), using the size factors stored in the object |
 
+
+### `patchwork`
+
+
+Read the [`patchwork` package documentation](https://rdrr.io/cran/patchwork), and a [vignette on its usage](https://patchwork.data-imaginist.com/articles/patchwork.html).
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+| `patchwork` | [`wrap_plots()`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Wrap plots | Wrap multiple `ggplot2` plots into a single multi-panel plot  |
