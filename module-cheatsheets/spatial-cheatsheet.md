@@ -31,17 +31,18 @@ If you have a different version of R or other R packages, the documentation may 
 
 Read the [`SpatialExperiment` package documentation (and e-book)](https://bioconductor.org/books/release/OSTA/) and a [vignette on its usage](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperiment/inst/doc/SpatialExperiment.html).
 
-`SpatialExperiment` objects are based [`SingleCellExperiment` objects](https://bioconductor.org/books/release/OSCA/) and its existing functions, and the associated function usage is equivalent.
-See [this `SingleCellExperiment` vignette](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html) for example usage of shared functions, as well as cheatsheets for the "Introduction to scRNA-seq" (`scRNA-seq-cheatsheet.pdf`) and "Advanced scRNA-seq" (`scRNA-seq-advanced-cheatsheet.pdf`) training modules.
+`SpatialExperiment` objects are based on [`SingleCellExperiment` objects](https://bioconductor.org/books/release/OSCA/).
+There are many functions that are shared between the two, with equivalent usage.
+See [this `SingleCellExperiment` vignette](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html) for example usage of shared functions.
+You can also refer to the Data Lab cheatsheets for our "Introduction to scRNA-seq" (`scRNA-seq-cheatsheet.pdf`) and "Advanced scRNA-seq" (`scRNA-seq-advanced-cheatsheet.pdf`) training modules.
 
 
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
 | `SpatialExperiment` | [`SpatialExperiment()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperiment/inst/doc/SpatialExperiment.html) | Spatial Experiment| Creates a `SpatialExperiment` object  |
-| `SpatialExperiment` | [`spatialCoords()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperiment/inst/doc/SpatialExperiment.html#13_spatialCoords) | Spatial Experiment coordinates | Extracts and stores spatial coordinates of spots in the `SpatialExperiment` object  |
-| `SpatialExperiment` | [`imgData()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperiment/inst/doc/SpatialExperiment.html#14_imgData) | Spatial 
-Experiment| Creates a `SpatialExperiment` object  |
+| `SpatialExperiment` | [`spatialCoords()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperiment/inst/doc/SpatialExperiment.html#13_spatialCoords) | Spatial Experiment coordinates | Extracts spatial coordinates of spots in the `SpatialExperiment` object  |
+| `SpatialExperiment` | [`imgData()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperiment/inst/doc/SpatialExperiment.html#14_imgData) | Spatial Experiment images | View the image data associated with a `SpatialExperiment` object   |
 
 
 
