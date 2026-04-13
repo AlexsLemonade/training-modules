@@ -54,8 +54,8 @@ Read the R package [`VisiumIO` documentation](https://www.bioconductor.org/packa
 
 |Library/Package|Piece of Code|What it's called| What it does|
 |---------------|-------------|----------------|-------------|
-| `VisiumIO` | `TENxVisium()` | 10x Visium | Constructor function for importing 10x Visium data |
-| `VisiumIO`| `import()`| Import | Loads 10x Visium data defined with the `TENxVisium()` constructor function |
+| `VisiumIO` | [`TENxVisium()`](https://www.bioconductor.org/packages/release/bioc/vignettes/VisiumIO/inst/doc/VisiumIO.html#tenxvisium) | 10x Visium | Constructor function for importing 10x Visium data |
+| `VisiumIO`| [`import()`](https://www.bioconductor.org/packages/release/bioc/vignettes/VisiumIO/inst/doc/VisiumIO.html#importing-into-spatialexperiment) | Import | Loads 10x Visium data defined with the `TENxVisium()` constructor function |
 
 
 
