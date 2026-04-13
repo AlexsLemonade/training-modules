@@ -87,8 +87,8 @@ Read the [`SpotSweeper` package documentation](https://www.bioconductor.org/pack
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
-| `SpotSweeper` | [`localOutliers()`](https://www.bioconductor.org/packages/release/bioc/vignettes/scuttle/inst/doc/norm.html#2_Computing_size_factors)  | Local outliers | Detect local outlier spots in a `SpatialExperiment` based on a given quality control metric |
-| `SpotSweeper`| [`plotQCmetrics()`](https://www.bioconductor.org/packages/release/bioc/vignettes/scuttle/inst/doc/norm.html#2_Computing_size_factors)| Plot QC metrics | Create a spot plot highlighting outliers detected with `SpotSweeper::localOutliers()` |
+| `SpotSweeper` | [`localOutliers()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html#identifying-local-outliers-using-spotsweeper)  | Local outliers | Detect local outlier spots in a `SpatialExperiment` based on a given quality control metric |
+| `SpotSweeper`| [`plotQCmetrics()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html#visualizing-local-outliers)| Plot QC metrics | Create a spot plot highlighting outliers detected with `SpotSweeper::localOutliers()` |
 
 
 
