@@ -59,6 +59,22 @@ wget -qO- https://cf.10xgenomics.com/samples/spatial-exp/2.0.0/CytAssist_11mm_FF
 wget -qO- https://cf.10xgenomics.com/samples/spatial-exp/2.0.0/CytAssist_11mm_FFPE_Human_Ovarian_Carcinoma/CytAssist_11mm_FFPE_Human_Ovarian_Carcinoma_filtered_feature_bc_matrix.tar.gz | tar -xz
 ```
 
-`Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv`, the `spatial/` directory, and the `filtered_feature_bc_matrix/` directories were then placed in `/shared/data/training-modules/spatial/data/ovarian-carcinoma/`.
+The `Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv` file, the `spatial/` directory, and the `filtered_feature_bc_matrix/` directory were then placed in `/shared/data/training-modules/spatial/data/ovarian-carcinoma/`.
 No further preparation was needed.
+
+
+### Osteosarcoma
+
+This data comes from this `GEO` record: <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM8478586>, which is associated with [Reinecke et al. (2025)](https://aacrjournals.org/clincancerres/article/31/2/414/751106/Aberrant-Activation-of-Wound-Healing-Programs).
+This data needs to be filtered and normalized for input to workshop notebooks.
+
+To download and prepare input data for the workshop, change directories to the `setup/osteo` directory and run:
+
+```sh
+snakemake -j2
+```
+
+This will place the downloaded files from GEO and the normalized SPE object into `/shared/data/training-modules/scRNA-seq-advanced/data/osteo`.
+
+
 

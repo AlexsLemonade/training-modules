@@ -1,0 +1,108 @@
+---
+title: "Prepare osteosarcoma dataset"
+author: Stephanie Spielman for CCDL
+date: 2026
+output: html_notebook
+params:
+  filtered_matrix: "/shared/data/training-modules/spatial/data/osteo/outs/filtered_feature_bc_matrix"
+  spatial_dir: "/shared/data/training-modules/spatial/data/osteo/outs/spatial"
+  output_rds: "/shared/data/training-modules/spatial/data/osteo/normalized/osteo_normalized_spe.rds"
+  mito_genes_file: "/shared/data/training-modules/spatial/data/reference/hs_mitochondrial_genes.tsv"
+---
+
+This notebook prepares the osteosarcoma sample from [`GSM8478586`](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM8478586) for analysis in the workshop by performing filtering and normalization.
+It is meant to be run from the [snakemake workflow](Snakemake) in this directory.
+
+Note that this notebook runs only deterministic algorithms.
+
+First, check paths:
+
+```{r}
+stopifnot(
+  "filtered_feature_bc_matrix/ doesn't exist" = dir.exists(params$filtered_matrix),
+  "spatial/ doesn't exist" = dir.exists(params$spatial_dir),
+  "mito_genes_file doesn't exist" = file.exists(params$mito_genes_file),
+  "output_rds must end in rds" = stringr::str_ends(params$output_rds, "\\.rds")
+)
+```
+
+Begin by importing the SPE:
+
+```{r}
+spe <- VisiumIO::import(
+  VisiumIO::TENxVisium(
+    resources = params$filtered_matrix,
+    spatialResource = params$spatial_dir,
+    images = c("hires", "cytassist")
+  )
+)
+spe
+```
+
+Now, perform filtering:
+
+```{r}
+mito_genes <- readr::read_tsv(params$mito_genes_file) |>
+  dplyr::filter(gene_id %in% rownames(spe)) |>
+  dplyr::pull(gene_id)
+```
+
+
+```{r}
+spe <- spe |>
+  # calculate per-spot statistics
+  scuttle::addPerCellQC(
+    subsets = list(mito = mito_genes)
+  ) |> 
+  # Detect local outliers using defaults 
+  SpotSweeper::localOutliers(
+    metric = "sum",
+    direction = "lower"
+  ) |> 
+  SpotSweeper::localOutliers(
+    metric = "detected",
+    direction = "lower"
+  ) |> 
+  SpotSweeper::localOutliers(
+    metric = "subsets_mito_percent",
+    direction = "higher", # we want to remove HIGHER values
+    log = FALSE # don't log
+)
+```
+
+There are this many outlier spots to remove:
+
+```{r}
+# identify and remove local outliers
+spe$local_outliers <- spe$sum_outliers |
+  spe$detected_outliers |
+  spe$subsets_mito_percent_outliers
+print(sum(spe$local_outliers))
+```
+
+```{r}
+# keep only spots where `local_outliers` is FALSE
+spe <- spe[, !spe$local_outliers]
+```
+
+
+Now, we can normalize the object.
+
+```{r}
+spe <- spe |>
+  scuttle::computeLibraryFactors() |>
+  scuttle::logNormCounts()
+```
+
+Finally, we can export with compression.
+
+```{r}
+readr::write_rds(spe, params$output_rds, compress = "gz")
+
+```
+
+## Session info
+
+```{r}
+sessionInfo()
+```
