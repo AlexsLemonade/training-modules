@@ -189,12 +189,33 @@ In the below chunk add the cell types identified by `SingleR` (the pruned labels
 
 ```
 
-Then, create a UMAP plot, coloring the cells by the identified cell types now present in the `celltype_hpca` column of the `colData`.
-Hint: Colors may be a bit challenging to distinguish, so try adding on the function `scale_color_brewer()` as we saw during instruction to specify a different color palette.
+Next, we'll create a UMAP plot, coloring the cells by the identified cell types now present in the `celltype_hpca` column of the `colData`.
 
-```{r hpca plot cell types, solution = TRUE}
+But before we do...there's quite a few cell types here that most default palettes will struggle to accommodate.
+To help with this, we've created a custom palette to use with this plot that matches the colors you see above in the `SingleR` heatmap.
+
+```{r create hpca palette}
+hpca_cell_types <- sort(unique(hpca_result$pruned.labels))
+
+# colors originally derived from dittoSeq: https://github.com/dtm2451/dittoSeq
+# this vector of colors was obtained from: https://github.com/SingleR-inc/SingleR/blob/40ff41ae2387b3de6673ea516f437266caa08ace/R/plotScoreHeatmap.R#L576-L591
+hpca_cell_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
+                      "#D55E00", "#CC79A7", "#666666", "#AD7700", "#1C91D4",
+                      "#007756", "#D5C711", "#005685", "#A04700", "#B14380")
+
+names(hpca_cell_palette) <- hpca_cell_types
+```
+
+
+```{r hpca plot cell types}
 # plot UMAP with HPCA cell types
-
+scater::plotUMAP(sce, color_by = "celltype_hpca") + 
+  # specify the custom palette
+  scale_color_manual(
+    values = hpca_cell_palette, 
+    na.value = "gray80", # set a light color to distinguish unlabeled cells
+    name = "Cell type"
+  )
 ```
 
 It looks like most of the cells belong to only a few groups and we see a lot of astrocytes, macrophages, and monocytes.
@@ -238,7 +259,7 @@ Although you can use almost any gene expression data as your reference dataset, 
 Be sure that you trust the cell type annotations you use as a reference, and that you understand how cell types were annotated in that reference.
 
 Here, we will use a single-cell RNA-seq reference dataset that is available as part of the `scRNAseq` package.
-The full list of datasets available in the package can be found in [this `scRNAseq` vignette](https://bioconductor.org/packages/3.19/data/experiment/vignettes/scRNAseq/inst/doc/scRNAseq.html#available-data-sets).
+The full list of datasets available in the package can be found in [this `scRNAseq` vignette](https://bioconductor.org/packages/3.22/data/experiment/vignettes/scRNAseq/inst/doc/scRNAseq.html#finding-datasets).
 The dataset we will use is from a single-cell RNA-seq study of brain tissue from [Darmanis _et al._ (2015)](https://doi.org/10.1073/pnas.1507125112).
 In this study, they were able to identify and label all major cell types present in the brain and further characterize neurons based on their differentiation stage.
 
@@ -301,22 +322,21 @@ Now we can train our new model, using the brain-specific reference dataset.
 We will use the same approach that we used with the HPCA dataset, with one alteration.
 
 We'll specify the argument `de.method="wilcox"` so that the model uses the Wilcoxon rank sum test to identify top markers for each pairwise comparison.
-This method is more appropriate for [annotation with a single-cell reference dataset](https://bioconductor.org/books/3.19/SingleRBook/sc-mode.html#annotation-with-test-based-marker-detection) because it accommodates the low coverage and sparsity commonly seen in single-cell data.
+This method is more appropriate for [annotation with a single-cell reference dataset](https://bioconductor.org/books/3.22/SingleRBook/sc-mode.html#annotation-with-test-based-marker-detection) because it accommodates the low coverage and sparsity commonly seen in single-cell data.
 
 **A little tip:** When using the Wilcoxon rank sum test, normalized counts are not required.
 If you would like to use raw counts instead, be sure to use the `assay.type=counts` option.
-See the section on [choosing assay data from the `SingleR` book](https://bioconductor.org/books/3.19/SingleRBook/classic-mode.html#choices-of-assay-data) for more details.
+See the section on [choosing assay data from the `SingleR` book](https://bioconductor.org/books/3.22/SingleRBook/classic-mode.html#choices-of-assay-data) for more details.
 
 ```{r brain train model}
 # build model
 brain_model <- SingleR::trainSingleR(
   brain_sce_ref, # reference dataset
   labels = brain_sce_ref$cell.type, # labels for training dataset
+  test.genes = rownames(sce), # only use genes in the sce object
   # use DE to select genes (default)
   genes = "de",
   de.method = "wilcox", # recommended for single cell reference
-  # only use genes in the sce object
-  restrict = rownames(sce),
   # parallel processing
   BPPARAM = BiocParallel::MulticoreParam(4)
 )
@@ -345,6 +365,18 @@ Look at the results using both a table and then a heatmap.
 Now, add in the annotations to the SCE object and create a UMAP plot, coloring the cells by the identified cell type.
 When adding in the cell types to the SCE object, save them to a column in the `colData` named `celltype_brain`.
 
+To help interpret the figure, we'll again define a custom palette, this time called `brain_cell_palette`, to match the heatmap above that you can use when plotting the UMAP.
+
+```{r create brain palette}
+brain_cell_types <- sort(unique(brain_result$pruned.labels))
+
+# colors obtained from: https://rdrr.io/bioc/SingleR/src/R/plotScoreHeatmap.R
+brain_cell_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+names(brain_cell_palette) <- brain_cell_types
+```
+
+
 ```{r brain singleR umap, solution = TRUE}
 # add annotations to SCE object
 
@@ -353,8 +385,8 @@ When adding in the cell types to the SCE object, save them to a column in the `c
 ```
 
 Interestingly, in these results, cells that the HPCA reference classified as macrophages and monocytes are now being classified as microglia, which are a special population of macrophages residing in the brain and central nervous system.
-We also see that the cluster of astrocytes appear to be a mix of various cells: astrocytes, endothelial cells, and neurons.
-Does this change our answer to the previous question of which of the 4 glioblastoma cell states are present in our sample?
+We also see that the cluster of astrocytes from the HPCA annotation appears to be a mix of several cell types, including neurons across developmental stages (`fetal_quiescent` and `fetal_replicating`). 
+Do these results change our answer to the previous question of which of the 4 glioblastoma cell states are present in our sample?
 Using the HPCA reference we had seen this sample was comprised mostly of AC-like cells, but when using this reference dataset we also see cells that may be NPC-like.
 
 In this particular example, we are using a dataset that is more appropriately tailored to our tissue of interest and therefore we obtain cell types that are a better representation of our expected cell types.
@@ -473,18 +505,24 @@ However, instead of printing out each plot individually, we can actually save ou
 
 ```{r metacell umap}
 # create hpca umap
-hpca_umap <- scater::plotUMAP(sce,
-                              color_by = "hpca_metacell")
+hpca_umap <- scater::plotUMAP(
+  sce,
+  color_by = "hpca_metacell"
+)
 
 # create brain umap
-brain_umap <- scater::plotUMAP(sce,
-                               color_by = "brain_metacell")
+brain_umap <- scater::plotUMAP(
+  sce,
+  color_by = "brain_metacell"
+)
 
 # combine into one plot
-patchwork::wrap_plots(hpca_umap,
-                      brain_umap,
-                      # stack umaps with only one column
-                      ncol = 1)
+patchwork::wrap_plots(
+  hpca_umap,
+  brain_umap,
+  # stack umaps with only one column
+  ncol = 1
+)
 ```
 
 When looking at these results do you see any similarities or differences between using the two references?
@@ -544,14 +582,18 @@ ensembl_ids <- microglia_info |>
 # create umap + logcounts data frame
 umap_expression_df <- scuttle::makePerCellDF(sce, features = ensembl_ids) |>
   # select only UMAP embeddings and counts for ensembl genes
-  dplyr::select(UMAP1="UMAP.1",
-                UMAP2="UMAP.2",
-                all_of(ensembl_ids)) |>
+  dplyr::select(
+    UMAP1="UMAP.1",
+    UMAP2="UMAP.2",
+    all_of(ensembl_ids)
+  ) |>
   # pivot to have one column with gene names
   #  and one column with logcounts for a given gene
-  tidyr::pivot_longer(!starts_with("UMAP"),
-                      names_to = "gene",
-                      values_to = "logcounts")
+  tidyr::pivot_longer(
+    !starts_with("UMAP"),
+    names_to = "gene",
+    values_to = "logcounts"
+  )
 
 # create faceted umaps colored by gene expression
 ggplot(umap_expression_df,
@@ -569,13 +611,15 @@ We can also see that all the microglia genes we explored are indeed expressed in
 We could also plot the expression of all marker genes across the identified cell types, confirming that the marker genes for microglia are specifically expressed in cells labeled as microglia and not other cell types.
 Here we can use the `scater::plotExpression()` function to plot the expression of all marker genes and facet by any of the cell type annotations we have added to our SCE throughout this exercise.
 
-```{r marker expression}
+```{r marker expression, fig.width = 12, fig.height = 5}
 # plot expression of all marker genes
-scater::plotExpression(sce,
-                       # plot all marker genes using ensembl id
-                       features = ensembl_ids,
-                       other_fields = "celltype_brain",
-                       point_size = 0.1) +
+scater::plotExpression(
+  sce,
+  # plot all marker genes using ensembl id
+  features = ensembl_ids,
+  other_fields = "celltype_brain",
+  point_size = 0.1
+) +
   # facet by cell type label of choice
   facet_grid(cols = vars(celltype_brain)) +
   # label by symbol instead of ensembl id on x axis
