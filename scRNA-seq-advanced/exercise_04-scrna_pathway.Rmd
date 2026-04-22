@@ -118,25 +118,26 @@ marker_genes_df
 
 You can use the information in the `source` column to review the publication a marker gene's inclusion is supported by.
 
-Now we need to get the gene set ready for use with `AUCell`. 
-You're going to save the gene set to a vector called `ensg_tumor_markers`.
-Here are some things to keep in mind when preparing the gene set:
+Let's prepare our gene set list for input to `AUCell`.
+We'll want to make a vector of Ensembl gene ids, and then save that to a list with an informative name we can refer to in our `AUCell` code.
+In the chunk below, create a vector called `gene_ids` that contains all of our gene set's Ensembl gene ids.
+Here are some things to keep in mind when preparing your gene set:
 
-- You are only interested in the _tumor_ gene set
+- You are only interested in the _tumor_ genes
 - The `SingleCellExperiment` object uses Ensembl gene identifiers
 - You'll want to remove any duplicate genes in the gene set
 
-```{r format_marker_genes, solution = TRUE}
-# create a vector named `ensg_tumor_markers` with just the tumor gene set
+```{r create_marker_genes, solution = TRUE}
+# create a vector named `gene_ids` with just the tumor genes
 
 ```
 
-Next, convert the vector of Ensembl ids to a `GeneSet` object for use with `AUCell`:
+Now, we'll store it in a list to pass into `AUCell`. 
+Be sure to provide a name for the gene list, which should be "tumor_marker_genes". 
+Then assign the list to the variable named `ensg_tumor_markers`.
 
-```{r GeneSet}
-ensg_tumor_markers <- GeneSet(ensg_tumor_markers,
-                              setName = "tumor_marker_genes",
-                              geneIdType = ENSEMBLIdentifier())
+```{r format_marker_genes}
+ensg_tumor_markers <- list("tumor_marker_genes" = gene_ids)
 ```
 
 ### Prepare the single-nuclei data
@@ -146,6 +147,14 @@ First, we will read in the `SingleCellExperiment` from the file we chose earlier
 
 ```{r read_in_sce}
 sce <- readr::read_rds(sce_file)
+```
+
+This object includes counts for all genes that were present in the index when quantifying gene expression, including genes that were not detected in any cells.
+We don't want genes that are not found in our data set to impact our `AUCell` rankings, so before proceeding, remove any genes that aren't detected:
+
+```{r filter_sce, solution = TRUE}
+# remove genes that are not detected in any of the cells from the SCE object
+
 ```
 
 We will mostly be using the raw counts, so save the counts matrix to a separate variable.
@@ -249,31 +258,16 @@ Just keep in mind that the more gene sets in the collection, the longer `AUCell`
 
 ```
 
-Turn the data frame into a `GeneSetCollection` for use with `AUCell`.
+Next, we'll turn the data frame into a list named `collection_list` for use with `AUCell`.
 
 ```{r gene_set_collection}
-collection_list <- unique(collection_df$gs_name) |>
-  purrr::map(
-    # For each gene set
-    \(gene_set_name) {
-      collection_df |>
-        # Subset to the rows in that gene set
-        dplyr::filter(gs_name == gene_set_name) |>
-        # Grab the Ensembl gene identifiers
-        dplyr::pull(ensembl_gene) |>
-        # Create a GeneSet object
-        GeneSet(setName = gene_set_name,
-                geneIdType = ENSEMBLIdentifier())
-    }
-  ) |>
-  # Turn the list of GeneSet objects into a GeneSet collection
-  GeneSetCollection()
+collection_list <- split(collection_df$ensembl_gene, collection_df$gs_name)
 ```
 
 `AUCell` provides a wrapper function that runs the ranking and AUC calculation steps called `AUCell_run()`.
 Because we're using the same sample as we did with the tumor marker genes, we can use the same AUC max rank value we used earlier (`auc_max_rank`).
 
-You may need to change the names of the variables passed to the `exprsMat` and `aucMaxRank` arguments below depending on what you used earlier!
+You may need to change the names of the variables passed to the `exprMat` and `aucMaxRank` arguments below depending on what you used earlier!
 
 ```{r collection_auc}
 # Change the variable names as needed
