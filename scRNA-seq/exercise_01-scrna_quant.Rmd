@@ -93,7 +93,8 @@ In the case of tag-based data with alevin:
 `-2` option is for our `R2` file (contains the reads).
 
 Find the file path for the `10X_P7_12` `R1` fastq.gz file and write out what your `-1` specification will be.
-We will only process one set of the files, the `_001` chunks so use the file path for that file only. (This chunk won't work if you try to run it due to permissions errors; no worries).
+We will only process one set of the files – the `_001` chunks – so use the file path for that file only. 
+(This chunk won't work if you try to run it due to permissions errors; no worries.)
 
 ```{sh r1-file, eval=FALSE, solution=TRUE}
 # Write out the file path for 10X_P7_12's R1 FILE 001 file.
@@ -204,14 +205,10 @@ This will take some time; when it is done the last message you will see is
 
 In the second half of this exercise notebook, we will use the Alevin quantified data from sample `10X_P7_12` to perform cell filtering and normalization.
 
-If you did _not_ complete Part A of this exercise notebook, you will need to use this command to copy over the results for `10X_P7_12` that we previously prepared for you.
+If you completed Part A of this exercise notebook, you will have quantified only a subset of reads from this sample.
+For this section, we have prepared the quantified data from the full set of reads, allowing you to look at more representative results for a sample.
 
-To copy over the full results (Part A only processed one of six pairs of fastq files), or if you did not complete part A, copy and paste this command into your terminal (make sure your current directory is `training-modules/scRNA-seq`):
-
-```{sh copy-data, eval = FALSE}
-cp -r ~/shared-data/training-modules/scRNA-seq/data/tabula-muris/alevin-quant/10X_P7_12 \
-  data/tabula-muris/alevin-quant/.
-```
+This quantified data is available for you to use in the directory `data/tabula-muris/alevin-quant/10X_P7_12`.
 
 ### Set up
 
@@ -438,13 +435,14 @@ Here we will walk through use of the `computeDoubletDensity` function within the
 The simulated doublets are then projected onto the same PCA space as the single cells.
 For each original single cell, a doublet score is then calculated by identifying the density of simulated doublets compared to the density of original single cells.
 
-You can read more about doublet detection in the [Orchestrating Single Cell Analysis book](https://bioconductor.org/books/3.19/OSCA.advanced/doublet-detection.html) and find more detailed information on using the `computeDoubletDensity` function in the [bioconductor vignette](https://bioconductor.org/packages/3.19/bioc/vignettes/scDblFinder/inst/doc/computeDoubletDensity.html).
+You can read more about doublet detection in the [Orchestrating Single Cell Analysis book](https://bioconductor.org/books/3.22/OSCA.advanced/doublet-detection.html) and find more detailed information on using the `computeDoubletDensity` function in the [bioconductor vignette](https://bioconductor.org/packages/3.22/bioc/vignettes/scDblFinder/inst/doc/computeDoubletDensity.html).
 
 _Step 1)_ Perform PCA analysis.
 
 Before we can run `computeDoubletDensity`, we will want to perform PCA analysis, as we will need that information to interpret our results.
 Just as we used PCA to reduce the dimensions of our data and compare normalization results, PCA is used here to reduce dimensions of the data into a 2-dimensional space expression space.
 The simulated doublets will then be projected onto this same 2-dimensional PCA space.
+In the chunk below, perform PCA on the filtered SCE object using `scater::calculateCA()` and save the result to a variable called `tm_pca`.
 
 ```{r calculate_pca, solution=TRUE}
 # CalculatePCA on your normalized `sce_filtered`
@@ -470,9 +468,7 @@ _Step 3)_ Plot Doublet Score in relation to PCA to identify potential doublets
 In order to see which cells in our dataset may be potential doublets, we will want to visualize the doublet scores in relation to the clusters identified through PCA.
 Doublets are likely to have a gene expression profile that is similar to more than one cell, so we can expect that doublets will lie in between two clusters rather than be within a single cluster.
 
-We now have stored the doublet scores for each cell in the `colData(sce_filtered)`.
-Start by extracting the `colData` as a data frame and naming it `dbl_detect_df`.
-You will then want to join `dbl_detect_df` with `tm_pca`, the matrix containing the PCA output and name it `tm_dbl_pca`.
+We'll prepare the data for this plot by joining the doublet scores with the PCA result we stored in `tm_pca`.
 
 ```{r add-metadata}
 dbl_detect_df <- as.data.frame(colData(sce_filtered)) |>
@@ -491,7 +487,7 @@ tm_dbl_pca <- tm_pca |>
   dplyr::left_join(dbl_detect_df, by = "cell_id")
 ```
 
-We want to plot the `PC1` on the x-axis with `PC2` on the y-axis and color our data points by the `DoubletScore`.
+Now, you can plot the `PC1` on the x-axis with `PC2` on the y-axis, coloring the data points by the `DoubletScore`.
 
 ```{r plot_dbl, solution=TRUE}
 
