@@ -74,7 +74,7 @@ To download and prepare input data for the workshop, change directories to the `
 snakemake -j2
 ```
 
-This will place the downloaded files from GEO and the normalized SPE object into `/shared/data/training-modules/scRNA-seq-advanced/data/osteo`.
+This will place the downloaded files from GEO and the normalized SPE object into `/shared/data/training-modules/scRNA-seq-advanced/data/osteo/GSM8478586/`.
 
 
 
