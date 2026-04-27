@@ -154,9 +154,10 @@ To facilitate automated testing of training notebooks, all needed input files fo
 This is facilitated by the `scripts/syncup-s3.sh` bash script, which includes the needed commands for upload/sync, and should include all directories and files needed to run the training notebooks.
 As input files are added or change, those changes should be reflected in updates to `syncup-s3.sh`.
 
-To run the `syncup-s3.sh` script, you will need to configure your credentials on the RStudio server, using a profile with write access to the data bucket.  
+To run the `syncup-s3.sh` script, you will need to configure your credentials, using a profile with write access to the data bucket.  
 This profile can be activated with the `AWS_PROFILE` environment variable or using the `--profile` argument when you run the script.
-You can then log into AWS with:
+
+If you are working on the RStudio server, you can then log into AWS with:
 
 ```sh 
 aws sso login --use-device-code
