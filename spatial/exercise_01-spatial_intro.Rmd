@@ -1,0 +1,630 @@
+---
+title: "Importing, processing, and exploring Visium CytAssist data"
+author: Data Lab for ALSF
+date: 2026
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+In this exercise notebook, we'll be looking at a 10x Visium dataset for a [serous high-grade ovarian carcinoma tissue](https://www.10xgenomics.com/datasets/human-ovarian-cancer-11-mm-capture-area-ffpe-2-standard).
+
+Unlike the dataset we saw in the first instruction notebook, this data was generated with the [Visium CytAssist instrument](https://www.10xgenomics.com/instruments/visium-cytassist), and uses probes to detect and capture RNA transcripts that are then spatially barcoded on the Visium slide.
+This experiment also used a larger slide of 11x11 mm, with a total ~14,000 possible spots.
+There are some key differences between the probe-based Visium CytAssist data and first-generation Visium data that are important to understand, so we'll point them out as we process and explore this data. 
+
+---
+
+In this exercise notebook you will,
+
+- Part A: Import a CytAssist Visium dataset
+- Part B: Filter the dataset for low-quality spots
+- Part C: Normalize the spot counts
+- Part D: Visualize gene expression across spots
+
+## Part A: Import a CytAssist Visium dataset
+
+Begin by loading libraries we'll need for this notebook, including:
+
+- `SpatialExperiment` for working with SPE objects
+- `VisiumIO` for importing SPE objects
+- `ggplot2`, `ggspavis`, and `patchwork` for plotting
+- `SpotSweeper` for filtering SPE objects
+
+You can also set a `ggplot2` theme of your choice using [`theme_set()`](https://ggplot2.tidyverse.org/reference/get_theme.html) for the non-spatial coordinate plots we'll make; we like `theme_bw()`, but [you do you!](https://ggplot2.tidyverse.org/reference/ggtheme.html)!
+
+```{r load libraries, solution = TRUE}
+
+```
+
+
+In the next chunk, we'll define file paths.
+For this Visium CytAssist data, we're going to read in the **filtered** Space Ranger output. 
+
+```{r define paths}
+data_dir <- file.path("data", "ovarian-carcinoma")
+
+# count information
+filtered_count_dir <- file.path(data_dir, "filtered_feature_bc_matrix")
+
+# spatial information
+spatial_dir <- file.path(data_dir, "spatial")
+```
+
+We'll also define the path to the mitochondrial gene file we'll need to identify and filter out low-quality spots.
+
+```{r mito file path}
+mito_file <- file.path("data", "reference", "hs_mitochondrial_genes.tsv")
+```
+
+We'll define one more path to export the normalized object we'll create in this notebook.
+
+```{r export path}
+processed_dir <- file.path(data_dir, "processed")
+
+# create output directory as needed
+fs::dir_create(processed_dir)
+
+# define output file
+processed_file <- file.path(processed_dir, "ovarian-normalized.rds")
+```
+
+
+Before we read in this data, let's have a look at the `spatial/` outputs directory from Space Ranger: 
+
+```{r}
+dir(spatial_dir)
+```
+
+You'll notice the same kinds of files we saw for the first-generation Visium data, including the high- and low-resolution tissue images, the aligned fiducials image, the scale factors JSON, and the tissue positions CSV.
+There are also some new files we didn't see for the first-generation Visium dataset: 
+
+* `cytassist_image.tiff`: This is the image that was taken with the CytAssist instrument itself
+* `aligned_tissue_image.jpg`: This is the H&E tissue image aligned to the CytAssist image 
+
+You can read full description of all of these output files (as well as a few more that were introduced with later Space Ranger versions) [on this 10x site](https://www.10xgenomics.com/support/software/space-ranger/latest/analysis/outputs/spatial-outputs).
+Note that we won't necessarily use all of these files when we read the data into R, but it is worth familiarizing yourself with the file structure you can expect to see in the Space Ranger output.
+
+Now that we are oriented to our input files, we can import data with `VisiumIO`. 
+In the chunk below use `VisiumIO::import()` to read in the data, saving it to a variable named `spe`. 
+You will use `VisiumIO::TENxVisium()` inside that call to specify, the filtered counts directory, the spatial directory, and which images to import.
+
+This time, we'll import multiple images, both the `tissue_hires_image.png` and `cytassist_image.tiff`, into the object by specifying several values to the `images` argument like this:
+
+```r
+images = c("hires", "cytassist")
+```
+
+Importing several images will help us see additional context for this tissue.
+For this particular dataset, the tissue image (`hires`) doesn't show the full slide with the tissue fiducial alignment, but the `cytassist` image does show us this context.
+
+```{r import spe, solution = TRUE}
+# import the Visium data and save to a variable called `spe`
+
+```
+
+Let's have a look at this SPE:
+
+```{r print spe, solution = TRUE}
+# print the SPE object
+
+```
+
+First, we should see that this SPE has 4674 spots.
+That's quite a bit fewer than the total possible ~14,000.
+This lower number is a result of reading in the filtered version of this data, which has already been subset to only spots that overlap tissue.
+In addition, the tissue itself (which we'll plot in a moment) doesn't cover the majority of the slide area, so most spots in the raw, unfiltered data didn't overlap tissue.
+
+We can confirm that this object contains only spots overlapping tissue by looking at the `in_tissue` column in the `colData` slot:
+
+```{r show in_tissue}
+# first, show the colData
+head(colData(spe))
+
+# now, confirm that in_tissue is all 1
+all(spe$in_tissue == 1)
+```
+
+Another feature (pun alert!) of this SPE worth noting is that it contains only 18,085 genes, which is far fewer than the ~60,000 annotated features in a typical human reference genome.
+This number is not a coincidence: the Visium FFPE v2 chemistry used here employs targeted RNA probes, with a probe set that covers exactly 18,085 genes. 
+This contrasts with first-generation Visium, which used a poly-A capture protocol capable of detecting any RNA fragment in the sample.
+
+Had we read in the raw count files, we would have seen the full ~14,000 spots and ~40,000 genes included in the reference genome annotation that 10x uses.
+But, the majority of those genes in the raw object will have a count of 0, not because they aren't expressed but because they had no corresponding probe and weren't quantified at all.
+Unless you have the probe set file handy, it is impossible to tell the difference between a true 0 (gene not expressed) from a probe-absence 0 (gene not quantified).
+**We therefore strongly recommend reading in filtered data when working with probe-based data to ensure that a count of 0 really means 0!**
+
+(PS: If you're feeling _extra_ curious, you can prove this yourself by reading in this experiment's associated probe file provided in `data/ovarian-carcinoma/Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv`.
+The genes in this SPE object are the ones where `included == TRUE`.
+When reading this in, you'll want to use `readr::read_csv()` with the argument `comment = "#"` to ignore the comment front-matter that 10x includes in the file.)
+
+When we loaded this data, we also loaded two images which we can see reflected in the `imgData` slot:
+
+```{r show imgData}
+imgData(spe)
+```
+
+Something to note is that the CytAssist image we imported was internally renamed by `VisiumIO` to `regist_target`.
+This matches how Space Ranger refers internally to this file: the CytAssist image is the fixed reference onto which the high-resolution microscope image is aligned, so it is called the registration target. 
+You can read more about the image registration process [from this 10x documentation](https://www.10xgenomics.com/support/software/space-ranger/latest/algorithms-overview/image-processing).
+
+Let's go ahead and have a look at these images using `plotVisium()`.
+By default, this function will plot a provided H&E image with spots shown, but we can specify a different loaded image with the `image_ids` argument (even though it's plural, it accepts only one value for single-sample SPE).
+
+In the chunk below, we'll plot our tissue images using `plotVisium()` and use `patchwork` to display them side-by-side.
+We'll also turn off spots drawn by `plotVisium()` to just focus on the images themselves.
+Again, the H&E image doesn't show the full slide, but the CytAssist image (named `regist_target`) does show the full slide within the fiducial alignment frame.
+
+
+```{r plot-tissue-and-cytassist}
+# plot H&E and cytassist images side-by-side
+plotVisium(spe, image_ids = "hires", spots = FALSE) +
+  plotVisium(spe, image_ids = "regist_target", spots = FALSE)
+```
+
+First things first -- that `hires` H&E image looks pretty sharp, right? 💅
+Briefly, we can see a couple different regions in this ovarian carcinoma tissue:
+
+* The blue-purple left side shows densely packed nuclei, indicating a highly cellular tumor region
+* The pink right side is less cellular and likely represents stromal tissue
+* Blood vessels are visible embedded within the tissue
+
+Curiously, the CytAssist is mirrored relative to the `hires` image.
+This is not an error, but a known inconsistency can potentially arise when image orientation is not preserved consistently between processing stages such as imaging and sequencing. 
+Often this requires manual correction during processing, but that correction is not always performed.
+This conveys an important lesson about how to think about spatial data: Because the slide orientation itself is arbitrary, the absolute x/y coordinates should not be relied on or directly used for analysis. 
+Instead, what matters are the **relative spatial relationships** among spots.
+Measures like the the distance between spots or which spots neighbor each other will be preserved regardless of image orientation.
+
+
+## Part B: Filter the dataset for low-quality spots
+
+In this section, we'll filter the SPE object for low-quality spots using `SpotSweeper` to flag local outliers for removal.
+
+### Calculate and explore global QC statistics
+
+We'll begin filtering by calculating QC statistics across the tissue.
+
+To begin, we'll need to define a vector of mitochondrial genes we can use for these calculations.
+In the chunk below, create this vector by reading in the `mito_file` we previously defined.
+Filter it to only contain genes that are present in our SPE and then extract the gene ids into a vector called `mito_genes`.
+
+```{r read filter mito, solution = TRUE}
+# Read TSV mitochondrial genes, filter to only relevant genes, and extract gene_id
+
+```
+
+In the next chunk, calculate the per-spot metrics using `scuttle::addPerCellQC()` and save the output back to the SPE object.
+
+```{r calculate qc, solution = TRUE}
+# calculate per-spot statistics
+
+```
+
+Running this function should have added new columns including `sum`, `detected`, and `subsets_mito_percent` as well as a few more, but these are the core ones we're interested in.
+Confirm that you have calculated these metrics by looking at the updated `colData` slot:
+
+```{r coldata stats, solution = TRUE}
+# print the head() of the colData slot
+
+```
+
+To get a sense of the overall quality across spots, we'll plot these metrics as density plots.
+We'll quickly make all plots at once using [`purrr::map2()`](https://purrr.tidyverse.org/reference/map2.html), which we'll use  and for fun we'll also use some custom colors too using the variant function .
+
+```{r global qc distributions}
+#| fig.width: 12
+#| fig.height: 4
+
+# pull out data frame for plotting
+coldata_df <- colData(spe) |>
+  as.data.frame()
+
+# define metrics and their associated colors
+stats_to_plot <- c("sum", "detected", "subsets_mito_percent") 
+fills_to_use <- c("forestgreen", "chartreuse3", "springgreen2") 
+
+# plot metrics as density plots
+purrr::map2(
+  stats_to_plot, fills_to_use,
+  \(column, density_fill) {
+    ggplot(coldata_df) +
+      aes(x = .data[[column]]) +
+      geom_density(fill = density_fill)
+  }
+) |> 
+  patchwork::wrap_plots(nrow = 1)
+```
+
+From these plots, we see that total UMIs (`sum`) and detected genes are both bimodal distributions, indicating that there is a set of spots with high total expression and a set of spots with lower expression.
+By contrast, the mitochondrial percent distribution is fairly unimodal with very low values all around (maximum 4%), which doesn't suggest quality issues.
+
+Looking at the `sum` and `detected` plots, it is tempting to choose cutoffs for global filtering, e.g., we might draw a cutoff at `sum = 12500` and `detected = 5000` to discard spots with fewer expressed UMIs and genes.
+To get a sense of how using global thresholds like this would affect our analysis, we should plot these two metrics on the spots themselves with a spatial coordinate plot.
+
+In the chunk below, we'll define two plots and show them side-by-side:
+
+- `he_plot`: The H&E, shown without spots, using the `plotVisium()` function to help us interpret the spatial coordinate plot
+- `qc_spots_sum`: The coordinates colored by the `sum` metric, using the `plotCoords()` function
+
+```{r sum qc coords}
+#| message: false
+
+# define H&E plot
+he_plot <- plotVisium(spe, spots = FALSE) +
+  ggtitle("H&E") +
+  # add some plot styling to match other panels
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, 
+      margin = margin(0, 0, 0.1, 0)
+    ),
+    panel.border = element_rect(color = "black", linewidth = 0.5)
+  )
+
+# Define spatial coordinates plot of the sum metric
+qc_spots_sum <- plotCoords(spe, annotate = "sum", point_size = 1) + 
+  # use distinct palette and set the legend title
+  scale_color_distiller(palette = "Blues", direction = 1, name = "sum") +
+  ggtitle("Total unique UMIs")
+
+# Add plots together for display with patchwork
+he_plot + qc_spots_sum
+```
+
+Do you see a relationship between tissue regions and the `sum` metric?
+If we had chosen a cutoff of ~12,500, as suggested earlier, would that bias us towards removing certain tissue regions over others?
+
+In the next chunk, make another spatial coordinate plot using `plotCoords()`, but this time colored by the `detected` metric. 
+You should again plot it side-by-side with the H&E plot, but you can reuse the existing `he_plot` variable (in other words, no need to redefine that plot).
+If you like, you may also wish to use a distinct color palette to distinguish this metric.
+
+```{r detected qc plot, solution = TRUE}
+#| message: false
+
+# Define plot for detected metric
+
+# Add plots together for display
+
+```
+
+How would using a cutoff here affect the tissues that would be included or excluded?
+
+Perhaps we should explore QC filtering that isn't so likely to be confounded by tissue biology.
+
+
+### Filter using local outlier detection
+
+Now that we have seen that global filtering thresholds can be confounded by the spatial biology in the tissue, we'll proceed to instead use `SpotSweeper` to detect local outliers for each of our three metrics.
+
+Below, we have set up three chunks to detect outliers for each metric using `SpotSweeper::localOutliers()`.
+(The first chunk is filled out for you.)
+When calculating these metrics, recall that you'll want to specify these arguments:
+
+* For `sum` and `detected`, make sure to specify `direction = "lower"` and `log = TRUE` (These are defaults, but being explicit doesn't hurt!)
+* For `subsets_mito_percent`, make sure to specify `direction = "higher"` (since we want to flag high values as outliers) and `log = FALSE` (since this is already a bounded statistic)
+
+First, we'll calculate the `sum` outliers:
+
+```{r calculate sum outliers}
+# calculate sum outliers
+spe <- SpotSweeper::localOutliers(
+  spe,
+  metric = "sum",
+  direction = "lower",
+  log = TRUE
+)
+```
+
+
+In this chunk, calculate the `detected` outliers:
+
+```{r calculate detected local outliers, solution = TRUE}
+# calculate detected outliers
+
+```
+
+
+In this chunk, calculate the `subsets_mito_percent` outliers:
+
+```{r calculate mito local outliers, solution = TRUE}
+# calculate mitochondrial percent outliers
+
+```
+
+
+At this point, there should be several additional columns in the `colData` slot that `SpotSweeper` added:
+
+```{r show coldata after spotsweeper}
+head(colData(spe))
+```
+
+
+
+Before proceeding to filter, we will visualize which spots were flagged as local outliers.
+To help with this, we've written a custom function in the chunk below that plots a given metric and adds some palette customization too.
+
+```{r plot_qc_coords function}
+#' Plot coordinates colored by QC statistic with outlier spots circled
+#'
+#' @param spe SPE object to plot
+#' @param metric_column String of the colData column with the QC statistic to fill spots by
+#' @param outliers_column String of the colData column with the outlier indications
+#' @param palette_name Optionally, name of a `RColorBrewer` palette to use to fill spots
+#' @param palette_direction Optionally, direction of palette colors. 
+#'   -1 means darker colors are lower values, and 1 means darker colors are higher values
+#'
+#' @returns Plot of coordinates with QC information
+plot_qc_coords <- function(
+    spe, 
+    metric_column,
+    outliers_column, 
+    palette_name = "Blues", 
+    palette_direction = -1
+) {
+  SpotSweeper::plotQCmetrics(
+    spe,
+    metric = metric_column, # how to *fill* spots
+    outliers = outliers_column, # which spots to *color* with an outline
+    stroke = 0.75 # size of outline
+  ) + 
+  # customize palettes for filling spots
+  scale_fill_distiller(palette = palette_name, name = metric_column, direction = palette_direction)  +
+  scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
+  # don't show the outlier legend
+  guides(color = "none") + 
+  # turn off the default title
+  ggtitle("")
+}
+```
+
+Here's example of how to use this function to plot the `sum_log` metric with outliers highlighted:
+
+```{r show plot_qc_coords}
+#| message: false
+
+sum_plot <- plot_qc_coords(spe, "sum_log", "sum_outliers")
+sum_plot
+```
+
+In the chunks below, use the `plot_qc_coords()` function to plot each of `detected_log` and `subsets_mito_percent`.
+When plotting, feel free to take advantage of these arguments we've included in the custom function:
+
+* `palette_name`: Name of a continuous [`RColorBrewer` palette](https://r-graph-gallery.com/38-rcolorbrewers-palettes.html)
+* `palette_direction`: We suggest setting to 1 for plotting `subsets_mito_percent`, since this makes higher values be darker colors to aesthetically match the other plots
+
+```{r detected local outliers plot, solution = TRUE}
+# define detected outliers plot
+
+# show the plot
+
+```
+
+```{r mito local outliers, solution = TRUE}
+# define mito plot
+
+# show the plot
+
+```
+
+Optionally, you can also use the chunk below to show all four plots together with `patchwork` in a 2x2 grid (the H&E plot which we previously defined, `sum_log`, `detected_log`, and `subsets_mito_percent` outlier plots).
+
+```{r plot all outliers, solution = TRUE}
+#| fig.width: 12
+#| message: false
+
+# optionally, use patchwork to plot a grid of all the
+# metrics with local outliers highlighted, along with the H&E
+
+```
+
+
+Comparing across these plots, do any spots flagged for removal surprise you?
+Do you notice any similarities or differences among the which spots were flagged as outliers across the different metrics?
+Do you think this approach avoids the problem where QC is spatially confounded? 
+
+Now, we'll build an overall filter that considers a spot to be an outlier if any of the three metrics identified it as such.
+Save this filter to the SPE in a `colData` column called `local_outliers`.
+
+```{r build local filter, solution = TRUE}
+# create logical filter
+
+```
+
+How many spots does this remove in total?
+
+```{r calculate num spots, solution = TRUE}
+# count total number of TRUE values in the filter
+
+```
+
+Now you can go ahead and filter, saving the output to `spe_filtered`.
+
+```{r filter spe, solution = TRUE}
+# filter the SPE object to remove local outliers
+
+```
+
+Let's confirm we filtered correctly by looking at the `filtered_spe` object, which should have fewer spots than the original `spe` object which has 4674 spots.
+
+```{r show filtered_spe, solution = TRUE}
+
+```
+
+
+## Part C: Normalize the spot counts
+
+Now that we have filtered our object, we can proceed to normalize counts.
+We'll do this by calculating library factors with `scuttle::computeLibraryFactors()`, and then using them for normalization with `scuttle::logNormCounts()`. 
+
+First, calculate library factors:
+In the chunk below, perform these steps and save the  to 
+
+```{r library factors spe, solution = TRUE}
+# calculate library factors
+
+```
+
+
+Now, you can perform the normalization.
+Save the normalized object to a variable `norm_spe`.
+
+```{r normalize spe, solution = TRUE}
+# perform normalization and save to norm_spe
+
+# print object to confirm that the logcounts assay now exists
+
+```
+
+At this point, we're going to move forward with just the `norm_spe`.
+To save space in our R environment, we'll go ahead and remove the original `spe` and `filtered_spe` objects.
+
+
+```{r remove filtered_spe}
+# Remove the earlier object versions after normalization is complete
+rm(spe)
+rm(filtered_spe)
+```
+
+
+We can also export our normalized object for future use.
+In this chunk, export the `norm_spe` object as an RDS file to the `processed_file` we defined the beginning of this notebook.
+Without compression, this file will be pretty big at ~1.5 GB, so you'll want to compress the file using the argument `compress = "gz"` for a more manageable file size of ~200 MB.
+
+```{r export spe, solution = TRUE}
+# export normalized SPE with compression
+
+```
+
+
+
+## Part D: Visualize gene expression across spots
+
+For this last section, we'll visualize some gene expression in this high-grade ovarian carcinoma tissue segment. 
+To begin, let's take a moment to remind ourselves of how we briefly interpreted this H&E image.
+We observed the following:
+
+* The blue-purple left side shows densely packed nuclei, indicating a highly cellular tumor region
+* The pink right side is less cellular and likely represents stromal tissue
+* Blood vessels are visible embedded within the tissue
+
+
+```{r interpret he_plot}
+#| fig.height: 4 
+
+he_plot
+```
+
+Let's see if we can detect or refine this interpretation with some genes of interest. 
+
+We'll begin with the gene `FOLR1`, the folate receptor which we expect to be active in malignant cells of ovarian carcinomas.
+To do this, we'll need this gene's Ensembl id, since our SPE object uses Ensembl ids as row names. 
+We can get this information from the object's `rowData` slot, which stores gene symbols in the `Symbol` column:
+
+
+```{r show rowdata}
+# show head of rowData slot for context
+rowData(norm_spe) |> head()
+```
+
+In the chunk below, identify the Ensembl id associated with the `FOLR1` gene symbol by filtering the `rowData` to this gene (don't forget to convert it from a `DataFrame` to a lowercase data frame first).
+
+
+```{r get ensembl, solution = TRUE}
+# find the ensembl ID for FOLR1
+
+```
+
+Now that we know the Ensembl id, we can use `plotCoords()` to show its expression across spots in the tissue. 
+Bear these tips in mind when making your plot in the chunk below:
+
+* Don't forget to specify to use `assay = "logcounts"`
+* Feel free to customize the palette if you like
+* You may also need to increase the `point_size` value (default size is 0.3) to see the spots clearly
+
+```{r plot FOLR1, solution = TRUE}
+
+```
+
+Is there any apparent spatial structure for this gene's expression?
+Does it match our expectations for tissue regions based on the H&E?
+
+### Plotting the expression of multiple genes
+
+Ideally, we might want to explore the expression of several other genes, such as other tumor markers, connective tissue markers, or even immune markers to begin to probe the tumor microenvironment.
+
+In this section, we'll present a useful coding approach to plot expression of multiple genes at once. 
+For this, we've picked out some additional genes of interest that we can use for plotting:
+
+| Gene name | Description                                 |
+| --------- | --------------------------------------------|
+| `PAX8`    | Present in tumor epithelium                 |
+| `MUC16`   | Ovarian cancer marker.                      |
+| `COL1A1`  | Collagen/connective tissue marker           |
+| `PECAM1`  | Vascular endothelial marker                 |
+| `PTPRC`   | Leukocyte/T cell marker gene                |
+| `FOXP3`   | Regulatory T cell marker gene               |
+| `NCAM1`   | NK cell marker gene                         |
+
+In the chunk below, we'll use `purrr::map()` and `patchwork::wrap_plots()` to show one way you can quickly plot all of these together.
+
+
+```{r plot expression grid}
+#| fig.width: 14
+
+# define genes of interest
+goi_vector <- c(
+  "PAX8", 
+  "MUC16", 
+  "COL1A1", 
+  "PTPRC", 
+  "FOXP3", 
+  "PECAM1", 
+  "NKG7"
+)
+
+plot_list <- goi_vector |>
+  purrr::map(
+    \(gene_name) {
+      
+      # get corresponding ensembl ID from rowData slot
+      ensembl_id <- rowData(norm_spe)$ID[rowData(norm_spe)$Symbol == gene_name]
+      
+      # plot expression across spots
+      plotCoords(
+        norm_spe, 
+        annotate = ensembl_id,
+        assay = "logcounts",
+        pal = "viridis", 
+        point_size = 0.75
+      ) + 
+      ggtitle(gene_name)
+    }
+) 
+
+# Plot together with patchwork, including a panel with the H&E image
+patchwork::wrap_plots(
+  c(list(he_plot), plot_list), 
+  nrow = 2
+)
+```
+
+What trends can you make out here?
+Are they consistent with what we observed for the `FOLR1` expression? 
+With our expectations based on the H&E?
+
+We'll mention a few trends we noticed. 
+Do you agree with these?
+
+* Gene expression differences seem to distinguish collagen-rich stromal vs. tumor regions 
+* We can see some expression of the immune system genes we selected in the tumor region, but somewhat less expression in the stromal region
+* We can detect the large blood vessel from `PECAM1` expression
+
+
+## Session Info
+
+```{r sessioninfo}
+sessionInfo()
+```
+

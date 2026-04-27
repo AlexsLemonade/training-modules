@@ -1,0 +1,820 @@
+---
+title: "Importing, processing, and exploring Visium data"
+author: Data Lab for ALSF
+date: 2026
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+## Objectives
+
+- Read Visium data into R
+- Filter to spots overlapping tissue
+- Calculate quality control measures on spatial transcriptomic data
+- Remove likely low-quality spots with `SpotSweeper()`
+- Normalize spatial expression data
+- Visualize spatial transcriptomic data 
+
+## Introduction
+
+In this notebook, we'll learn some basics of import, processing, and visualization of a Visium data set.
+
+We will be using an anaplastic Wilms Tumor sample from the the [Single-cell Pediatric Cancer Atlas](https://scpca.alexslemonade.org/projects/SCPCP000006).
+This sample was processed using first-generation Visium technology, and it was quantified with `Space Ranger 1.3.1`.
+We will use the outputs from Space Ranger as our starting point for analysis in this notebook.
+
+## Set up
+
+To begin, we'll load `SpatialExperiment`, the core package for spatial transcriptomic objects in Bioconductor, as well as some packages for plotting.
+
+```{r libraries}
+# The main class we use for spatial transcriptomic data
+library(SpatialExperiment)
+
+# To support plotting
+library(patchwork)
+
+# Set ggplot2 theme
+ggplot2::theme_set(ggplot2::theme_bw())
+```
+
+### Directories and files
+
+Next we'll define input paths and files that we'll use in this notebook.
+
+There are a variety of files that you will often see as part of the standard Space Ranger output.
+The specific files present will depend on which specific spatial technology you are using, but they are all described in detail in [10x Genomics documentation](https://www.10xgenomics.com/support/software/space-ranger/latest/analysis/outputs/output-overview).
+
+We've placed the core outputs you'll need for reading this first-generation Visium data into R in the directory `data/wilms-tumor/SCPCS000190/outs`, organized as Space Ranger returns them.
+We'll define that input path, along with other inputs we'll need, here.
+
+```{r inputs}
+# define sample id we'll be analyzing 
+sample_id <- "SCPCS000190"
+
+# main data directory for this sample
+data_dir <- file.path("data/wilms-tumor", sample_id)
+
+# Path to Space Ranger output
+raw_spaceranger_dir <- file.path(data_dir, "outs")
+
+# reference data directory
+ref_dir <- file.path("data/reference")
+
+# Path to mitochondrial genes table
+mito_file <- file.path(ref_dir, "hs_mitochondrial_genes.tsv")
+```
+
+
+And now, we'll define the output paths and files we'll use for exporting.
+
+```{r outputs, live = TRUE}
+# Directory and file to save output
+
+# create the directory if it does not exist
+
+# output RDS file for normalized Spatial Experiment (SPE) object
+# we'll use the existing sample_id variable to write the file name
+
+```
+
+
+## Reading Space Ranger data
+
+Space Ranger output includes count data,  spatial information, and images.
+The count data is generally provided in two main formats, just as Cell Ranger would provide them for single-cell data:
+
+1. A folder with a feature list, a barcode list, and a sparse matrix in ["Matrix Exchange" format](https://math.nist.gov/MatrixMarket/formats.html), and 
+2. An `HDF5` formatted file containing all this information.
+
+Because the data we're working with comes from the ScPCA Portal which only provides the folder format, that's what we'll read in here.
+
+Space Ranger also outputs both filtered and raw matrices; today we will start with the raw matrix and perform all of our own filtering.
+
+Before importing the data, let's go ahead and look what files we have:
+
+
+```{r dir-spaceranger, live = TRUE}
+
+```
+
+As described, the `raw_feature_bc_matrix` and `filtered_feature_bc_matrix` directories are analogous to what we might get from Cell Ranger for single-cell data.
+However, unlike single-cell data where these barcodes correspond to droplets (some of which are actual cells), the barcodes in Visium data correspond to _spots_.
+Here, each spot corresponds to a 55 µm diameter area on the slide that contains roughly 1-10 cells, depending on the tissue type being analyzed.
+In this particular Visium data set, spots are laid out on a 6.5x6.5 mm slide (although other experiments may be 11x11 mm for larger tissue sections).
+
+While the `raw_feature_bc_matrix` contains data for all possible spots, the `filtered_feature_bc_matrix` contains data only for spots that overlap tissue. 
+
+Parallel to these directories is the `spatial` directory which contains files that provide the full spatial context to go along with the feature-by-barcode count matrices. 
+Let's take a closer look at what's in the `spatial` directory:
+
+```{r dir-spatial, live = TRUE}
+
+```
+
+We see several different files here, which we'll go ahead and look at directly by clicking on them in the Files Pane.
+Below are brief descriptions of each file we see here, and others that would be represented by more recent Visium technologies.
+
+##### `aligned_fiducials.jpg`
+
+This image file shows the provided tissue image with a border of the _fiducials_, which are small dots surrounding the slide capture area.
+Space Ranger uses fiducials to anchor the quantified gene expression onto the tissue image itself, and this image can help you see how successful that _fiducial alignment_ was. 
+If something looks really off in this image (e.g., it looks distorted, or some fiducials are missing), that's a sign you may need to manually adjust the alignment and run Space Ranger again.
+
+##### `detected_tissue_image.jpg`
+
+Part of Space Ranger's algorithm involves identifying which spots overlay tissue and which do not.
+This image file shows the Visium grid of spots overlaid on the tissue, where spots that overlay tissue are shaded in.
+It's important to filter out spots that do not overlay tissue before proceeding with analysis.
+This is because those spots will have 0 gene expression, but that doesn't mean that those genes weren't actually expressed elsewhere.
+Those values of 0 mean that there was simply nothing to sequence, and we don't want them to contribute noise. 
+
+##### `tissue_hires_image.png` and `tissue_lowres_image.png`
+
+These are two different versions of the provided tissue image that have each been down-scaled for size to, respectively, ~2000 pixels and ~600 pixels.
+
+##### `tissue_positions_list.csv`
+
+This CSV file provides the tissue coordinates for each spot, indexed by its barcode.
+
+##### `scalefactors_json.json` 
+
+This JSON file stores the specific scaling factors used to downsize the provided tissue image to the provided image resolutions.
+
+
+##### Other files you might see
+
+In other Visium datasets, you may see more files in the `spatial/` directory than you see here.
+In particular, this data was prepared with the first-generation Visium technology, in which tissue was manually placed directly onto a Visium capture slide.
+Most current Visium experiments use an upgraded technology called CytAssist, an instrument that assists in transferring tissue from a standard slide to the Visium capture slide and dramatically improves FFPE tissue processing.
+
+In Visium CytAssist datasets, there will be two additional image files you should be aware of:
+
+- `cytassist_image.tif`: This is the image captured by the CytAssist instrument itself and is the primary image file that Space Ranger uses when processing CytAssist data
+- `aligned_tissue_image.jpg`: If you provided a microscope image, such as an H&E or fluorescence image, along with the CytAssist image to a CytAssist run, Space Ranger will also return the microscope image aligned to the CytAssist image's coordinates
+
+There may also be additional files, depending on which version of Space Ranger was used, but these are the core files to be aware of for first-generation Visium data and for CytAssist data.
+
+### Import with `VisiumIO`
+
+We'll begin by importing the raw counts and spatial information into a `SpatialExperiment` (SPE) object.
+This object is a derived version of the `SingleCellExperiment` (SCE) object that contains a couple more slots that augment the object with spatial information.
+This means there are some functions we'll use to interact with the object that you might recognize from your adventures with SCE objects, but there will also be some new functions that are just used for SPE objects.
+
+
+![Structure of a `SpatialExperiment` object. Image from [Orchestrating Spatial Transcriptomics Analysis](https://bioconductor.org/books/release/OSTA)](diagrams/SpatialExperiment.png)
+<br><br>
+
+For more information on `SpatialExperiment` objects, as well as many other topics related to this course, we highly recommend the e-book [_Orchestrating Spatial Transcriptomics with Bioconductor_ (OSTA)](http://bioconductor.org/books/release/OSTA/).
+
+To import Visium data with the `VisiumIO` package, we'll need to specify three items (the rest should be automatically detected):
+
+- The path to the Space Ranger count output, which in this case is the `raw_feature_bc_matrix` folder
+- The path to the Space Ranger spatial output, which corresponds to the `spatial` directory
+- Which image(s) should be imported into the object
+
+By default, this function will try to import several images types, including the CytAssist image which we don't have here.
+So, in this case we'll specify to import only the `lowres` version of the image.
+
+
+```{r import-visium, live = TRUE}
+# path to quantified RNA 10X output
+
+# path to spatial 10X output
+
+# import to an object called spe
+
+    # path that contains the sequencing data
+
+    # path that contains the spatial data
+
+    # which image(s) to import - we'll use lowres to save some memory/space
+
+```
+
+Let's have a look:
+
+```{r print-spe, live = TRUE}
+# print the spe
+
+```
+
+First, have a look at the dimensions: We have 60664 genes (roughly a full transcriptome) and 4992 spots.
+This 4992 is not a random value, but it's the exact the number of spots on a Visium 6.5x6.5 mm slide. 
+In this raw object, some of these spots, but not all, overlap tissue and contain meaningful expression data.
+
+Like SCE objects, this SPE object has slots like `assays` for count matrices, `rowData` for feature metadata, and `colData` for spot metadata.
+
+Let's take a tour:
+
+```{r spe-assays}
+# print the top corner of the count data
+counts(spe)[1:10, 1:10]
+```
+
+```{r spe-rowdata}
+# print the rowData
+rowData(spe) |>
+  head()
+```
+
+```{r spe-coldata, live = TRUE}
+# print the colData
+
+```
+
+The `colData` shows us spot coordinate information on the Visium slide, as well as an `in_tissue` column which is an important one.
+An `in_tissue` value of 1 indicates spots that do overlap tissue, and a value of 0 indicates spots that don't.
+
+**Unlike** SCE objects, SPE objects contain two additional slots with spatial information.
+
+First is a dedicated `spatialCoords` slot which contains the x and y coordinates on the slide in pixel units.
+These are the coordinates that will be used when we plot this object.
+
+```{r spe-spatialcoords, live = TRUE}
+# handy function from our code package SpatialExperiment
+
+```
+
+There is also a slot called `imgData` with a `DataFrame` of the imported images themselves, although looking at it directly isn't very interesting (but it does allow us to make pretty pictures!).
+This `DataFrame` will have a row for each image imported, and in this case we only imported the `lowres` image.
+We can also see its associated `scaleFactor`, which `VisiumIO` parsed from the input file `spatial/scalefactors_json.json`.
+
+```{r spe-imgdata, live = TRUE}
+
+```
+
+### Introduction to spatial data visualization
+
+Before we get any further, let's go ahead and actually look at our data.
+Because the spatial and image information is contained in the object, we can plot directly from this object using the package [`ggspavis`](https://bioconductor.posit.co/packages/release/bioc/vignettes/ggspavis/inst/doc/ggspavis_overview.html).
+
+This package contains a couple key functions we'll use to plot:
+
+- `ggspavis::plotVisium()`: Plot the tissue H&E image, with or without spots
+- `ggspavis::plotCoords()`: Plot the spots without the tissue
+
+Let's try it out:
+
+```{r plot-visium, live = TRUE}
+#| fig.width: 7
+
+```
+
+Here, we see the spots overlaid on the slide as well as slide boundaries.
+You'll notice that every single spot is shown, including ones that don't overlap tissue directly.
+Indeed, all 4992 spots are present in the object right now.
+
+By default, `ggspavis::plotVisium()` shows the spots, but we can hide them and zoom into the tissue on the slide.
+This is a helpful way to pop up the H&E for side-by-side comparisons with other plots we might make (foreshadowing!).
+
+```{r plot-visium-zoom, live = TRUE}
+#| fig.width: 5
+
+```
+
+Any histology experts see patterns in this Wilms tumor you want to point out? 
+We'll talk more about this slide later in the notebook, but for now, we'll just note that there seem to be a couple different tissue compartments distinguished by different nuclear densities. 
+
+We can also plot only values from the spots themselves with `ggspavis::plotCoords()`.
+
+```{r plot-coords, live = TRUE}
+#| fig.width: 7
+
+# plot just the spots
+
+```
+
+Hm, the spot layout looks a bit different.
+By default, this function only plots spots that overlay tissue and ignores spots that do not overlay tissue.
+Space Ranger determines which spots overlay tissue using the fiducial alignment frame, which we saw in the `aligned_fiducials.jpg` image.
+Any spots that do not overlay tissue are indicated with a `0` in the `in_tissue` column of the `colData`.
+We can override this if we want, but we really want to remove those spots entirely. 
+
+## Filtering empty spots
+
+As stated, let's go ahead and remove those spots entirely.
+As a rough analogy, this analysis step is reminiscent of filtering empty droplets from single-cell data to retain only droplets with cells, but in this case, we want to retain only spots that overlap tissue.
+
+Again, we need to take this step because we read in the `raw_feature_bc_matrix` output from 10x. 
+Had we read in the `filtered_feature_bc_matrix` instead, the data would already be filtered to only contain spots overlapping tissue. 
+Generally in your own analyses, it's very safe (and with other related Visium technologies, it's often recommended) to start by reading in the `filtered_feature_bc_matrix`.
+Here, we're taking these steps to ensure a thorough exploration of the SPE object.
+
+Before we filter, it can help to visualize which spots we'll remove.
+We'll plot this on top of the H&E using `ggspavis::plotVisium()` to be able to clearly see the relationship between coordinates and tissue.
+For this, we'd like to  use the `annotate` argument to color by the `in_tissue` column, but `ggspavis` interprets this column as an integer and forces it to use a continuous color scale.
+So, before plotting, we'll recast this value to a factor so we can plot it as a discrete variable.
+
+```{r plot_in_tissue}
+#| fig.width: 7
+
+# make a factor version of this column to plot with, specifying "No" and "Yes" plot labels
+spe$in_tissue_factor <- factor(spe$in_tissue, levels = c(0, 1), labels = c("No", "Yes"))
+
+ggspavis::plotVisium(
+  spe, 
+  annotate = "in_tissue_factor", 
+  # specify a custom palette
+  pal = c("Yes" = "yellow", "No" = "red")
+) +
+  # use ggplot2::guides() to override legend titles in ggspavis
+  ggplot2::guides(
+    fill = ggplot2::guide_legend(
+      title = "Spot overlaps tissue", 
+      override.aes = list(size = 2)
+    )
+  )
+```
+
+In this plot, we see the following:
+
+* The purple tissue overhang on the left isn't colored at all; these spots are outside the fiducial alignment frame and have no corresponding spots
+* The red points represent those we want to filter out as uninformative
+
+Let's go ahead and filter:
+
+```{r filter_in_tissue, live = TRUE}
+# keep only spots that are in the tissue and save to filtered_spe
+
+# print resulting filtered_spe
+
+```
+
+We've kept 4210 spots of the original 4992, meaning that the vast majority of spots are over tissue.
+But not all of those spots are necessarily good quality, so we'll want to do some additional QC filtering next.
+
+## Filtering low-quality spots
+
+When identifying low-quality spots in Visium data, we can use similar QC statistics that we might use for filtering scRNA-seq data, such as:
+
+* Total UMIs, or library size
+* Number of unique detected genes
+* Percentage of mitochondrial reads, where high values indicate cell damage
+
+However, we'll learn in the following sections that we interpret and use these statistics is somewhat differently from single-cell data.
+
+### Exploring global QC thresholds
+
+As a first step towards filtering, we'll calculate QC statistics and explore their distributions.
+We'll use `scran::addPerCellQC()` to calculate these statistics; even though the function is called "per-cell," in this case it will calculate per _spot_.
+
+First we need to import our list of mitochondrial genes to use as part of these calculations.
+
+```{r get mitochondrial genes}
+# read in a table of mitochondrial genes and extract ids
+mito_genes <- readr::read_tsv(mito_file) |>
+  # filter to only the genes that are found in our dataset
+  dplyr::filter(gene_id %in% rownames(filtered_spe)) |>
+  # create a vector from the gene_id column
+  dplyr::pull(gene_id)
+```
+
+```{r calculate qc, live = TRUE}
+# calculate per-spot statistics
+
+# print resulting colData to see QC stats
+
+```
+
+We'll first look at the distributions of these statistics (always plot your data!) to see how many spots appear to be low-quality.
+
+```{r global qc distributions}
+#| fig.width: 12
+#| fig.height: 4
+
+# Extract the colData into a data frame for plotting
+coldata_df <- colData(filtered_spe) |>
+  as.data.frame() |>
+  # relocate barcodes to an actual column instead of rownames
+  tibble::rownames_to_column("barcode") 
+
+# Define density plots for each statistic
+qc_plot_sum <- ggplot2::ggplot(coldata_df) + 
+  ggplot2::aes(x = sum) + 
+  ggplot2::geom_density(fill = "lightblue") +
+  ggplot2::labs(title = "Total unique UMIs")
+
+qc_plot_detected <- ggplot2::ggplot(coldata_df) + 
+  ggplot2::aes(x = detected) + 
+  ggplot2::geom_density(fill = "steelblue") +
+  ggplot2::labs(title = "Total detected genes")
+
+qc_plot_mito <- ggplot2::ggplot(coldata_df) + 
+  ggplot2::aes(x = subsets_mito_percent) + 
+  ggplot2::geom_density(fill = "slateblue") +
+  ggplot2::labs(title = "Mitochondrial %")
+
+
+# Plot together with patchwork
+qc_plot_sum + qc_plot_detected + qc_plot_mito
+```
+
+If you've worked with single-cell data lately, these distributions might look different from what you might have expected.
+In single-cell data, these distributions usually have long tails comprising low-quality cells that either have very few total UMIs, very few detected genes, or a very high mitochondrial percentage.
+
+Here, we see three unimodal distributions without much skew, although the `detected` and `subsets_mito_percent` distributions do show some tails potentially indicating low-quality spots.
+We might be tempted to use these tails to inform global thresholds for filtering, but a closer look suggests that likely wouldn't help remove low-quality spots.
+For example, a natural threshold for this `subsets_mito_percent` distribution might be around 4%, but that's actually quite low mitochondrial percentage that does _not_ actually suggest those spots contain damaged cells. 
+
+What's actually going on here, and what should we do about it?
+
+* First, because each sequenced spot is an aggregate of cells, quality issues in individual cells can end up being smoothed out by their neighbors, so we may not easily perceive those signatures in per-spot statistics.
+* Second, the technical factors that affect spatial transcriptomic data quality are fundamentally different from the factors that affect single-cell data quality.
+In single-cell data, differences in cell capture across droplets are a main source of quality issues that lead to cell damage or cells with very few UMIs or genes.
+Due to fundamental differences in library preparation, this is not a factor in spatial transcriptomic data; instead, problems with tissue preparation (e.g., tissue did not lay flat on the slide or was not permeabilized homogeneously) tend to be a more significant factor driving differences in QC statistics. 
+* Third, the biological heterogeneity in the tissue means that using global thresholds to filter has substantial potential to _bias_ analysis.
+For example, if a particular tissue compartment is dominated by cell types which naturally have lower expression, we might end up filtering out meaningful regions of the tissue.
+As such, the QC statistics themselves can be confounded with spatial biology.
+Filtering using global thresholds assumes that signal from low-quality cells (or spots) should trump signal from biological heterogeneity, but this assumption is not clearly met for spatial data.
+
+To see their full spatial context, we'll plot those same QC statistics directly on the slide coordinates to see their full spatial context.
+We'll also include the H&E plot here to be able to quickly compare patterns seen in each panel.
+
+```{r global qc coords}
+#| fig.width: 10
+#| message: false
+
+he_plot <- ggspavis::plotVisium(filtered_spe, spots = FALSE, zoom = TRUE) +
+  ggplot2::ggtitle("H&E") +
+  # add styling to match other panels
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(
+      hjust = 0.5, 
+      margin = ggplot2::margin(0, 0, 0.1, 0)
+    ),
+    panel.border = ggplot2::element_rect(color = "black", linewidth = 0.25)
+  )
+
+qc_spots_sum <- ggspavis::plotCoords(filtered_spe, annotate="sum", point_size = 1) + 
+  # use distinct palette
+  ggplot2::scale_color_distiller(palette = "Blues", direction = 1) +
+  ggplot2::ggtitle("Total unique UMIs")
+
+qc_spots_detected <- ggspavis::plotCoords(filtered_spe, annotate="detected", point_size = 1) + 
+  # use distinct palette
+  ggplot2::scale_color_distiller(palette = "YlOrRd", direction = 1) +
+  ggplot2::ggtitle("Total detected genes")
+
+qc_spots_mito <- ggspavis::plotCoords(filtered_spe, annotate="subsets_mito_percent", point_size = 1) + 
+  # use distinct palette
+  ggplot2::scale_color_distiller(palette = "Greens", direction = 1) +
+  ggplot2::ggtitle("Mitochondrial %")
+
+# wrap plots with patchwork into 2x2 grid
+patchwork::wrap_plots(
+  he_plot, 
+  qc_spots_sum, 
+  qc_spots_detected, 
+  qc_spots_mito, 
+  nrow = 2
+)
+```
+
+Compare the H&E image to these statistics: do you notice any patterns that suggest the statistics are confounded by spatial biology, in particular between stromal and blastemal regions?
+
+This shows us that if we were to filter out, for example, spots with overall lower total UMIs or detected genes, we would end up primarily (if not only) removing spots in stromal regions, which is probably not what we want.
+As such, using global thresholds is not going to be suitable for spatial data, so we'll need a different approach to filter spots.
+(It's worth noting that this is not strictly a spatial transcriptomics issue; it's very possible for differences among cell types to confound QC statistics in single-cell data too.
+Always plot your data to make sure your filters make sense for your data!)
+
+### Filtering with local QC thresholds
+
+Rather than finding outliers based on overall QC statistics derived across biologically distinct tissue regions, we can instead look for _local_ outliers to filter.
+These are spots whose properties differ from their local neighborhood of nearby spots. 
+For this, we'll use the [`SpotSweeper`](https://www.bioconductor.org/packages/3.22/bioc/vignettes/SpotSweeper/inst/doc/getting_started.html) package, which offers several useful tools for quality control of spot-based data.
+
+We'll specifically use their local outlier detection function `SpotSweeper::localOutliers()`.
+This function uses a k-nearest neighbors approach to define the neighborhood for each spot and then calculates _local_ means and variances of standard QC metrics to identify outlying spots within their local tissue context.
+This approach reduces the chance that we'll bias filtering by tissue biology because we generally expect nearby spots in the same tissue region to be more biologically similar to each other. 
+
+It's also worth noting that `SpotSweeper` also has the ability to detect so-called "hangnails," which are regional technical artifacts resulting from issues with tissue preparation.
+Their hangnail detection uses variance in mitochondrial percentages, and since our mitochondrial percentage are very low with minimal variance, hangnail detection won't be relevant for us here.
+
+
+`SpotSweeper::localOutliers()` returns an `SPE` object with added `colData` columns we can use to find all the local outliers and takes these arguments:
+
+* `metric`: Name of column in `colData` with QC stat of interest
+* `direction`: Either "lower" or "upper" depending on which direction should be filtered 
+  * We'll want to use "lower" for `detected` and `sum` (we don't want overly-low values), and we'll want to use `higher` for `subsets_mito_percent` (we don't want overly-high values)
+* `n_neighbors`: Number of neighbors for building the `kNN` graph; Default is 36
+* `log`: Whether to consider the `log1p` of the metric; Default is `FALSE`
+  * Because the outlier detection method used assumes a normal distribution, we often need to take the log of our statistics to meet assumptions
+  * We'll want to set `log = TRUE` for `detected` and `sum` because these distributions are unbounded and can span orders of magnitude
+  * We'll want to set `log = FALSE` for `subsets_mito_percent` because it's bounded between 0-100 so logging would distort the distribution
+- `cutoff`: Number of standard deviations for for identifying outliers; Default is 3
+  * Higher values mean filtering will be more permissive (more tolerant of outliers, so fewer spots will be removed)
+  * Lower values mean filtering will be more strict (less tolerant of outliers, so more spots will be removed)
+
+
+Let's start off by looking for outliers in the `sum` column, which represents library size (total UMIs).
+
+```{r spotsweeper-sum, live = TRUE}
+
+```
+
+What's in our `colData` now?
+
+```{r coldata-spotsweeper-sum, live = TRUE}
+
+```
+
+`SpotSweeper` gave us a couple new columns:
+
+* `sum_log`: The `log1p()` (i.e., `log(x+1)`) of the `sum` column.
+* `sum_outliers`: Whether or not the spot is a _local_ outlier in its local neighborhood.
+Generally we'll want to filter out rows where this is `FALSE`
+* `sum_z`: The _local_ z-score for `sum_log` used for identifying outliers relative to the specified cutoff (here, -3)
+  * A value of 0 means the spot is, on average, the same as its neighbors
+  * A high positive value means the spot has a much higher `sum` than its local neighborhood
+  * A low negative value means the spot has a much lower `sum` than its local neighborhood.
+  These are the spots we'll want to filter out
+  
+Let's look at some of these values directly by plotting `sum_z against `sum_log`.
+
+```{r sum_log_z_plot}
+# extract data frame for plotting
+filtered_spe_coldata <- colData(filtered_spe) |>
+  as.data.frame()
+
+# Plot sum_z across sum_log
+ggplot2::ggplot(filtered_spe_coldata) + 
+  ggplot2::aes(
+    x = sum_log,
+    y = sum_z,
+    color = sum_outliers
+  ) +
+  ggplot2::geom_point(alpha = 0.5)
+```
+
+We see here that most spots are not outliers for the `sum` metric.
+Most of the spots classified as outliers are fairly close to the -3 cutoff, but several are more extreme outliers.
+
+We also learn from this plot how performing filtering using global vs local outliers would play out.
+Imagine if we had performed global filtering with a threshold of 500, which has a log of 6.21.
+At a cutoff of `sum_log = 6.21`, we would only have removed three spots.
+By using local outlier detection, we have identified several more spots to remove whose `sum` is much lower than their immediately surrounding spots, suggesting potential quality issues.
+On the whole though, this dataset is fairly good quality so there aren't many of these low-quality spots.
+
+We can also plot these results on the coordinates themselves, using the H&E image as a guide for interpretation.
+For this, we'll use the function `SpotSweeper::plotQCmetrics()` which lets you both color by a statistic and highlight outlier points, so we'll plot both `sum_log` and `sum_z` with outliers highlighted.
+
+Tip!
+When using this function, the point color is a "fill" `ggplot2` aesthetic, and the point outline is a "color" `ggplot2` aesthetic.
+This insight will help us to customize the plot colors.
+
+```{r spotsweeper-plotqc-sum}
+#| fig.width: 10
+#| message: false
+
+sum_log_plot <- SpotSweeper::plotQCmetrics(
+  filtered_spe, 
+  metric = "sum_log", # how to *fill* spots
+  outliers = "sum_outliers", # which spots to *color* with an outline
+  stroke = 0.75 # size of outline
+) +
+  # customize the palette for filling spots
+  ggplot2::scale_fill_viridis_c(option = "magma") +
+  # customize the outlier outline
+  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
+  ggplot2::ggtitle("Log of total UMI")
+
+
+sum_z_plot <- SpotSweeper::plotQCmetrics(
+  filtered_spe, 
+  metric = "sum_z", # how to *fill* spots
+  outliers = "sum_outliers", # which spots to *color* with an outline
+  stroke = 0.75 # size of outline
+) +
+  ggplot2::scale_fill_viridis_c() +
+  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
+  ggplot2::ggtitle("Local z-score for total UMI")
+
+sum_log_plot + sum_z_plot
+```
+
+These plots show us how spots are distributed across the tissue.
+Are there spots you would expect to be flagged for filtering based on the `sum_log` plot?
+Are there spots you might not have expected to be filtered based on the `sum_log` plot?
+
+We can take the same approach for local outlier detection for the `detected` and `subsets_mito_percent` columns, and we'll proceed with the default cutoff of 3 with the default neighborhood size of 36.
+We'll do this one at a time below.
+
+```{r spotsweeper-detected, live = TRUE}
+#| fig.width: 7
+
+# Calculate local outliers for the `detected` metric
+
+# Plot the slide showing outliers
+
+```
+
+As with local `sum` outliers, we see that the `detected` outliers are spread out across the whole tissue and not concentrated in specific tissue regions.
+
+Next, when calculating outliers for `subsets_mito_percent`, we'll need to specify `log = FALSE` and `direction = higher` since this is a bounded metric where we want to remove spots with higher than average values.
+
+```{r spotsweeper-mito, live = TRUE}
+#| fig.width: 7
+
+# Calculate local outliers for the `subsets_mito_percent` metric
+
+# Plot the slide showing outliers
+
+  # switch palette direction to make outliers are darker colors, matching other plots
+
+```
+
+Importantly, we see here that spots to remove are _not_ concentrated in tissue regions with higher mitochondrial percentages, but are instead spread across the tissue. 
+This shows us again that our local outlier detection approach allows us to avoid the confounding effects of spatial heterogeneity. 
+It's also worth noting that none of these spots would have been removed with a typical global threshold used for single-cell data (e.g., 10-25%).
+
+Now that we've calculated all this, we can pool our outliers together: how many outliers are there for each statistic?
+
+```{r count-local-outliers}
+# Prepare data frame to count outliers
+outliers_df <- colData(filtered_spe) |>
+  as.data.frame() |>
+  dplyr::select(ends_with("_outliers"))
+
+# Count total outliers for each metric: The total TRUE values in the `sum_` columns
+outliers_df |>
+  dplyr::summarize(
+    sum_outlier_count = sum(sum_outliers),
+    detected_outlier_count = sum(detected_outliers),
+    mito_outlier_count = sum(subsets_mito_percent_outliers)
+  )
+```
+
+Let's visualize how these outliers relate to one another with a proportional Venn Diagram, using the `eulerr` package to help us:
+
+```{r outliers-venn-diagram}
+eulerr_data <- outliers_df |>
+  # reorder & rename columns columns for display
+  dplyr::select(
+    mito_percent = subsets_mito_percent_outliers, 
+    detected = detected_outliers, 
+    sum = sum_outliers
+  ) |>
+  # venn diagram calculations
+  eulerr::euler()
+
+plot(
+  eulerr_data, 
+  quantities = TRUE, 
+  legend = TRUE,
+  labels = TRUE,
+  fills = c("#F0E442", "#56B4E9", "#009E73")
+)
+```
+
+We see substantial overlap between `sum` and `detected` outliers, but the `subsets_mito_percent` outliers appear to be mostly distinct. 
+
+Next, we'll build a filter representing the union of all types of outliers and use it to filter the SPE object.
+
+```{r build-local-filter}
+# combine all outliers into "local_outliers" column to filter on
+filtered_spe$local_outliers <- filtered_spe$sum_outliers |
+  filtered_spe$detected_outliers |
+  filtered_spe$subsets_mito_percent_outliers
+
+# how many total outliers?
+sum(filtered_spe$local_outliers)
+```
+
+```{r perform-local-filter, live = TRUE}
+# keep only spots where `local_outliers` is FALSE
+
+# print resulting SPE
+
+```
+
+After removing these additional 61 spots, we are left with 4149 spots that both overlap tissue and don't have obvious quality issues.
+
+## Normalization
+
+Our next step is to normalize counts. 
+In single-cell data, we often use a [deconvolution-based approach](https://bioconductor.org/books/3.22/OSCA.basic/normalization.html#normalization-by-deconvolution) for normalization.
+This entails performing a quick clustering across cells, calculating a scaling factor for each cluster, and then normalizing using each cell's associated scaling factor. 
+
+However, this approach isn't quite suitable for our Visium spatial transcriptomics data since each spot is a heterogeneous composition of 1-10 cells.
+We'll therefore use a so-called ["library-size normalization approach"](https://bioconductor.org/books/3.22/OSTA/pages/seq-intermediate-processing.html#library-size-normalization) which treats each spot fully independently and thereby corrects for sequencing depth without smoothing out any heterogeneous signal.
+
+That said, it's important to note that this normalization approach might not be ideal either, as there's some evidence that library size itself [can be confounded with spatial structure](https://link.springer.com/article/10.1186/s13059-024-03241-7).
+Some methods [have been proposed](https://bioconductor.org/books/3.22/OSTA/pages/seq-intermediate-processing.html#spatially-aware-normalization) to circumvent this by taking spatial information into account.
+The takeaway: Method development in spatial transcriptomics is ongoing and a scientific consensus is still forming, so keep your eyes peeled for fresh developments in this space.
+
+Either way, we'll now proceed to normalize using `scuttle::computeLibraryFactors()` to first calculate our spot-specific size factors.
+
+```{r normalize-spe, live = TRUE}
+# calculate per-spot size factors
+
+# perform normalization
+
+# view normalized SPE
+
+```
+
+We now have a new `logcounts` slot with normalized count data:
+
+```{r show logcounts}
+# show top corner of logcounts assay
+logcounts(norm_spe)[1:6, 1:6]
+```
+
+
+## Exploring gene expression
+
+Finally, the moment we've all been waiting for: Let's make some pretty plots!
+Spatial data, by definition, already has a handy coordinate system, which gives us a meaningful layout for visualizing spatial data.
+Although each spot isn't a cell, we can still color spots by expression of genes of interest to get a general sense of what cell types or tissue regions might be in our sample.
+
+To orient us once again, here is the H&E image:
+
+```{r show-he}
+he_plot
+```
+We'll take a bit of time to interpret this image (with the caveat that we are not histology experts, but we'll do our best).
+Generally speaking, Wilms Tumors are composed of a several histologic compartments: blastemal, stromal (with mesenchymal biology), and sometimes epithelial components.
+The H&E shows some evidence for the first two compartments at least:
+
+* Bluer regions indicating ECM-poor areas with high cellular density likely represent a blastemal compartment
+* Paler pink regions likely represent a stromal compartment that may have an endothelial presence
+
+We'll now use some exploratory visualization to see if we can have evidence for these compartments.
+For this, we'll plot expression using `ggpsavis::plotCoords()` for two genes:
+
+* `WT1`: A transcription factor that regulates kidney development.
+We expect this gene to be highly expressed in Wilms Tumor blastemal compartments
+* `COL1A1`: A collagen protein that we expect to be highly expressed in stromal/mesenchymal compartments
+
+We'll need to provide the gene's corresponding row name, which is its Ensembl gene id, to `ggpsavis::plotCoords()` so let's go ahead and find those first.
+
+Recall, the `rowData` slot helpfully maps between gene symbols and Ensembl ids:
+
+```{r show-rowdata}
+rowData(spe) |> head()
+```
+
+In the next chunk, we'll filter the `rowData` to our genes of interest so we can grab Ensembl ids for plotting.
+
+```{r get-ensembl, live = TRUE}
+# define gene symbols
+
+# filter rowData to genes of interest
+
+```
+
+First up, we'll plot the expression of `WT1` using `ggpspavis::plotCoords()`.
+We'll also show the H&E plot next to it to help us interpret it.
+
+```{r plot-wt1, live = TRUE}
+#| message: false
+
+# save plot of WT1 to a variable
+
+# plot h&e with WT1 plot
+
+```
+
+What patterns do you see here?
+Do you think there is potentially spatial structure to `WT1` expression?
+You might also notice a band of spots with high `WT1` expression embedded in a band of spots with lower `WT1` expression along the top of the coordinates plot; can you see how this related back to the H&E?
+
+
+Let's compare this to `COL1A1` expression, whose Ensembl id we determined is `ENSG00000108821`. 
+Again, we'll plot this alongside the H&E.
+
+```{r plot-col1a1}
+#| message: false
+
+# create COL1A1 plot and save to variable
+col1a1_plot <- ggspavis::plotCoords(
+  norm_spe, 
+  annotate = "ENSG00000108821",
+  assay = "logcounts",
+  point_size = 1.25
+) + 
+  ggplot2::scale_color_viridis_c() + 
+  ggplot2::labs(title = "COL1A1")
+
+# plot H&E with COL1A1 plot
+he_plot + col1a1_plot 
+```
+
+What differences do you see in this plot of `COL1A1` gene expression compared to `WT1`?
+Do they appear to be expressed in different tissue regions?
+Did you expect this based on the H&E?
+
+Based on these (very few, very cursory, and highly exploratory!) plots, do you think there is evidence for blastemal and stromal compartments in this sample?
+
+
+## Session info
+
+To conclude, we'll run the `sessionInfo()` command to print out exactly what system setting and R package versions were used to run this code.
+
+```{r}
+sessionInfo()
+```
+
