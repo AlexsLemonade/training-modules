@@ -46,7 +46,7 @@ mkdir -p scRNA-seq-advanced/data/hodgkins
 mkdir -p scRNA-seq-advanced/data/wilms-tumor
 
 # spatial module directories
-mkdir -p spatial/data/ovarian-carcinoma
+mkdir -p spatial/data/ovarian-carcinoma/processed
 mkdir -p spatial/data/wilms-tumor
 
 # Machine learning module directory
@@ -104,7 +104,7 @@ link_locs=(
   scRNA-seq-advanced/data/pancreas/processed
   scRNA-seq-advanced/gene-sets
   scRNA-seq-advanced/data/wilms-tumor/processed
-  spatial/data/ovarian-carcinoma
+  spatial/data/ovarian-carcinoma/processed
   spatial/data/wilms-tumor
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia

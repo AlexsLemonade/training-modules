@@ -56,7 +56,7 @@ sync_dirs=(
   scRNA-seq-advanced/data/pancreas/processed
   scRNA-seq-advanced/gene-sets
   scRNA-seq-advanced/data/wilms-tumor/processed
-  spatial/data/ovarian-carcinoma
+  spatial/data/ovarian-carcinoma/processed
   spatial/data/wilms-tumor
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
