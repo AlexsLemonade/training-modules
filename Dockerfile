@@ -52,13 +52,17 @@ LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
 
-# Additional dependencies for AWS runtime
+# Additional dependencies for AWS runtime and handy tools
 RUN apt-get update -qq
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    emacs \
     glibc-source \
     groff \
+    htop \
     less \
     libisal2 \
+    nano \
+    vim \
     && apt-get clean
 
 # FastQC
