@@ -3,8 +3,8 @@
 FROM docker.io/library/ubuntu:noble AS build
 
 # Build dependencies
-RUN apt-get update -qq
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
     cmake \
     curl \
@@ -21,7 +21,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     pkg-config \
     unzip \
     zlib1g-dev \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/local/src
 
@@ -53,8 +54,8 @@ LABEL maintainer="ccdl@alexslemonade.org"
 WORKDIR /rocker-build/
 
 # Additional dependencies for AWS runtime and handy tools
-RUN apt-get update -qq
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     emacs \
     glibc-source \
     groff \
@@ -63,12 +64,15 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     libisal2 \
     nano \
     vim \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # FastQC
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     fastqc \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Get rclone
 RUN curl -L https://rclone.org/install.sh | bash
