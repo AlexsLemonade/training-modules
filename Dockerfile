@@ -88,7 +88,7 @@ RUN Rscript -e "install.packages('renv')"
 
 
 COPY renv.lock renv.lock
-RUN Rscript -e "options(pkgType='binary'); renv::restore(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'))" \
+RUN Rscript -e "renv::restore()" \
     && rm -rf ~/.cache/R/renv \
     && rm -rf /tmp/downloaded_packages \
     && rm -rf /tmp/Rtmp*
