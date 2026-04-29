@@ -26,22 +26,21 @@ Files for sample `SCPCS000190` were downloaded directly from the `ScPCA` portal,
 The `json` and `html` files were removed, and the remaining files were organized as:
 ```markdown
 └── SCPCS000190
-    └── outs
-        ├── filtered_feature_bc_matrix
-        │   ├── barcodes.tsv.gz
-        │   ├── features.tsv.gz
-        │   └── matrix.mtx.gz
-        ├── raw_feature_bc_matrix
-        │   ├── barcodes.tsv.gz
-        │   ├── features.tsv.gz
-        │   └── matrix.mtx.gz
-        └── spatial
-            ├── aligned_fiducials.jpg
-            ├── detected_tissue_image.jpg
-            ├── scalefactors_json.json
-            ├── tissue_hires_image.png
-            ├── tissue_lowres_image.png
-            └── tissue_positions_list.csv
+    ├── filtered_feature_bc_matrix
+    │   ├── barcodes.tsv.gz
+    │   ├── features.tsv.gz
+    │   └── matrix.mtx.gz
+    ├── raw_feature_bc_matrix
+    │   ├── barcodes.tsv.gz
+    │   ├── features.tsv.gz
+    │   └── matrix.mtx.gz
+    └── spatial
+        ├── aligned_fiducials.jpg
+        ├── detected_tissue_image.jpg
+        ├── scalefactors_json.json
+        ├── tissue_hires_image.png
+        ├── tissue_lowres_image.png
+        └── tissue_positions_list.csv
 ```
 
 The `SCPCS000190` directory was then placed in `/shared/data/training-modules/spatial/data/wilms-tumor/`.
