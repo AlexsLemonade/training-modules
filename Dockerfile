@@ -84,6 +84,7 @@ RUN pip install -r requirements.txt --break-system-packages
 # Use renv for R packages
 WORKDIR /usr/local/renv
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
+ENV RENV_CONFIG_INSTALL_STAGED=FALSE
 RUN Rscript -e "install.packages('renv')"
 
 
