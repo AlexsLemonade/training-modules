@@ -47,7 +47,7 @@ Next we'll define input paths and files that we'll use in this notebook.
 There are a variety of files that you will often see as part of the standard Space Ranger output.
 The specific files present will depend on which specific spatial technology you are using, but they are all described in detail in [10x Genomics documentation](https://www.10xgenomics.com/support/software/space-ranger/latest/analysis/outputs/output-overview).
 
-We've placed the core outputs you'll need for reading this first-generation Visium data into R in the directory `data/wilms-tumor/SCPCS000190/outs`, organized as Space Ranger returns them.
+We've placed the core outputs you'll need for reading this first-generation Visium data into R in the directory `data/wilms-tumor/SCPCS000190`, organized into folders as Space Ranger returns them.
 We'll define that input path, along with other inputs we'll need, here.
 
 ```{r inputs}
@@ -56,9 +56,6 @@ sample_id <- "SCPCS000190"
 
 # main data directory for this sample
 data_dir <- file.path("data/wilms-tumor", sample_id)
-
-# Path to Space Ranger output
-raw_spaceranger_dir <- file.path(data_dir, "outs")
 
 # reference data directory
 ref_dir <- file.path("data/reference")
@@ -101,8 +98,8 @@ Space Ranger also outputs both filtered and raw matrices; today we will start wi
 Before importing the data, let's go ahead and look what files we have:
 
 
-```{r dir-spaceranger, live = TRUE}
-dir(raw_spaceranger_dir)
+```{r dir-data, live = TRUE}
+dir(data_dir)
 ```
 
 As described, the `raw_feature_bc_matrix` and `filtered_feature_bc_matrix` directories are analogous to what we might get from Cell Ranger for single-cell data.
@@ -117,7 +114,7 @@ Let's take a closer look at what's in the `spatial` directory:
 
 ```{r dir-spatial, live = TRUE}
 dir(
-  file.path(raw_spaceranger_dir, "spatial")
+  file.path(data_dir, "spatial")
 )
 ```
 
@@ -188,10 +185,10 @@ So, in this case we'll specify to import only the `lowres` version of the image.
 
 ```{r import-visium, live = TRUE}
 # path to quantified RNA 10X output
-rna_dir <- file.path(raw_spaceranger_dir, "raw_feature_bc_matrix")
+rna_dir <- file.path(data_dir, "raw_feature_bc_matrix")
 
 # path to spatial 10X output
-spatial_dir <- file.path(raw_spaceranger_dir, "spatial")
+spatial_dir <- file.path(data_dir, "spatial")
 
 # import to an object called spe
 spe <- VisiumIO::import(

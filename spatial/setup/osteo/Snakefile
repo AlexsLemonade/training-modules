@@ -8,19 +8,19 @@ rule targets:
 
 rule download_spatial:
   output:
-    directory(os.path.join(sample_dir, "outs", "filtered_feature_bc_matrix")),
-    directory(os.path.join(sample_dir, "outs", "spatial")),
+    directory(os.path.join(sample_dir, "filtered_feature_bc_matrix")),
+    directory(os.path.join(sample_dir, "spatial")),
   params:
     url = config["url"]
   shell:
-    "curl -L {params.url} | tar xz --strip-components=1 -C {sample_dir}/outs"
+    "curl -L {params.url} | tar xz --strip-components=1 -C {sample_dir}"
 
 
 # filter and normalize the SPE as preparation for the spatial clustering notebook
 rule normalize_sce:
   input:
-    filtered_matrix = os.path.join(sample_dir, "outs", "filtered_feature_bc_matrix"),
-    spatial         = os.path.join(sample_dir, "outs", "spatial"),
+    filtered_matrix = os.path.join(sample_dir, "filtered_feature_bc_matrix"),
+    spatial         = os.path.join(sample_dir, "spatial"),
     mito_genes_file = config["mito_genes_file"],
   output:
     os.path.join(sample_dir, "normalized", config["output_rds"])
