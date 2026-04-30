@@ -29,6 +29,7 @@ ALL_MODULES = {
     "RNA-seq",
     "scRNA-seq",
     "scRNA-seq-advanced",
+    "spatial",
     "pathway-analysis",
     "machine-learning",
 }

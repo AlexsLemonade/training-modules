@@ -128,12 +128,12 @@ In that case, a Data Lab member will upload any extra required files to S3 via t
 ### Setup directory
 
 Each module should contain a `setup` directory that includes instructions and scripts to download and prepare any input data files used by the notebooks in the module.
-For scripts designed to be run on the RStudio server (`rstudio.ccdatalab.org`) these input files will usually be placed in the `/shared/data/training-modules` directory and then linked for use, as described below.
+For scripts designed to be run on the RStudio server these input files will usually be placed in the `/shared/data/training-modules` directory and then linked for use, as described below.
 
 ### Server shared data folder
 
-When trainings are run from the RStudio server (`rstudio.ccdatalab.org`), we store large input data files in the `/shared/data/training-modules` directory.
-This directory is the implicit "point of truth" for modules
+When trainings are run from the RStudio server, we store large input data files in the `/shared/data/training-modules` directory.
+This directory is the implicit "point of truth" for modules.
 
 The organization within this directory should mirror the arrangement of the repository, so that we can easily link files and folders from this shared directory to mirrored paths within a clone of this repository.
 
@@ -143,7 +143,7 @@ Linking files from the shared directory to a cloned repository is done with the 
 When possible, link to enclosing directories rather than individual files to keep links simpler and allow users to browse a realistic directory context, but see an important caveat below.
 
 Because this script is also used to set up directories for training, the links should not include _all_ files needed for _every_ notebook:
-- Files that are created during a training session should not  be included in this script.
+- Files that are created during a training session should not be included in this script.
 - Directories that users will need to write to should not be links, or the user will not be able to write their own files.
 
 ### Files stored on S3
@@ -152,9 +152,17 @@ Note that only Data Lab members have access to S3.
 
 To facilitate automated testing of training notebooks, all needed input files for training notebooks should be placed in the `alsf-datalab-training-data` bucket on S3 and made publicly accessible.
 This is facilitated by the `scripts/syncup-s3.sh` bash script, which includes the needed commands for upload/sync, and should include all directories and files needed to run the training notebooks.
-You will need to have a profile with write access to the data bucket to run the `syncup-s3.sh` script.
-This can be activated with the `AWS_PROFILE` environment variable or the `--profile` argument to the script.
-As input files are added or change, those changes should be reflected in updates to `syncup-s3.sh`
+As input files are added or change, those changes should be reflected in updates to `syncup-s3.sh`.
+
+To run the `syncup-s3.sh` script, you will need to configure your credentials, using a profile with write access to the data bucket.  
+This profile can be activated with the `AWS_PROFILE` environment variable or using the `--profile` argument when you run the script.
+
+If you are working on the RStudio server, you can then log into AWS with:
+
+```sh 
+aws sso login --use-device-code
+```
+
 
 ## Development with `renv`
 
