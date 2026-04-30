@@ -23,7 +23,7 @@ stopifnot(
   "Must provide an email with --email" = !is.null(opt$email),
   "Must provide an outdir with --outdir" = !is.null(opt$outdir)
 )
-
+fs::dir_create(opt$outdir)
 
 
 # Get an authentication token for use with the ScPCA Portal
@@ -44,6 +44,7 @@ downloaded_dir <- file.path(
   "scpca_data",
   dir("scpca_data")
 )
+
 
 # Move & rename what we're keeping
 fs::file_move(
