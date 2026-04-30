@@ -88,6 +88,9 @@ ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 ENV RENV_CONFIG_INSTALL_STAGED=FALSE
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_PAT,required=false \
     Rscript - <<'RSCRIPT_EOF'
+# Some challenges with multi-arch builds and Bioconductor binaries mean we
+# want to be sure to set up repos manually here, lest the ones recorded in the
+# renv.lock file cause failures.
 arch <- R.version[['arch']]
 # set up repos for both BioC and CRAN
 repos <- c(
@@ -98,7 +101,7 @@ repos <- c(
     BioCbooks = 'https://bioconductor.org/packages/3.22/books',
     CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'
 )
-# add binary repo for Bioc on x86_64
+# add binary repo for Bioc on x86_64 only, currently no Bioc binaries for arm64
 if (arch == 'x86_64') {
     repos <- c(repos, BioCcontainers = 'https://bioconductor.org/packages/3.22/container-binaries/bioconductor_docker')
 }
