@@ -22,18 +22,18 @@ This table was copied from `/shared/data/training-modules/scRNA-seq-advanced/dat
 ### Wilms tumor
 
 We use the `SCPCL000429_spatial` dataset from [`SCPCP000006`](https://scpca.alexslemonade.org/projects/SCPCP000006).
-Files for sample `SCPCS000190` were downloaded directly from the `ScPCA` portal, and we considered only files in `SCPCL000429_spatial/`.
-The `json` and `html` files were removed, and the remaining files were organized as:
+To obtain these files, use the script `wilms-tumor/download-wilms-tumor.R`.
+This script requires the [`ScPCAr` package](https://alexslemonade.github.io/ScPCAr/), which can be installed with `remotes::install_github("AlexsLemonade/ScPCAr")`.
+
+This will create a directory `../data/wilms-tumor/SCPCS00190/` with the following files:
 ```markdown
-└── SCPCS000190
-    ├── filtered_feature_bc_matrix
-    │   ├── barcodes.tsv.gz
-    │   ├── features.tsv.gz
-    │   └── matrix.mtx.gz
+SCPCS000190
+└── spaceranger
     ├── raw_feature_bc_matrix
-    │   ├── barcodes.tsv.gz
-    │   ├── features.tsv.gz
-    │   └── matrix.mtx.gz
+    │   ├── barcodes.tsv.gz
+    │   ├── features.tsv.gz
+    │   └── matrix.mtx.gz
+    ├── SCPCL000429_spaceranger-summary.html
     └── spatial
         ├── aligned_fiducials.jpg
         ├── detected_tissue_image.jpg
@@ -43,24 +43,35 @@ The `json` and `html` files were removed, and the remaining files were organized
         └── tissue_positions_list.csv
 ```
 
-The `SCPCS000190` directory was then placed in `/shared/data/training-modules/spatial/data/wilms-tumor/`.
-No further preparation was needed.
+The `SCPCS000190` directory was then copied to `/shared/data/training-modules/spatial/data/wilms-tumor/`.
+
 
 ### Ovarian carcinoma
 
 This data comes from this 10x Genomics dataset: <https://www.10xgenomics.com/datasets/human-ovarian-cancer-11-mm-capture-area-ffpe-2-standard>.
+This data, as well as its corresponding Visium probe set, can be downloaded with `ovarian-carcinoma/download-ovarian.R`.
+This will create a directory `../data/ovarian-carcinoma/spaceranger/` with the following files:
 
-This data, as well as its corresponding Visium probe set, were download from 10x as follows:
-
-```sh
-wget https://cf.10xgenomics.com/supp/spatial-exp/probeset/Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv
-wget -qO- https://cf.10xgenomics.com/samples/spatial-exp/2.0.0/CytAssist_11mm_FFPE_Human_Ovarian_Carcinoma/CytAssist_11mm_FFPE_Human_Ovarian_Carcinoma_spatial.tar.gz | tar -xz
-wget -qO- https://cf.10xgenomics.com/samples/spatial-exp/2.0.0/CytAssist_11mm_FFPE_Human_Ovarian_Carcinoma/CytAssist_11mm_FFPE_Human_Ovarian_Carcinoma_filtered_feature_bc_matrix.tar.gz | tar -xz
+```markdown
+spaceranger
+├── filtered_feature_bc_matrix
+│   ├── barcodes.tsv.gz
+│   ├── features.tsv.gz
+│   └── matrix.mtx.gz
+├── spatial
+│   ├── aligned_fiducials.jpg
+│   ├── aligned_tissue_image.jpg
+│   ├── cytassist_image.tiff
+│   ├── detected_tissue_image.jpg
+│   ├── scalefactors_json.json
+│   ├── spatial_enrichment.csv
+│   ├── tissue_hires_image.png
+│   ├── tissue_lowres_image.png
+│   └── tissue_positions.csv
+└── Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv
 ```
 
-The `Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv` file, the `spatial/` directory, and the `filtered_feature_bc_matrix/` directory were then placed in `/shared/data/training-modules/spatial/data/ovarian-carcinoma/`.
-No further preparation was needed.
-
+The `ovarian-carcinoma` directory was then copied to `/shared/data/training-modules/spatial/data/`.
 
 ### Osteosarcoma
 
