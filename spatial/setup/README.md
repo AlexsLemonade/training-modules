@@ -23,6 +23,8 @@ This table was copied from `/shared/data/training-modules/scRNA-seq-advanced/dat
 
 We use the `SCPCL000429_spatial` dataset from [`SCPCP000006`](https://scpca.alexslemonade.org/projects/SCPCP000006).
 To obtain these files, use the script `wilms-tumor/download-wilms-tumor.R`.
+This script requires the [`ScPCAr` package](https://alexslemonade.github.io/ScPCAr/), which can be installed with `remotes::install_github("AlexsLemonade/ScPCAr")`.
+
 This will create a directory `../data/wilms-tumor/SCPCS00190/` with the following files:
 ```markdown
 SCPCS000190
