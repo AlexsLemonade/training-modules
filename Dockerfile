@@ -83,16 +83,37 @@ RUN pip install -r requirements.txt --break-system-packages
 
 # Use renv for R packages
 WORKDIR /usr/local/renv
+COPY renv.lock renv.lock
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 ENV RENV_CONFIG_INSTALL_STAGED=FALSE
 RUN Rscript -e "install.packages('renv')"
-
-
-COPY renv.lock renv.lock
+ENV RENV_CONFIG_INSTALL_STAGED=FALSE
+RUN Rscript - <<'RSCRIPT_EOF'
+arch <- R.version[['arch']]
 RUN Rscript -e "renv::restore()" \
-    && rm -rf ~/.cache/R/renv \
-    && rm -rf /tmp/downloaded_packages \
-    && rm -rf /tmp/Rtmp*
+# set up repos for both BioC and CRAN
+repos <- c(
+    BioCsoft = 'https://bioconductor.org/packages/3.22/bioc',
+    BioCann = 'https://bioconductor.org/packages/3.22/data/annotation',
+    BioCexp = 'https://bioconductor.org/packages/3.22/data/experiment',
+    BioCworkflows = 'https://bioconductor.org/packages/3.22/workflows',
+    BioCbooks = 'https://bioconductor.org/packages/3.22/books',
+    CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'
+)
+# add binary repo for Bioc on x86_64
+if (arch == 'x86_64') {
+    repos <- c(repos, BioCcontainers = 'https://bioconductor.org/packages/3.22/container-binaries/bioconductor_docker')
+}
+options(repos = repos)
+install.packages('renv')
+renv::restore(repos = repos)
+
+# clean up
+unlink("~/.cache/R/renv", recursive=TRUE)
+unlink("/tmp/downloaded_packages", recursive=TRUE)
+unlink(list.files(tempdir(), pattern = "Rtmp", full.names = TRUE), recursive=TRUE)
+RSCRIPT_EOF
+
 
 # copy aws, salmon, and fastp binaries from the build image
 COPY --from=build /usr/local/aws-cli/ /usr/local/aws-cli/
