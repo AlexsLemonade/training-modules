@@ -86,11 +86,9 @@ WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 ENV RENV_CONFIG_INSTALL_STAGED=FALSE
-RUN Rscript -e "install.packages('renv')"
 ENV RENV_CONFIG_INSTALL_STAGED=FALSE
 RUN Rscript - <<'RSCRIPT_EOF'
 arch <- R.version[['arch']]
-RUN Rscript -e "renv::restore()" \
 # set up repos for both BioC and CRAN
 repos <- c(
     BioCsoft = 'https://bioconductor.org/packages/3.22/bioc',
