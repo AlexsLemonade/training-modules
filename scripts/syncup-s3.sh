@@ -55,9 +55,9 @@ sync_dirs=(
   scRNA-seq-advanced/data/rms/integrated
   scRNA-seq-advanced/data/pancreas/processed
   scRNA-seq-advanced/gene-sets
-  scRNA-seq-advanced/data/wilms-tumor/processed
-  spatial/data/ovarian-carcinoma/processed
-  spatial/data/wilms-tumor
+  scRNA-seq-advanced/data/wilms-tumor/spaceranger
+  spatial/data/ovarian-carcinoma/spaceranger
+  spatial/data/osteo/GSM8478586/spaceranger
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
@@ -77,6 +77,7 @@ sync_files=(
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv
   spatial/data/reference/hs_mitochondrial_genes.tsv
+  spatial/data/osteo/GSM8478586/normalized/osteo_normalized_spe.rds  
 )
 
 output_files=(
