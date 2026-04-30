@@ -87,7 +87,8 @@ COPY renv.lock renv.lock
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 ENV RENV_CONFIG_INSTALL_STAGED=FALSE
 ENV RENV_CONFIG_INSTALL_STAGED=FALSE
-RUN Rscript - <<'RSCRIPT_EOF'
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_PAT,required=false \
+    Rscript - <<'RSCRIPT_EOF'
 arch <- R.version[['arch']]
 # set up repos for both BioC and CRAN
 repos <- c(
