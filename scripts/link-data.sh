@@ -14,6 +14,9 @@ cd ..
 share_base=/shared/data
 modules_base=${share_base}/training-modules
 
+#### Step 1: Create parent directories for symlinks and writable output directories ####
+# Create the parent directory of each symlink defined in link_locs below, as well as parent directories needed for outputs
+# Do not create the symlink target directory itself — ln will do that.
 
 # RNA-seq module directories
 mkdir -p RNA-seq/data/gastric-cancer
@@ -46,13 +49,20 @@ mkdir -p scRNA-seq-advanced/data/hodgkins
 mkdir -p scRNA-seq-advanced/data/wilms-tumor
 
 # spatial module directories
-mkdir -p spatial/data/ovarian-carcinoma
+mkdir -p spatial/data/ovarian-carcinoma/processed
+mkdir -p spatial/data/wilms-tumor/SCPCS000190
 
 # Machine learning module directory
 mkdir -p machine-learning/data
 
 # Pathway analysis module directory
 mkdir -p pathway-analysis/data
+
+# Step 2: Create Symlink targets pointing to shared read-only data in ${modules_base}.
+# For this, we generally want to link directories that contain input data, but NOT necessarily the
+# parent directory where processed data are output.
+# Instead, the parent directory for outputs should have been created above with `mkdir -p` as a real (non-symlink) directory
+
 
 link_locs=(
   RNA-seq/data/gastric-cancer/gastric-cancer_metadata.tsv
@@ -103,8 +113,11 @@ link_locs=(
   scRNA-seq-advanced/data/pancreas/processed
   scRNA-seq-advanced/gene-sets
   scRNA-seq-advanced/data/wilms-tumor/processed
-  spatial/data/ovarian-carcinoma/processed
-  spatial/data/wilms-tumor
+  spatial/data/ovarian-carcinoma/spatial
+  spatial/data/ovarian-carcinoma/feature_filtered_bc_matrix
+  spatial/data/wilms-tumor/SCPCS000190/spatial
+  spatial/data/wilms-tumor/SCPCS000190/raw_feature_bc_matrix
+  spatial/data/wilms-tumor/SCPCS000190/filtered_feature_bc_matrix
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
