@@ -49,7 +49,7 @@ mkdir -p scRNA-seq-advanced/data/hodgkins
 mkdir -p scRNA-seq-advanced/data/wilms-tumor
 
 # spatial module directories
-mkdir -p spatial/data/ovarian-carcinoma/processed
+mkdir -p spatial/data/ovarian-carcinoma
 mkdir -p spatial/data/wilms-tumor/SCPCS000190
 
 # Machine learning module directory
