@@ -3,8 +3,8 @@
 FROM docker.io/library/ubuntu:noble AS build
 
 # Build dependencies
-RUN apt-get update -qq
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
     cmake \
     curl \
@@ -21,7 +21,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     pkg-config \
     unzip \
     zlib1g-dev \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/local/src
 
@@ -52,19 +53,26 @@ LABEL maintainer="ccdl@alexslemonade.org"
 
 WORKDIR /rocker-build/
 
-# Additional dependencies for AWS runtime
-RUN apt-get update -qq
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+# Additional dependencies for AWS runtime and handy tools
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    emacs \
     glibc-source \
     groff \
+    htop \
     less \
     libisal2 \
-    && apt-get clean
+    nano \
+    vim \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # FastQC
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     fastqc \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Get rclone
 RUN curl -L https://rclone.org/install.sh | bash
@@ -75,15 +83,38 @@ RUN pip install -r requirements.txt --break-system-packages
 
 # Use renv for R packages
 WORKDIR /usr/local/renv
-ENV RENV_CONFIG_CACHE_ENABLED=FALSE
-RUN Rscript -e "install.packages('renv')"
-
-
 COPY renv.lock renv.lock
-RUN Rscript -e "options(pkgType='binary'); renv::restore(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'))" \
-    && rm -rf ~/.cache/R/renv \
-    && rm -rf /tmp/downloaded_packages \
-    && rm -rf /tmp/Rtmp*
+ENV RENV_CONFIG_CACHE_ENABLED=FALSE
+ENV RENV_CONFIG_INSTALL_STAGED=FALSE
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_PAT,required=false \
+    Rscript - <<'RSCRIPT_EOF'
+# Some challenges with multi-arch builds and Bioconductor binaries mean we
+# want to be sure to set up repos manually here, lest the ones recorded in the
+# renv.lock file cause failures.
+arch <- R.version[['arch']]
+# set up repos for both BioC and CRAN
+repos <- c(
+    BioCsoft = 'https://bioconductor.org/packages/3.22/bioc',
+    BioCann = 'https://bioconductor.org/packages/3.22/data/annotation',
+    BioCexp = 'https://bioconductor.org/packages/3.22/data/experiment',
+    BioCworkflows = 'https://bioconductor.org/packages/3.22/workflows',
+    BioCbooks = 'https://bioconductor.org/packages/3.22/books',
+    CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'
+)
+# add binary repo for Bioc on x86_64 only, currently no Bioc binaries for arm64
+if (arch == 'x86_64') {
+    repos <- c(repos, BioCcontainers = 'https://bioconductor.org/packages/3.22/container-binaries/bioconductor_docker')
+}
+options(repos = repos)
+install.packages('renv')
+renv::restore(repos = repos)
+
+# clean up
+unlink("~/.cache/R/renv", recursive=TRUE)
+unlink("/tmp/downloaded_packages", recursive=TRUE)
+unlink(list.files(tempdir(), pattern = "Rtmp", full.names = TRUE), recursive=TRUE)
+RSCRIPT_EOF
+
 
 # copy aws, salmon, and fastp binaries from the build image
 COPY --from=build /usr/local/aws-cli/ /usr/local/aws-cli/
