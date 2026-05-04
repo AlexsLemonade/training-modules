@@ -30,9 +30,9 @@ This will create a directory `../data/wilms-tumor/SCPCS00190/` with the followin
 SCPCS000190
 └── spaceranger
     ├── raw_feature_bc_matrix
-    │   ├── barcodes.tsv.gz
-    │   ├── features.tsv.gz
-    │   └── matrix.mtx.gz
+    │   ├── barcodes.tsv.gz
+    │   ├── features.tsv.gz
+    │   └── matrix.mtx.gz
     ├── SCPCL000429_spaceranger-summary.html
     └── spatial
         ├── aligned_fiducials.jpg
@@ -55,19 +55,19 @@ This will create a directory `../data/ovarian-carcinoma/spaceranger/` with the f
 ```markdown
 spaceranger
 ├── filtered_feature_bc_matrix
-│   ├── barcodes.tsv.gz
-│   ├── features.tsv.gz
-│   └── matrix.mtx.gz
+│   ├── barcodes.tsv.gz
+│   ├── features.tsv.gz
+│   └── matrix.mtx.gz
 ├── spatial
-│   ├── aligned_fiducials.jpg
-│   ├── aligned_tissue_image.jpg
-│   ├── cytassist_image.tiff
-│   ├── detected_tissue_image.jpg
-│   ├── scalefactors_json.json
-│   ├── spatial_enrichment.csv
-│   ├── tissue_hires_image.png
-│   ├── tissue_lowres_image.png
-│   └── tissue_positions.csv
+│   ├── aligned_fiducials.jpg
+│   ├── aligned_tissue_image.jpg
+│   ├── cytassist_image.tiff
+│   ├── detected_tissue_image.jpg
+│   ├── scalefactors_json.json
+│   ├── spatial_enrichment.csv
+│   ├── tissue_hires_image.png
+│   ├── tissue_lowres_image.png
+│   └── tissue_positions.csv
 └── Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv
 ```
 
@@ -78,13 +78,16 @@ The `ovarian-carcinoma` directory was then copied to `/shared/data/training-modu
 This data comes from this `GEO` record: <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM8478586>, which is associated with [Reinecke et al. (2025)](https://aacrjournals.org/clincancerres/article/31/2/414/751106/Aberrant-Activation-of-Wound-Healing-Programs).
 This data needs to be filtered and normalized for input to workshop notebooks.
 
-To download and prepare input data for the workshop, change directories to the `setup/osteo` directory and run:
+In addition, the [OsteoCAR mouse metastasis reference](https://figshare.com/articles/dataset/OsteoCAR_A_multi-species_single-cell_atlas_of_primary_and_metastatic_osteosarcoma/31029559) also needs to be obtained and prepared for the workshop as the osteosarcoma deconvolution reference.
+
+This code requires the `qs` (not `qs2`) package to read in the raw osteo reference.
+As of January 2026, this package is not currently from CRAN (but it may be back one day), so you may need to install with `remotes::install_github("qsbase/qs")`.
+
+To download and prepare input data and the reference for the workshop, change directories to the `setup/osteo` directory and run:
 
 ```sh
 snakemake -j2
 ```
 
-This will place the downloaded files from GEO and the normalized SPE object into `/shared/data/training-modules/scRNA-seq-advanced/data/osteo/GSM8478586/`.
-
-
+This will place the downloaded files from GEO and the normalized SPE object into `/shared/data/training-modules/scRNA-seq-advanced/data/osteo/GSM8478586/`, and it will place the osteo reference into `/shared/data/training-modules/scRNA-seq-advanced/data/osteo/reference/`.
 
