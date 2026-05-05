@@ -90,7 +90,7 @@ he_plot <- plotVisium(spe, spots = FALSE, zoom = TRUE) +
   # add styling to match other panels
   theme(
     plot.title = ggplot2::element_text(
-      hjust = 0.5, 
+      hjust = 0.5,
       margin = ggplot2::margin(0, 0, 0.1, 0)
     ),
     panel.border = ggplot2::element_rect(color = "black", linewidth = 0.25)
@@ -124,6 +124,7 @@ detected_plot <- plotCoords(spe, annotate = "detected",  point_size = 1.25) +
   )
 total_plot + detected_plot
 ```
+
 Takeaways:
 
 - Clearly, more expression in the tumors in general vs parenchyma, which makes sense biologically!
@@ -204,6 +205,7 @@ coords_nonspatial <- plotCoords(
 
 umap_nonspatial + coords_nonspatial + he_plot
 ```
+
 We see four clusters which have some correspondence to patterns in the H&E for tumor vs parenchymal regions, and clusters seem to be based on expression patterns along a "gradient" from tumor -> parenchymal.
 Interestingly we see in the UMAP that spatial regions tend to be adjacent; whether this is meaningful isn't clear but it's neat nonetheless.
 
@@ -231,10 +233,10 @@ We're going to run this without and with AGF and then compare all around.
 lambda <- 0.2
 k_geom <- 18
 
-# calcuate the BANKSY matrix without AGF
+# calculate the BANKSY matrix without AGF
 spe <- Banksy::computeBanksy(spe, assay_name = "logcounts", k_geom = k_geom)
 
-# show spe
+# show the spe
 spe
 ```
 
@@ -243,6 +245,15 @@ Show and explain the H0 matrix (spatially-smoothed neighbor-averaged expression)
 ```{r show ho}
 assay(spe, "H0")[1:5, 1:5]
 ```
+
+Also note that parameters were added to the `metadata` slot:
+
+```{r banksy nonagf metadata}
+# show spe metadata
+metadata(spe)$BANKSY_params
+```
+
+
 Now we can calculate PCA, specifying `lambda` for how to weight the original expression (`logcounts`) and the BANKSY matrix (here, H0, 
 
 ```{r banksy pca, live = TRUE}
@@ -252,6 +263,7 @@ spe <- Banksy::runBanksyPCA(spe, lambda = lambda)
 # show SPE
 spe
 ```
+
 We have a new PCA called `PCA_M0_lam0.2`.
 BANKSY named this for us: `M0` implies that AGF is off, and `lam0.2` is our lambda parameter.
 
