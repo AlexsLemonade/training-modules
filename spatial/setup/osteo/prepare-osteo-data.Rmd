@@ -7,7 +7,7 @@ params:
   filtered_matrix: "../../data/osteo/GSM8478586/spaceranger/filtered_feature_bc_matrix"
   spatial_dir: "../../data/osteo/GSM8478586/spaceranger/spatial"
   output_rds: "../../data/osteo/GSM8478586/normalized/osteo_normalized_spe.rds"
-  mito_genes_file: "../../data/reference/hs_mitochondrial_genes.tsv"
+  mito_genes_file: "../../data/reference/mm_mitochondrial_genes.tsv"
   sample_id: "GSM8478586"
 ---
 
@@ -87,15 +87,18 @@ Now, perform filtering:
 mito_genes <- readr::read_tsv(params$mito_genes_file) |>
   dplyr::filter(gene_id %in% rownames(spe)) |>
   dplyr::pull(gene_id)
+mito_genes
 ```
+
+Turns out there is no overlap, which is not actually unexpected.
+This data is from Visium and has 19465 genes, corresponding to the Mouse Visium v1 probe set which does not have mitochondrial genes.
+Therefore, we can skip filtering on mitochondrial percentage.
 
 
 ```{r}
 spe <- spe |>
   # calculate per-spot statistics
-  scuttle::addPerCellQC(
-    subsets = list(mito = mito_genes)
-  ) |> 
+  scuttle::addPerCellQC() |> 
   # Detect local outliers using defaults 
   SpotSweeper::localOutliers(
     metric = "sum",
@@ -104,12 +107,7 @@ spe <- spe |>
   SpotSweeper::localOutliers(
     metric = "detected",
     direction = "lower"
-  ) |> 
-  SpotSweeper::localOutliers(
-    metric = "subsets_mito_percent",
-    direction = "higher", # we want to remove HIGHER values
-    log = FALSE # don't log
-)
+  ) 
 ```
 
 There are this many outlier spots to remove:
@@ -117,9 +115,8 @@ There are this many outlier spots to remove:
 ```{r}
 # identify and remove local outliers
 spe$local_outliers <- spe$sum_outliers |
-  spe$detected_outliers |
-  spe$subsets_mito_percent_outliers
-print(sum(spe$local_outliers))
+  spe$detected_outliers
+print(sum(spe$local_outliers)) # 20 spots
 ```
 
 ```{r}
