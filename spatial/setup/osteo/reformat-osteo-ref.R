@@ -5,29 +5,27 @@
 # - converts rownames to Ensembl, using a provided SPE
 # - converts to SCE
 
-library(optparse)
-library(Seurat)
-library(SpatialExperiment)
-
+suppressPackageStartupMessages({
+  library(optparse)
+  library(Seurat)
+  library(SpatialExperiment)
+})
 
 
 option_list <- list(
   make_option(
-    opt = c("-i", "--input_osteo_ref"),
+    opt = c("-i", "--input"),
     type = "character",
-    default = "setup/osteo/mm_mets_osteo_ref_raw.qs",
     help = "Path to the input osteo reference RDS file."
   ),
   make_option(
-    opt = c("-o", "--output_osteo_ref"),
+    opt = c("-o", "--output"),
     type = "character",
-    default = "setup/osteo/out.rds",
     help = "Path to the output formatted osteo reference RDS file."
   ),
   make_option(
     opt = c("--spe"),
     type = "character",
-    default = "data/osteo/GSM8478586/normalized/osteo_normalized_spe.rds",
     help = "Path to SPE file to use for mapping IDs"
   )
 )
@@ -35,16 +33,16 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list = option_list))
 
 stopifnot(
-  "Must provide the input osteo ref file with -i" = file.exists(opt$input_osteo_ref),
-  "Must provide the output osteo ref file with -o" = !is.null(opt$output_osteo_ref),
-  "Must provide an APE to use for mapping IDs with --spe" = file.exists(opt$spe)
+  "Must provide the input osteo ref file with -i" = file.exists(opt$input),
+  "Must provide the output osteo ref file with -o" = !is.null(opt$output),
+  "Must provide an SPE to use for mapping IDs with --spe" = file.exists(opt$spe)
 )
 
 # Read in SPE
-spe <- readRDS(opt$spe)
+spe <- readr::read_rds(opt$spe)
 
 ## Read in the original reference object with qs
-mm_mets <- qs::qread(opt$input_osteo_ref)
+mm_mets <- qs::qread(opt$input)
 
 # Downsample for reproducibility
 cells_keep <- mm_mets@meta.data |>
@@ -83,4 +81,4 @@ reducedDims(ref_sce_ensembl) <- NULL
 logcounts(ref_sce_ensembl) <- NULL
 
 # Export
-readr::write_rds(ref_sce_ensembl, opt$output_osteo_ref)
+readr::write_rds(ref_sce_ensembl, opt$output)
