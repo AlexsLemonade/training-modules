@@ -4,15 +4,16 @@ from pathlib import Path
 configfile: "config.yaml"
 
 base_dir        = Path(config["base_dir"])
+ref_dir         = Path(config["ref_dir"])
 sample_dir      = base_dir / config["sample_id"]
 spaceranger_dir = sample_dir / "spaceranger"
 normalized_dir  = sample_dir / "normalized"
-ref_dir         = base_dir / "reference"
+mito_genes_file = ref_dir / "mm_mitochondrial_genes.tsv"
 
 rule targets:
     input:
-        normalized_dir / config["output_rds"],
-        ref_dir / config["output_osteo_ref"]
+        normalized_dir / config["output_osteo_spe"],
+        ref_dir / config["output_osteo_ref"],
 
 rule download_spatial:
     output:
@@ -21,33 +22,7 @@ rule download_spatial:
     params:
         geo_url = config["geo_url"]
     shell:
-        "curl -L {params.geo_url} | tar xz --strip-components=1 -C {spaceranger_dir}"
-
-# import as SPE, filter, normalize, and export rds as preparation for the spatial clustering notebook
-rule prepare_sce:
-    input:
-        filtered_matrix = spaceranger_dir / "filtered_feature_bc_matrix",
-        spatial         = spaceranger_dir / "spatial",
-        mito_genes_file = config["mito_genes_file"],
-    output:
-        normalized_dir / config["output_rds"]
-    params:
-        notebook = "prepare-osteo-data.Rmd"
-    shell:
-        """
-        Rscript -e "
-          rmarkdown::render(
-            '{params.notebook}',
-            params = list(
-              filtered_matrix = '{input.filtered_matrix}',
-              spatial_dir     = '{input.spatial}',
-              mito_genes_file = '{input.mito_genes_file}',
-              output_rds      = '{output}'
-            ),
-            output_file = fs::file_temp()
-          )
-        "
-        """
+        "mkdir -p {spaceranger_dir} && curl -L {params.geo_url} | tar xz --strip-components=1 -C {spaceranger_dir}"
 
 rule download_osteo_ref:
     output:
@@ -57,10 +32,42 @@ rule download_osteo_ref:
     shell:
         "curl -Lo {output} {params.osteo_ref_url}"
 
+# import SPE, filter, normalize, and export rds as preparation for the 
+# spatial clustering notebook
+rule prepare_sce:
+    input:
+        filtered_matrix = spaceranger_dir / "filtered_feature_bc_matrix",
+        spatial         = spaceranger_dir / "spatial",
+        mito_genes_file = mito_genes_file,
+    output:
+        normalized_dir / config["output_osteo_spe"]
+    params:
+        notebook  = "prepare-osteo-data.Rmd",
+        sample_id = config["sample_id"],
+    shell:
+        """
+        Rscript -e "
+          rmarkdown::render(
+            '{params.notebook}',
+            params = list(
+              filtered_matrix = '{input.filtered_matrix}',
+              spatial_dir     = '{input.spatial}',
+              mito_genes_file = '{input.mito_genes_file}',
+              sample_id       = '{params.sample_id}',
+              output_rds      = '{output}'
+            ),
+            output_file = fs::file_temp()
+          )
+        "
+        """
+
+
+# Downsample and convert the osteo reference from Seurat -> SCE as preparation
+# for the deconvolution notebooks
 rule reformat_osteo_ref:
     input:
         osteo_ref = "mm_mets_osteo_ref_raw.qs", # doesn't need temp()
-        spe       = normalized_dir / config["output_rds"]
+        spe       = normalized_dir / config["output_osteo_spe"],
     output:
         ref_dir / config["output_osteo_ref"]
     params:
@@ -68,7 +75,7 @@ rule reformat_osteo_ref:
     shell:
         """
         Rscript {params.script} \
-            --input_osteo_ref {input.osteo_ref} \
-            --output_osteo_ref {output} \
+            -i {input.osteo_ref} \
+            -o {output} \
             --spe {input.spe}
         """
