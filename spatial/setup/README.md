@@ -26,7 +26,7 @@ To obtain these files, use the script `wilms-tumor/download-wilms-tumor.R`.
 This script requires the [`ScPCAr` package](https://alexslemonade.github.io/ScPCAr/), which can be installed with `remotes::install_github("AlexsLemonade/ScPCAr")`.
 
 This will create a directory `../data/wilms-tumor/SCPCS00190/` with the following files:
-```markdown
+```console
 SCPCS000190
 └── spaceranger
     ├── raw_feature_bc_matrix
@@ -52,7 +52,7 @@ This data comes from this 10x Genomics dataset: <https://www.10xgenomics.com/dat
 This data, as well as its corresponding Visium probe set, can be downloaded with `ovarian-carcinoma/download-ovarian.R`.
 This will create a directory `../data/ovarian-carcinoma/spaceranger/` with the following files:
 
-```markdown
+```console
 spaceranger
 ├── filtered_feature_bc_matrix
 │   ├── barcodes.tsv.gz
@@ -89,5 +89,28 @@ To download and prepare input data and the reference for the workshop, change di
 snakemake -j2
 ```
 
-This will place the downloaded files from GEO and the normalized SPE object into `/shared/data/training-modules/scRNA-seq-advanced/data/osteo/GSM8478586/`, and it will place the osteo reference into `/shared/data/training-modules/scRNA-seq-advanced/data/osteo/reference/`.
+This will create both `../data/references/mm_mets_osteo_ref.rds` and a directory `../data/osteo/` with the following files:
 
+```console
+osteo
+└── GSM8478586
+    ├── normalized
+    │   └── osteo_normalized_spe.rds
+    └── spaceranger
+        ├── filtered_feature_bc_matrix
+        │   ├── barcodes.tsv.gz
+        │   ├── features.tsv.gz
+        │   └── matrix.mtx.gz
+        └── spatial
+            ├── aligned_fiducials.jpg
+            ├── aligned_tissue_image.jpg
+            ├── cytassist_image.tiff
+            ├── detected_tissue_image.jpg
+            ├── scalefactors_json.json
+            ├── spatial_enrichment.csv
+            ├── tissue_hires_image.png
+            ├── tissue_lowres_image.png
+            └── tissue_positions.csv
+```
+
+Then, `mm_mets_osteo_ref.rds` was copied to `/shared/data/training-modules/spatial/data/reference/`, and the `osteo` directory was copied to `/shared/data/training-modules/spatial/data/`. 
