@@ -38,6 +38,8 @@ stopifnot(
   "Must provide an SPE to use for mapping IDs with --spe" = file.exists(opt$spe)
 )
 
+set.seed(2026)
+
 # Read in SPE
 spe <- readr::read_rds(opt$spe)
 
@@ -56,7 +58,8 @@ mm_mets <- mm_mets[, cells_keep]
 # Convert to SCE
 ref_sce <- Seurat::as.SingleCellExperiment(mm_mets)
 
-# Convert row names to Ensembl as close as we can
+# Convert row names to Ensembl as close as we can, using gene symbols in the SPE
+# Note the SPE gene symbols are the mouse v1 Visium probe set, so less than a transcriptome
 map_df <- rowData(spe) |>
   as.data.frame() |>
   dplyr::select(gene_symbol = Symbol, ensembl  = ID)
