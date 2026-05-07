@@ -318,6 +318,196 @@ How does this compare to non-spatial?
 Kind of neat to see that there is still spatial arrangement in the UMAP, although it's not clear what it means if anything!
 
 
+
+#### With AGF
+
+Let's do this again, but with AGF turned on. 
+We'll change up the `k_geom` parameter for this to use two values, more explanation coming later.
+
+
+```{r banksy matrix agf on, live = TRUE}
+# 18 will be used for neighbor averaging, and 30 will be used for broader spatial effects with AGF
+k_geom <- c(18, 30)
+
+# turn on compute_agf
+spe <- Banksy::computeBanksy(
+  spe, 
+  assay_name = "logcounts", 
+  compute_agf = TRUE, 
+  k_geom = k_geom
+)
+
+# show spe
+spe
+```
+
+There's a new assay now, H1, which is the result of the AGF calculation.
+BANKSY can only make assays named H0 and H1, so if you re-run in same mode but with a different `k_geom` your assays will get overridden.
+
+
+```{r}
+assay(spe, "H1")[1:5, 1:5]
+```
+
+Worth noting that BANKSY will overwrite metadata parameters.
+
+```{r banksy agf metadata}
+metadata(spe)$BANKSY_params
+```
+
+
+Now, we can calculate the PCA for this matrix.
+
+```{r agf pca, live = TRUE}
+# use_agf tells BANKSY to use the H1 asssay
+spe <- Banksy::runBanksyPCA(spe, lambda = lambda, use_agf = TRUE)
+
+# show the SPE
+spe
+```
+
+This gave us a new PCA matrix, `PCA_M1_lam0.2` - where the `M1` signifies that AGF was used and `0.2` is the lambda parameter.
+As before we'll do clustering and UMAP.
+
+```{r agf umap}
+# define reducedDim names
+pca_name <- "PCA_M1_lam0.2"
+umap_name <- "UMAP_banksy_agf"
+
+# Calculate UMAP
+spe <- scater::runUMAP(
+  spe,
+  dimred = pca_name,
+  name = umap_name
+)
+
+# Perform clustering
+colData(spe)$cluster_banksy_agf <- scran::clusterCells(
+  spe, 
+  use.dimred = pca_name,
+  BLUSPARAM = cluster_params
+)
+```
+
+And plot, this time showing a few plots for comparison!
+We'll make use of patchwork for lots of colors.
+
+```{r plot banksy agf}
+#| message: false
+#| fig.height: 6
+#| fig.width: 14
+
+umap_banksky_agf <- scater::plotReducedDim(
+  spe, 
+  dimred = umap_name,
+  color_by = "cluster_banksy_agf", 
+  point_size = 0.5
+) + 
+scale_color_brewer(palette = "Paired")
+
+coords_banksky_agf <- plotCoords(
+  spe, 
+  annotate = "cluster_banksy_agf", 
+  point_size = 1.25
+) + 
+scale_color_brewer(palette = "Paired")
+
+
+# Compile plots for patchwork
+# the legends will be a bit loud, but wrangling it is a pain!
+plot_list <- list(
+  umap_nonspatial,
+  umap_banksky_nonagf,
+  umap_banksky_agf,
+  coords_nonspatial,
+  coords_banksky_nonagf, 
+  coords_banksky_agf
+)
+
+
+wrap_plots(plot_list, nrow = 2)
+```
+
+What differences do you see with and without AGF?
+Did AGF capture boundaries more cleanly as advertised?
+How do these clusters overall compare to non-spatial?
+
+We can see how clusters compare a bit more precisely/plainly with a heatmap.
+For this, we'll make one comparing non-spatial to AGF clusters.
+
+```{r cluster banksy heatmap}
+clusters_tab <- table(
+  colData(spe)$cluster_banksy_agf, 
+  colData(spe)$cluster_nonspatial
+)
+
+# normalize by the number of cells in each non-spatial cluster
+clusters_tab <- apply(
+  clusters_tab,
+  2, # apply function to columns (cluster_nonspatial)
+  \(x) x/sum(x)
+)
+
+pheatmap::pheatmap(clusters_tab)
+```
+
+For example, we can see from the coordinate plots that non-spatial cluster 3 is tumor cells, which has been split into three BANKSY clusters: 10, 6, & 8.
+Notably, BANKSY cluster 6 also has spots in non-spatial cluster 1, which we can see from the coordinate plots too.
+
+Let's color by gene expression for a gene we expect to be highly expressed in the tumor, collagen (`Col1a1`).
+Let's get the Ensembl id to plot it:
+
+```{r find ensembl id}
+ensembl_id <- rowData(spe) |>
+  as.data.frame() |>
+  dplyr::filter(Symbol == "Col1a1")|>
+  rownames()
+
+ensembl_id
+```
+
+```{r plot col1a1 expression}
+#| message: false
+#| fig.width: 12
+#| fig.height: 4
+
+
+banksy_expr_plot <- scater::plotExpression(
+  spe,
+  features = ensembl_id,
+  x = "cluster_banksy_agf",
+  color_by = "cluster_banksy_agf"
+) + 
+  scale_color_brewer(palette = "Paired")
+  
+nonspatial_expr_plot <- scater::plotExpression(
+  spe,
+  features = ensembl_id,
+  x = "cluster_nonspatial",
+  color_by = "cluster_nonspatial"
+) + 
+  scale_color_brewer(palette = "Dark2")
+
+banksy_expr_plot + nonspatial_expr_plot
+```
+
+
+We indeed see distinctions among BANKSY clusters 6, 8, & 10 - per the H&E, spots in 10 are most isolated from environment, then 8, and then 6 is bordering the parenchyma. 
+6 being lowest expression makes sense given that it also corresponds, although less so, to non-spatial cluster 1.
+We have therefore refined our non-spatial clusters with spatial information to give us clusters that consider spatial relationships as well.
+
+Anything else you see to point out here?
+
+
+## Export
+
+We'll conclude by exporting our object with clusters, with compression.
+
+```{r export, live = TRUE}
+readr::write_rds(spe, clustered_rds, compress = "gz")
+```
+
+
 ## Session info
 
 To conclude, we'll run the `sessionInfo()` command to print out exactly what system setting and R package versions were used to run this code.
