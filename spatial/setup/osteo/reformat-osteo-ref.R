@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# This script reformats the osteo reference:
+# This script reformats the osteo reference Seurat object
 # - downsamples to <= 10000 cells per L1 cell type
 # - converts rownames to Ensembl, using a provided SPE
 # - converts to SCE
@@ -16,7 +16,7 @@ option_list <- list(
   make_option(
     opt = c("-i", "--input"),
     type = "character",
-    help = "Path to the input osteo reference RDS file."
+    help = "Path to the input osteo reference qs file."
   ),
   make_option(
     opt = c("-o", "--output"),
