@@ -80,10 +80,9 @@ This data needs to be filtered and normalized for input to workshop notebooks.
 
 In addition, the [`OsteoCAR` mouse metastasis reference](https://figshare.com/articles/dataset/OsteoCAR_A_multi-species_single-cell_atlas_of_primary_and_metastatic_osteosarcoma/31029559) also needs to be obtained and prepared for the workshop as the osteosarcoma deconvolution reference.
 
-This code requires the `qs` (not `qs2`) package to read in the raw `OsteoCAR` reference.
-As of January 2026, this package is not currently from CRAN (but it may be back one day), so you may need to install with `remotes::install_github("qsbase/qs")`.
 
-To download and prepare input data and the reference for the workshop, change directories to the `setup/osteo` directory and run:
+To download and prepare input data and the reference for the workshop, change directories to the `setup/osteo` directory and run the following.
+Note that this assumes that the file `../../data/reference/mm_mitochondrial_genes.tsv` is present.
 
 ```sh
 snakemake -j2
