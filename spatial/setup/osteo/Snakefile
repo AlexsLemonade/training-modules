@@ -1,4 +1,5 @@
-# Workflow for preparing the GSM8478586 osteosarcoma dataset
+# Workflow for preparing the GSM8478586 osteosarcoma dataset and OsteoCar mouse metastasis reference
+
 from pathlib import Path
 
 configfile: "config.yaml"
@@ -26,7 +27,7 @@ rule download_spatial:
 
 rule download_osteo_ref:
     output:
-        temp("mm_mets_osteo_ref_raw.qs")
+        config["output_osteo_ref_raw"]
     params:
         osteo_ref_url = config["osteo_ref_url"]
     shell:
@@ -66,7 +67,7 @@ rule prepare_sce:
 # for the deconvolution notebooks
 rule reformat_osteo_ref:
     input:
-        osteo_ref = "mm_mets_osteo_ref_raw.qs", # doesn't need temp()
+        osteo_ref = config["output_osteo_ref_raw"],
         spe       = normalized_dir / config["output_osteo_spe"],
     output:
         ref_dir / config["output_osteo_ref"]
