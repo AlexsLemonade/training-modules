@@ -1,45 +1,82 @@
-# Workflow for preparing the GSM8478586 osteosarcoma dataset
+# Workflow for preparing the GSM8478586 osteosarcoma dataset and OsteoCar mouse metastasis reference
+
+from pathlib import Path
+
 configfile: "config.yaml"
-sample_dir = os.path.join(config["base_dir"], config["sample_id"])
-spaceranger_dir = os.path.join(sample_dir, "spaceranger")
-normalized_dir = os.path.join(sample_dir, "normalized")
+
+base_dir        = Path(config["base_dir"])
+ref_dir         = Path(config["ref_dir"])
+sample_dir      = base_dir / config["sample_id"]
+spaceranger_dir = sample_dir / "spaceranger"
+normalized_dir  = sample_dir / "normalized"
+mito_genes_file = ref_dir / "mm_mitochondrial_genes.tsv"
 
 rule targets:
-  input:
-    os.path.join(normalized_dir, config["output_rds"])
+    input:
+        normalized_dir / config["output_osteo_spe"],
+        ref_dir / config["output_osteo_ref"],
 
 rule download_spatial:
-  output:
-    directory(os.path.join(spaceranger_dir, "filtered_feature_bc_matrix")),
-    directory(os.path.join(spaceranger_dir, "spatial")),
-  params:
-    url = config["url"]
-  shell:
-    "curl -L {params.url} | tar xz --strip-components=1 -C {spaceranger_dir}"
+    output:
+        directory(spaceranger_dir / "filtered_feature_bc_matrix"),
+        directory(spaceranger_dir / "spatial"),
+    params:
+        geo_url = config["geo_url"]
+    shell:
+        "mkdir -p {spaceranger_dir} && curl -L {params.geo_url} | tar xz --strip-components=1 -C {spaceranger_dir}"
 
+rule download_osteo_ref:
+    output:
+        config["output_osteo_ref_raw"]
+    params:
+        osteo_ref_url = config["osteo_ref_url"]
+    shell:
+        "curl -Lo {output} {params.osteo_ref_url}"
 
-# import as SPE, filter, normalize, and export rds as preparation for the spatial clustering notebook
+# import SPE, filter, normalize, and export rds as preparation for the 
+# spatial clustering notebook
 rule prepare_sce:
-  input:
-    filtered_matrix = os.path.join(spaceranger_dir, "filtered_feature_bc_matrix"),
-    spatial         = os.path.join(spaceranger_dir, "spatial"),
-    mito_genes_file = config["mito_genes_file"],
-  output:
-    os.path.join(normalized_dir, config["output_rds"])
-  params:
-    notebook = "prepare-osteo-data.Rmd"
-  shell:
-    """
-    Rscript -e "
-      rmarkdown::render(
-        '{params.notebook}',
-        params = list(
-          filtered_matrix = '{input.filtered_matrix}',
-          spatial_dir     = '{input.spatial}',
-          mito_genes_file = '{input.mito_genes_file}',
-          output_rds      = '{output}'
-        ),
-        output_file = fs::file_temp()
-      )
-    "
-    """
+    input:
+        filtered_matrix = spaceranger_dir / "filtered_feature_bc_matrix",
+        spatial         = spaceranger_dir / "spatial",
+        mito_genes_file = mito_genes_file,
+    output:
+        normalized_dir / config["output_osteo_spe"]
+    params:
+        notebook  = "prepare-osteo-data.Rmd",
+        sample_id = config["sample_id"],
+    shell:
+        """
+        Rscript -e "
+          rmarkdown::render(
+            '{params.notebook}',
+            params = list(
+              filtered_matrix = '{input.filtered_matrix}',
+              spatial_dir     = '{input.spatial}',
+              mito_genes_file = '{input.mito_genes_file}',
+              sample_id       = '{params.sample_id}',
+              output_rds      = '{output}'
+            ),
+            output_file = fs::file_temp()
+          )
+        "
+        """
+
+
+# Downsample and convert the osteo reference from Seurat -> SCE as preparation
+# for the deconvolution notebooks
+rule reformat_osteo_ref:
+    input:
+        osteo_ref = config["output_osteo_ref_raw"],
+        spe       = normalized_dir / config["output_osteo_spe"],
+    output:
+        ref_dir / config["output_osteo_ref"]
+    params:
+        script = "reformat-osteo-ref.R"
+    shell:
+        """
+        Rscript {params.script} \
+            -i {input.osteo_ref} \
+            -o {output} \
+            --spe {input.spe}
+        """
