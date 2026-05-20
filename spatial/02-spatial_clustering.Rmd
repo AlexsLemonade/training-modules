@@ -1,5 +1,5 @@
 ---
-title: "Spatially-aware clustering"
+title: "Clustering spatial transcriptomics data"
 author: Data Lab for ALSF
 date: 2026
 output:
@@ -10,19 +10,28 @@ output:
 
 ## Objectives
 
-- Perform PCA, clustering, UMAP sans spatial information
-- Use BANKSY to perform spatially-aware PCA and clustering
+- Perform dimensionality reduction (PCA and UMAP) and graph-based clustering on Visium data
+- Use BANKSY to perform spatially-aware dimensionality reduction and clustering
 - Compare clusters calculated with and without spatial information
 
 ## Introduction
 
-We will be using a sample from a mouse with osteosarcoma lung metastases from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049).
-This sample was processed using second-generation Visium technology, and it was quantified with `Space Ranger 2.1.1`.
+In this notebook, we'll cluster expression data from a mouse sample with osteosarcoma lung metastases from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049).
+This sample was processed using second-generation Visium technology and quantified with `Space Ranger 2.1.1`.
+We have already processed this dataset for you, including filtering out low quality spots (note that `SpotSweeper` removed 20 low-quality spots during this step) and normalization, which you can see in this notebook: <https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/osteo/prepare-osteo-data.Rmd>.
 
-We have already processed this dataset for you: filtered (note that `SpotSweeper` removed 20 low-quality spots during this step) and normalized it. 
+As we have discussed, Visium spatial transcriptomics data does not quantify expression at the single-cell level, but rather each Visium spot captures the combined expression of 5-20 cells.
+This means that when we perform clustering on Visium data, we are actually clustering spots with similar transcriptional profiles, not individual cells.
+
+Also unlike single-cell data, we now have an additional consideration of spatial information.
+We can choose to incorporate each spot's physical position in the tissue alongside its expression profile during clustering, which may help to approximate spatial domains. 
+
+In this notebook, we'll explore complementary approaches: first running expression-based dimensionality reduction and clustering just as we would for single-cell data, and then performing the same analyses using the [`BANKSY` package](https://bioconductor.org/packages/release/bioc/html/Banksy.html). 
+`BANKSY` offers a spatially-aware dimensionality reduction and clustering approach that augments each spot's expression with information from its spatial neighborhood.
 
 ## Set up
 
+To begin, we'll load the packages we'll use throughout this notebook.
 
 ```{r libraries}
 # The main class we use for spatial transcriptomic data
@@ -41,7 +50,7 @@ theme_set(theme_bw())
 ```
 
 
-Set a seed for reproducibility:
+We'll set a seed for reproducibility, since we'll be running UMAP and clustering.
 
 ```{r}
 set.seed(2026)
@@ -49,6 +58,8 @@ set.seed(2026)
 
 
 ### Directories and files
+
+The pre-processed SPE object for this sample is stored in a sample-specific subdirectory of `data/osteo`, organized by GEO sample ID.
 
 ```{r inputs}
 # define sample id we'll be analyzing 
@@ -60,7 +71,7 @@ data_dir <- file.path("data/osteo", sample_id, "normalized")
 normalized_rds <- file.path(data_dir, "osteo_normalized_spe.rds")
 ```
 
-And the output file:
+We'll also define the path for the output SPE with clustering results, which we'll write to at the end of the notebook:
 
 ```{r}
 clustered_rds <- file.path(data_dir, "osteo_clustered_spe.rds")
@@ -69,17 +80,22 @@ clustered_rds <- file.path(data_dir, "osteo_clustered_spe.rds")
 
 ## Import
 
+Let's start by reading in the pre-processed SPE object:
+
 ```{r import-rds, live = TRUE}
 spe <- readr::read_rds(normalized_rds)
 ```
 
-Look at it first:
+Before working with this SPE, let's get familiar with it. 
+We'll first the SPE to review its contents, including the number of spots and genes and what assays are available.
 
 ```{r print-spe, live = TRUE}
 # print the spe
 spe
 ```
 
+We'll also visualize the H&E image to orient ourselves to the tissue before diving into clustering, using some custom styling.
+We'll refer back to it throughout the notebook to help interpret the spatial patterns we find.
 
 ```{r plot-visium}
 #| fig.width: 5
@@ -99,8 +115,9 @@ he_plot <- plotVisium(spe, spots = FALSE, zoom = TRUE) +
 he_plot
 ```
 
-We can clearly see tumor cells amid the lung parenchyma, which itself is more sparse because of the alveolar spaces which is just how lungs work.
-Let's get a sense of the RNA counts here by plotting some of the QC stats we calculated for you.
+This image clearly shows regions of tumor cells amid the lung parenchyma, which itself is more sparse because of the lung's alveolar spaces.
+
+Let's also get a sense of the RNA counts here by plotting some of the QC statistics that were calculated for you, including the total UMIs (`sum`) and number of unique detected genes (`detected`).
 Note that these plots use right-censoring and set an upper limit on the color scale to be able to see lower value spots more clearly.
 
 ```{r show qc}
@@ -125,14 +142,18 @@ detected_plot <- plotCoords(spe, annotate = "detected",  point_size = 1) +
 total_plot + detected_plot
 ```
 
-Takeaways:
 
-- Clearly, more expression in the tumors in general vs parenchyma, which makes sense biologically!
-- Because we have really different tissue compartments here, if we had used global thresholds we would have just ended up retaining almost exclusively tumor cells and removing their spatial context due to lower expression, but we would like to retain this spatial context because otherwise we've just wasted a ton of money on Visium
+There is clearly more RNA expression in the tumor regions than in the parenchyma, which makes sense biologically: tumor cells are highly proliferative and transcriptionally active, but parenchymal is comparatively sparse.
+
+This plot also illustrates why local QC filtering thresholds are preferable to global ones for heterogeneous tissue samples like this.
+Specifically, the parenchymal spots have lower UMI and gene counts not because they are low quality, but because the of the alveolar architecture of lung tissue itself.
+A global threshold would not distinguish between a genuinely low-quality spot and a spot that overlies sparse tissue, and would have ended up preferentially removing parenchymal spots.
+For a Visium experiment, we want to retain much of the spatial context, including the contrast between tumor and parenchymal regions, and using local QC thresholds allows us to do so. 
 
 
 ## Calculate clusters
 
+The first analysis 
 We're going to see how standard single-cell post-processing would look and then compare to one approach for injecting spatial information into the clustering procedure.
 
 ### Spatial-free, aka expression only
