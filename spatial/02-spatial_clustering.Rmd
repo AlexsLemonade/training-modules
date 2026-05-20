@@ -257,14 +257,12 @@ Performing clustering on this spatially-aware PCA allows `BANKSY` to identify cl
 The `BANKSY` algorithm works in three steps:
 
 1. **Compute the BANKSY matrix** with `Banksy::computeBanksy()`.
-
 For each spot, `BANKSY` averages expression across its `k_geom` nearest spatial neighbors to create a neighborhood expression profile, stored as the `H0` assay. 
 Optionally, `BANKSY` can also compute an Azimuthal Gabor Filter (AGF), which captures directional expression gradients that can help resolve finer structure at domain boundaries. 
 When AGF is turned on, a second `BANKSY` matrix is stored as the `H1` assay (the `0` and `1` in these assay names indicate if AGF is off or on, respectively). 
 
 
 2. **Run BANKSY PCA** with `Banksy::runBanksyPCA()`.
-
 `BANKSY` combines the spot-level normalized expression in `logcounts` and the `BANKSY` neighborhood matrix (`H0` or `H0` and `H1` if AGF is on) into a single weighted matrix that contains both expression and spatial information to calculate PCA on. 
 (Note that `BANKSY` will consider all genes present in the SPE when calculating the PCA; it does not subset to only the most variable genes.
 We could perform this ourselves by subsetting the SPE before running `BANKSY`, but for this notebook we will proceed with the full object.)
@@ -272,9 +270,8 @@ To combine these matrices, `BANKSY` introduces the `lambda` parameter.
 `lambda` ranges from 0 -- 1 and controls how much weight is given to the `BANKSY` matrix neighborhood information relative to `logcounts` expression, where a value of 0 considers only `logcounts` expression. 
 The `BANKSY` authors recommend a value of `lambda = 0.2` for Visium spot data, as described in [this `BANKSY` vignettes on parameter selection](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
 
-3. **Cluster and visualize**.
-
-Once the PCA is calculated, it can be used for a variety of downstream tasks including clustering and UMAP calculation.
+3. **Perform graph-based clustering**.
+Once the PCA is calculated, it can be used for a variety of downstream tasks, including clustering and UMAP calculation.
 In this notebook, we'll use `scran` and `scater` tools for these steps, but we will also point out that `BANKSY` includes wrapper functions for these calculations, which can be useful if you are evaluating multiple `BANKSY` parameters at once. 
 
 
