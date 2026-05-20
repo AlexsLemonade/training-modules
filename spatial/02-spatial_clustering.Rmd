@@ -162,13 +162,13 @@ In this section, we'll apply the same dimensionality reduction and clustering wo
 This serves as a useful baseline for comparison when we later apply the spatially-aware `BANKSY` approach.
 
 Again, remember that even though we are using single-cell methods, we are still working at the spot level.
-This means clusters will represent regions of similar transcriptional composition, rather that similar cells specifically.
+This means clusters will represent regions of similar transcriptional composition, rather than similar cells specifically.
 
 We'll start by modeling per-gene expression variance with `scran::modelGeneVar()` and then selecting the top 2000 highly variable genes (HVGs) with `scran::getTopHVGs()` to use for PCA.
 We should point out that `scran::modelGeneVar()` treats each spot independently and is only considering gene expression (not location) when identifying variable genes.
 There is a related concept called _spatially variable genes_ (SVGs), which are genes whose expression varies across the tissue, but we won't be using those in this notebook.
 
-We'll then calculate the PCA with `scater::runPCA()` .
+We'll then calculate the PCA with `scater::runPCA()`.
 
 ```{r nonspatial pca, live = TRUE}
 # model gene variance
@@ -211,7 +211,7 @@ spe <- scater::runUMAP(spe)
 ```
 
 Let's visualize our results so far by plotting the UMAP colored by cluster alongside the spatial coordinates plot and H&E image.
-We'll also specify a consistent color palette across both panels makes it easier to match each cluster to its location in the tissue.
+We'll also use a consistent color palette across both panels to make it easier to match each cluster to its location in the tissue.
 
 ```{r plot nonspatial}
 #| message: false
@@ -252,7 +252,7 @@ These spatially-aware clusters can also serve as a first step towards tissue dom
 This method rests on the assumption that spots in the same tissue domain tend not only to share similar expression profiles, but tend also to be surrounded by spots with similar expression.
 In other words, nearby spots are likely to be transcriptionally similar. 
 `BANKSY` leverages this insight by incorporating neighborhood information into the PCA itself.
-Performing clustering on this spatially-aware PCE allows `BANKSY` to identify clusters with both distinct expression and tissue domain structure.
+Performing clustering on this spatially-aware PCA allows `BANKSY` to identify clusters with both distinct expression and tissue domain structure.
 
 The `BANKSY` algorithm works in three steps:
 
@@ -266,7 +266,8 @@ When AGF is turned on, a second `BANKSY` matrix is stored as the `H1` assay (the
 2. **Run BANKSY PCA** with `Banksy::runBanksyPCA()`.
 
 `BANKSY` combines the spot-level normalized expression in `logcounts` and the `BANKSY` neighborhood matrix (`H0` or `H0` and `H1` if AGF is on) into a single weighted matrix that contains both expression and spatial information to calculate PCA on. 
-(Note that `BANKSY` will consider all genes present in the SPE when calculating the PCA; it does not subset to only the most variable genes.) , although we could perform ths subsetting manualy
+(Note that `BANKSY` will consider all genes present in the SPE when calculating the PCA; it does not subset to only the most variable genes.
+We could perform this ourselves by subsetting the SPE before running `BANKSY`, but for this notebook we will proceed with the full object.)
 To combine these matrices, `BANKSY` introduces the `lambda` parameter.
 `lambda` ranges from 0 -- 1 and controls how much weight is given to the `BANKSY` matrix neighborhood information relative to `logcounts` expression, where a value of 0 considers only `logcounts` expression. 
 The `BANKSY` authors recommend a value of `lambda = 0.2` for Visium spot data, as described in [this `BANKSY` vignettes on parameter selection](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
@@ -274,7 +275,7 @@ The `BANKSY` authors recommend a value of `lambda = 0.2` for Visium spot data, a
 3. **Cluster and visualize**.
 
 Once the PCA is calculated, it can be used for a variety of downstream tasks including clustering and UMAP calculation.
-In this notebook, we'll use `scran` and `scater` tools for these steps, but we will also point that `BANKSY` includes wrapper functions for these calculations, which can be useful if you are evaluating multiple `BANKSY` parameters at once. 
+In this notebook, we'll use `scran` and `scater` tools for these steps, but we will also point out that `BANKSY` includes wrapper functions for these calculations, which can be useful if you are evaluating multiple `BANKSY` parameters at once. 
 
 
 In this notebook, we'll run `BANKSY` in two configurations — without AGF and with AGF — and compare the results.
