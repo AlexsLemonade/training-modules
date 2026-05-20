@@ -245,21 +245,45 @@ Do you see any other patterns here to point out?
 
 ### Spatially-aware clustering with BANKSY
 
-The field is popping for approaches to incorporate spatial information, and we're going to go through one popular method used for clustering and/or domain identification in spatial data.
 
-Text placeholder for BANKSY methods, briefly...
-- calculates a matrix ("BANKSY matrix") that considers both expression and spatial information
-  - there are two frameworks that BANKSY uses to consider spatial information: graph-based neighbor averaging, and optionally, AGF on top of that, where the neighborhood sizes are controlled by a `k_geom` parameter
-  - Incorporating AGF may help to detect boundaries between domains and can resolve some finer structure
-  - At some point we have to note a fun naming convention: H0 and M0 refer to matrices calculated sans AGF, and H1 and M1 with AGF. The H/M distinction is a bit of mathematics pedantry but just remember 0 --> no AGF and 1 --> with AGF.
-- Then we can perform PCA on this matrix, using a parameter called `lambda` to tune how much the spatial information contributes
-- Finally we can cluster/run UMAP on this PCA
+[`BANKSY`](https://prabhakarlab.github.io/Banksy/) ([Singhal et al. 2024](https://doi.org/10.1038/s41588-024-01664-3)) is a method for spatially-aware dimensionality reduction and clustering.
+These spatially-aware clusters can also serve as a first step towards tissue domain identification.
 
-See more details about parameters [from these docs](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
+This method rests on the assumption that spots in the same tissue domain tend not only to share similar expression profiles, but tend also to be surrounded by spots with similar expression.
+In other words, nearby spots are likely to be transcriptionally similar. 
+`BANKSY` leverages this insight by incorporating neighborhood information into the PCA itself.
+Performing clustering on this spatially-aware PCE allows `BANKSY` to identify clusters with both distinct expression and tissue domain structure.
 
-We're going to run this without and with AGF and then compare all around.
+The `BANKSY` algorithm works in three steps:
+
+1. **Compute the BANKSY matrix** with `Banksy::computeBanksy()`.
+
+For each spot, `BANKSY` averages expression across its `k_geom` nearest spatial neighbors to create a neighborhood expression profile, stored as the `H0` assay. 
+Optionally, `BANKSY` can also compute an Azimuthal Gabor Filter (AGF), which captures directional expression gradients that can help resolve finer structure at domain boundaries. 
+When AGF is turned on, a second `BANKSY` matrix is stored as the `H1` assay (the `0` and `1` in these assay names indicate if AGF is off or on, respectively). 
+
+
+2. **Run BANKSY PCA** with `Banksy::runBanksyPCA()`.
+
+`BANKSY` combines the spot-level normalized expression in `logcounts` and the `BANKSY` neighborhood matrix (`H0` or `H0` and `H1` if AGF is on) into a single weighted matrix that contains both expression and spatial information to calculate PCA on. 
+(Note that `BANKSY` will consider all genes present in the SPE when calculating the PCA; it does not subset to only the most variable genes.) , although we could perform ths subsetting manualy
+To combine these matrices, `BANKSY` introduces the `lambda` parameter.
+`lambda` ranges from 0 -- 1 and controls how much weight is given to the `BANKSY` matrix neighborhood information relative to `logcounts` expression, where a value of 0 considers only `logcounts` expression. 
+The `BANKSY` authors recommend a value of `lambda = 0.2` for Visium spot data, as described in [this `BANKSY` vignettes on parameter selection](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
+
+3. **Cluster and visualize**.
+
+Once the PCA is calculated, it can be used for a variety of downstream tasks including clustering and UMAP calculation.
+In this notebook, we'll use `scran` and `scater` tools for these steps, but we will also point that `BANKSY` includes wrapper functions for these calculations, which can be useful if you are evaluating multiple `BANKSY` parameters at once. 
+
+
+In this notebook, we'll run `BANKSY` in two configurations — without AGF and with AGF — and compare the results.
 
 #### Without AGF
+
+We'll start by computing the BANKSY matrix without AGF.
+As noted above, `lambda = 0.2` is a commonly used starting point for Visium spot data; this value means roughly 80% of the signal in the combined matrix comes from each spot's own expression and 20% comes from its neighborhood.
+We'll use `k_geom = 18` spatial neighbors for the neighborhood averaging, which is also the recommended starting point for Visium spot data. 
 
 ```{r banksy matrix agf off, live = TRUE}
 # define parameters recommended for Visium
@@ -273,21 +297,21 @@ spe <- Banksy::computeBanksy(spe, assay_name = "logcounts", k_geom = k_geom)
 spe
 ```
 
-Show and explain the H0 matrix (spatially-smoothed neighbor-averaged expression).
+A new `H0` assay has been added to the SPE, representing the neighborhood-averaged spot expression. 
+Each entry represents the average expression of a given gene across the spatial neighbors of a given spot, rather than the spot's own expression.
 
-```{r show ho}
+```{r show H0}
 assay(spe, "H0")[1:5, 1:5]
 ```
 
-Also note that parameters were added to the `metadata` slot:
+`computeBanksy()` also stores the parameters it used in the SPE's `metadata` slot, which is useful for keeping track of settings across runs:
 
 ```{r banksy nonagf metadata}
 # show spe metadata
 metadata(spe)$BANKSY_params
 ```
 
-
-Now we can calculate PCA, specifying `lambda` for how to weight the original expression (`logcounts`) and the BANKSY matrix (here, H0, 
+Now, we can run `Banksy::runBanksyPCA()`, which combines `logcounts` and `H0` into a single matrix weighted by `lambda` and then runs PCA on it.
 
 ```{r banksy pca, live = TRUE}
 # calculate PCA within BANKSY
@@ -297,16 +321,19 @@ spe <- Banksy::runBanksyPCA(spe, lambda = lambda)
 spe
 ```
 
-We have a new PCA called `PCA_M0_lam0.2`.
-BANKSY named this for us: `M0` implies that AGF is off, and `lam0.2` is our lambda parameter.
+The new PCA that `BANKSY` has calculated is named `PCA_M0_lam0.2`: `M0` indicates that AGF was not used, and `lam0.2` records the `lambda` value.
+`BANKSY` generates these names automatically, making it easy to track different reduced dimension calculations when comparing multiple runs.
 
-We can proceed to calculate UMAP and clusters now, and we'll use `scran`/`scater` functions for that.
-But, it's worth pointing out that BANKSY does allow you to specify multiple `lambda` parameters at once and then offers wrapper functions to cluster/UMAP across those parameters in one function call.
+Here we'll use `scran` and `scater` directly to keep the workflow consistent with what we did above.
+We'll also reuse the same `cluster_params` object defined earlier when we performed non-spatial clustering to ensure a direct comparison.
 
 ```{r cluster banksy nonagf}
+
+# define PCA and UMAP names for bookkeeping
 pca_name <- "PCA_M0_lam0.2"
 umap_name <- "UMAP_banksy_nonagf"
 
+# calculate UMAP
 spe <- scater::runUMAP(
   spe,
   dimred = pca_name,
@@ -315,40 +342,41 @@ spe <- scater::runUMAP(
 
 # perform clustering
 colData(spe)$cluster_banksy_nonagf <- scran::clusterCells(
-  spe, 
+  spe,
   use.dimred = pca_name,
-  # previously defined as 20 nearest neighbors using the Louvain algorithm and default resolution 1 
-  BLUSPARAM = cluster_params 
+  BLUSPARAM = cluster_params
 )
 ```
 
-And plot:
+Let's visualize this initial set of `BANKSY` clusters alongside the H&E, just as we did for the expression-only results.
 
 ```{r plot banksy nonagf}
 #| message: false
 #| fig.width: 10
 
+# define UMAP plot
 umap_banksky_nonagf <- scater::plotReducedDim(
-  spe, 
+  spe,
   dimred = umap_name,
-  color_by = "cluster_banksy_nonagf", 
+  color_by = "cluster_banksy_nonagf",
   point_size = 0.5
-) + 
-scale_color_brewer(palette = "Set1")
+) +
+scale_color_brewer(name = "BANKSY clusters", palette = "Set1")
 
-
+# define coordinates plot
 coords_banksky_nonagf <- plotCoords(
-  spe, 
-  annotate = "cluster_banksy_nonagf", 
+  spe,
+  annotate = "cluster_banksy_nonagf",
   point_size = 1.25
-) + 
-scale_color_brewer(palette = "Set1")
+) +
+scale_color_brewer(name = "BANKSY clusters", palette = "Set1")
 
+# combine plots using patchwork
 umap_banksky_nonagf + coords_banksky_nonagf + he_plot
 ```
 
-How does this compare to non-spatial?
-Kind of neat to see that there is still spatial arrangement in the UMAP, although it's not clear what it means if anything!
+How do these clusters compare to the expression-only results?
+What differences do you see between these results, both in terms of the UMAP and the coordinates plot?
 
 
 
@@ -374,7 +402,7 @@ spe <- Banksy::computeBanksy(
 spe
 ```
 
-There's a new assay now, H1, which is the result of the AGF calculation.
+There's a new assay now, H1, which is the result of the AGF portion of this calculation.
 BANKSY can only make assays named H0 and H1, so if you re-run in same mode but with a different `k_geom` your assays will get overridden.
 
 
