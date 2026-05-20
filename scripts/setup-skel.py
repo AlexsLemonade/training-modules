@@ -162,6 +162,11 @@ def main() -> None:
     # copy the user base files
     for file in BASE_FILES:
         shutil.copy(args.base_dir / file, target_base / file)
+
+    # copy the cheatsheets (pdf only)
+    for file in (args.base_dir / "module-cheatsheets").glob("*.pdf"):
+        shutil.copy(file, target_base / "module-cheatsheets" / file.name)
+
     # put the gitignore file in the correct place
     (target_base / "gitignore.user").rename(target_base / ".gitignore")
 
