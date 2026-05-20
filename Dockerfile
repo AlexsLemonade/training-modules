@@ -63,6 +63,7 @@ RUN apt-get update -qq \
     less \
     libisal2 \
     nano \
+    python3-venv \
     vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -78,8 +79,13 @@ RUN apt-get update -qq \
 RUN curl -L https://rclone.org/install.sh | bash
 
 # Python packages
+ENV TRAINING_MODULES_PYTHON=/opt/training-modules-python
+ENV VIRTUAL_ENV=${TRAINING_MODULES_PYTHON}
+ENV PATH="${TRAINING_MODULES_PYTHON}/bin:${PATH}"
 COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt --break-system-packages
+RUN python3 -m venv ${TRAINING_MODULES_PYTHON} \
+    && ${TRAINING_MODULES_PYTHON}/bin/python -m pip install --upgrade pip \
+    && ${TRAINING_MODULES_PYTHON}/bin/pip install -r requirements.txt
 
 # Use renv for R packages
 WORKDIR /usr/local/renv
@@ -130,4 +136,3 @@ RUN python3 ${template_dir}/scripts/setup-skel.py \
     --module-file ${template_dir}/current-modules.json
 
 WORKDIR /home/rstudio
-
