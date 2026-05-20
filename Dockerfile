@@ -101,10 +101,6 @@ repos <- c(
     BioCbooks = 'https://bioconductor.org/packages/3.22/books',
     CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'
 )
-# add binary repo for Bioc on x86_64 only, currently no Bioc binaries for arm64
-if (arch == 'x86_64') {
-    repos <- c(repos, BioCcontainers = 'https://bioconductor.org/packages/3.22/container-binaries/bioconductor_docker')
-}
 options(repos = repos)
 install.packages('renv')
 renv::restore(repos = repos)
