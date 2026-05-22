@@ -297,11 +297,12 @@ In this notebook, we'll run `BANKSY` in two configurations — without AGF and w
 
 But, before we get started, we have to modify our SPE object.
 As `BANKSY` does not perform feature selection on its own, we'll perform that ourselves to ensure a fair comparison between clustering approaches.
-We'll do this by subsetting the SPE to just the high-variance genes before running `BANKSY`.
+We'll do this by subsetting the SPE to just the high-variance genes before running `BANKSY` and save it to a new variable `hvg_spe`.
+We'll use this SPE object for the rest of the notebook.
 
 ```{r subset spe, live = TRUE}
 # subset the SPE to contain only HVGs
-spe <- spe[hvg_vector,]
+hvg_spe <- hvg_spe[hvg_vector,]
 ```
 
 
@@ -319,10 +320,10 @@ lambda <- 0.2
 k_geom <- 18
 
 # calculate the BANKSY matrix without AGF
-spe <- Banksy::computeBanksy(spe, assay_name = "logcounts", k_geom = k_geom)
+hvg_spe <- Banksy::computeBanksy(hvg_spe, assay_name = "logcounts", k_geom = k_geom)
 
-# show the spe
-spe
+# show the SPE
+hvg_spe
 ```
 
 Notice we now have only 2000 genes, which is because we subset the full object for the `BANKSY` calculations.
@@ -331,24 +332,24 @@ We also see that a new `H0` assay has been added to the SPE, representing the ne
 Each entry represents the average expression of a given gene across the spatial neighbors of a given spot, rather than the spot's own expression.
 
 ```{r show H0}
-assay(spe, "H0")[1:5, 1:5]
+assay(hvg_spe, "H0")[1:5, 1:5]
 ```
 
 `computeBanksy()` also stores the parameters it used in the SPE's `metadata` slot, which is useful for keeping track of settings across runs:
 
 ```{r banksy nonagf metadata}
-# show spe metadata
-metadata(spe)$BANKSY_params
+# show the SPE metadata
+metadata(hvg_spe)$BANKSY_params
 ```
 
 Now, we can run `Banksy::runBanksyPCA()`, which combines `logcounts` and `H0` into a single matrix weighted by `lambda` and then runs PCA on it.
 
 ```{r banksy pca, live = TRUE}
 # calculate PCA within BANKSY
-spe <- Banksy::runBanksyPCA(spe, lambda = lambda)
+hvg_spe <- Banksy::runBanksyPCA(hvg_spe, lambda = lambda)
 
-# show SPE
-spe
+# show the SPE
+hvg_spe
 ```
 
 The new PCA that `BANKSY` has calculated is named `PCA_M0_lam0.2`: `M0` indicates that AGF was not used, and `lam0.2` records the `lambda` value.
@@ -363,15 +364,15 @@ pca_name <- "PCA_M0_lam0.2"
 umap_name <- "UMAP_banksy_nonagf"
 
 # calculate UMAP
-spe <- scater::runUMAP(
-  spe,
+hvg_spe <- scater::runUMAP(
+  hvg_spe,
   dimred = pca_name,
   name = umap_name
 )
 
 # perform clustering
-colData(spe)$cluster_banksy_nonagf <- scran::clusterCells(
-  spe,
+colData(hvg_spe)$cluster_banksy_nonagf <- scran::clusterCells(
+  hvg_spe,
   use.dimred = pca_name,
   BLUSPARAM = cluster_params
 )
@@ -386,7 +387,7 @@ Let's visualize this initial set of `BANKSY` clusters alongside the H&E, just as
 
 # define UMAP plot
 umap_banksky_nonagf <- scater::plotReducedDim(
-  spe,
+  hvg_spe,
   dimred = umap_name,
   color_by = "cluster_banksy_nonagf",
   point_size = 0.5
@@ -404,7 +405,7 @@ umap_banksky_nonagf <- scater::plotReducedDim(
 
 # define coordinates plot
 coords_banksky_nonagf <- plotCoords(
-  spe,
+  hvg_spe,
   annotate = "cluster_banksy_nonagf",
   point_size = 1.25
 ) +
@@ -434,15 +435,15 @@ We'll change up the `k_geom` parameter for this to use two values, more explanat
 k_geom <- c(18, 30)
 
 # turn on compute_agf
-spe <- Banksy::computeBanksy(
-  spe, 
+hvg_spe <- Banksy::computeBanksy(
+  hvg_spe, 
   assay_name = "logcounts", 
   compute_agf = TRUE, 
   k_geom = k_geom
 )
 
-# show spe
-spe
+# show the SPE
+hvg_spe
 ```
 
 There's a new assay now, H1, which is the result of the AGF portion of this calculation.
@@ -450,13 +451,13 @@ BANKSY can only make assays named H0 and H1, so if you re-run in same mode but w
 
 
 ```{r}
-assay(spe, "H1")[1:5, 1:5]
+assay(hvg_spe, "H1")[1:5, 1:5]
 ```
 
 Worth noting that BANKSY will overwrite metadata parameters.
 
 ```{r banksy agf metadata}
-metadata(spe)$BANKSY_params
+metadata(hvg_spe)$BANKSY_params
 ```
 
 
@@ -464,10 +465,10 @@ Now, we can calculate the PCA for this matrix.
 
 ```{r agf pca, live = TRUE}
 # use_agf tells BANKSY to use the H1 asssay
-spe <- Banksy::runBanksyPCA(spe, lambda = lambda, use_agf = TRUE)
+hvg_spe <- Banksy::runBanksyPCA(hvg_spe, lambda = lambda, use_agf = TRUE)
 
 # show the SPE
-spe
+hvg_spe
 ```
 
 This gave us a new PCA matrix, `PCA_M1_lam0.2` - where the `M1` signifies that AGF was used and `0.2` is the lambda parameter.
@@ -479,15 +480,15 @@ pca_name <- "PCA_M1_lam0.2"
 umap_name <- "UMAP_banksy_agf"
 
 # Calculate UMAP
-spe <- scater::runUMAP(
-  spe,
+hvg_spe <- scater::runUMAP(
+  hvg_spe,
   dimred = pca_name,
   name = umap_name
 )
 
 # Perform clustering
-colData(spe)$cluster_banksy_agf <- scran::clusterCells(
-  spe, 
+colData(hvg_spe)$cluster_banksy_agf <- scran::clusterCells(
+  hvg_spe, 
   use.dimred = pca_name,
   BLUSPARAM = cluster_params
 )
@@ -502,7 +503,7 @@ We'll make use of patchwork for lots of colors.
 #| fig.width: 14
 
 umap_banksky_agf <- scater::plotReducedDim(
-  spe, 
+  hvg_spe, 
   dimred = umap_name,
   color_by = "cluster_banksy_agf", 
   point_size = 0.5
@@ -520,7 +521,7 @@ umap_banksky_agf <- scater::plotReducedDim(
 
 
 coords_banksky_agf <- plotCoords(
-  spe, 
+  hvg_spe, 
   annotate = "cluster_banksy_agf", 
   point_size = 1.25
 ) + 
@@ -553,8 +554,8 @@ We can see how clustering approaches compare a bit more precisely/plainly with a
 
 ```{r cluster banksy heatmap}
 clusters_tab <- table(
-  colData(spe)$cluster_nonspatial, 
-  colData(spe)$cluster_banksy_agf
+  colData(hvg_spe)$cluster_nonspatial, 
+  colData(hvg_spe)$cluster_banksy_agf
 )
 
 # normalize by the number of cells in each AGF cluster
@@ -580,7 +581,7 @@ Let's color by gene expression for a gene we expect to be highly expressed in th
 Let's get the Ensembl id to plot it:
 
 ```{r find ensembl id}
-ensembl_id <- rowData(spe) |>
+ensembl_id <- rowData(hvg_spe) |>
   as.data.frame() |>
   dplyr::filter(Symbol == "Col1a1")|>
   rownames()
@@ -594,7 +595,7 @@ ensembl_id
 #| fig.height: 4
 
 nonspatial_expr_plot <- scater::plotExpression(
-  spe,
+  hvg_spe,
   features = ensembl_id,
   x = "cluster_nonspatial",
   color_by = "cluster_nonspatial"
@@ -602,7 +603,7 @@ nonspatial_expr_plot <- scater::plotExpression(
   scale_color_brewer(name = "non-spatial cluster", palette = "Dark2")
   
 agf_expr_plot <- scater::plotExpression(
-  spe,
+  hvg_spe,
   features = ensembl_id,
   x = "cluster_banksy_agf",
   color_by = "cluster_banksy_agf"
@@ -617,14 +618,13 @@ Do these patterns match your expectations from the coordinate plots showing clus
 
 ## Export
 
-We'll conclude by exporting a TSV of the clusters we have calculated.
+We'll conclude by exporting the `colData` slot of the `hvg_spe` as a TSV, which will include the clusters we have calculated.
 
 ```{r export, live = TRUE}
-cluster_df <- colData(spe) |>
+# convert colData to data frame and export as a TSV
+colData(hvg_spe) |>
   as.data.frame() |>
-  dplyr::select(barcode, contains("cluster"))
-
-readr::write_tsv(cluster_df, cluster_tsv)
+  readr::write_tsv(cluster_tsv)
 ```
 
 
