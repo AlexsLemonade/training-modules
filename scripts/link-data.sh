@@ -117,6 +117,7 @@ link_locs=(
   spatial/data/ovarian-carcinoma/spaceranger
   spatial/data/wilms-tumor/SCPCS000190/spaceranger
   spatial/data/osteo/GSM8478586/normalized
+  spatial/data/reference
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
