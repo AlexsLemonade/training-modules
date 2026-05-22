@@ -165,11 +165,9 @@ This serves as a useful baseline for comparison when we later apply the spatiall
 Again, remember that we are still working at the spot level.
 This means clusters will represent groups of cells, rather than similar cells specifically.
 
-We'll start by modeling per-gene expression variance with `scran::modelGeneVar()` and then selecting the top 2000 highly variable genes (HVGs) with `scran::getTopHVGs()` to use for PCA.
-We should point out that `scran::modelGeneVar()` treats each spot independently and is only considering gene expression (not location) when identifying variable genes.
-There is a related concept called _spatially variable genes_ (SVGs), which are genes whose expression varies across the tissue, but we won't be using those in this notebook.
-
-We'll then calculate the PCA with `scater::runPCA()`.
+When calculating PCA, we often prefer to reduce the number of genes to only the most highly variable ones, which will both speed up calculations and ensure stronger signal. 
+To do this, we'll start by modeling per-gene expression variance with `scran::modelGeneVar()` which separated each gene's variation into biological and technical components, under the assumption that genes with lower average expression tend to have lower variance due to technical reasons.
+We'll then use these modeling results to select the top 2000 genes with the highest biological variation (these are our high-variance genes, aka HVGs), and finally we'll perform PCA that considers just these genes with `scater::runPCA()`.
 
 ```{r nonspatial pca, live = TRUE}
 # model gene variance
@@ -184,7 +182,7 @@ spe <- scater::runPCA(spe, subset_row = hvg_vector)
 
 We can now perform graph-based clustering using `scran::clusterCells()`, which calculates clusters using the `bluster` package under the hood.
 
-We'll use `k = 20` nearest neighbors and the Louvain algorithm.
+We'll use Jaccard weighting and the Louvain algorithm, specifying `k = 20` nearest neighbors.
 We'll also save these clustering parameters as `cluster_params` so we can reuse the same settings when running spatially-aware `BANKSY` clustering later.
 
 But first, one caveat: it's worth noting that the choice of `k` and clustering algorithm are important analytical decisions (as well as other parameters like resolution, which we are leaving at its default value of 1 here), but we are not going to evaluate those parameters here for time.
@@ -239,7 +237,7 @@ coords_nonspatial <- plotCoords(
 umap_nonspatial + coords_nonspatial + he_plot
 ```
 
-We see four clusters with some correspondence to the tissue structure visible in the H&E: the clusters appear to capture a gradient from the most tumor-dense spots to the sparser parenchymal regions.
+We see five clusters with some correspondence to the tissue structure visible in the H&E: the clusters appear to capture a gradient from the most tumor-dense spots to the sparser parenchymal regions.
 Interestingly, spots that are spatially adjacent also tend to sit near each other in the UMAP, even though no spatial information was provided (and we want to be careful not to "over-interpret" the UMAP too!).
 
 Do you see any other patterns here to point out?
@@ -311,7 +309,9 @@ spe <- Banksy::computeBanksy(spe, assay_name = "logcounts", k_geom = k_geom)
 spe
 ```
 
-A new `H0` assay has been added to the SPE, representing the neighborhood-averaged spot expression. 
+Notice we now have only 2000 genes, which is because we subset the full object for the `BANKSY` calculations.
+
+We also see that a new `H0` assay has been added to the SPE, representing the neighborhood-averaged spot expression. 
 Each entry represents the average expression of a given gene across the spatial neighbors of a given spot, rather than the spot's own expression.
 
 ```{r show H0}
@@ -477,18 +477,17 @@ umap_banksky_agf <- scater::plotReducedDim(
   color_by = "cluster_banksy_agf", 
   point_size = 0.5
 ) + 
-scale_color_brewer(name = "cluster_banksy_agf", palette = "Paired")
+scale_color_brewer(name = "BANKSY AGF clusters", palette = "Paired")
 
 coords_banksky_agf <- plotCoords(
   spe, 
   annotate = "cluster_banksy_agf", 
   point_size = 1.25
 ) + 
-scale_color_brewer(palette = "Paired")
+scale_color_brewer(name = "BANKSY AGF clusters", palette = "Paired")
 
 
 # Compile plots for patchwork
-# the legends will be a bit loud, but wrangling it is a pain!
 plot_list <- list(
   umap_nonspatial,
   umap_banksky_nonagf,
@@ -506,11 +505,12 @@ What differences do you see with and without AGF?
 Do you think AGF captured boundaries more cleanly as advertised?
 How do these clusters overall compare to non-spatial?
 
-We can see how BANKSY clustering approaches compare a bit more precisely/plainly with a heatmap.
+TODO: Burn down the heatmap because it's just harder to look at now with more numbers?
+We can see how clustering approaches compare a bit more precisely/plainly with a heatmap, specifically by comparing non-spatial to `BANKSY` with AGF.
 
 ```{r cluster banksy heatmap}
 clusters_tab <- table(
-  colData(spe)$cluster_banksy_nonagf, 
+  colData(spe)$cluster_nonspatial, 
   colData(spe)$cluster_banksy_agf
 )
 
@@ -522,12 +522,16 @@ clusters_tab <- apply(
 )
 
 # plot heatmap:
-# non-AGF clusters are rows, and AGF clusters are columns
-pheatmap::pheatmap(clusters_tab)
+# non-spatial clusters are rows, and BANKSY with AGF clusters are columns
+pheatmap::pheatmap(
+  clusters_tab,
+  # turn off heatmap hierarchical cluster for easier viewing
+  cluster_cols = FALSE,
+  cluster_rows = FALSE
+)
 ```
 
-For example, we can see from the coordinate plots that non-spatial cluster 3 is tumor cells, which has been split into three BANKSY clusters: 10, 6, & 8.
-Notably, BANKSY cluster 6 also has spots in non-spatial cluster 1, which we can see from the coordinate plots too.
+For example, we can see from the coordinate plots that non-spatial clusters 3 and 5 correspond to spots likely dominated by tumor cells, which has been split into several BANKSY AGF clusters including at least 3, 5, and 7.
 
 Let's color by gene expression for a gene we expect to be highly expressed in the tumor, collagen (`Col1a1`).
 Let's get the Ensembl id to plot it:
@@ -546,14 +550,13 @@ ensembl_id
 #| fig.width: 12
 #| fig.height: 4
 
-
-nonagf_expr_plot <- scater::plotExpression(
+nonspatial_expr_plot <- scater::plotExpression(
   spe,
   features = ensembl_id,
-  x = "cluster_banksy_nonagf",
-  color_by = "cluster_banksy_nonagf"
+  x = "cluster_nonspatial",
+  color_by = "cluster_nonspatial"
 ) + 
-  scale_color_brewer(palette = "Paired")
+  scale_color_brewer(name = "non-spatial cluster", palette = "Dark2")
   
 agf_expr_plot <- scater::plotExpression(
   spe,
@@ -561,17 +564,12 @@ agf_expr_plot <- scater::plotExpression(
   x = "cluster_banksy_agf",
   color_by = "cluster_banksy_agf"
 ) + 
-  scale_color_brewer(palette = "Dark2")
+  scale_color_brewer(name = "BANKSY AGF cluster", palette = "Paired")
 
-nonagf_expr_plot + agf_expr_plot
+nonspatial_expr_plot + agf_expr_plot
 ```
 
-
-We indeed see distinctions among non-AGF clusters 4 & 7 - per the H&E, spots in 7 are most isolated from environment and represent a distinct region in the tissue compared to spots in cluster 4.
-So, it makes sense that expression is generally higher and has a tighter distribution in 7. 
-By comparison, only the AGF clsuter 4 has higher expression of this gene, as it contains all the tumor regions.
-
-Anything else you see to point out here?
+Do these patterns match your expectations from the coordinate plots showing clusters on the H&E?
 
 
 ## Export
