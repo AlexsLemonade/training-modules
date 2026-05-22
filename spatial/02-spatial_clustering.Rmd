@@ -71,10 +71,11 @@ data_dir <- file.path("data/osteo", sample_id, "normalized")
 normalized_rds <- file.path(data_dir, "osteo_normalized_spe.rds")
 ```
 
-We'll also define the path for the output SPE with clustering results, which we'll write to at the end of the notebook:
+We'll also define the path for outputting clusters.
+To save space, we'll conclude by export a TSV with the clusters we calculate in this notebook.
 
 ```{r}
-clustered_rds <- file.path(data_dir, "osteo_clustered_spe.rds")
+cluster_tsv <- file.path(data_dir, "osteo_clusters.tsv")
 ```
 
 
@@ -277,11 +278,23 @@ In this notebook, we'll use `scran` and `scater` tools for these steps, but we w
 
 In this notebook, we'll run `BANKSY` in two configurations — without AGF and with AGF — and compare the results.
 
+But, before we get started, we have to modify our SPE object.
+As `BANKSY` does not perform feature selection on its own, we'll perform that ourselves to ensure a fair comparison between clustering approaches.
+We'll do this by subsetting the SPE to just the high-variance genes before running `BANKSY`.
+
+```{r subset spe, live = TRUE}
+# subset the SPE to contain only HVGs
+spe <- spe[hvg_vector,]
+```
+
+
+
 #### Without AGF
 
 We'll start by computing the BANKSY matrix without AGF.
 As noted above, `lambda = 0.2` is a commonly used starting point for Visium spot data; this value means roughly 80% of the signal in the combined matrix comes from each spot's own expression and 20% comes from its neighborhood.
 We'll use `k_geom = 18` spatial neighbors for the neighborhood averaging, which is also the recommended starting point for Visium spot data. 
+ 
 
 ```{r banksy matrix agf off, live = TRUE}
 # define parameters recommended for Visium
@@ -326,7 +339,6 @@ Here we'll use `scran` and `scater` directly to keep the workflow consistent wit
 We'll also reuse the same `cluster_params` object defined earlier when we performed non-spatial clustering to ensure a direct comparison.
 
 ```{r cluster banksy nonagf}
-
 # define PCA and UMAP names for bookkeeping
 pca_name <- "PCA_M0_lam0.2"
 umap_name <- "UMAP_banksy_nonagf"
@@ -462,7 +474,7 @@ umap_banksky_agf <- scater::plotReducedDim(
   color_by = "cluster_banksy_agf", 
   point_size = 0.5
 ) + 
-scale_color_brewer(palette = "Paired")
+scale_color_brewer(name = "cluster_banksy_agf", palette = "Paired")
 
 coords_banksky_agf <- plotCoords(
   spe, 
@@ -488,25 +500,26 @@ wrap_plots(plot_list, nrow = 2)
 ```
 
 What differences do you see with and without AGF?
-Did AGF capture boundaries more cleanly as advertised?
+Do you think AGF captured boundaries more cleanly as advertised?
 How do these clusters overall compare to non-spatial?
 
-We can see how clusters compare a bit more precisely/plainly with a heatmap.
-For this, we'll make one comparing non-spatial to AGF clusters.
+We can see how BANKSY clustering approaches compare a bit more precisely/plainly with a heatmap.
 
 ```{r cluster banksy heatmap}
 clusters_tab <- table(
-  colData(spe)$cluster_banksy_agf, 
-  colData(spe)$cluster_nonspatial
+  colData(spe)$cluster_banksy_nonagf, 
+  colData(spe)$cluster_banksy_agf
 )
 
-# normalize by the number of cells in each non-spatial cluster
+# normalize by the number of cells in each AGF cluster
 clusters_tab <- apply(
   clusters_tab,
-  2, # apply function to columns (cluster_nonspatial)
+  2, # apply function to columns
   \(x) x/sum(x)
 )
 
+# plot heatmap:
+# non-AGF clusters are rows, and AGF clusters are columns
 pheatmap::pheatmap(clusters_tab)
 ```
 
@@ -531,39 +544,43 @@ ensembl_id
 #| fig.height: 4
 
 
-banksy_expr_plot <- scater::plotExpression(
+nonagf_expr_plot <- scater::plotExpression(
+  spe,
+  features = ensembl_id,
+  x = "cluster_banksy_nonagf",
+  color_by = "cluster_banksy_nonagf"
+) + 
+  scale_color_brewer(palette = "Paired")
+  
+agf_expr_plot <- scater::plotExpression(
   spe,
   features = ensembl_id,
   x = "cluster_banksy_agf",
   color_by = "cluster_banksy_agf"
 ) + 
-  scale_color_brewer(palette = "Paired")
-  
-nonspatial_expr_plot <- scater::plotExpression(
-  spe,
-  features = ensembl_id,
-  x = "cluster_nonspatial",
-  color_by = "cluster_nonspatial"
-) + 
   scale_color_brewer(palette = "Dark2")
 
-banksy_expr_plot + nonspatial_expr_plot
+nonagf_expr_plot + agf_expr_plot
 ```
 
 
-We indeed see distinctions among BANKSY clusters 6, 8, & 10 - per the H&E, spots in 10 are most isolated from environment, then 8, and then 6 is bordering the parenchyma. 
-6 being lowest expression makes sense given that it also corresponds, although less so, to non-spatial cluster 1.
-We have therefore refined our non-spatial clusters with spatial information to give us clusters that consider spatial relationships as well.
+We indeed see distinctions among non-AGF clusters 4 & 7 - per the H&E, spots in 7 are most isolated from environment and represent a distinct region in the tissue compared to spots in cluster 4.
+So, it makes sense that expression is generally higher and has a tighter distribution in 7. 
+By comparison, only the AGF clsuter 4 has higher expression of this gene, as it contains all the tumor regions.
 
 Anything else you see to point out here?
 
 
 ## Export
 
-We'll conclude by exporting our object with clusters, with compression.
+We'll conclude by exporting a TSV of the clusters we have calculated.
 
 ```{r export, live = TRUE}
-readr::write_rds(spe, clustered_rds, compress = "gz")
+cluster_df <- colData(spe) |>
+  as.data.frame() |>
+  dplyr::select(barcode, contains("cluster"))
+
+readr::write_tsv(cluster_df, cluster_tsv)
 ```
 
 
