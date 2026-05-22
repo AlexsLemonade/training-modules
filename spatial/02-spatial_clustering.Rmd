@@ -24,7 +24,9 @@ As we have discussed, Visium spatial transcriptomics data does not quantify expr
 This means that when we perform clustering on Visium data, we are actually clustering spots with similar transcriptional profiles, not individual cells.
 
 Also unlike single-cell data, we now have an additional consideration of spatial information.
-We can choose to incorporate each spot's physical position in the tissue alongside its expression profile during clustering, which may help to approximate spatial domains. 
+In many cases (but not all!), it's reasonable to assume that nearby spots will tend to have more similar expression to one another than to distant spots. 
+We can therefore incorporate each spot's physical position in the tissue alongside its expression profile during clustering, which may help to approximate spatial domains. 
+
 
 In this notebook, we'll explore complementary approaches: first running expression-based dimensionality reduction and clustering just as we would for single-cell data, and then performing the same analyses using the [`BANKSY` package](https://bioconductor.org/packages/release/bioc/html/Banksy.html). 
 `BANKSY` offers a spatially-aware dimensionality reduction and clustering approach that augments each spot's expression with information from its spatial neighborhood.
@@ -129,6 +131,8 @@ total_plot <- plotCoords(spe, annotate = "sum", point_size = 1) +
   scale_color_viridis_c(
     # cap scale at 20,000; all value above this will be shown as 20,000
     limits = c(0, 20000), 
+    # tell the scales to "squish" to the limit specified above, where
+    # oob stands for "out of bounds" handling
     oob = scales::oob_squish, 
     # fun with color scales!
     option = "plasma"
@@ -223,7 +227,15 @@ umap_nonspatial <- scater::plotUMAP(
   color_by = "cluster_nonspatial",
   point_size = 0.5
 ) +
-scale_color_brewer(name = "Non-spatial cluster", palette = "Dark2")
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "Non-spatial cluster", 
+    palette = "Dark2"
+  ) +
+  # ensure more visible points in legend
+  guides(
+    color = guide_legend(override.aes = list(alpha = 1, size = 1.5))
+  )
 
 # define coordinates plot
 coords_nonspatial <- plotCoords(
@@ -231,7 +243,11 @@ coords_nonspatial <- plotCoords(
   annotate = "cluster_nonspatial",
   point_size = 1.25
 ) +
-  scale_color_brewer(name = "Non-spatial cluster", palette = "Dark2")
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "Non-spatial cluster", 
+    palette = "Dark2"
+  )
 
 # combine plots with patchwork
 umap_nonspatial + coords_nonspatial + he_plot
@@ -374,7 +390,16 @@ umap_banksky_nonagf <- scater::plotReducedDim(
   color_by = "cluster_banksy_nonagf",
   point_size = 0.5
 ) +
-scale_color_brewer(name = "BANKSY clusters", palette = "Set1")
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "BANKSY cluster", 
+    palette = "Set1"
+  ) +
+  # ensure more visible points in legend
+  guides(
+    color = guide_legend(override.aes = list(alpha = 1, size = 1.5))
+  )
+
 
 # define coordinates plot
 coords_banksky_nonagf <- plotCoords(
@@ -382,7 +407,11 @@ coords_banksky_nonagf <- plotCoords(
   annotate = "cluster_banksy_nonagf",
   point_size = 1.25
 ) +
-scale_color_brewer(name = "BANKSY clusters", palette = "Set1")
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "BANKSY cluster", 
+    palette = "Set1"
+  )
 
 # combine plots using patchwork
 umap_banksky_nonagf + coords_banksky_nonagf + he_plot
@@ -477,17 +506,31 @@ umap_banksky_agf <- scater::plotReducedDim(
   color_by = "cluster_banksy_agf", 
   point_size = 0.5
 ) + 
-scale_color_brewer(name = "BANKSY AGF clusters", palette = "Paired")
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "BANKSY AGF cluster",
+    palette = "Paired"
+  ) +
+  # ensure more visible points in legend
+  guides(
+    color = guide_legend(override.aes = list(alpha = 1, size = 1.5))
+  )
+
+
 
 coords_banksky_agf <- plotCoords(
   spe, 
   annotate = "cluster_banksy_agf", 
   point_size = 1.25
 ) + 
-scale_color_brewer(name = "BANKSY AGF clusters", palette = "Paired")
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "BANKSY AGF cluster", 
+    palette = "Paired"
+  )
 
 
-# Compile plots for patchwork
+# Compile plots for display with patchwork
 plot_list <- list(
   umap_nonspatial,
   umap_banksky_nonagf,
@@ -496,7 +539,6 @@ plot_list <- list(
   coords_banksky_nonagf, 
   coords_banksky_agf
 )
-
 
 wrap_plots(plot_list, nrow = 2)
 ```
