@@ -18,7 +18,7 @@ output:
 
 In this notebook, we'll cluster expression data from a mouse sample with osteosarcoma lung metastases from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049).
 This sample was processed using second-generation Visium technology and quantified with `Space Ranger 2.1.1`.
-We have already processed this dataset for you, including filtering out low quality spots (note that `SpotSweeper` removed 20 low-quality spots during this step) and normalization, which you can see in this notebook: <https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/osteo/prepare-osteo-data.Rmd>.
+We have already processed this dataset for you, including filtering out low quality spots (`SpotSweeper` removed 20 low-quality spots) and normalization, which you can see in this notebook: <https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/osteo/prepare-osteo-data.Rmd>.
 
 As we have discussed, Visium spatial transcriptomics data does not quantify expression at the single-cell level, but rather each Visium spot captures the combined expression of 5-20 cells.
 This means that when we perform clustering on Visium data, we are actually clustering spots with similar transcriptional profiles, not individual cells.
@@ -95,7 +95,7 @@ We'll first print the SPE to review its contents, including the number of spots 
 spe
 ```
 
-We'll also visualize the H&E image to orient ourselves to the tissue before diving into clustering, using some custom styling.
+We'll also create a plot of the H&E image to orient ourselves to the tissue before diving into clustering, adjusting the styling of the plot to our preferences.
 We'll refer back to it throughout the notebook to help interpret the spatial patterns we find.
 
 ```{r plot-visium}
@@ -119,7 +119,7 @@ he_plot
 This image clearly shows regions of tumor cells amid the lung parenchyma, which itself is more sparse because of the lung's alveolar spaces.
 
 Let's also get a sense of the RNA counts here by plotting some of the QC statistics that were calculated for you, including the total UMIs (`sum`) and number of unique detected genes (`detected`).
-Note that these plots use right-censoring and set an upper limit on the color scale to be able to see lower value spots more clearly.
+Note that these plots use set an upper limit on the color scale to be able to see lower value spots more clearly.
 
 ```{r show qc}
 #| warning: false
@@ -144,7 +144,7 @@ total_plot + detected_plot
 ```
 
 
-There is clearly more RNA expression in the tumor regions than in the parenchyma, which makes sense biologically: tumor cells are highly proliferative and transcriptionally active, but parenchymal is comparatively sparse.
+There is clearly more RNA expression in the tumor regions than in the parenchyma, which makes sense biologically: tumor cells are highly proliferative and transcriptionally active, while the lower density of parenchymal tissue makes for fewer cells per spot, and less overall expression.
 
 This plot also illustrates why local QC filtering thresholds are preferable to global ones for heterogeneous tissue samples like this.
 Specifically, the parenchymal spots have lower UMI and gene counts not because they are low quality, but because of the alveolar architecture of lung tissue itself.
@@ -152,18 +152,18 @@ A global threshold would not distinguish between a genuinely low-quality spot an
 For a Visium experiment, we want to retain much of the spatial context, including the contrast between tumor and parenchymal regions, and using local QC thresholds allows us to do so. 
 
 
-## Calculate clusters
+## Dimension reduction and clustering
 
 The first clustering analysis we'll perform will look analogous to single-cell post-processing. 
 After that, we'll compare to clustering with the `BANKSY` approach to see how including spatial information influences cluster detection.
 
-### Expression-based clustering
+### Expression-only analysis
 
 In this section, we'll apply the same dimensionality reduction and clustering workflow we would use for single-cell data, treating each spot's expression profile as the unit of analysis without any spatial information.
 This serves as a useful baseline for comparison when we later apply the spatially-aware `BANKSY` approach.
 
-Again, remember that even though we are using single-cell methods, we are still working at the spot level.
-This means clusters will represent regions of similar transcriptional composition, rather than similar cells specifically.
+Again, remember that we are still working at the spot level.
+This means clusters will represent groups of cells, rather than similar cells specifically.
 
 We'll start by modeling per-gene expression variance with `scran::modelGeneVar()` and then selecting the top 2000 highly variable genes (HVGs) with `scran::getTopHVGs()` to use for PCA.
 We should point out that `scran::modelGeneVar()` treats each spot independently and is only considering gene expression (not location) when identifying variable genes.
@@ -193,8 +193,9 @@ In your own research, we do recommend taking some time to explore parameter spac
 ```{r nonspatial cluster, live = TRUE}
 # define clustering parameters
 cluster_params <- bluster::NNGraphParam(
-  k = 20,
-  cluster.fun = "louvain"
+ k = 20,
+ cluster.fun = "louvain",
+ type = "jaccard"
 )
 
 # perform clustering and save to SPE colData
@@ -211,8 +212,8 @@ We'll also calculate a UMAP for visualization using `scater::runUMAP()`.
 spe <- scater::runUMAP(spe)
 ```
 
-Let's visualize our results so far by plotting the UMAP colored by cluster alongside the spatial coordinates plot and H&E image.
-We'll also use a consistent color palette across both panels to make it easier to match each cluster to its location in the tissue.
+Let's visualize our results so far by plotting the UMAP and spatial coordinate plots, each colored by cluster with the same color palette.
+We'll also include the H&E image for reference.
 
 ```{r plot nonspatial}
 #| message: false
@@ -264,12 +265,14 @@ When AGF is turned on, a second `BANKSY` matrix is stored as the `H1` assay (the
 
 
 2. **Run BANKSY PCA** with `Banksy::runBanksyPCA()`.
-`BANKSY` combines the spot-level normalized expression in `logcounts` and the `BANKSY` neighborhood matrix (`H0` or `H0` and `H1` if AGF is on) into a single weighted matrix that contains both expression and spatial information to calculate PCA on. 
+`BANKSY` first creates single matrix that is a weighted combination of the normalized expression in `logcounts` and the `BANKSY` neighborhood matrix (`H0` or `H0` and `H1` if AGF is on). 
 (Note that `BANKSY` will consider all genes present in the SPE when calculating the PCA; it does not subset to only the most variable genes.
 We could perform this ourselves by subsetting the SPE before running `BANKSY`, but for this notebook we will proceed with the full object.)
 To combine these matrices, `BANKSY` introduces the `lambda` parameter.
 `lambda` ranges from 0 -- 1 and controls how much weight is given to the `BANKSY` matrix neighborhood information relative to `logcounts` expression, where a value of 0 considers only `logcounts` expression. 
-The `BANKSY` authors recommend a value of `lambda = 0.2` for Visium spot data, as described in [this `BANKSY` vignettes on parameter selection](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
+The `BANKSY` authors recommend a value of `lambda = 0.2` for Visium spot data, as described in [this `BANKSY` vignette on parameter selection](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
+
+`BANKSY` then performs PCA using this combined matrix as the input.
 
 3. **Perform graph-based clustering**.
 Once the PCA is calculated, it can be used for a variety of downstream tasks, including clustering and UMAP calculation.
