@@ -56,7 +56,7 @@ data_dir <- file.path("data")
 # data directory for this sample
 sample_dir <- file.path(data_dir, "osteo", sample_id, "normalized")
 
-clustered_rds <- file.path(sample_dir, "osteo_clustered_spe.rds")
+normalized_rds <- file.path(sample_dir, "osteo_normalized_spe.rds")
 ```
 
 We'll also need to define the file with the reference, which we have prepared for you by downsampling number of cells for RCTD compatibility, converting gene symbols to Ensembl (to match our object), and converting to `SCE` object; see here: <https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/osteo/reformat-osteo-ref.R>.
@@ -79,10 +79,10 @@ rctd_tsv <- file.path(analysis_dir, "osteo_deconvolution.tsv")
 
 ## Import
 
-```{r import, live = TRUE}
-spe <- readr::read_rds(clustered_rds)
+### Import the SPE object
 
-osteo_ref <- readr::read_rds(ref_rds)
+```{r import spe, live = TRUE}
+spe <- readr::read_rds(normalized_rds)
 ```
 
 
@@ -107,28 +107,6 @@ he_plot
 ```
 
 
-Let's have a look at our reference:
-
-```{r show reference, live = TRUE}
-osteo_ref
-```
-
-We have about 32,000 cells across several cell types, which are in the `colData`:
-
-```{r reference annotations}
-# show the different annotation levels
-colData(osteo_ref) |>
-  as.data.frame() |>
-  dplyr::select( starts_with("Ann_Level") )
-```
-
-For this notebook, we're going to focus on `Ann_Level1` which contains broad cell type categories, but a more fine-grained analysis might consider `Ann_Level2`.
-
-```{r}
-table(osteo_ref$Ann_Level1)
-```
-Again, when we prepared this reference, we downsampled to randomly select maximum 10000 cells per `Ann_Level1` label.
-
 Before we dive in, let's look at some marker gene expression to develop a sense of what cell types we might expect in this data given this reference.
 These marker genes were taken from the OsteoCAR paper.
 
@@ -137,16 +115,16 @@ These marker genes were taken from the OsteoCAR paper.
 #| fig.width: 11
 
 mouse_markers <- c(
-  endo = "Esam",
-  epi = "Muc1",
-  mesenchymal = "Vim",
-  tumor = "Sox9",
+  "Endothelial cell" = "Esam",
+  "Epithelial cell" = "Muc1",
+  "Mesenchymal cell" = "Vim",
+  "Tumor cell" = "Sox9",
   # immune lymphoid markers
-  b_cell = "Ms4a1",
-  t_cell = "Cd3e",
+  "B cell" = "Ms4a1",
+  "T cell" = "Cd3e",
   # immune myeloid markers
-  monocyte = "Cd68",
-  macrophage = "Adgre1"
+  "Monocyte" = "Cd68",
+  "Macrophage" = "Adgre1"
 )
 
 mouse_markers |>
@@ -163,12 +141,15 @@ mouse_markers |>
           pal = "viridis", 
           point_size = 1
         ) + 
-          ggtitle(gene_category) +
+          ggtitle( 
+            glue::glue("{gene_category} ({gene_symbol})") 
+          ) +
           theme(
             legend.key.width = unit(0.3, "cm"),
             legend.key.height = unit(0.4, "cm"),
             legend.text  = element_text(size = 8),
-            title = element_text(size = 10)
+            title = element_text(size = 10),
+            plot.title = element_text(hjust = 0)
           )
     }
   ) |> wrap_plots(ncol = 4)
@@ -179,7 +160,40 @@ Uncommon?
 Which cell types do you expect might co-occur?
 Any insights into the osteosarcoma tumor microenvironment and level of immune infiltration?
 
-Next, we'll attempt to determine which cell types are present in each spot and their relative abundances.
+
+### Import the reference SCE
+
+```{r import ref, live = TRUE}
+osteo_ref <- readr::read_rds(ref_rds)
+```
+
+Let's have a look at our reference, it's a `SingleCellExperiment` object.
+
+```{r show reference, live = TRUE}
+osteo_ref
+```
+
+We have about 32,000 cells across several cell types, which are in the `colData`:
+
+```{r reference annotations}
+# show the different annotation levels
+colData(osteo_ref) |>
+  as.data.frame() |>
+  dplyr::select( starts_with("Ann_Level") )
+```
+
+For this notebook, we're going to focus on `Ann_Level1` which contains broad cell type categories, but a more fine-grained analysis might consider `Ann_Level2`.
+
+```{r count celltypes}
+colData(osteo_ref) |>
+  as.data.frame() |>
+  dplyr::count(Ann_Level1)
+```
+
+Again, when we prepared this reference, we downsampled to randomly select maximum 10000 cells per `Ann_Level1` label.
+
+
+Next, we'll use this reference to attempt to determine which cell types are present in each spot and their relative abundances in the osteosarcoma sample.
 
 ## Perform deconvolution
 
@@ -217,54 +231,39 @@ rctd_data <- spacexr::createRctd(
 )
 ```
 
-We got a list of several items:
+We got a list of several items organized into a structure that RCTD expects.
 
 ```{r rctd_data summary}
 rctd_data |>
   summary()
 ```
 
-For example, here is the Visium data converted to SE:
+We'll just look at the Visium data prepared for analysis:
 
-```{r rctd_data SE}
+```{r rctd_data SPE}
 rctd_data$spatial_experiment
 ```
 
 We can see genes have been downsampled from our original 19465 to only 3082 genes, which were identified for use by the model.
 
-TODO: is it worth showing other components? I'm showing them here so you can see them in review, but I am not at all convinced we need to spend the time to look at them - do you think we should?
-
-```{r}
-# used by RCTD to fit the model
-rctd_data$internal_vars |>
-  summary()
-```
-```{r}
-# a list of the params 
-rctd_data$config 
-```
-```{r}
-# data frame of mean-normalized gene expression profiles
-rctd_data$cell_type_info$info
-```
-
-
 
 Now, we can perform deconvolution with this object as input.
 To begin, we'll run in doublet mode.
 
-```{r run doublet mode}
+```{r run doublet mode, message = TRUE}
 rctd_doublet <- spacexr::runRctd(
   rctd_data, 
   rctd_mode = "doublet",
   max_cores = 4
 ) 
 ```
-The function reports model progress so we can see it converges. 
+
+The function reports model progress to the Console so we can see it converges. 
 
 ```{r show rctd_doublet}
 rctd_doublet
 ```
+
 We get a fresh SPE object with 5 features  (these are not genes, these are labels) across each of the 1632 spots.
 
 What's in the assays?
@@ -322,35 +321,52 @@ spacexr::plotCellTypeWeight(
 
 
 Let's plot them all now, with more custom styling, including flipping the orientation to match the H&E.
+To facilitate this, we've written a function:
 
-```{r plot doublet weights}
+```{r plot_all_weights function}
+# Function to plot a grid of coordinate plots, each showing
+# a different cell type's per-spot weight
+plot_all_weights <- function(rctd_result) {
+  cell_types <- unique(rownames(rctd_result))
+  
+  cell_types |>
+    purrr::map(
+      \(cell_type) {
+        spacexr::plotCellTypeWeight(
+          rctd_result, 
+          cell_type,
+          assay_name = "weights",
+          size = 1.5, 
+          stroke = 0.1,
+          title = cell_type
+        ) + 
+          # add custom styling
+          scale_fill_viridis_c(
+            limits = c(0, 1), 
+            option = "plasma"
+          ) +
+          # reverse y-axis orientation to match H&E orientation
+          scale_y_reverse() + 
+          theme(
+            plot.title = element_text(size = 11),
+            legend.title = element_text(size = 9),
+            legend.text = element_text(size = 9)
+          )
+      } 
+    ) |>
+    wrap_plots() + 
+    plot_layout(guides = "collect")
+}
+
+```
+
+Let's use it below to plot all the cell type weights in `rctd_doublet`:
+
+```{r plot doublet weights, live = TRUE}
 #| message: false
-#| fig.width: 12
+#| fig.width: 8
 
-cell_types <- unique(rownames(rctd_doublet))
-
-cell_types |>
-  purrr::map(
-    \(cell_type) {
-      spacexr::plotCellTypeWeight(
-        rctd_doublet, 
-        cell_type,
-        assay_name = "weights",
-        size = 1.5, 
-        stroke = 0.1,
-        title = cell_type
-      ) + 
-        # add custom styling
-        scale_fill_viridis_c(
-          limits = c(0, 1), 
-          option = "plasma"
-        ) +
-        # reverse y-axis orientation to match H&E orientation
-        scale_y_reverse()
-    } 
-  ) |>
-  wrap_plots() + 
-  plot_layout(guides = "collect")
+plot_all_weights(rctd_doublet)
 ```
 
 What do we see?
@@ -363,7 +379,7 @@ Let's run the model again, but unconstrained in "full" mode:
 rctd_full <- spacexr::runRctd(
   rctd_data, 
   rctd_mode = "full",
-  max_cores = 4
+  max_cores = 8
 ) 
 ```
 
@@ -379,34 +395,14 @@ assay(rctd_full, "weights_norm") <- assay(rctd_full, "weights") |>
 ```
 
 
-Now, let's plot:
+Now, let's plot, again using our custom `plot_all_weights()` function:
 
 
 ```{r plot full weights}
 #| message: false
-#| fig.width: 12
+#| fig.width: 8
 
-cell_types |>
-  purrr::map(
-    \(cell_type) {
-      spacexr::plotCellTypeWeight(
-        rctd_full, 
-        cell_type,
-        assay_name = "weights_norm",
-        size = 1.5, 
-        stroke = 0.1,
-        title = cell_type
-      ) + 
-        # add custom styling
-        scale_fill_viridis_c(
-          limits = c(0, 1), 
-          option = "plasma"
-        ) +
-        # reverse y-axis orientation to match H&E orientation
-        scale_y_reverse()
-    } 
-  ) |>
-  wrap_plots()
+plot_all_weights(rctd_full)
 ```
 
 How does this result compare to doublet mode?
