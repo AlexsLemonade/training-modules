@@ -472,6 +472,93 @@ weights_df |>
 Using this reference at this annotation level, we see that most spots have likely have 3 cell types.
 This suggests to us that the doublet mode did not capture the full heterogeneity, so let's stick with the full mode results.
 
+We'll interrogate further - what cell types do we actually have across spots?
+Before we plot, let's define a vector of clearly visible colors for these cell types too:
+
+```{r define cvd friendly pal}
+celltype_pal <- c(
+  "Epithelial_Endothelial" = "#E69F00",
+  "Immune_Lymphoid" = "navy",
+  "Immune_Myeloid" = "#009E73",
+  "Mesenchymal" = "#F0E442",
+  "Tumor" = "#56B4E9" 
+)
+```
+
+We'll sort spots in this plot in descending order of their Tumor weight, so we'll do some wrangling first
+
+
+```{r weights barplot spot weights}
+#| fig.width: 12
+#| fig.height: 4
+
+barcode_order <- weights_df |>
+  dplyr::filter(cell_type == "Tumor") |>
+  dplyr::arrange(desc(weight)) |>
+  dplyr::pull(barcode)
+
+ggplot(weights_df) + 
+  aes(
+    # sort barcodes in descending order of tumor weight
+    x = forcats::fct_relevel(barcode, barcode_order), 
+    y = weight, 
+    fill = cell_type) + 
+  geom_col() + 
+  scale_fill_manual(values = celltype_pal) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(
+    y = "proportion of cells in the spot", 
+    x = "spot barcode"
+  ) +
+  # don't show the barcodes themselves
+  theme(axis.text.x = element_blank())
+```
+
+What patterns do you see?
+Which cell types tend to co-occur in spots, vs not?
+
+Let's have a look at how Tumor and Epithelial/Endothelial cells co-occur in spots.
+
+
+```{r}
+# calculate the log ratio of tumor to epi/endo cells per spot
+weights_wide_df <- weights_df |>
+  tidyr::pivot_wider(
+    names_from = "cell_type", 
+    values_from = "weight"
+  ) |> 
+  dplyr::mutate(
+    tumor_epiendo_ratio = log(Tumor / Epithelial_Endothelial),
+  ) 
+
+# add into SCE, and calculate the ratio of tumor to epi_endo
+colData(spe) <- colData(spe) |>
+  as.data.frame() |>
+  dplyr::left_join(weights_wide_df, by = "barcode") |>
+  DataFrame(row.names = colnames(spe))
+```
+
+
+```{r}
+plotCoords(
+  spe, 
+  annotate = "tumor_epiendo_ratio", 
+  point_size = 2.75
+) +
+  scale_color_viridis_c(
+    option = "magma", direction = -1
+  ) + 
+  ggtitle("Log ratio of tumor / epi_endo cells") +
+  theme(
+    legend.key.height = unit(1,"cm"), 
+    legend.text = element_text(size = 10)
+  )
+```
+
+Darker spots have a higher proportion of tumor relative to epithelial/endothelial cells, and lighter spots have a higher proportion of epithelial/endothelial cells relative to tumor. 
+Any other interesting patterns you see here?
+What does this tell you about spot heterogeneity?
+
 
 ## Session info
 
