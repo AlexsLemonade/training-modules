@@ -167,7 +167,7 @@ In this section, we'll apply the same dimensionality reduction and clustering wo
 This serves as a useful baseline for comparison when we later apply the spatially-aware `BANKSY` approach.
 
 Again, remember that we are working at the spot level.
-This means clusters will represent groups of cells, rather than similar cells specifically.
+This means clusters will represent groups similar of cells, rather than individual similar cells.
 
 When calculating PCA, we often prefer to reduce the number of genes to only the most highly variable ones, which will both speed up calculations and ensure stronger signal. 
 To do this, we'll start by modeling per-gene expression variance with `scran::modelGeneVar()` which separated each gene's variation into biological and technical components, under the assumption that genes with lower average expression tend to have lower variance due to technical reasons.
@@ -307,7 +307,7 @@ hvg_spe <- spe[hvg_vector,]
 
 
 
-#### Without AGF
+#### Running BANKSY without AGF
 
 We'll start by computing the BANKSY matrix without AGF.
 As noted above, `lambda = 0.2` is a commonly used starting point for Visium spot data; this value means roughly 80% of the signal in the combined matrix comes from each spot's own expression and 20% comes from its neighborhood.
@@ -424,14 +424,20 @@ What differences do you see between these results, both in terms of the UMAP and
 
 
 
-#### With AGF
+#### Running BANKSY with AGF
 
-Let's do this again, but with AGF turned on. 
-We'll change up the `k_geom` parameter for this to use two values, more explanation coming later.
+Now we'll re-run `BANKSY` with AGF enabled.
+As introduced above, AGF captures directional expression gradients and can help `BANKSY` detect finer spatial structure at the boundaries between tissue domains.
+
+When AGF is enabled, `k_geom` takes a vector of two values rather than a single one.
+The first value is used for the neighborhood averaging step, as before.
+The second, usually larger value provides the broader spatial context needed for the AGF gradient calculation.
+
+As suggested in the `BANKSY` documentation, we'll use `k_geom = c(18, 30)` for Visium spot data: 18 spots will be used for the neighborhood averaging, and 30 spots will be used for the AGF calculation.
 
 
 ```{r banksy matrix agf on, live = TRUE}
-# 18 will be used for neighbor averaging, and 30 will be used for broader spatial effects with AGF
+# specify 18 neighbors for neighbor averaging, and 30 neighbors for AGF
 k_geom <- c(18, 30)
 
 # turn on compute_agf
@@ -446,33 +452,33 @@ hvg_spe <- Banksy::computeBanksy(
 hvg_spe
 ```
 
-There's a new assay now, H1, which is the result of the AGF portion of this calculation.
-BANKSY can only make assays named H0 and H1, so if you re-run in same mode but with a different `k_geom` your assays will get overridden.
+The SPE now contains an additional assay `H1`, which stores the AGF-based neighborhood expression profile.
+Note that `BANKSY` will overwrite `H0` and `H1` in place if you re-run `Banksy::computeBanksy()` with different parameters, so keep this in mind if you want to preserve results from multiple runs.
 
 
 ```{r}
 assay(hvg_spe, "H1")[1:5, 1:5]
 ```
 
-Worth noting that BANKSY will overwrite metadata parameters.
+As with the non-AGF run, `Banksy::computeBanksy()` updated the `BANKSY_params` entry in the SPE's `metadata` slot to reflect the new settings:
 
 ```{r banksy agf metadata}
 metadata(hvg_spe)$BANKSY_params
 ```
 
 
-Now, we can calculate the PCA for this matrix.
+Now we can run `Banksy::runBanksyPCA()` with `use_agf = TRUE`, which tells `BANKSY` to incorporate both (specifically, by concatenating them) `H0` and `H1` when constructing the combined expression-plus-neighborhood matrix that will be input to PCA.
 
 ```{r agf pca, live = TRUE}
-# use_agf tells BANKSY to use the H1 asssay
+# use_agf tells BANKSY to incorporate both the H0 and H1 assays, as well as logcounts expression
 hvg_spe <- Banksy::runBanksyPCA(hvg_spe, lambda = lambda, use_agf = TRUE)
 
 # show the SPE
 hvg_spe
 ```
 
-This gave us a new PCA matrix, `PCA_M1_lam0.2` - where the `M1` signifies that AGF was used and `0.2` is the lambda parameter.
-As before we'll do clustering and UMAP.
+The new PCA is named `PCA_M1_lam0.2`, where `M1` indicates that AGF was used (compared to `M0` from the without-AGF run), and `lam0.2` records the `lambda` value.
+We'll now proceed to calculate the UMAP embeddings and clusters using the same `cluster_params` as we have been using.
 
 ```{r agf umap}
 # define reducedDim names
@@ -494,8 +500,7 @@ colData(hvg_spe)$cluster_banksy_agf <- scran::clusterCells(
 )
 ```
 
-And plot, this time showing a few plots for comparison!
-We'll make use of patchwork for lots of colors.
+Now let's visualize all three sets of results side-by-side: expression-only, BANKSY without AGF, and BANKSY with AGF.
 
 ```{r plot banksy agf}
 #| message: false
@@ -545,20 +550,21 @@ plot_list <- list(
 wrap_plots(plot_list, nrow = 2)
 ```
 
-What differences do you see with and without AGF?
+First, what differences do you see between `BANKSY` clusters with and without AGF?
 Do you think AGF captured boundaries more cleanly as advertised?
-How do these clusters overall compare to non-spatial?
+Next, how do the spatially-informed clusters overall compare to non-spatial clusters?
 
-TODO: Burn down the heatmap because it's just harder to look at now with more numbers?
-We can see how clustering approaches compare a bit more precisely/plainly with a heatmap, specifically by comparing non-spatial to `BANKSY` with AGF.
+We can get a more quantitative view of how the clustering approaches relate to one another with a heatmap comparing `BANKSY` clusters (rows) to non-spatial clusters (columns).
+For this heatmap, we'll specifically use the `BANKSY` AGF clusters.
+We'll also normalize each column by the total number of spots in the given non-spatial cluster; each cell will be colored by the proportion of spots in the non-spatial cluster that are also in the `BANKSY` AGF cluster.
 
 ```{r cluster banksy heatmap}
 clusters_tab <- table(
-  colData(hvg_spe)$cluster_nonspatial, 
-  colData(hvg_spe)$cluster_banksy_agf
+  colData(hvg_spe)$cluster_banksy_agf,
+  colData(hvg_spe)$cluster_nonspatial
 )
 
-# normalize by the number of cells in each AGF cluster
+# normalize by the number of cells in each non-spatial cluster
 clusters_tab <- apply(
   clusters_tab,
   2, # apply function to columns
@@ -566,7 +572,7 @@ clusters_tab <- apply(
 )
 
 # plot heatmap:
-# non-spatial clusters are rows, and BANKSY with AGF clusters are columns
+# non-spatial clusters are columns, and BANKSY with AGF clusters are rows
 pheatmap::pheatmap(
   clusters_tab,
   # turn off heatmap hierarchical cluster for easier viewing
@@ -575,10 +581,14 @@ pheatmap::pheatmap(
 )
 ```
 
-For example, we can see from the coordinate plots that non-spatial clusters 3 and 5 correspond to spots likely dominated by tumor cells, which has been split into several BANKSY AGF clusters including at least 3, 5, and 7.
+The heatmap helps us see how non-spatial clusters map onto the finer AGF cluster structure.
+For example, we can see from the coordinate plots that non-spatial clusters 3 and 5 contain spots that are likely dominated by tumor cells.
+These clusters have been split into several `BANKSY` AGF clusters, suggesting that AGF is resolving finer spatial structure within regions that expression-only clustering treated as a single domain.
 
-Let's color by gene expression for a gene we expect to be highly expressed in the tumor, collagen (`Col1a1`).
-Let's get the Ensembl id to plot it:
+We can also see this relationship reflected in gene expression patterns across clusters.
+Below, we'll examine the expression of `Col1a1`, a gene we expect to be enriched in tumor-rich spots.
+
+We'll look up its Ensembl ID to pass to `scater::plotExpression()`:
 
 ```{r find ensembl id}
 ensembl_id <- rowData(hvg_spe) |>
@@ -589,28 +599,44 @@ ensembl_id <- rowData(hvg_spe) |>
 ensembl_id
 ```
 
+Now we'll use `scater::plotExpression()` to plot `Col1a1` expression across non-spatial clusters and `BANKSY` AGF clusters.
+We'll also include the coordinate plots again, to assist with interpretation.
+
 ```{r plot col1a1 expression}
 #| message: false
-#| fig.width: 12
-#| fig.height: 4
+#| fig.width: 9
+#| fig.height: 5.5
 
+# expression across non-spatial clusters
 nonspatial_expr_plot <- scater::plotExpression(
   hvg_spe,
   features = ensembl_id,
   x = "cluster_nonspatial",
-  color_by = "cluster_nonspatial"
+  color_by = "cluster_nonspatial", 
+  point_size = 0.5
+  
 ) + 
   scale_color_brewer(name = "non-spatial cluster", palette = "Dark2")
   
+# expression across AGF clusters
 agf_expr_plot <- scater::plotExpression(
   hvg_spe,
   features = ensembl_id,
   x = "cluster_banksy_agf",
-  color_by = "cluster_banksy_agf"
+  color_by = "cluster_banksy_agf", 
+  point_size = 0.5
 ) + 
   scale_color_brewer(name = "BANKSY AGF cluster", palette = "Paired")
 
-nonspatial_expr_plot + agf_expr_plot
+
+# Compile for plotting with patchwork
+plot_list <- list(
+  nonspatial_expr_plot, 
+  agf_expr_plot, 
+  coords_nonspatial,
+  coords_banksky_agf
+)
+patchwork::wrap_plots(plot_list, nrow = 2)
 ```
 
 Do these patterns match your expectations from the coordinate plots showing clusters on the H&E?
@@ -629,8 +655,6 @@ colData(hvg_spe) |>
 
 
 ## Session info
-
-To conclude, we'll run the `sessionInfo()` command to print out exactly what system setting and R package versions were used to run this code.
 
 ```{r}
 sessionInfo()
