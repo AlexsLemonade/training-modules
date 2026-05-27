@@ -183,8 +183,9 @@ colData(osteo_ref) |>
 ```
 
 For this notebook, we're going to focus on `Ann_Level1` which contains broad cell type categories, but a more fine-grained analysis might consider `Ann_Level2`.
+Let's see the distribution of our chosen reference:
 
-```{r count celltypes}
+```{r count celltypes, live = TRUE}
 colData(osteo_ref) |>
   as.data.frame() |>
   dplyr::count(Ann_Level1)
@@ -233,9 +234,8 @@ rctd_data <- spacexr::createRctd(
 
 We got a list of several items organized into a structure that RCTD expects.
 
-```{r rctd_data summary}
-rctd_data |>
-  summary()
+```{r rctd_data summary, live = TRUE}
+summary(rctd_data)
 ```
 
 We'll just look at the Visium data prepared for analysis:
@@ -250,7 +250,7 @@ We can see genes have been downsampled from our original 19465 to only 3082 gene
 Now, we can perform deconvolution with this object as input.
 To begin, we'll run in doublet mode.
 
-```{r run doublet mode, message = TRUE}
+```{r run doublet mode, live = TRUE}
 rctd_doublet <- spacexr::runRctd(
   rctd_data, 
   rctd_mode = "doublet",
@@ -260,7 +260,7 @@ rctd_doublet <- spacexr::runRctd(
 
 The function reports model progress to the Console so we can see it converges. 
 
-```{r show rctd_doublet}
+```{r show rctd_doublet, live = TRUE}
 rctd_doublet
 ```
 
@@ -284,14 +284,16 @@ For example, this suggests that the spot barcoded `AACACCTAAGCATTGC-1` is roughl
 
 We also have some `colData` items:
 
-```{r}
+```{r rctd coldata, live = TRUE}
 colData(rctd_doublet)
 ```
 
 Doublet mode works by comparing to a singlet mode so we have these classifications:
 
-```{r}
-table(colData(rctd_doublet)$spot_class)
+```{r count spot class, live = TRUE}
+colData(rctd_doublet) |>
+  as.data.frame() |>
+  dplyr::count(spot_class)
 ```
 
 We have:
@@ -379,7 +381,7 @@ Let's run the model again, but unconstrained in "full" mode:
 rctd_full <- spacexr::runRctd(
   rctd_data, 
   rctd_mode = "full",
-  max_cores = 8
+  max_cores = 4
 ) 
 ```
 
@@ -416,9 +418,10 @@ We'll make a quick histogram of these values using the base R `hist()` function:
 # extract vector of per-spot lymphoid proportions
 lymphoid_props <- assay(rctd_full, "weights_norm")["Immune_Lymphoid",]
 
-# plot a histogram
+# quickly plot a histogram with base R
 hist(lymphoid_props)
 ```
+
 We see that the values here are indeed quite low.
 So, it is noise? Let's think through it:
 
@@ -448,10 +451,13 @@ weights_df <- assay(rctd_full, "weights_norm") |>
 
 Now, we can count up the number of cell types per spot, and then summarize this to get an overall distribution:
 
-```{r}
+```{r count cell types per spot}
 weights_df |>
+  # consider only confident spots
   dplyr::filter(weight >= 0.1) |>
+  # count the number of spots per cell type
   dplyr::count(barcode, name = "n_cell_types") |>
+  # count the number of spots with each cell type count
   dplyr::count(n_cell_types, name = "n_spots")
 ```
 
