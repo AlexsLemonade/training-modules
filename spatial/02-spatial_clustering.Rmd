@@ -74,7 +74,7 @@ normalized_rds <- file.path(data_dir, "osteo_normalized_spe.rds")
 ```
 
 We'll also define the path for outputting clusters.
-To save space, we'll conclude by export a TSV with the clusters we calculate in this notebook.
+To save space, we'll conclude by exporting a TSV with the clusters we calculate in this notebook (along with other per-spot metadata).
 
 ```{r}
 cluster_tsv <- file.path(data_dir, "osteo_clusters.tsv")
@@ -117,7 +117,7 @@ he_plot <- plotVisium(spe, spots = FALSE, zoom = TRUE) +
 he_plot
 ```
 
-This image clearly shows regions of tumor cells amid the lung parenchyma, which itself is more sparse because of the lung's alveolar spaces.
+This image clearly shows regions of tumor cells amid the lung parenchyma, which appears less dense because of the lung's alveolar spaces.
 
 Let's also get a sense of the RNA counts here by plotting some of the QC statistics that were calculated for you, including the total UMIs (`sum`) and number of unique detected genes (`detected`).
 Note that these plots use set an upper limit on the color scale to be able to see lower value spots more clearly.
@@ -166,7 +166,7 @@ After that, we'll compare to clustering with the `BANKSY` approach to see how in
 In this section, we'll apply the same dimensionality reduction and clustering workflow we would use for single-cell data, treating each spot's expression profile as the unit of analysis without any spatial information.
 This serves as a useful baseline for comparison when we later apply the spatially-aware `BANKSY` approach.
 
-Again, remember that we are still working at the spot level.
+Again, remember that we are working at the spot level.
 This means clusters will represent groups of cells, rather than similar cells specifically.
 
 When calculating PCA, we often prefer to reduce the number of genes to only the most highly variable ones, which will both speed up calculations and ensure stronger signal. 
@@ -189,7 +189,7 @@ We can now perform graph-based clustering using `scran::clusterCells()`, which c
 We'll use Jaccard weighting and the Louvain algorithm, specifying `k = 20` nearest neighbors.
 We'll also save these clustering parameters as `cluster_params` so we can reuse the same settings when running spatially-aware `BANKSY` clustering later.
 
-But first, one caveat: it's worth noting that the choice of `k` and clustering algorithm are important analytical decisions (as well as other parameters like resolution, which we are leaving at its default value of 1 here), but we are not going to evaluate those parameters here for time.
+But first, one caveat: it's worth noting that the choice of `k` and clustering algorithm are important analytical decisions (as well as other parameters like `resolution`, which we are leaving at its default value of 1 here).
 In your own research, we do recommend taking some time to explore parameter space when clustering, which you can learn more about in the [the `scRNA-seq-advanced` training module's clustering evaluation exercise](../scRNA-seq-advanced/exercise_05-cluster_evaluation.Rmd).
 
 ```{r nonspatial cluster, live = TRUE}
@@ -295,8 +295,8 @@ In this notebook, we'll use `scran` and `scater` tools for these steps, but we w
 
 In this notebook, we'll run `BANKSY` in two configurations — without AGF and with AGF — and compare the results.
 
-But, before we get started, we have to modify our SPE object.
-As `BANKSY` does not perform feature selection on its own, we'll perform that ourselves to ensure a fair comparison between clustering approaches.
+Before we get started, we have to modify our SPE object.
+`BANKSY` does not perform feature selection on its own, but we can use the HVGs that we identified before to ensure a fair comparison between clustering approaches.
 We'll do this by subsetting the SPE to just the high-variance genes before running `BANKSY` and save it to a new variable `hvg_spe`.
 We'll use this SPE object for the rest of the notebook.
 
@@ -326,7 +326,7 @@ hvg_spe <- Banksy::computeBanksy(hvg_spe, assay_name = "logcounts", k_geom = k_g
 hvg_spe
 ```
 
-Notice we now have only 2000 genes, which is because we subset the full object for the `BANKSY` calculations.
+Notice we now have only 2000 genes, which is because we are using the HVG subset for the `BANKSY` calculations.
 
 We also see that a new `H0` assay has been added to the SPE, representing the neighborhood-averaged spot expression. 
 Each entry represents the average expression of a given gene across the spatial neighbors of a given spot, rather than the spot's own expression.
@@ -342,7 +342,7 @@ assay(hvg_spe, "H0")[1:5, 1:5]
 metadata(hvg_spe)$BANKSY_params
 ```
 
-Now, we can run `Banksy::runBanksyPCA()`, which combines `logcounts` and `H0` into a single matrix weighted by `lambda` and then runs PCA on it.
+Now, we can use `Banksy::runBanksyPCA()`, which combines `logcounts` and `H0` into a single matrix weighted by `lambda` and then runs PCA on it.
 
 ```{r banksy pca, live = TRUE}
 # calculate PCA within BANKSY
@@ -355,7 +355,7 @@ hvg_spe
 The new PCA that `BANKSY` has calculated is named `PCA_M0_lam0.2`: `M0` indicates that AGF was not used, and `lam0.2` records the `lambda` value.
 `BANKSY` generates these names automatically, making it easy to track different reduced dimension calculations when comparing multiple runs.
 
-Here we'll use `scran` and `scater` directly to keep the workflow consistent with what we did above.
+To keep the workflow consistent with what we did above, we'll use `scater` and `scran` directly for calculating UMAPs, plotting, and clustering.
 We'll also reuse the same `cluster_params` object defined earlier when we performed non-spatial clustering to ensure a direct comparison.
 
 ```{r cluster banksy nonagf}
