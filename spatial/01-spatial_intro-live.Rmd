@@ -47,7 +47,7 @@ Next we'll define input paths and files that we'll use in this notebook.
 There are a variety of files that you will often see as part of the standard Space Ranger output.
 The specific files present will depend on which specific spatial technology you are using, but they are all described in detail in [10x Genomics documentation](https://www.10xgenomics.com/support/software/space-ranger/latest/analysis/outputs/output-overview).
 
-We've placed the core outputs you'll need for reading this first-generation Visium data into R in the directory `data/wilms-tumor/SCPCS000190/outs`, organized as Space Ranger returns them.
+We've placed the core outputs you'll need for reading this first-generation Visium data into R in the directory `data/wilms-tumor/SCPCS000190`, organized into folders as Space Ranger returns them.
 We'll define that input path, along with other inputs we'll need, here.
 
 ```{r inputs}
@@ -57,8 +57,8 @@ sample_id <- "SCPCS000190"
 # main data directory for this sample
 data_dir <- file.path("data/wilms-tumor", sample_id)
 
-# Path to Space Ranger output
-raw_spaceranger_dir <- file.path(data_dir, "outs")
+# directory with spaceranger output
+spaceranger_dir <- file.path(data_dir, "spaceranger")
 
 # reference data directory
 ref_dir <- file.path("data/reference")
@@ -96,7 +96,7 @@ Space Ranger also outputs both filtered and raw matrices; today we will start wi
 Before importing the data, let's go ahead and look what files we have:
 
 
-```{r dir-spaceranger, live = TRUE}
+```{r dir-data, live = TRUE}
 
 ```
 
@@ -808,6 +808,24 @@ Do they appear to be expressed in different tissue regions?
 Did you expect this based on the H&E?
 
 Based on these (very few, very cursory, and highly exploratory!) plots, do you think there is evidence for blastemal and stromal compartments in this sample?
+
+
+## Export
+
+Finally, we'll export the SPE object to the RDS file `output_spe_file` we defined at the top of the notebook.
+
+Very importantly, the version of `VisiumIO` that we used to read in the SPE object earlier actually does not store the images themselves within the SPE object. 
+Instead, it stores the _full path_ to the image files to reload them if the exported SPE is read back into R.
+This works fine if the object is read back into R on exactly the same computer and files are in exactly the same places, but when this is not the case, the images will not properly be loaded when reading the object into R.
+
+The `VisiumIO` version included in the (forthcoming) Bioconductor 3.24 release has addressed this and allows you to fully load images rather than just their full paths when reading in Space Ranger output to create an SPE object.
+But for now, this is a limitation to be aware of. 
+
+```{r export spe}
+# export SPE with compression
+readr::write_rds(spe, output_spe_file, compress = "gz")
+```
+
 
 
 ## Session info
