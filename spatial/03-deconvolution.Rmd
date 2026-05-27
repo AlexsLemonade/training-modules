@@ -257,7 +257,7 @@ To begin, we'll run in doublet mode.
 rctd_doublet <- spacexr::runRctd(
   rctd_data, 
   rctd_mode = "doublet",
-  max_cores = 6
+  max_cores = 4
 ) 
 ```
 The function reports model progress so we can see it converges. 
@@ -265,7 +265,7 @@ The function reports model progress so we can see it converges.
 ```{r show rctd_doublet}
 rctd_doublet
 ```
-We get a fresh SPE object with 5 "genes" (these are not genes, these are labels) across each of the 1632 spots.
+We get a fresh SPE object with 5 features  (these are not genes, these are labels) across each of the 1632 spots.
 
 What's in the assays?
 
@@ -349,7 +349,8 @@ cell_types |>
         scale_y_reverse()
     } 
   ) |>
-  wrap_plots()
+  wrap_plots() + 
+  plot_layout(guides = "collect")
 ```
 
 What do we see?
@@ -362,7 +363,7 @@ Let's run the model again, but unconstrained in "full" mode:
 rctd_full <- spacexr::runRctd(
   rctd_data, 
   rctd_mode = "full",
-  max_cores = 6
+  max_cores = 4
 ) 
 ```
 
@@ -439,15 +440,13 @@ We'll have to wrangle a bit to answer this.
 ```{r create weights_df}
 # create a long-format data frame of weights
 weights_df <- assay(rctd_full, "weights_norm") |>
-  # convert to data frame with a column for barcodes
-  t() |>
   as.data.frame() |>
-  tibble::rownames_to_column("barcode") |>
+  tibble::rownames_to_column("cell_type") |>
   # pivot to a long data frame
   tidyr::pivot_longer(
-    -barcode, 
+    !cell_type, 
     values_to = "weight",
-    names_to = "cell_type"
+    names_to = "barcode"
   ) 
 ```
 
