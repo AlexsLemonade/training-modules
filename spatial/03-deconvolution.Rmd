@@ -268,12 +268,12 @@ We get a fresh SPE object with 5 features  (these are not genes, these are label
 
 What's in the assays?
 
-* `weights_full`: Initial step at estimating full weights before constraining them
-  * Note that this isn't exactly identical to what we'd get out of "full" mode because other model parameters were optimized for "doublet" mode
 * `weights`: Cell type proportions 
+* `weights_full`: Initial step at estimating full weights before constraining them to proportions
+  * Note that this isn't exactly identical to what we'd get out of "full" mode because other model parameters were optimized for "doublet" mode
 * `weighted_unconfident`: Includes weights that the model is less confident in
 
-We'll focus on `weights` here, let's look:
+We'll focus on the `weights` assay here to look at the fitted proportions:
 
 
 ```{r doublet weights}
@@ -304,18 +304,17 @@ We have:
 _This does not mean that RCTD thinks it's more likely to be a doublet than have multiple cell types_.
 * `doublet_uncertain`: under this constrained model, doublet model is preferred but weaker difference from singlet
 
-Let's go ahead and color by weights using the provided function `spacexr::plotCellTypeWeight()`.
+Let's go ahead and color by proportions using the provided function `spacexr::plotCellTypeWeight()`.
 
 We'll do this using default settings for the `Tumor` cell type first:
 
-```{r plot tumor weights, live = TRUE}
+```{r plot tumor proportions, live = TRUE}
 #| fig.width: 5
 
 spacexr::plotCellTypeWeight(
   rctd_doublet, 
   cell_type = "Tumor",
-  assay_name = "weights",
-  # custom plot styling
+  assay_name = "weights", 
   size = 2,
   stroke = 0.1
 )
@@ -325,10 +324,10 @@ spacexr::plotCellTypeWeight(
 Let's plot them all now, with more custom styling, including flipping the orientation to match the H&E.
 To facilitate this, we've written a function:
 
-```{r plot_all_weights function}
+```{r plot_all_props function}
 # Function to plot a grid of coordinate plots, each showing
-# a different cell type's per-spot weight
-plot_all_weights <- function(rctd_result) {
+# a different cell type's per-spot proportion as present in the given
+plot_all_props <- function(rctd_result, assay = "weights") {
   cell_types <- unique(rownames(rctd_result))
   
   cell_types |>
@@ -337,7 +336,7 @@ plot_all_weights <- function(rctd_result) {
         spacexr::plotCellTypeWeight(
           rctd_result, 
           cell_type,
-          assay_name = "weights",
+          assay_name = assay,
           size = 1.5, 
           stroke = 0.1,
           title = cell_type
@@ -362,13 +361,13 @@ plot_all_weights <- function(rctd_result) {
 
 ```
 
-Let's use it below to plot all the cell type weights in `rctd_doublet`:
+Let's use it below to plot all the cell type proportions in `rctd_doublet`:
 
-```{r plot doublet weights, live = TRUE}
+```{r plot doublet proportions, live = TRUE}
 #| message: false
 #| fig.width: 8
 
-plot_all_weights(rctd_doublet)
+plot_all_props(rctd_doublet)
 ```
 
 What do we see?
@@ -385,26 +384,30 @@ rctd_full <- spacexr::runRctd(
 ) 
 ```
 
-We don't get the same `colData` columns out of this, just the weights in an assay. 
+We don't get the same `colData` columns out of this, just the weights as an assay. 
 For these weights, we need to normalize to sum to 1 since the model does not constrain them as it does the doublet mode.
+For explicitness we'll save this to a new assay called "proportions".
 
-```{r norm full weights}
-assay(rctd_full, "weights_norm") <- assay(rctd_full, "weights") |>
+```{r norm full proportions}
+assay(rctd_full, "proportions") <- assay(rctd_full, "weights") |>
+  # convert to regular matrix for normalization
   as.matrix() |>
   # new in R 4.1, a function to normalize!
   # use 2 for columns
-  proportions(margin = 2)
+  proportions(margin = 2) |>
+  # convert back to sparse matrix
+  as("dgCMatrix")
 ```
 
 
-Now, let's plot, again using our custom `plot_all_weights()` function:
+Now, let's plot, again using our custom `plot_all_props()` function, specifying to use the `proportions` assay:
 
 
-```{r plot full weights}
+```{r plot full proportions}
 #| message: false
 #| fig.width: 8
 
-plot_all_weights(rctd_full)
+plot_all_props(rctd_full, assay = "proportions")
 ```
 
 How does this result compare to doublet mode?
@@ -415,19 +418,20 @@ What exactly are those proportions, and do they represent real signal or noise?
 We'll make a histogram of these values:
 
 ```{r lymphoid histogram}
-# extract vector of per-spot lymphoid proportions
-lymphoid_props <- assay(rctd_full, "weights_norm")["Immune_Lymphoid",]
-
-# define data frame for plotting
-lymphoid_df <- data.frame(
-  barcode = names(lymphoid_props),
-  proportion = unname(lymphoid_props)
-)
+# create a data frame of proportions
+proportions_df <- assay(rctd_full, "proportions") |>
+  # convert to wide data frame
+  as.matrix() |>
+  t() |>
+  as.data.frame() |>
+  # pull out barcodes into standalone column
+  tibble::rownames_to_column("barcode")
 
 # plot a histogram
-ggplot(lymphoid_df) + 
-  aes(x = proportion) + 
-  geom_histogram(fill = "seagreen", color = "gray20")
+ggplot(proportions_df) + 
+  aes(x = Immune_Lymphoid) + 
+  geom_histogram(fill = "seagreen", color = "gray20") +
+  labs(x = "proportion")
 ```
 
 We see that the values here are indeed quite low.
@@ -435,7 +439,7 @@ So, it is noise? Let's think through it:
 
 * Bear in mind the marker gene expression we saw earlier - really not many lymphoid lineage markers. 
 * Remember, we only have 5--20 cells per spot here
-  * Given this, very low weights are likely to be noise because there aren't enough cells e.g. for a 1-2\% proportion to be realistic.
+  * Given this, very low proportions are likely to be noise because there aren't enough cells e.g. for a 1-2\% proportion to be realistic.
   * In practice, people attribute proportions ~< 5-10% to be noise, and it looks like that's about where we are. 
 * Both modes therefore show us that lymphoid are rare in this tissue but we can't necessarily rule out minor infiltration since we do see some defining markers. As this reference is pretty coarse-grained, it's possible if we looked more precisely for specific lymphoid cell types we could answer this question more reliably, but either way it seems clear that these cells (if present) are rare. 
   * Bear in mind caveats about how well the reference/data match!
@@ -444,25 +448,22 @@ So, it is noise? Let's think through it:
 If we assume a 0.1 threshold for calling presence, how many cell types are potentially in each spot?
 We'll have to wrangle a bit to answer this.
 
-```{r create weights_df}
-# create a long-format data frame of weights
-weights_df <- assay(rctd_full, "weights_norm") |>
-  as.data.frame() |>
-  tibble::rownames_to_column("cell_type") |>
-  # pivot to a long data frame
+```{r create proportions_long_df}
+# create a long-format data frame of proportions
+proportions_long_df <- proportions_df |>
   tidyr::pivot_longer(
-    !cell_type, 
-    values_to = "weight",
-    names_to = "barcode"
+    !barcode, 
+    values_to = "proportion",
+    names_to = "cell_type"
   ) 
 ```
 
 Now, we can count up the number of cell types per spot, and then summarize this to get an overall distribution:
 
 ```{r count cell types per spot}
-weights_df |>
-  # consider only confident spots
-  dplyr::filter(weight >= 0.1) |>
+proportions_long_df |>
+  # consider only confident spots, conservatively
+  dplyr::filter(proportion >= 0.1) |>
   # count the number of cell types for each spot (how many times each barcode appears in the table)
   dplyr::count(barcode, name = "n_cell_types") |>
   # count the number of spots with each cell type count
@@ -488,20 +489,20 @@ celltype_pal <- c(
 We'll sort spots in this plot in descending order of their Tumor proportion, so we'll do some wrangling first
 
 
-```{r weights barplot spot weights}
+```{r barplot spot proportions}
 #| fig.width: 12
 #| fig.height: 4
 
-barcode_order <- weights_df |>
+barcode_order <- proportions_long_df |>
   dplyr::filter(cell_type == "Tumor") |>
-  dplyr::arrange(desc(weight)) |>
+  dplyr::arrange(desc(proportion)) |>
   dplyr::pull(barcode)
 
-ggplot(weights_df) + 
+ggplot(proportions_long_df) + 
   aes(
     # sort barcodes in descending order of tumor weight
     x = forcats::fct_relevel(barcode, barcode_order), 
-    y = weight, 
+    y = proportion, 
     fill = cell_type) + 
   geom_col() + 
   scale_fill_manual(values = celltype_pal) +
@@ -518,48 +519,9 @@ ggplot(weights_df) +
 What patterns do you see?
 Which cell types tend to co-occur in spots, vs not?
 
-Let's have a look at how Tumor and Epithelial/Endothelial cells co-occur in spots.
-
-
-```{r}
-# calculate the log ratio of tumor to epi/endo cells per spot
-weights_wide_df <- weights_df |>
-  tidyr::pivot_wider(
-    names_from = "cell_type", 
-    values_from = "weight"
-  ) |> 
-  dplyr::mutate(
-    tumor_epiendo_ratio = log(Tumor / Epithelial_Endothelial),
-  ) 
-
-# add into SCE, and calculate the ratio of tumor to epi_endo
-colData(spe) <- colData(spe) |>
-  as.data.frame() |>
-  dplyr::left_join(weights_wide_df, by = "barcode") |>
-  DataFrame(row.names = colnames(spe))
-```
-
-
-```{r}
-plotCoords(
-  spe, 
-  annotate = "tumor_epiendo_ratio", 
-  point_size = 2.75
-) +
-  scale_color_viridis_c(
-    option = "magma", direction = -1
-  ) + 
-  ggtitle("Log ratio of tumor / epi_endo cells") +
-  theme(
-    legend.key.height = unit(1,"cm"), 
-    legend.text = element_text(size = 10)
-  )
-```
-
-Darker spots have a higher proportion of tumor relative to epithelial/endothelial cells, and lighter spots have a higher proportion of epithelial/endothelial cells relative to tumor. 
-Any other interesting patterns you see here?
-What does this tell you about spot heterogeneity?
-
+Coming up in next PR:
+- heatmap
+- export
 
 ## Session info
 
