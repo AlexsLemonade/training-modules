@@ -519,9 +519,56 @@ ggplot(proportions_long_df) +
 What patterns do you see?
 Which cell types tend to co-occur in spots, vs not?
 
-Coming up in next PR:
-- heatmap
-- export
+We can answer this question more precisely with a heatmap.
+For this, we'll consider again the somewhat conservative `0.1` threshold for calling a cell type as present in each spot.
+
+
+```{r coocurrence heatmap}
+present_df <- proportions_long_df |>
+  # consider only confident spots
+  dplyr::filter(proportion >= 0.1) |>
+  dplyr::select(barcode, cell_type)
+
+# create a co-occurrence data frame
+cooccur_df <- present_df |>
+  dplyr::inner_join(present_df, by = "barcode", relationship = "many-to-many") |>
+  # rename after self-joining
+  dplyr::rename(cell_type_a = cell_type.x, cell_type_b = cell_type.y) |>
+  # don't consider the same cell types, or duplicate based on order
+  dplyr::filter(cell_type_a < cell_type_b) |>
+  # count many spots pairs of cell types co-occur in
+  dplyr::count(cell_type_a, cell_type_b) |>
+  # normalize to get the proportion of spots they co-occur in
+  dplyr::mutate(prop_spots = n / ncol(spe))
+
+# plot a heatmap
+ggplot(cooccur_df) + 
+  aes(x = cell_type_a, y = cell_type_b, fill = prop_spots) +
+  geom_tile() +
+  geom_text(
+    aes(label = round(prop_spots, 2)),
+    color = "black", 
+    fontface = "bold"
+  ) +
+  scale_fill_distiller(palette = "RdYlBu") +
+  labs(
+    x = "", 
+    y = "", 
+    fill = "Proportion of spots"
+  ) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+We see for example that tumor and immune myeloid cells co-occur in about 47% of spots, assuming a 0.1 threshold.
+
+## Export
+
+We'll conclude by exporting a data frame of the full RCTD results as we stored them in `proportions_long_df` to the `rctd_tsv` file we defined at the beginning.
+
+```{r export tsv}
+readr::write_tsv(proportions_long_df, rctd_tsv)
+```
+
 
 ## Session info
 
