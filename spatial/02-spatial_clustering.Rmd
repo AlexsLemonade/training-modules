@@ -167,7 +167,7 @@ In this section, we'll apply the same dimensionality reduction and clustering wo
 This serves as a useful baseline for comparison when we later apply the spatially-aware `BANKSY` approach.
 
 Again, remember that we are working at the spot level.
-This means clusters will represent groups similar of cells, rather than individual similar cells.
+This means clusters will represent groups of similar spots, each of which may include multiple nearby cells.
 
 When calculating PCA, we often prefer to reduce the number of genes to only the most highly variable ones, which will both speed up calculations and ensure stronger signal. 
 To do this, we'll start by modeling per-gene expression variance with `scran::modelGeneVar()` which separated each gene's variation into biological and technical components, under the assumption that genes with lower average expression tend to have lower variance due to technical reasons.
@@ -431,9 +431,9 @@ As introduced above, AGF captures directional expression gradients and can help 
 
 When AGF is enabled, `k_geom` takes a vector of two values rather than a single one.
 The first value is used for the neighborhood averaging step, as before.
-The second, usually larger value provides the broader spatial context needed for the AGF gradient calculation.
+The second value, which is usually larger, provides the broader spatial context needed for the AGF gradient calculation.
 
-As suggested in the `BANKSY` documentation, we'll use `k_geom = c(18, 30)` for Visium spot data: 18 spots will be used for the neighborhood averaging, and 30 spots will be used for the AGF calculation.
+As suggested in the `BANKSY` documentation, we'll use `k_geom = c(18, 30)` for Visium spot data: 18 spots will be used for the neighborhood averaging and 30 spots will be used for the AGF calculation.
 
 
 ```{r banksy matrix agf on, live = TRUE}
@@ -452,8 +452,11 @@ hvg_spe <- Banksy::computeBanksy(
 hvg_spe
 ```
 
-The SPE now contains an additional assay `H1`, which stores the AGF-based neighborhood expression profile.
-Note that `BANKSY` will overwrite `H0` and `H1` in place if you re-run `Banksy::computeBanksy()` with different parameters, so keep this in mind if you want to preserve results from multiple runs.
+The SPE now contains an additional assay, `H1`, which stores the AGF-based neighborhood expression profile.
+Note that if you re-run `Banksy::computeBanksy()` with different parameters, the new object will only include the new `H0` and `H1`, as well the`BANKSY_params` entry from that run.
+We are saving back to the existing variable, so we are losing our previous results.
+
+If you want to preserve results from multiple runs, you will need to keep this in mind and store each set of results separately.
 
 
 ```{r}
@@ -467,7 +470,8 @@ metadata(hvg_spe)$BANKSY_params
 ```
 
 
-Now we can run `Banksy::runBanksyPCA()` with `use_agf = TRUE`, which tells `BANKSY` to incorporate both (specifically, by concatenating them) `H0` and `H1` when constructing the combined expression-plus-neighborhood matrix that will be input to PCA.
+Now we can run `Banksy::runBanksyPCA()` with `use_agf = TRUE`.
+With this argument, the function concatenates `H0` and `H1` when constructing the combined expression-plus-neighborhood matrix that will be input to PCA.
 
 ```{r agf pca, live = TRUE}
 # use_agf tells BANKSY to incorporate both the H0 and H1 assays, as well as logcounts expression
@@ -478,7 +482,7 @@ hvg_spe
 ```
 
 The new PCA is named `PCA_M1_lam0.2`, where `M1` indicates that AGF was used (compared to `M0` from the without-AGF run), and `lam0.2` records the `lambda` value.
-We'll now proceed to calculate the UMAP embeddings and clusters using the same `cluster_params` as we have been using.
+We'll now proceed to calculate the UMAP embeddings and clusters using the same `cluster_params` that we have been using previously.
 
 ```{r agf umap}
 # define reducedDim names
@@ -550,13 +554,13 @@ plot_list <- list(
 wrap_plots(plot_list, nrow = 2)
 ```
 
-First, what differences do you see between `BANKSY` clusters with and without AGF?
+What differences do you see between BANKSY clusters with and without AGF?
 Do you think AGF captured boundaries more cleanly as advertised?
 Next, how do the spatially-informed clusters overall compare to non-spatial clusters?
 
-We can get a more quantitative view of how the clustering approaches relate to one another with a heatmap comparing `BANKSY` clusters (rows) to non-spatial clusters (columns).
-For this heatmap, we'll specifically use the `BANKSY` AGF clusters.
-We'll also normalize each column by the total number of spots in the given non-spatial cluster; each cell will be colored by the proportion of spots in the non-spatial cluster that are also in the `BANKSY` AGF cluster.
+We can get a more quantitative view of how the clustering approaches relate to one another with a heatmap comparing BANKSY clusters (rows) to non-spatial clusters (columns).
+For this heatmap, we'll specifically use the BANKSY AGF clusters.
+We'll also normalize each column by the total number of spots in the given non-spatial cluster; each cell will be colored by the proportion of spots in the non-spatial cluster that are also in the BANKSY AGF cluster.
 
 ```{r cluster banksy heatmap}
 clusters_tab <- table(
@@ -616,7 +620,7 @@ nonspatial_expr_plot <- scater::plotExpression(
   point_size = 0.5
   
 ) + 
-  scale_color_brewer(name = "non-spatial cluster", palette = "Dark2")
+  scale_color_brewer(name = "Non-spatial cluster", palette = "Dark2")
   
 # expression across AGF clusters
 agf_expr_plot <- scater::plotExpression(
