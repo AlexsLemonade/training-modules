@@ -210,7 +210,7 @@ colData(spe)$cluster_nonspatial <- scran::clusterCells(
 
 We'll also calculate a UMAP for visualization using `scater::runUMAP()`.
 
-```{r nonspatial umap}
+```{r nonspatial umap, live = TRUE}
 spe <- scater::runUMAP(spe)
 ```
 
@@ -282,11 +282,10 @@ When AGF is turned on, a second `Banksy` matrix is stored as the `H1` assay (the
 2. **Run `Banksy` PCA** with `Banksy::runBanksyPCA()`.
 
 `Banksy::runBanksyPCA()` first creates single matrix that is a weighted combination of the normalized expression in `logcounts` and the `Banksy` neighborhood matrix (`H0` or `H0` and `H1` if AGF is on). 
-(Note that `Banksy::runBanksyPCA()` will use all genes present in the SPE when calculating the PCA; it does not subset to only the most variable genes.
-We could perform this ourselves by subsetting the SPE before running `Banksy`, but for this notebook we will proceed with the full object.)
 To combine these matrices, `Banksy` introduces the `lambda` parameter.
 `lambda` ranges from 0 -- 1 and controls how much weight is given to the `Banksy` matrix neighborhood information relative to `logcounts` expression, where a value of 0 considers only `logcounts` expression. 
 The `Banksy` authors recommend a value of `lambda = 0.2` for Visium spot data, as described in [this `Banksy` vignette on parameter selection](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
+
 
 `Banksy` then performs PCA using this combined matrix as the input.
 
@@ -299,9 +298,10 @@ In this notebook, we'll use `scran` and `scater` tools for these steps, but we w
 In this notebook, we'll run `Banksy` in two configurations — without AGF and with AGF — and compare the results.
 
 Before we get started, we have to modify our SPE object.
-`Banksy` does not perform feature selection on its own, but we can use the HVGs that we identified before to ensure a fair comparison between clustering approaches.
-We'll do this by subsetting the SPE to just the high-variance genes before running `Banksy` and save it to a new variable `hvg_spe`.
-We'll use this SPE object for the rest of the notebook.
+When calculating the spatially-aware matrix and the PCA, `Banksy` uses all genes present in the SPE; it does not subset to only the most variable genes.
+But, we can use the HVGs that we identified before to ensure a fair comparison between clustering approaches.
+We can accomplish this by subsetting the SPE to just the high-variance genes before running `Banksy` and save it to a new variable `hvg_spe`, and we'll use this SPE object for the rest of the notebook.
+
 
 ```{r subset spe, live = TRUE}
 # subset the SPE to contain only HVGs
@@ -312,7 +312,7 @@ hvg_spe <- spe[hvg_vector,]
 
 #### Running Banksy without AGF
 
-We'll start by computing the `Banksy` matrix without AGF.
+We'll start by computing the `Banksy` matrix without AGF
 As noted above, `lambda = 0.2` is a commonly used starting point for Visium spot data; this value means roughly 80% of the signal in the combined matrix comes from each spot's own expression and 20% comes from its neighborhood.
 We'll use `k_geom = 18` spatial neighbors for the neighborhood averaging, which is also the recommended starting point for Visium spot data. 
  
@@ -426,10 +426,9 @@ How do these clusters compare to the expression-only results?
 What differences do you see between these results, both in terms of the UMAP and the coordinates plot?
 
 
-
 #### Running Banksy with AGF
 
-Now we'll re-run `Banksy::computeBanksy()` with AGF enabled.
+Now we'll re-run `Banksy::computeBanksy()` with AGF enabled (`compute_agf = TRUE`).
 As introduced above, AGF captures directional expression gradients and can help `Banksy` detect finer spatial structure at the boundaries between tissue domains.
 
 When AGF is enabled, `k_geom` takes a vector of two values rather than a single one.
@@ -462,7 +461,7 @@ We are saving back to the existing variable, so we are losing our previous resul
 If you want to preserve results from multiple runs, you will need to keep this in mind and store each set of results separately.
 
 
-```{r}
+```{r show H1}
 assay(hvg_spe, "H1")[1:5, 1:5]
 ```
 
@@ -598,7 +597,7 @@ Below, we'll examine the expression of `Col1a1`, a gene we expect to be enriched
 
 We'll look up its Ensembl ID to pass to `scater::plotExpression()`:
 
-```{r find ensembl id}
+```{r find ensembl id, live = TRUE}
 ensembl_id <- rowData(hvg_spe) |>
   as.data.frame() |>
   dplyr::filter(Symbol == "Col1a1")|>
