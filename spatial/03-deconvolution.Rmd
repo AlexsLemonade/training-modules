@@ -208,10 +208,11 @@ Importantly this is _not the same_ as doublets in single-cell which are multiple
 
 With each, we'll ultimately end up with a per-cell weight which we can interpret as a proportion.
 
-Let's give it a go with doublet mode.
+We'll start off with doublet mode.
+
+### Prepare the data for deconvolution
 
 First, we need to prepare the data with `spacexr::createRctd()`.
-TODO: how much text? Briefly, this function preps by...
 
 * A normalized expression matrix for the reference is calculated, as the mean-normalized expression of each gene within all cells of each cell type.
 * Platform effect genes are identified
@@ -246,6 +247,7 @@ rctd_data$spatial_experiment
 
 We can see genes have been downsampled from our original 19465 to only 3082 genes, which were identified for use by the model.
 
+### Perform deconvolution: doublet mode
 
 Now, we can perform deconvolution with this object as input.
 To begin, we'll run in doublet mode.
@@ -373,6 +375,9 @@ plot_all_props(rctd_doublet)
 What do we see?
 How does this compare to expectations from H&E and marker gene exploration?
 These results suggests that there are no lymphoid cells in the data, even though we did observe _limited_ expression. 
+
+### Perform deconvolution: full mode
+
 Let's run the model again, but unconstrained in "full" mode:
 
 
@@ -461,9 +466,13 @@ proportions_long_df <- proportions_df |>
 Now, we can count up the number of cell types per spot, and then summarize this to get an overall distribution:
 
 ```{r count cell types per spot}
-proportions_long_df |>
+# first, make a data frame of confident cell types only
+present_df <- proportions_long_df |>
   # consider only confident spots, conservatively
-  dplyr::filter(proportion >= 0.1) |>
+  dplyr::filter(proportion >= 0.1) 
+
+# count 
+present_df |>
   # count the number of cell types for each spot (how many times each barcode appears in the table)
   dplyr::count(barcode, name = "n_cell_types") |>
   # count the number of spots with each cell type count
@@ -519,9 +528,115 @@ ggplot(proportions_long_df) +
 What patterns do you see?
 Which cell types tend to co-occur in spots, vs not?
 
-Coming up in next PR:
-- heatmap
-- export
+We can answer this question a bit more carefully with more exploratory analysis to ask whether pairs of cell types tend to co-occur in the same spot more than expected.
+For this, we'll calculate the ratio of observed to expected co-occurrences of cell type pairs, where expected is like the chi-squared null, where cell types are distributed independently of one another.
+We'll log this value to give us a symmetric scale around 0 that aids in interpretation: a value of 0 means they co-occur as often as expected by random chance, negative less than expected, and positive more than expected.
+(PS: this metric actually is called the _pointwise mutual information_!)
+For this, we'll consider again the 0.1 threshold for calling a cell type as present in each spot.
+
+A few important caveats/pieces of context before we get going:
+
+- this analysis is _unweighted_ - it does not consider the proportion of cells per spot, only presence/absence at the 0.1 threshold
+- we don't consider things like spatial autocorrelation, where neighboring spots are more likely to have similar cell type profiles than more distant spots; we consider spots fully independent
+- this isn't the same as a neighborhood analysis; we are querying spots, not neighborhoods, and as noted in the caveat above we are considering spots independently
+  - a more rigorous analysis might therefore ask,"do tumor cells and epithelial cells tend to be physically close in space" which is a more involved analysis that actually considers neighborhoods and spot proximity
+
+
+We'll do this in a few steps.
+First, starting from our existing `present_df` we'll calculate observed values by join this data frame to itself to find and count all pairwise combinations and count them up.
+
+```{r calculate observed}
+# Count observed combinations of cell types
+observed_df <- dplyr::inner_join(
+  present_df,
+  present_df, # join table to itself
+  by = "barcode",
+  relationship = "many-to-many",
+  suffix = c("_a", "_b")
+) |>
+  # don't consider the same cell types, or duplicate based on order
+  dplyr::filter(cell_type_a < cell_type_b) |>
+  # count many spots pairs of cell types co-occur in
+  dplyr::count(cell_type_a, cell_type_b, name = "observed")
+
+# show data frame
+observed_df
+```
+
+Next, we need to calculate the number of spots with each cell type which will feed into our observed calculation.
+
+
+```{r calculate observed independent}
+# count how many spots each individual cell type appears in
+n_spots_df <- present_df |>
+  dplyr::count(cell_type, name = "n_spots")
+
+n_spots_df
+```
+
+Finally, we'll wrangle these all together to calculate the expected spots with the formula `(n_spots_with_cell_type_a * n_spots_with_cell_type_a)/number of total spots`, and then calculate the log ratio of observed/expected.
+
+
+```{r calculate ratio}
+# Calculate ratios
+cooccur_df <- observed_df |>
+  # combine data frames so we have a column for each of:
+  # observed counts for a/b pairs
+  # observed count for cell type a
+  # observed count for cell type b
+  dplyr::left_join(n_spots_df, by = c("cell_type_a" = "cell_type")) |>
+  dplyr::rename(n_spots_cell_type_a = n_spots) |>
+  dplyr::left_join(n_spots_df, by = c("cell_type_b" = "cell_type")) |>
+  dplyr::rename(n_spots_cell_type_b = n_spots) |>
+  # calculate expected count, and finally the log(observed/expected) ratio
+  dplyr::mutate(
+    expected = n_spots_cell_type_a * n_spots_cell_type_b / ncol(spe),
+    ratio    = log(observed / expected)
+  )
+```
+
+We'll display these results in a heatmap:
+
+```{r coocurrence heatmap}
+# plot a heatmap
+ggplot(cooccur_df) + 
+  aes(x = cell_type_a, y = cell_type_b, fill = ratio) +
+  geom_tile(color = "grey90") +
+  # label each tile with its ratio value
+  geom_text(
+    aes(label = round(ratio, 2)),
+    color = "black", 
+    fontface = "bold"
+  ) +
+  # add scale that diverges from 0 in the middle, using ALSF colors!
+  scale_fill_gradient2(
+    low = "#0053EA", mid = "white", high = "#FDEA91",
+    midpoint = 0,
+    name = "log ratio"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text.x = element_text(angle = 30, hjust = 1)
+  )
+```
+We'll point out a few items:
+
+- Tumor and mesenchymal is the most negative, does this make sense given what we see in the barplot?
+- Immune myeloid cells don't seem to co-occur with any other cell type in particular.
+
+Anything else you see?
+
+
+## Export
+
+We'll conclude by exporting a data frame of the full RCTD results as we stored them in `proportions_long_df` to the `rctd_tsv` file we defined at the beginning.
+
+```{r export tsv, live = TRUE}
+readr::write_tsv(proportions_long_df, rctd_tsv)
+```
+
 
 ## Session info
 
