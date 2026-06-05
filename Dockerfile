@@ -91,7 +91,6 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_PAT,required=false \
 # Some challenges with multi-arch builds and Bioconductor binaries mean we
 # want to be sure to set up repos manually here, lest the ones recorded in the
 # renv.lock file cause failures.
-arch <- R.version[['arch']]
 # set up repos for both BioC and CRAN
 repos <- c(
     BioCsoft = 'https://bioconductor.org/packages/3.22/bioc',

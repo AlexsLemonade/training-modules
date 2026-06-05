@@ -34,3 +34,4 @@ fi
 # to this list of types known to be serializable
 
 sed -i.bak 's/inherits(value, c("data.frame", "igraph"))/inherits(value, c("data.frame", "igraph", "SummarizedExperiment", "Matrix"))/' "$FILE"
+
