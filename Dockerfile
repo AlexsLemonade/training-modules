@@ -129,5 +129,9 @@ RUN python3 ${template_dir}/scripts/setup-skel.py \
     --skel-dir /etc/skel \
     --module-file ${template_dir}/current-modules.json
 
+# patch RStudio for serialization hanging bug.
+COPY scripts/patch-rstudio.sh patch-rstudio.sh
+RUN chmod +x patch-rstudio.sh && ./patch-rstudio.sh
+
 WORKDIR /home/rstudio
 
