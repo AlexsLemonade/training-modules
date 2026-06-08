@@ -16,9 +16,9 @@ output:
 
 ## Introduction
 
-In this notebook, we'll continue working with the mouse osteosarcoma lung metastases sample from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049) that we explored in spatial clustering notebook.
+In this notebook, we'll continue working with the mouse osteosarcoma lung metastases sample from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049) that we explored in the spatial clustering notebook.
 
-As we have discussed, each Visium spot captures the combined expression of approximately 5--20 cells, not a single cell.
+As we have discussed, each Visium spot captures the combined expression of approximately 5-20 cells, not a single cell.
 While the clustering analysis from the previous notebook identified groups of spots with similar transcriptional profiles, clustering alone cannot tell us which specific cell types are contributing to each spot's expression.
 To move from spot-level expression to cell-type-level information, we can apply **deconvolution**, which decomposes each spot's bulk gene expression into contributions from different cell types and estimates their relative proportions.
 
@@ -34,7 +34,7 @@ We'll specifically use the mouse metastasis-specific portion of this reference, 
 
 ## Set up
 
-To begin, we'll load the packages we'll use throughout this notebook and setting the random seed.
+To begin, we'll load the packages we'll use throughout this notebook and set the random seed.
 
 ```{r libraries}
 suppressPackageStartupMessages({
@@ -151,7 +151,7 @@ he_plot
 
 
 Let's also look at some marker gene expression to develop a sense of what cell types we might expect in this data given this reference.
-We'll show expression of select marker genes, obtained taken from the OsteoCAR paper, for cell types in the reference.
+We'll show the expression of select marker genes, taken from the OsteoCAR paper, for cell types in the reference.
 
 
 ```{r plot mouse markers}
@@ -211,17 +211,15 @@ RCTD offers three different modes you can use to specify how many cell types to 
 
 1. *Doublet mode:*
 This mode constrains the RCTD model to infer a maximum of two cell types per spot, which may or may not be realistic for heterogeneous Visium datasets.
-We have to note as well, this concept of "doublet" is not the same as doublets in single-cell analysis, in which multiple cells are sequenced together in a single droplet.
-Instead, this means at most two _cell types_ can be present in a spot; the exact number of cells per spot is not known, but we assume it's likely between 5--20.
 2. *Multi mode:*
 This mode allows the RCTD model to infer multiple cell types per spot, but no more than a specified maximum number of cell types (`max_multi_types`).
 This mode is an extension of doublet mode, where the maximum can be raised above 2.
 3. *Full mode:*
-This mode does not apply any constraints to the RCTD the model, which is allowed to infer an arbitrary number of cell types per spot
+This mode does not apply any constraints to the RCTD model, which is allowed to infer an arbitrary number of cell types per spot.
 
 With each mode, we'll ultimately end up with a per-cell weight which we can interpret as a proportion.
+This proportion indicates the estimated contribution of each cell type to each spot. 
 
-We'll begin running deconvolution by running RCTD in doublet mode.
 
 ### Prepare the data for deconvolution
 
@@ -232,7 +230,7 @@ This function sets various values and parameters that will be used for the decon
 * Identifying differentially expressed genes across cell types in the reference
 * Using those differentially expressed genes, calculating a mean-normalized reference expression matrix that RCTD will use for the deconvolution process itself
 
-We'll leave parameters are their defaults and prepare the data to run deconvolution with `Ann_Level1` labels.
+We'll leave the parameters at their defaults and prepare the data for deconvolution using `Ann_Level1` labels.
 
 ```{r create_rctd, live = TRUE}
 # prepare the data for deconvolution
@@ -307,7 +305,7 @@ assay(rctd_doublet, "weights")[, 1:4]
 
 This matrix tells us, for example, that the spot barcoded `AACACCTAAGCATTGC-1` is roughly split between epithelial/endothelial and mesenchymal cells.
 
-This result SPE object also contains some useful information in the `colData` slot:
+The resulting SPE object also contains some useful information in the `colData` slot:
 
 ```{r rctd coldata, live = TRUE}
 colData(rctd_doublet)
@@ -412,10 +410,10 @@ Does the cell type distribution match your expectations from our earlier marker 
 One specific observation here is this model inferred very few, if any, immune lymphoid cells in the data.
 We did however observe limited expression of immune lymphoid cells, so it's possible that by using doublet mode, we have missed identifying rare cell type populations.
 
-Therefore, we'll run RCTD once more but this time in "full" mode, which does not impose any constraints on the number of cell types per spot.
 
 ### Perform deconvolution: full mode
 
+We'll run RCTD once more but this time in "full" mode, which does not impose any constraints on the number of cell types per spot.
 We can use the same `rctd_data` object as input to full mode:
 
 ```{r run full mode}
