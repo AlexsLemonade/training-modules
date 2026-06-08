@@ -22,9 +22,10 @@ As we have discussed, each Visium spot captures the combined expression of appro
 While the clustering analysis from the previous notebook identified groups of spots with similar transcriptional profiles, clustering alone cannot tell us which specific cell types are contributing to each spot's expression.
 To move from spot-level expression to cell-type-level information, we can apply **deconvolution**, which decomposes each spot's bulk gene expression into contributions from different cell types and estimates their relative proportions.
 
-Specifically, we'll perform deconvolution using RCTD (Robust Cell Type Deconvolution), which is available in the `spacexr` package ([Cable et al. 2022](https://doi.org/10.1038/s41587-021-00830-w)).
-RCTD uses maximum likelihood estimation to model each spot's expression as a weighted combination of reference cell type profiles, using a single-cell reference dataset.
-RCTD also accounts for "platform effects" between the reference dataset, which was sequenced with single-cell technology, and the query spatial transcriptomics dataset, as the differences in library preparation between these platforms can introduce artifactual differences between gene expression measurements.
+Specifically, we'll perform deconvolution using RCTD (Robust Cell Type Deconvolution), which is available in the `spacexr` package ([Cable et al. 2022](https://doi.org/10.1038/s41587-021-00830-w)):
+
+- RCTD uses maximum likelihood estimation to model each spot's expression as a weighted combination of reference cell type profiles, using a single-cell reference dataset.
+- RCTD also accounts for "platform effects" between the reference dataset, which was sequenced with single-cell technology, and the query spatial transcriptomics dataset, as the differences in library preparation between these platforms can introduce artifactual differences between gene expression measurements.
 
 
 As with reference-based cell type annotation on single-cell data, it's critical for deconvolution to use a reference dataset that contains the cell types you expect to find in your data.
@@ -45,6 +46,9 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(patchwork)
 })
+
+# Set theme for ggplot2 plotting
+theme_set(theme_bw())
 
 set.seed(2026)
 ```
@@ -224,13 +228,14 @@ This proportion indicates the estimated contribution of each cell type to each s
 ### Prepare the data for deconvolution
 
 Next, we'll prepare the data for deconvolution by running the function `spacexr::createRctd()`.
-This function sets various values and parameters that will be used for the deconvolution procedure, including:
+This function sets various values and parameters that will be used for the deconvolution procedure.
+This includes identifying differentially expressed genes across cell types in the reference, which will be used to:
 
-* Identifying genes to use to correct for platform effects
-* Identifying differentially expressed genes across cell types in the reference
-* Using those differentially expressed genes, calculating a mean-normalized reference expression matrix that RCTD will use for the deconvolution process itself
+* Calculate a mean-normalized reference expression matrix that RCTD will use for the deconvolution process itself
+* Estimate gene-specific platform effects from pseudobulked expression profiles of these differentially expressed genes 
 
-We'll leave the parameters at their defaults and prepare the data for deconvolution using `Ann_Level1` labels.
+
+We'll leave parameters at their defaults and prepare the data for deconvolution using `Ann_Level1` labels.
 
 ```{r create_rctd, live = TRUE}
 # prepare the data for deconvolution
