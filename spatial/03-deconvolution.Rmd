@@ -432,7 +432,7 @@ rctd_full <- spacexr::runRctd(
 
 Because the full mode allows for more heterogeneity in cell types per spot, it does not attempt to classify spots as singlets or doublets, and instead estimates raw cell type weights for all cell types in all spots.
 The main piece of output from this model fit is just a `weights` assay, which contains the raw cell type weights estimated by the model for each spot.
-Because the model fit was unconstrained, the per-spot weights do not exactly sum to 1.
+Since the model fit was unconstrained, the per-spot weights do not exactly sum to 1.
 We will therefore need to normalize them to sum to 1 to be able to interpret them as proportions.
 For this, we'll use a relatively new R function called `proportions()`, which can normalize matrices by row or column to sum to 1.
 In this case, each column in the weights matrix represents a spot, so we'll provide the argument `margin = 2` to ensure each column sums to 1.
@@ -491,13 +491,14 @@ The histogram confirms that the estimated immune lymphoid proportions are indeed
 But are these low values real signal or just noise?
 One key consideration for answering this question is that there are only 5-20 cells per spot, so very small proportions start to become implausible: for example, a proportion of 1\% means 1 out of 100 cells, but we certainly don't have _that_ many cells in a spot!
 This means that in practice, proportions below 5-10% are less reliable indicators of cell type presence. 
+Because of this, we will apply a 0.1 proportion threshold to filter out cell type labels that may be noise. 
 
 So, while we can't rule out the possibility that there are low levels of lymphoid infiltration (after all, we did see some marker genes expressed), it's unlikely that these cell types are a major component of this tumor's microenvironment.
 That said, we must also keep in mind that our deconvolution inferences are only as good as the reference we used for deconvolution.
 In this case, our reference used a very broad "Immune_Lymphoid" category that included all lymphoid cell types, which may not have been a close match to any actual lymphoid cell types in our data.
 Our conclusions might shift with a finer-grained reference that considers individual lymphoid immune cell types.
 
-Either way, we will proceed by applying a 0.1 proportion threshold to filter out cell type labels that may be noise. 
+Either way, we will proceed by applying a 0.1 proportion threshold to filter cell type labels.
 Then, we will ask: how many cell types does the full mode model estimate per spot?
 This may also help us assess whether doublet mode, which was constrained to at most two cell types per spot, was an appropriate choice for this dataset.
 
@@ -585,7 +586,11 @@ We can answer this question of co-occurrence more systematically by asking wheth
 ```
 
 We'll quantify co-occurrence as the log ratio of observed to expected co-occurrences for each cell type pair.
-Taking the log gives a symmetric scale centered at 0: a value of 0 indicates co-occurrence matches random chance, positive values indicate the pair tends to share spots more than expected, and negative values indicate they tend not to co-occur.
+Taking the log gives a symmetric scale centered at 0: 
+
+- A value of 0 indicates co-occurrence matches random chance
+- Positive values indicate the pair tends to share spots more than expected
+- Negative values indicate they tend not to co-occur.
 (PS: this metric is more generally known as _pointwise mutual information_.)
 We'll use the same 0.1 proportion threshold as before to consider only cell type annotations that we are more confident are not just noise.
 
