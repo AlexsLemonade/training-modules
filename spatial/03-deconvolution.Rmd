@@ -10,41 +10,52 @@ output:
 
 ## Objectives
 
-- coming after the draft is complete.
+- Use RCTD to perform reference-based deconvolution of Visium spots in doublet and full modes
+- Visualize the spatial distribution of estimated cell type proportions across the osteosarcoma tissue
+- Explore patterns of cell type co-occurrence across spots
 
 ## Introduction
 
-We will be using the same mouse osteosarcoma lung metastases sample that we used in the `BANKSY` notebook.
+In this notebook, we'll continue working with the mouse osteosarcoma lung metastases sample from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049) that we explored in the spatial clustering notebook.
 
-We'll be performing deconvolution to identify cell types present in each spot using the [OsteoCAR reference](https://www.biorxiv.org/content/10.64898/2026.01.13.698472v3), specifically the mouse metastasis reference. 
-Note the importance of having a well-matched reference to the data; you can't find cell types that your reference doesn't contain.
+As we have discussed, each Visium spot captures the combined expression of approximately 5-20 cells, not a single cell.
+While the clustering analysis from the previous notebook identified groups of spots with similar transcriptional profiles, clustering alone cannot tell us which specific cell types are contributing to each spot's expression.
+To move from spot-level expression to cell-type-level information, we can apply **deconvolution**, which decomposes each spot's bulk gene expression into contributions from different cell types and estimates their relative proportions.
 
-We'll use RCTD (Robust Cell Type Deconvolution) available in the `spacexr` package which uses MLE to estimate relative cell type weights which can be interpreted as proportions of cell types per spot. 
+Specifically, we'll perform deconvolution using RCTD (Robust Cell Type Deconvolution), which is available in the `spacexr` package ([Cable et al. 2022](https://doi.org/10.1038/s41587-021-00830-w)):
+
+- RCTD uses maximum likelihood estimation to model each spot's expression as a weighted combination of reference cell type profiles, using a single-cell reference dataset.
+- RCTD also accounts for "platform effects" between the reference dataset, which was sequenced with single-cell technology, and the query spatial transcriptomics dataset, as the differences in library preparation between these platforms can introduce artifactual differences between gene expression measurements.
+
+
+As with reference-based cell type annotation on single-cell data, it's critical for deconvolution to use a reference dataset that contains the cell types you expect to find in your data.
+Here, we'll use the [OsteoCAR reference](https://www.biorxiv.org/content/10.64898/2026.01.13.698472v3), a single-cell atlas for osteosarcoma that has been divided into "sub-references" for human and mouse samples, as well as for primary and metastatic samples.
+We'll specifically use the mouse metastasis-specific portion of this reference, which we expect will be a reasonably good match to our Visium sample which is also from a mouse osteosarcoma lung metastasis. 
 
 
 ## Set up
 
+To begin, we'll load the packages we'll use throughout this notebook and set the random seed.
 
 ```{r libraries}
-# The main class we use for spatial transcriptomic data
 suppressPackageStartupMessages({
+  # The main class we use for spatial transcriptomic data
   library(SpatialExperiment)
+  # Packages to support plotting
+  library(ggspavis)
+  library(ggplot2)
+  library(patchwork)
 })
 
-
-# To support plotting
-library(ggspavis)
-library(ggplot2)
-library(patchwork)
-
-# Set ggplot2 theme
+# Set theme for ggplot2 plotting
 theme_set(theme_bw())
-```
 
+set.seed(2026)
+```
 
 ### Directories and files
 
-We'll read in the file we exported in the clustering notebook. 
+Next, we'll define paths to the normalized SPE object prepared prior to this module, stored in a sample-specific subdirectory of `data/osteo`.
 
 ```{r inputs}
 # define sample id we'll be analyzing 
@@ -59,15 +70,16 @@ sample_dir <- file.path(data_dir, "osteo", sample_id, "normalized")
 normalized_rds <- file.path(sample_dir, "osteo_normalized_spe.rds")
 ```
 
-We'll also need to define the file with the reference, which we have prepared for you by downsampling number of cells for RCTD compatibility, converting gene symbols to Ensembl (to match our object), and converting to `SCE` object; see here: <https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/osteo/reformat-osteo-ref.R>.
+Next, we'll define the file with the OsteoCAR mouse metastasis reference.
+Note that we have prepared this object from its original form for use in this notebook by converting it from a Seurat to a `SingleCellExperiment` object, converting row names from gene symbols to Ensembl ids (to match our object), and downsampling the number of cells for RCTD compatibility.
+You can see the code we use for this pre-processing here: <https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/osteo/reformat-osteo-ref.R>.
 
 ```{r input reference}
 ref_dir <- file.path(data_dir, "reference")
 ref_rds <- file.path(ref_dir, "mm_mets_osteo_ref.rds")
 ```
 
-Also define the output file which we'll save in an `analysis` directory that we'll also create.
-We'll save space by exporting a TSV with deconvolution results.
+We'll conclude this notebook by exporting a TSV with deconvolution results to an `analysis` directory, so let's define this here.
 
 ```{r analysis dir}
 analysis_dir <- file.path("analysis/osteo")
@@ -79,14 +91,49 @@ rctd_tsv <- file.path(analysis_dir, "osteo_deconvolution.tsv")
 
 ## Import
 
+### Import the reference SCE
+
+We'll start by reading in the reference SCE object we'll use for deconvolution and define it as `osteo_ref`.
+
+```{r import ref, live = TRUE}
+# read in the reference object
+osteo_ref <- readr::read_rds(ref_rds)
+
+# show the object
+osteo_ref
+```
+
+This object contains about 32,000 cells annotated with several cell type labels, which are stored in its `colData` slot:
+
+```{r reference annotations}
+# show the different annotation levels
+colData(osteo_ref) |>
+  as.data.frame() |>
+  dplyr::select( starts_with("Ann_Level") )
+```
+
+For this notebook, we're going to focus on `Ann_Level1` which contains broad cell type categories, but a more fine-grained analysis might consider `Ann_Level2` or `Ann_Level3`.
+
+Let's see the distribution of cell types in our chosen reference:
+
+```{r count celltypes, live = TRUE}
+colData(osteo_ref) |>
+  as.data.frame() |>
+  dplyr::count(Ann_Level1)
+```
+RCTD expects (although this can be customized) a maximum of 10,000 cells per cell type in the reference, so we downsampled cells to match this expectation during our pre-processing step.
+The original version of this OsteoCAR reference dataset has even more cells. 
+
 ### Import the SPE object
+
+Next, we'll read in the normalized SPE object we'll be running deconvolution on.
 
 ```{r import spe, live = TRUE}
 spe <- readr::read_rds(normalized_rds)
 ```
 
-
-Again, plot the Visium to reorient ourselves:
+Before diving into deconvolution, let's plot the H&E image to reorient ourselves to the tissue.
+We'll refer back to this image throughout the notebook when interpreting the spatial cell type patterns we find.
 
 ```{r plot-visium}
 #| fig.width: 5
@@ -107,8 +154,8 @@ he_plot
 ```
 
 
-Before we dive in, let's look at some marker gene expression to develop a sense of what cell types we might expect in this data given this reference.
-These marker genes were taken from the OsteoCAR paper.
+Let's also look at some marker gene expression to develop a sense of what cell types we might expect in this data given this reference.
+We'll show the expression of select marker genes, taken from the OsteoCAR paper, for cell types in the reference.
 
 
 ```{r plot mouse markers}
@@ -155,77 +202,44 @@ mouse_markers |>
   ) |> wrap_plots(ncol = 4)
 ```
 
-Based on these gene expression plots, what cell types do you think are likely common?
+Based on these gene expression plots, what cell types do you think are likely common in the dataset?
 Uncommon?
 Which cell types do you expect might co-occur?
-Any insights into the osteosarcoma tumor microenvironment and level of immune infiltration?
-
-
-### Import the reference SCE
-
-```{r import ref, live = TRUE}
-osteo_ref <- readr::read_rds(ref_rds)
-```
-
-Let's have a look at our reference, it's a `SingleCellExperiment` object.
-
-```{r show reference, live = TRUE}
-osteo_ref
-```
-
-We have about 32,000 cells across several cell types, which are in the `colData`:
-
-```{r reference annotations}
-# show the different annotation levels
-colData(osteo_ref) |>
-  as.data.frame() |>
-  dplyr::select( starts_with("Ann_Level") )
-```
-
-For this notebook, we're going to focus on `Ann_Level1` which contains broad cell type categories, but a more fine-grained analysis might consider `Ann_Level2`.
-Let's see the distribution of our chosen reference:
-
-```{r count celltypes, live = TRUE}
-colData(osteo_ref) |>
-  as.data.frame() |>
-  dplyr::count(Ann_Level1)
-```
-
-Again, when we prepared this reference, we downsampled to randomly select maximum 10000 cells per `Ann_Level1` label.
-
-
-Next, we'll use this reference to attempt to determine which cell types are present in each spot and their relative abundances in the osteosarcoma sample.
+Does this plot give you any insights about the osteosarcoma tumor microenvironment and the level of immune infiltration?
 
 ## Perform deconvolution
 
-RCTD introduction text; RCTD has three modes:
+Next, we'll use this reference to attempt to determine which cell types are present in each spot and their relative abundances in the osteosarcoma sample.
 
-1. Doublet: Constrains the model to infer only two cell types per spot.
-May not be realistic for heterogeneous Visium data. 
-Importantly this is _not the same_ as doublets in single-cell which are multiple cells in a droplet (which we sometimes filter out); this means _two of cell types_ in spot, but we don't know the actual number of cells per spot just that there are likely between 5--20.
-2. Multi: Constrains the model to a given number of cell types per spot, controlled by a parameter `max_multi_types`
-3. Full: No constraints on the model; can have an arbitrary number of cell types per spot
+RCTD models spot expression as a weighted combination of cell type-specific expression profiles from the single-cell reference.
+RCTD offers three different modes you can use to specify how many cell types to model for each spot:
 
-With each, we'll ultimately end up with a per-cell weight which we can interpret as a proportion.
+1. *Doublet mode:*
+This mode constrains the RCTD model to infer a maximum of two cell types per spot, which may or may not be realistic for heterogeneous Visium datasets.
+2. *Multi mode:*
+This mode allows the RCTD model to infer multiple cell types per spot, but no more than a specified maximum number of cell types (`max_multi_types`).
+This mode is an extension of doublet mode, where the maximum can be raised above 2.
+3. *Full mode:*
+This mode does not apply any constraints to the RCTD model, which is allowed to infer an arbitrary number of cell types per spot.
 
-We'll start off with doublet mode.
+With each mode, we'll ultimately end up with weights for each cell type per spot that we can interpret as proportions.
+This proportion indicates the estimated contribution of each cell type to each spot. 
+
 
 ### Prepare the data for deconvolution
 
-First, we need to prepare the data with `spacexr::createRctd()`.
+Next, we'll prepare the data for deconvolution by running the function `spacexr::createRctd()`.
+This function sets various values and parameters that will be used for the deconvolution procedure.
+This includes identifying differentially expressed genes across cell types in the reference, which will be used to:
 
-* A normalized expression matrix for the reference is calculated, as the mean-normalized expression of each gene within all cells of each cell type.
-* Platform effect genes are identified
-  * These are used to derive a scalar to account for technological differences between the reference (single-cell) and the query (Visium) data
-  * RCTD identifies these genes are those with some minimum expression level (`gene_cutoff` parameter) and some minimum level of differential expression (`fc_cutoff`).
-* DE genes to use for deconvolution are identified
-  * Uses more stringent thresholds than the scalar genes (`gene_cutoff_reg` and `fc_cutoff_ref`)
-* Estimates other parameters that RCTD will use
+* Calculate a mean-normalized reference expression matrix that RCTD will use for the deconvolution process itself
+* Estimate gene-specific platform effects from pseudo-bulked expression profiles of these differentially expressed genes 
 
 
-We'll leave parameters are their defaults and prepare the data to run deconvolution with `Ann_Level1` labels.
+We'll leave parameters at their defaults and prepare the data for deconvolution using `Ann_Level1` labels.
 
 ```{r create_rctd, live = TRUE}
+# prepare the data for deconvolution
 rctd_data <- spacexr::createRctd(
   spe, 
   osteo_ref, 
@@ -233,64 +247,85 @@ rctd_data <- spacexr::createRctd(
 )
 ```
 
-We got a list of several items organized into a structure that RCTD expects.
+We'll briefly look at the contents of `rctd_data`.
+It contains a list of several items organized into a structure that RCTD expects.
 
 ```{r rctd_data summary, live = TRUE}
 summary(rctd_data)
 ```
 
-We'll just look at the Visium data prepared for analysis:
+For example, here is the Visium data prepared for analysis:
 
 ```{r rctd_data SPE}
 rctd_data$spatial_experiment
 ```
 
-We can see genes have been downsampled from our original 19465 to only 3082 genes, which were identified for use by the model.
+We can see that it now only contains a small subset of genes which the model identified for use out of its original 19465 genes.
+
+Finally, we can also see the mean-normalized matrix that RCTD created for running deconvolution. 
+It's stored inside `rctd_data$cell_type_info$info`, and we'll show the first few rows below just for context:
+
+```{r show rctd matrix}
+rctd_data$cell_type_info$info[[1]] |>
+  head()
+```
 
 ### Perform deconvolution: doublet mode
 
-Now, we can perform deconvolution with this object as input.
-To begin, we'll run in doublet mode.
+We're ready to run deconvolution with the `rctd_data` object as input.
+We'll begin by running RCTD in doublet mode, which constrains the model to estimate at most two cell types per spot.
+This will take 1-2 minutes to run and reports model progress to the Console as it proceeds.
 
 ```{r run doublet mode, live = TRUE}
 rctd_doublet <- spacexr::runRctd(
+  # prepared data for RCTD
   rctd_data, 
+  # mode to run
   rctd_mode = "doublet",
+  # number of cores to use
   max_cores = 4
 ) 
 ```
 
-The function reports model progress to the Console so we can see it converges. 
+Now that results are ready, we'll have a look:
 
 ```{r show rctd_doublet, live = TRUE}
+# show rctd_doublet
 rctd_doublet
 ```
 
-We get a fresh SPE object with 5 features  (these are not genes, these are labels) across each of the 1632 spots.
+The resulting object is a new SPE object with only 5 features; these are not genes, but represent the cell type labels in the reference object. 
+This object also has several assays with the main deconvolution results:
 
-What's in the assays?
+* `weights`: Per-spot cell type proportions 
+* `weights_full`: Weights from the initial RCTD model fit, before constraining to two cell types
+  * Note that these values are not precisely what we would get from running RCTD "full" mode, as the model parameters here were optimized for "doublet" mode
+* `weighted_unconfident`: The same as `weights_full`, but including weights that the model is less confident in
 
-* `weights`: Cell type proportions 
-* `weights_full`: Initial step at estimating full weights before constraining them to proportions
-  * Note that this isn't exactly identical to what we'd get out of "full" mode because other model parameters were optimized for "doublet" mode
-* `weighted_unconfident`: Includes weights that the model is less confident in
-
-We'll focus on the `weights` assay here to look at the fitted proportions:
-
+The `weights` assay which contains the fitted proportions is of most interest to us:
 
 ```{r doublet weights}
-assay(rctd_doublet, "weights")[, 1:6]
+# print all rows across the first four columns of the matrix
+assay(rctd_doublet, "weights")[, 1:4]
 ```
 
-For example, this suggests that the spot barcoded `AACACCTAAGCATTGC-1` is roughly half and half epithelial/endothelial and mesenchymal. 
+This matrix tells us, for example, that the spot barcoded `AACACCTAAGCATTGC-1` is roughly split between epithelial/endothelial and mesenchymal cells.
 
-We also have some `colData` items:
+The resulting SPE object also contains some useful information in the `colData` slot:
 
 ```{r rctd coldata, live = TRUE}
 colData(rctd_doublet)
 ```
 
-Doublet mode works by comparing to a singlet mode so we have these classifications:
+There are a few columns of particular interest here that we'll point out:
+
+* `spot_class`: Whether each spot is more likely a doublet or singlet (i.e., containing a single cell type)
+_Importantly_, RCTD in doublet mode does not evaluate whether doublet is an accurate characterization in the first place.
+Doublet mode only assesses whether spots are more likely to be singlets or doublets but does not evaluate if enforcing a maximum of two cell types is a good fit to the data.
+* `first_type`: The cell type with the higher proportion in the spot
+* `second_type`: The cell type with the lower proportion in the spot
+
+Let's see how many doublets and singlets we have according to this model fit:
 
 ```{r count spot class, live = TRUE}
 colData(rctd_doublet) |>
@@ -298,16 +333,16 @@ colData(rctd_doublet) |>
   dplyr::count(spot_class)
 ```
 
-We have:
+We see the following labels in this column:
 
-* `reject` are spots that were filtered out because of either low quality or the reference was a poor fit in the first place
-* `singlet`: likely to have a single cell type
-* `doublet_certain`: under this constrained model, confidently a doublet _versus a singlet_. 
-_This does not mean that RCTD thinks it's more likely to be a doublet than have multiple cell types_.
-* `doublet_uncertain`: under this constrained model, doublet model is preferred but weaker difference from singlet
+* `reject`: Spots that were filtered out because of either low quality or the reference was a poor fit in the first place
+* `singlet`: Under the constrained doublet model, spots that are more likely to have a single cell type
+* `doublet_certain`: Under the constrained doublet model, spots that are more likely to have two cell types.
+Again, this does not mean that RCTD is entirely certain that the spot is a doublet, only that it is more certain to be a doublet than a singlet.
+* `doublet_uncertain`: Under the constrained doublet model, spots that are more likely to be doublets than singlets but with less confidence
 
-Let's go ahead and color by proportions using the provided function `spacexr::plotCellTypeWeight()`.
 
+We can also color the Visium coordinates by cell type proportions using the provided function `spacexr::plotCellTypeWeight()`.
 We'll do this using default settings for the `Tumor` cell type first:
 
 ```{r plot tumor proportions, live = TRUE}
@@ -317,18 +352,21 @@ spacexr::plotCellTypeWeight(
   rctd_doublet, 
   cell_type = "Tumor",
   assay_name = "weights", 
+  # minimally customize plot styling
   size = 2,
   stroke = 0.1
 )
 ```
 
+How does this plot compare to the regions we suspect are likely tumor-rich according to the H&E?
 
-Let's plot them all now, with more custom styling, including flipping the orientation to match the H&E.
-To facilitate this, we've written a function:
+We'll proceed to plot a grid of coordinate plots, each showing the proportion for a given cell type, and we'll also flip the plot orientation to match the H&E for easier comparison.
+
+To facilitate this, we've written a custom function; run this chunk to be able to use the function next.
 
 ```{r plot_all_props function}
 # Function to plot a grid of coordinate plots, each showing
-# a different cell type's per-spot proportion as present in the given
+# a different cell type's per-spot proportion as present in the given assay
 plot_all_props <- function(rctd_result, assay = "weights") {
   cell_types <- unique(rownames(rctd_result))
   
@@ -363,7 +401,7 @@ plot_all_props <- function(rctd_result, assay = "weights") {
 
 ```
 
-Let's use it below to plot all the cell type proportions in `rctd_doublet`:
+Now, we can use `plot_all_props()` to plot all the cell type proportions in `rctd_doublet`:
 
 ```{r plot doublet proportions, live = TRUE}
 #| message: false
@@ -372,14 +410,17 @@ Let's use it below to plot all the cell type proportions in `rctd_doublet`:
 plot_all_props(rctd_doublet)
 ```
 
-What do we see?
-How does this compare to expectations from H&E and marker gene exploration?
-These results suggests that there are no lymphoid cells in the data, even though we did observe _limited_ expression. 
+What overall patterns do you see?
+Does the cell type distribution match your expectations from our earlier marker gene expression plots?
+
+One specific observation here is this model inferred very few, if any, immune lymphoid cells in the data.
+We did however observe limited expression of immune lymphoid cells, so it's possible that by using doublet mode, we have missed identifying rare cell type populations.
+
 
 ### Perform deconvolution: full mode
 
-Let's run the model again, but unconstrained in "full" mode:
-
+We'll run RCTD once more but this time in "full" mode, which does not impose any constraints on the number of cell types per spot.
+We can use the same `rctd_data` object we created earlier as input, but this time we'll specify `rctd_mode = "full"` in `spacexr::runRctd()`.
 
 ```{r run full mode}
 rctd_full <- spacexr::runRctd(
@@ -389,9 +430,14 @@ rctd_full <- spacexr::runRctd(
 ) 
 ```
 
-We don't get the same `colData` columns out of this, just the weights as an assay. 
-For these weights, we need to normalize to sum to 1 since the model does not constrain them as it does the doublet mode.
-For explicitness we'll save this to a new assay called "proportions".
+Because the full mode allows for more heterogeneity in cell types per spot, it does not attempt to classify spots as singlets or doublets, and instead estimates raw cell type weights for all cell types in all spots.
+The main piece of output from this model fit is just a `weights` assay, which contains the raw cell type weights estimated by the model for each spot.
+Since the model fit was unconstrained, the per-spot weights do not exactly sum to 1.
+We will therefore need to normalize them to sum to 1 to be able to interpret them as proportions.
+For this, we'll use a relatively new R function called `proportions()`, which can normalize matrices by row or column to sum to 1.
+In this case, each column in the weights matrix represents a spot, so we'll provide the argument `margin = 2` to ensure each column sums to 1.
+
+We'll save the normalized values to a new assay called `proportions`.
 
 ```{r norm full proportions}
 assay(rctd_full, "proportions") <- assay(rctd_full, "weights") |>
@@ -402,10 +448,12 @@ assay(rctd_full, "proportions") <- assay(rctd_full, "weights") |>
   proportions(margin = 2) |>
   # convert back to sparse matrix
   as("CsparseMatrix")
+
+# show first spots in the new proportions assay
+assay(rctd_full, "proportions")[, 1:5]
 ```
 
-
-Now, let's plot, again using our custom `plot_all_props()` function, specifying to use the `proportions` assay:
+Let's plot these proportions using our `plot_all_props()` function, specifying the `proportions` assay that we just created:
 
 
 ```{r plot full proportions}
@@ -415,12 +463,12 @@ Now, let's plot, again using our custom `plot_all_props()` function, specifying 
 plot_all_props(rctd_full, assay = "proportions")
 ```
 
-How does this result compare to doublet mode?
-Does it change your interpretation of the overall landscape?
+How does this full mode result compare to results from doublet mode?
+Does it change your interpretation of the overall cell type landscape?
 
-Interestingly, we still see that lymphoid immune is still roughly 0 (which again matches expectations from marker gene expression), but if proportions are low it may just be hard to see in the plot.
-What exactly are those proportions, and do they represent real signal or noise?
-We'll make a histogram of these values:
+One pattern worth examining more closely is that immune lymphoid cell proportions again appear close to zero throughout, consistent with our earlier marker gene exploration.
+Because these proportions may be very small and not exactly zero, it can be difficult to tell from the coordinate plots alone whether there is any real signal for this cell type.
+Let's take a closer look at the distribution of estimated immune lymphoid proportions by plotting a histogram of these values across all spots.
 
 ```{r lymphoid histogram}
 # create a data frame of proportions
@@ -432,28 +480,31 @@ proportions_df <- assay(rctd_full, "proportions") |>
   # put barcodes from row names into a column 
   tibble::rownames_to_column("barcode")
 
-# plot a histogram
+# plot a histogram of immune lymphoid proportions
 ggplot(proportions_df) + 
   aes(x = Immune_Lymphoid) + 
   geom_histogram(fill = "seagreen", color = "gray20") +
   labs(x = "proportion")
 ```
 
-We see that the values here are indeed quite low.
-So, it is noise? Let's think through it:
+The histogram confirms that the estimated immune lymphoid proportions are indeed quite close to zero, but not all zero.
+But are these low values real signal or just noise?
+One key consideration for answering this question is that there are only 5-20 cells per spot, so very small proportions start to become implausible: for example, a proportion of 1\% means 1 out of 100 cells, but we certainly don't have _that_ many cells in a spot!
+This means that in practice, proportions below 5-10% are less reliable indicators of cell type presence. 
+Because of this, we will apply a 0.1 proportion threshold to filter out cell type labels that may be noise. 
 
-* Bear in mind the marker gene expression we saw earlier - really not many lymphoid lineage markers. 
-* Remember, we only have 5--20 cells per spot here
-  * Given this, very low proportions are likely to be noise because there aren't enough cells e.g. for a 1-2\% proportion to be realistic.
-  * In practice, people attribute proportions ~< 5-10% to be noise, and it looks like that's about where we are. 
-* Both modes therefore show us that lymphoid are rare in this tissue but we can't necessarily rule out minor infiltration since we do see some defining markers. As this reference is pretty coarse-grained, it's possible if we looked more precisely for specific lymphoid cell types we could answer this question more reliably, but either way it seems clear that these cells (if present) are rare. 
-  * Bear in mind caveats about how well the reference/data match!
+So, while we can't rule out the possibility that there are low levels of lymphoid infiltration (after all, we did see some marker genes expressed), it's unlikely that these cell types are a major component of this tumor's microenvironment.
+That said, we must also keep in mind that our deconvolution inferences are only as good as the reference we used for deconvolution.
+In this case, our reference used a very broad "Immune_Lymphoid" category that included all lymphoid cell types, which may not have been a close match to any actual lymphoid cell types in our data.
+Our conclusions might shift with a finer-grained reference that considers individual lymphoid immune cell types.
 
+Either way, we will proceed by applying a 0.1 proportion threshold to filter cell type labels.
+Then, we will ask: how many cell types does the full mode model estimate per spot?
+This may also help us assess whether doublet mode, which was constrained to at most two cell types per spot, was an appropriate choice for this dataset.
 
-If we assume a 0.1 threshold for calling presence, how many cell types are potentially in each spot?
-We'll have to wrangle a bit to answer this.
+We'll need to do some data wrangling for this calculation, starting by converting the `proportions` assay into a "long" data frame with one row per spot and two columns: cell type and proportion.
 
-```{r create proportions_long_df}
+```{r create present_df}
 # create a long-format data frame of proportions
 proportions_long_df <- proportions_df |>
   tidyr::pivot_longer(
@@ -461,17 +512,16 @@ proportions_long_df <- proportions_df |>
     values_to = "proportion",
     names_to = "cell_type"
   ) 
+
+# create subsetted data frame with only confident predictions
+present_df <- proportions_long_df |>
+  # consider only confident spots, conservatively
+  dplyr::filter(proportion >= 0.1) 
 ```
 
 Now, we can count up the number of cell types per spot, and then summarize this to get an overall distribution:
 
 ```{r count cell types per spot}
-# first, make a data frame of confident cell types only
-present_df <- proportions_long_df |>
-  # consider only confident spots, conservatively
-  dplyr::filter(proportion >= 0.1) 
-
-# count 
 present_df |>
   # count the number of cell types for each spot (how many times each barcode appears in the table)
   dplyr::count(barcode, name = "n_cell_types") |>
@@ -479,23 +529,23 @@ present_df |>
   dplyr::count(n_cell_types, name = "n_spots")
 ```
 
-Using this reference at this annotation level, we see that most spots have likely have 3 cell types.
-This suggests to us that the doublet mode did not capture the full heterogeneity, so let's stick with the full mode results.
+With this reference, we see that most spots contain 2-4 cell types at this threshold, with a small number of spots containing 5 or more cell types.
+This suggests that doublet mode likely underestimated the true cellular heterogeneity in this tissue, so we'll continue with our exploration using the full mode results.
 
-We'll interrogate further - what cell types do we actually have across spots?
-Before we plot, let's define a vector of clearly visible colors for these cell types too:
+Let's now look at the actual composition of spots to understand what cell types are present and how they vary across the tissue.
+For this, we'll make a stacked bar plot showing the cell type proportions for each spot, ordered by their tumor cell proportion.
+
+Before plotting, we'll define a palette for the cell types:
 
 ```{r define cvd friendly pal}
 celltype_pal <- c(
   "Epithelial_Endothelial" = "#E69F00",
-  "Immune_Lymphoid" = "navy",
+  "Immune_Lymphoid" = "#000080",
   "Immune_Myeloid" = "#009E73",
   "Mesenchymal" = "#F0E442",
   "Tumor" = "#56B4E9" 
 )
 ```
-
-We'll sort spots in this plot in descending order of their Tumor proportion, so we'll do some wrangling first
 
 
 ```{r barplot spot proportions}
@@ -509,7 +559,7 @@ barcode_order <- proportions_long_df |>
 
 ggplot(proportions_long_df) + 
   aes(
-    # sort barcodes in descending order of tumor weight
+    # sort barcodes in descending order of tumor proportion
     x = forcats::fct_relevel(barcode, barcode_order), 
     y = proportion, 
     fill = cell_type) + 
@@ -526,24 +576,37 @@ ggplot(proportions_long_df) +
 ```
 
 What patterns do you see?
-Which cell types tend to co-occur in spots, vs not?
+Which cell types tend to co-occur in spots, and which tend not to?
 
-We can answer this question a bit more carefully with more exploratory analysis to ask whether pairs of cell types tend to co-occur in the same spot more than expected.
-For this, we'll calculate the ratio of observed to expected co-occurrences of cell type pairs, where expected is like the chi-squared null, where cell types are distributed independently of one another.
-We'll log this value to give us a symmetric scale around 0 that aids in interpretation: a value of 0 means they co-occur as often as expected by random chance, negative less than expected, and positive more than expected.
-(PS: this metric actually is called the _pointwise mutual information_!)
-For this, we'll consider again the 0.1 threshold for calling a cell type as present in each spot.
+We can answer this question of co-occurrence more systematically by asking whether pairs of cell types co-occur in the same spots more or less frequently than expected by chance.
+"Expected" here refers to the number of co-occurrences we would see if the two cell types were distributed independently across spots (the same null expectation underlying a chi-squared test) and is calculated as:
 
-A few important caveats/pieces of context before we get going:
+```markdown
+(<number of spots with cell type A> * <number of spots with cell type B>) / total number of spots
+```
 
-- this analysis is _unweighted_ - it does not consider the proportion of cells per spot, only presence/absence at the 0.1 threshold
-- we don't consider things like spatial autocorrelation, where neighboring spots are more likely to have similar cell type profiles than more distant spots; we consider spots fully independent
-- this isn't the same as a neighborhood analysis; we are querying spots, not neighborhoods, and as noted in the caveat above we are considering spots independently
-  - a more rigorous analysis might therefore ask,"do tumor cells and epithelial cells tend to be physically close in space" which is a more involved analysis that actually considers neighborhoods and spot proximity
+We'll quantify co-occurrence as the log ratio of observed to expected co-occurrences for each cell type pair (PS: this metric is more generally known as _pointwise mutual information_).
+Taking the log gives a symmetric scale centered at 0: 
+
+- A value of 0 indicates co-occurrence matches random chance
+- Positive values indicate the pair tends to share spots more than expected
+- Negative values indicate they tend not to co-occur.
+
+We'll use the same 0.1 proportion threshold as before to consider only cell type annotations that we are more confident are not just noise.
+
+This simple analysis provides a useful starting point for exploring patterns of cell type co-occurrence in the tissue, but there are several caveats to keep in mind:
+
+- This analysis is _unweighted_: it considers only whether a cell type is present or absent at the 0.1 threshold, not the magnitude of each cell type's proportion
+- We treat spots as independent observations, which ignores spatial autocorrelation — in practice, neighboring spots are likely to have similar cell type compositions simply because they are physically close
+- This is not the same as a spatial neighborhood analysis. 
+A more rigorous co-occurrence analysis might ask, for example, whether certain cell types tend to be physically near each other across the tissue.
+This would require accounting for the actual spatial arrangement of spots and their neighbors, rather than treating each spot as a fully isolated entity as we are doing here.
 
 
-We'll do this in a few steps.
-First, starting from our existing `present_df` we'll calculate observed values by join this data frame to itself to find and count all pairwise combinations and count them up.
+We'll proceed to build this analysis up in a few steps.
+
+First, starting from `present_df`, we'll join the data frame to itself.
+This will enumerate all pairwise cell type combinations within each spot so that we can count how many spots each pair co-occurs in.
 
 ```{r calculate observed}
 # Count observed combinations of cell types
@@ -563,7 +626,7 @@ observed_df <- dplyr::inner_join(
 observed_df
 ```
 
-Next, we need to calculate the number of spots with each cell type which will feed into our observed calculation.
+Next, we'll count how many spots each individual cell type appears in, which will feed into our "expected" calculation:
 
 
 ```{r calculate observed independent}
@@ -574,7 +637,7 @@ n_spots_df <- present_df |>
 n_spots_df
 ```
 
-Finally, we'll wrangle these all together to calculate the expected spots with the formula `(n_spots_with_cell_type_a * n_spots_with_cell_type_a)/number of total spots`, and then calculate the log ratio of observed/expected.
+Finally, we'll join these together to compute the expected co-occurrence count for each pair and then calculate the log ratio of observed to expected:
 
 
 ```{r calculate ratio}
@@ -595,7 +658,7 @@ cooccur_df <- observed_df |>
   )
 ```
 
-We'll display these results in a heatmap:
+We'll display these results as a heatmap:
 
 ```{r coocurrence heatmap}
 # plot a heatmap
@@ -621,12 +684,13 @@ ggplot(cooccur_df) +
     axis.text.x = element_text(angle = 30, hjust = 1)
   )
 ```
-We'll point out a few items:
+A few patterns stand out:
 
-- Tumor and mesenchymal is the most negative, does this make sense given what we see in the barplot?
-- Immune myeloid cells don't seem to co-occur with any other cell type in particular.
+- The tumor–mesenchymal pairing has the most negative log ratio, indicating these two cell types tend to occupy different spots.
+Does this match what we observed in the stacked barplot above?
+- Immune myeloid cells show near-zero log ratios across all pairings, suggesting no strong tendency to co-occur with or avoid any particular cell type.
 
-Anything else you see?
+What other patterns do you notice?
 
 
 ## Export
@@ -640,7 +704,7 @@ readr::write_tsv(proportions_long_df, rctd_tsv)
 
 ## Session info
 
-To conclude, we'll run the `sessionInfo()` command to print out exactly what system setting and R package versions were used to run this code.
+As usual, we'll end with `sessionInfo()` to record the package versions we used for this notebook.
 
 ```{r}
 sessionInfo()
