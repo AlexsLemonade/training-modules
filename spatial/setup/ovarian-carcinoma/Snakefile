@@ -1,0 +1,75 @@
+# Workflow for obtaining the ovarian-carcomina 10x dataset as well as preparing its deconvolution reference
+
+from pathlib import Path
+import os
+
+configfile: "config.yaml"
+
+base_dir        = Path(config["base_dir"])
+ref_dir         = Path(config["ref_dir"])
+spaceranger_dir = base_dir / "spaceranger"
+output_ref_rds  = ref_dir / config["output_ref_rds"]
+
+
+rule targets:
+    input:
+        spaceranger_dir / "filtered_feature_bc_matrix",
+        spaceranger_dir / "spatial",
+        spaceranger_dir / "Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv",
+        output_ref_rds
+
+# get the 10x dataset itself
+rule download_10x:
+    output:
+        # have to list them out verbosely, since we need to read in the features tsv for ref preparation
+        directory(spaceranger_dir / "filtered_feature_bc_matrix"),
+        directory(spaceranger_dir / "spatial"),
+        spaceranger_dir / "Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv",
+        spaceranger_dir / "filtered_feature_bc_matrix/features.tsv.gz"
+    params:
+        url_filtered = config["url_filtered"],
+        url_spatial  = config["url_spatial"],
+        url_probes   = config["url_probes"]
+    shell:
+        """
+        mkdir -p {spaceranger_dir}/filtered_feature_bc_matrix
+        mkdir {spaceranger_dir}/spatial
+
+        curl -L {params.url_filtered} | tar xz --strip-components=1 -C {spaceranger_dir}/filtered_feature_bc_matrix
+        curl -L {params.url_spatial} | tar xz --strip-components=1 -C {spaceranger_dir}/spatial
+        curl --output-dir {spaceranger_dir} -O {params.url_probes}
+        """
+
+# get the GEO data used for reference
+rule download_geo:
+    output:
+        config["ref_raw_counts"],
+        config["ref_raw_metadata"]
+    params:
+        counts_url   = os.path.join(config['base_url_geo'], config['ref_raw_counts']),
+        metadata_url   = os.path.join(config['base_url_geo'], config['ref_raw_metadata'])
+    shell:
+        """
+          curl -LO "{params.counts_url}"
+          curl -LO "{params.metadata_url}"
+        """
+        
+
+# prepare the reference SCE from the downloaded GEO files
+rule prepare_ref:
+   input:
+       counts_file   = config["ref_raw_counts"],
+       metadata_file = config["ref_raw_metadata"],
+       features_file = spaceranger_dir / "filtered_feature_bc_matrix/features.tsv.gz"
+   output:
+       output_ref_rds
+   params:
+       script  = "prepare-ovarian-reference.R",
+   shell:
+       """
+         Rscript {params.script} \
+           --counts_file {input.counts_file} \
+           --metadata_file {input.metadata_file} \
+           --features_file {input.features_file} \
+           --output_file {output}
+       """

@@ -49,8 +49,19 @@ The `SCPCS000190` directory was then copied to `/shared/data/training-modules/sp
 ### Ovarian carcinoma
 
 This data comes from this 10x Genomics dataset: <https://www.10xgenomics.com/datasets/human-ovarian-cancer-11-mm-capture-area-ffpe-2-standard>.
-This data, as well as its corresponding Visium probe set, can be downloaded with `ovarian-carcinoma/download-ovarian.R`.
-This will create a directory `../data/ovarian-carcinoma/spaceranger/` with the following files:
+The `spaceranger` data, as well as the corresponding Visium probe set, needs to be obtained.
+
+In addition, [this ovarian carcinoma GEO dataset](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE189955) also needs to be obtained and prepared for the workshop as the ovarian carcinoma deconvolution reference.
+
+
+To download data and prepare the reference for the workshop, change directories to the `setup/ovarian-carcinoma` directory and run the following:
+
+```sh
+snakemake -j2
+```
+
+This will create both `../data/reference/GSE189955_ovarian_ref.rds` and a directory `../data/ovarian-carcinoma/spaceranger` with the following files:
+
 
 ```console
 spaceranger
@@ -71,7 +82,7 @@ spaceranger
 └── Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv
 ```
 
-The `ovarian-carcinoma` directory was then copied to `/shared/data/training-modules/spatial/data/`.
+The `ovarian-carcinoma` directory was then copied to `/shared/data/training-modules/spatial/data/`, and `GSE189955_ovarian_ref.rds` was copied to `/shared/data/training-modules/spatial/data/reference/`.
 
 ### Osteosarcoma
 
@@ -80,7 +91,6 @@ This data needs to be filtered and normalized for input to workshop notebooks.
 
 In addition, the [`OsteoCAR` mouse metastasis reference](https://figshare.com/articles/dataset/OsteoCAR_A_multi-species_single-cell_atlas_of_primary_and_metastatic_osteosarcoma/31029559) also needs to be obtained and prepared for the workshop as the osteosarcoma deconvolution reference.
 
-
 To download and prepare input data and the reference for the workshop, change directories to the `setup/osteo` directory and run the following.
 Note that this assumes that the file `../../data/reference/mm_mitochondrial_genes.tsv` is present.
 
@@ -88,7 +98,7 @@ Note that this assumes that the file `../../data/reference/mm_mitochondrial_gene
 snakemake -j2
 ```
 
-This will create both `../data/references/mm_mets_osteo_ref.rds` and a directory `../data/osteo/` with the following files:
+This will create both `../data/reference/mm_mets_osteo_ref.rds` and a directory `../data/osteo/` with the following files:
 
 ```console
 osteo

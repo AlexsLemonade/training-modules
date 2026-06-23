@@ -55,7 +55,7 @@ sync_dirs=(
   scRNA-seq-advanced/data/rms/integrated
   scRNA-seq-advanced/data/pancreas/processed
   scRNA-seq-advanced/gene-sets
-  scRNA-seq-advanced/data/wilms-tumor/spaceranger
+  spatial/data/wilms-tumor/spaceranger
   spatial/data/ovarian-carcinoma/spaceranger
   spatial/data/osteo/GSM8478586/spaceranger
   spatial/data/reference
