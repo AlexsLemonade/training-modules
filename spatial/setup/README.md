@@ -121,14 +121,14 @@ Then, `mm_mets_osteo_ref.rds` was copied to `/shared/data/training-modules/spati
 
 This data comes from this 10x Genomics dataset: <https://www.10xgenomics.com/datasets/human-colorectal-cancer-whole-transcriptome-analysis-1-standard-1-2-0>.
 
-To download and prepare input data for the workshop, change directories to the `setup/crc_v1` directory and run the following.
+To download and prepare input data for the workshop, change directories to the `setup/crc-v1` directory and run the following.
 Note that this assumes that the file `../../data/reference/hs_mitochondrial_genes.tsv` is present.
 
 ```sh
 snakemake -j2
 ```
 
-This will create both a directory `../data/crc_v1/` with the following files:
+This will create both a directory `../data/crc-v1/` with the following files:
 
 ```console
 ├── normalized
@@ -147,4 +147,4 @@ This will create both a directory `../data/crc_v1/` with the following files:
         └── tissue_positions_list.csv
 ```
 
-The `crc_v1/normalized/` directory was then copied to `/shared/data/training-modules/spatial/data/`.
+The `crc-v1/normalized/` directory was then copied to `/shared/data/training-modules/spatial/data/`.
