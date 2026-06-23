@@ -48,9 +48,9 @@ Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 10)
 # First, we'll prepare the counts matrix -------------
 # Convert from gene symbol -> ensembl, using the features tsv for ID reference
 # worth noting the colnames aren't actually barcodes but they are unique ids!
-raw_matrix <- readr::read_csv(opt$counts_file)
-full_matrix <- as.matrix(raw_matrix[, -1])
-rownames(full_matrix) <- raw_matrix$...1
+full_matrix <- readr::read_csv(opt$counts_file) |>
+  tibble::column_to_rownames(var = "...1") |>
+  as.matrix()
 
 features_df <- readr::read_tsv(
   opt$features_file,
