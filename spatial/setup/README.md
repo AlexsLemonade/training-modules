@@ -94,12 +94,12 @@ This will create both `../data/references/mm_mets_osteo_ref.rds` and a directory
 osteo
 └── GSM8478586
     ├── normalized
-    │   └── osteo_normalized_spe.rds
+    │   └── osteo_normalized_spe.rds
     └── spaceranger
         ├── filtered_feature_bc_matrix
-        │   ├── barcodes.tsv.gz
-        │   ├── features.tsv.gz
-        │   └── matrix.mtx.gz
+        │   ├── barcodes.tsv.gz
+        │   ├── features.tsv.gz
+        │   └── matrix.mtx.gz
         └── spatial
             ├── aligned_fiducials.jpg
             ├── aligned_tissue_image.jpg
@@ -113,3 +113,38 @@ osteo
 ```
 
 Then, `mm_mets_osteo_ref.rds` was copied to `/shared/data/training-modules/spatial/data/reference/`, and the `osteo` directory was copied to `/shared/data/training-modules/spatial/data/`. 
+
+
+
+
+### CRC V1
+
+This data comes from this 10x Genomics dataset: <https://www.10xgenomics.com/datasets/human-colorectal-cancer-whole-transcriptome-analysis-1-standard-1-2-0>.
+
+To download and prepare input data for the workshop, change directories to the `setup/crc_v1` directory and run the following.
+Note that this assumes that the file `../../data/reference/hs_mitochondrial_genes.tsv` is present.
+
+```sh
+snakemake -j2
+```
+
+This will create both a directory `../data/crc_v1/` with the following files:
+
+```console
+├── normalized
+│   └── crc_normalized_spe.rds
+└── spaceranger
+    ├── filtered_feature_bc_matrix
+    │   ├── barcodes.tsv.gz
+    │   ├── features.tsv.gz
+    │   └── matrix.mtx.gz
+    └── spatial
+        ├── aligned_fiducials.jpg
+        ├── detected_tissue_image.jpg
+        ├── scalefactors_json.json
+        ├── tissue_hires_image.png
+        ├── tissue_lowres_image.png
+        └── tissue_positions_list.csv
+```
+
+The `crc_v1/normalized/` directory was then copied to `/shared/data/training-modules/spatial/data/`.
