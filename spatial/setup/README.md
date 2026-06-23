@@ -117,7 +117,7 @@ Then, `mm_mets_osteo_ref.rds` was copied to `/shared/data/training-modules/spati
 
 
 
-### CRC V1
+### Colorectal Cancer (`CRC`) V1
 
 This data comes from this 10x Genomics dataset: <https://www.10xgenomics.com/datasets/human-colorectal-cancer-whole-transcriptome-analysis-1-standard-1-2-0>.
 
