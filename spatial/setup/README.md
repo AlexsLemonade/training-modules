@@ -49,7 +49,7 @@ The `SCPCS000190` directory was then copied to `/shared/data/training-modules/sp
 ### Ovarian carcinoma
 
 This data comes from this 10x Genomics dataset: <https://www.10xgenomics.com/datasets/human-ovarian-cancer-11-mm-capture-area-ffpe-2-standard>.
-The spaceranger data, as well as the corresponding Visium probe set, needs to be obtained.
+The `spaceranger` data, as well as the corresponding Visium probe set, needs to be obtained.
 
 In addition, [this ovarian carcinoma GEO dataset](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE189955) also needs to be obtained and prepared for the workshop as the ovarian carcinoma deconvolution reference.
 
