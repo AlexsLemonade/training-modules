@@ -1,0 +1,161 @@
+---
+title: "Prepare CRC Visium v1 dataset"
+author: Stephanie Spielman for CCDL
+date: 2026
+output: html_notebook
+params:
+  filtered_matrix: "../../data/crc-v1/spaceranger/filtered_feature_bc_matrix"
+  spatial_dir: "../../data/crc-v1/spaceranger/spatial"
+  output_rds: "../../data/crc-v1/normalized/crc_normalized_spe.rds"
+  mito_genes_file: "../../data/reference/hs_mitochondrial_genes.tsv"
+---
+
+This notebook prepares this [CRC sample from 10x](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM8478586), which was processed with `Space ranger v1` for analysis in the workshop by performing filtering and normalization.
+It is meant to be run from the [snakemake workflow](Snakemake) in this directory.
+
+Note that this notebook runs only deterministic algorithms, so no seed is set.
+
+```{r}
+suppressPackageStartupMessages({
+  library(SpatialExperiment)
+})
+```
+
+First, check paths:
+
+```{r}
+stopifnot(
+  "filtered_feature_bc_matrix/ doesn't exist" = dir.exists(params$filtered_matrix),
+  "spatial/ doesn't exist" = dir.exists(params$spatial_dir),
+  "mito_genes_file doesn't exist" = file.exists(params$mito_genes_file),
+  "output_rds must end in rds" = stringr::str_ends(params$output_rds, "\\.rds")
+)
+```
+
+Begin by importing the SPE.
+At this time of writing, `VisiumIO` does not support loading images into memory; it only stores the full path to the image resources.
+Therefore, we'll construct the SPE from scratch.
+
+```{r}
+# first read in counts
+# don't include column names; those will come in from the coords_table
+sce <- DropletUtils::read10xCounts(
+  params$filtered_matrix
+)
+
+# read in image data with load = TRUE, which is default but we'll specify to be safe
+# this function can only accommodate: "lowres", "hires", "detected", "aligned"
+img_hires <- SpatialExperiment::readImgData(
+    path = params$spatial_dir,
+    sample_id = "CRC",  # this argument is required
+    imageSources = file.path(params$spatial_dir, "tissue_hires_image.png"),
+    scaleFactors = file.path(params$spatial_dir, "scalefactors_json.json"),
+    load = TRUE
+)
+
+# read in spatial coordinates
+coords_table <- readr::read_csv(
+  file.path(
+    params$spatial_dir,
+    "tissue_positions_list.csv"
+  ), 
+  # v1 spaceranger version of this file has no header, we need to add it
+  col_names = c("barcode", "in_tissue", "array_row", "array_col", "pxl_row_in_fullres", "pxl_col_in_fullres")
+) |>
+  dplyr::filter(
+    # only keep relevant spots in the tissue
+    in_tissue == 1,
+    barcode %in% sce$Barcode
+  )
+# confirm order matches
+coords_table <- coords_table[match(sce$Barcode, coords_table$barcode), ]
+stopifnot(
+  "Barcode mismatch when making SPE" = all(sce$Barcode == coords_table$barcode)
+)
+
+# combine
+spe <- SpatialExperiment(
+  assays = list(counts = assay(sce)),
+  rowData = rowData(sce),
+  colData = DataFrame(coords_table, row.names = coords_table$barcode),
+  spatialCoordsNames = c("pxl_col_in_fullres", "pxl_row_in_fullres"),
+  imgData = img_hires,
+  sample_id = "CRC" # match the image sample_id
+)
+
+spe
+```
+
+Now, perform filtering:
+
+```{r}
+mito_genes <- readr::read_tsv(params$mito_genes_file) |>
+  dplyr::filter(gene_id %in% rownames(spe)) |>
+  dplyr::pull(gene_id)
+mito_genes
+```
+
+Confirm that the data has mitochondrial genes:
+
+```{r}
+all(mito_genes %in% rownames(spe)) # TRUE
+```
+
+Looks good, we can include this filtering.
+
+
+```{r}
+spe <- spe |>
+  # calculate per-spot statistics
+  scuttle::addPerCellQC(
+    subsets = list(mito = mito_genes)
+  ) |> 
+  # Detect local outliers using defaults 
+  SpotSweeper::localOutliers(
+    metric = "sum",
+    direction = "lower"
+  ) |> 
+  SpotSweeper::localOutliers(
+    metric = "detected",
+    direction = "lower"
+  ) |>
+  SpotSweeper::localOutliers(
+    metric = "subsets_mito_percent",
+    direction = "higher", 
+    log = FALSE
+  ) 
+```
+
+There are this many outlier spots to remove:
+
+```{r}
+# identify and remove local outliers
+spe$local_outliers <- spe$sum_outliers | spe$detected_outliers | spe$subsets_mito_percent_outliers
+print(sum(spe$local_outliers)) # 24 spots
+```
+
+```{r}
+# keep only spots where `local_outliers` is FALSE
+spe <- spe[, !spe$local_outliers]
+```
+
+
+Now, we can normalize the object.
+
+```{r}
+spe <- spe |>
+  scuttle::computeLibraryFactors() |>
+  scuttle::logNormCounts()
+```
+
+Finally, we can export with compression.
+
+```{r}
+readr::write_rds(spe, params$output_rds, compress = "gz")
+```
+
+## Session info
+
+```{r}
+sessionInfo()
+```
