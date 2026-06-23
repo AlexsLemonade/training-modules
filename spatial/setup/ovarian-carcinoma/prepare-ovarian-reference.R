@@ -83,6 +83,8 @@ annotations_df <- annotations_df[colnames(sce), ]
 # Add it as colData; celltypes are in `Cell_Type`
 colData(sce) <- DataFrame(annotations_df)
 
+# Finally, remove cells where the annotation is NA
+sce <- sce[, !is.na(sce$Cell_Type)]
 
 # Export --------
 readr::write_rds(sce, opt$output_file, compress = "gz")
