@@ -178,7 +178,7 @@ We'll then use these modeling results to select the top 2000 genes with the high
 gene_variance <- scran::modelGeneVar(spe)
 
 # calculate the top 2000 HVGs
-hvg_vector <- scran::getTopHVGs(spe, n = 2000)
+hvg_vector <- scran::getTopHVGs(gene_variance, n = 2000)
 
 # calculate PCE using the top HVGs, saving back to the SPE object
 spe <- scater::runPCA(spe, subset_row = hvg_vector)
@@ -342,7 +342,7 @@ assay(hvg_spe, "H0")[1:5, 1:5]
 
 ```{r banksy nonagf metadata}
 # show the SPE metadata
-metadata(hvg_spe)$Banksy_params
+metadata(hvg_spe)$BANKSY_params
 ```
 
 Now, we can use `Banksy::runBanksyPCA()`, which combines `logcounts` and `H0` into a single matrix weighted by `lambda` and then runs PCA on it.
@@ -455,7 +455,7 @@ hvg_spe
 ```
 
 The SPE now contains an additional assay, `H1`, which stores the AGF-based neighborhood expression profile.
-Note that if you re-run `Banksy::computeBanksy()` with different parameters, the new object will only include the new `H0` and `H1`, as well the `Banksy_params` entry from that run.
+Note that if you re-run `Banksy::computeBanksy()` with different parameters, the new object will only include the new `H0` and `H1`, as well the `BANKSY_params` entry from that run.
 We are saving back to the existing variable, so we are losing our previous results.
 
 If you want to preserve results from multiple runs, you will need to keep this in mind and store each set of results separately.
@@ -465,10 +465,10 @@ If you want to preserve results from multiple runs, you will need to keep this i
 assay(hvg_spe, "H1")[1:5, 1:5]
 ```
 
-As with the non-AGF run, `Banksy::computeBanksy()` updated the `Banksy_params` entry in the SPE's `metadata` slot to reflect the new settings:
+As with the non-AGF run, `Banksy::computeBanksy()` updated the `BANKSY_params` entry in the SPE's `metadata` slot to reflect the new settings:
 
 ```{r banksy agf metadata}
-metadata(hvg_spe)$Banksy_params
+metadata(hvg_spe)$BANKSY_params
 ```
 
 
@@ -645,6 +645,7 @@ plot_list <- list(
 )
 patchwork::wrap_plots(plot_list, nrow = 2)
 ```
+
 Let's begin interpreting this by focusing on the tumor rich-clusters (3/5 non-spatial and 4, 5 and 7 `Banksy` AGF).
 Do these clusters show comparable expression of `Cola1a`, or do you see distinctions in `Cola1a` levels?
 Do you think that the associated `Banksy` clusters may represent distinct biological regions?
