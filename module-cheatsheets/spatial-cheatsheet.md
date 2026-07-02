@@ -18,7 +18,10 @@ If you have a different version of R or other R packages, the documentation may 
 - [`VisiumIO`](#visiumio)
 - [`ggspavis`](#ggspavis)
 - [`SpotSweeper`](#spotsweeper)
-- [`scuttle`](#scuttle)
+- [`Banksy`](#banksy)
+- [`spacexr`](#spacexr)
+- [`scuttle`, `scran` , and `scater`](#scuttle-scran--and-scater)
+- [`bluster`](#bluster)
 - [`patchwork`](#patchwork)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -113,17 +116,21 @@ Read the [`spacexr` package documentation](https://www.bioconductor.org/packages
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
-| `spacexr` | [`createRctd()`](https://www.bioconductor.org/packages/release/bioc/vignettes/spacexr/inst/doc/rctd-tutorial.html#step-1-preprocess-data)  | Create an RCTD object | Preprocess data before performing deconvolutuion with RCTD |
+| `spacexr` | [`createRctd()`](https://www.bioconductor.org/packages/release/bioc/vignettes/spacexr/inst/doc/rctd-tutorial.html#step-1-preprocess-data)  | Create an RCTD object | Preprocess data before performing deconvolution with RCTD |
 | `spacexr`| [`runRCTD()`](https://www.bioconductor.org/packages/release/bioc/vignettes/spacexr/inst/doc/rctd-tutorial.html#step-2-run-rctd)| Run RCTD | Run the RCTD algorithm to decompose cell type mixtures |
 | `spacexr`| [`plotCellTypeWeight()`](https://www.bioconductor.org/packages/release/bioc/vignettes/spacexr/inst/doc/rctd-tutorial.html#single-cell-type)| Plot a single cell type's weights | Plot pixel proportions for a specific cell type on a spatial coordinates plot |
 
+<div style="page-break-after: always;"></div>
 
 
-### `scuttle` and `scran` 
+### `scuttle`, `scran` , and `scater`
+
 
 Read the [`scuttle` package documentation](https://rdrr.io/bioc/scuttle/), and a [vignette on its usage](https://rdrr.io/bioc/scuttle/f/vignettes/overview.Rmd).
 
 Read the [`scran` package documentation](https://rdrr.io/bioc/scran/), and a [vignette on its usage](https://rdrr.io/bioc/scran/f/vignettes/scran.Rmd).
+
+Read the [`scater` package documentation](https://rdrr.io/bioc/scater/), and a [vignette on its usage](http://www.bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html).
 
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
@@ -133,23 +140,17 @@ Read the [`scran` package documentation](https://rdrr.io/bioc/scran/), and a [vi
 | `scuttle`| [`logNormCounts()`](https://rdrr.io/bioc/scuttle/man/logNormCounts.html)| Normalize log counts | Returns the `SpatialExperiment` (or `SingleCellExperiment`) object with normalized expression values for each spot (cell), using the size factors stored in the object |
 | `scran`| [`getTopHVGs()`](https://rdrr.io/bioc/scran/man/getTopHVGs.html)| Get top highly variable genes | Identify variable genes in a `SingleCellExperiment` object, based on variance |
 | `scran`| [`modelGeneVar()`](https://rdrr.io/bioc/scran/man/modelGeneVar.html)| model per gene variance | Model the per gene variance of a `SingleCellExperiment` object |
+| `scran`| [`clusterCells()`](https://rdrr.io/github/MarioniLab/scran/man/clusterCells.html)| Cluster cells | Perform clustering on an SCE object using the `bluster` package |
+| `scater`| [`runPCA()`](https://rdrr.io/bioc/scater/man/runPCA.html)| Run PCA | Calculates principal components analysis on a `SingleCellExperiment` object, returning an SCE object with a PCA reduced dimension |
+| `scater`| [`runUMAP()`](https://rdrr.io/bioc/scater/man/runUMAP.html)| Run UMAP | Calculates uniform manifold approximate projection on a `SingleCellExperiment` object, returning an SCE object with a UMAP reduced dimension |
+| `scater`| [`plotUMAP()`](https://rdrr.io/bioc/scater/man/plot_reddim.html)| Plot UMAP | Plot the "UMAP"-named reduced dimension slot from a `SingleCellExperiment` object |
 
-### `patchwork`
 
-
-Read the [`patchwork` package documentation](https://rdrr.io/cran/patchwork), and a [vignette on its usage](https://patchwork.data-imaginist.com/articles/patchwork.html).
-
-
-| Library/Package      | Piece of Code      | What it's called    | What it does  |
-|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
-| `patchwork` | [`wrap_plots()`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Wrap plots | Wrap multiple `ggplot2` objects into a single multi-panel plot  |
-| `patchwork` | [`+`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Place `ggplot2` objects side-by-side by adding them together with a `+`. The `patchwork` package must be loaded to use this symbol with plots |
-| `patchwork` | [`/`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Stack `ggplot2` objects on top of one another "dividing" them with a `/`. The `patchwork` package must be loaded to use this symbol with plots |
+<div style="page-break-after: always;"></div>
 
 
 
-
-## `bluster`
+### `bluster`
 
 Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and vignettes on its usage:
 
@@ -163,3 +164,16 @@ Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and vi
 | `bluster`| [`approxSilhouette()`](https://rdrr.io/bioc/bluster/man/approxSilhouette.html)| Approximate silhouette width | Calculate an approximate silhouette width for each cell given a set of clusters |
 | `bluster`| [`neighborPurity()`](https://rdrr.io/bioc/bluster/man/neighborPurity.html)| Compute neighborhood purity | Calculate neighborhood purity for each cell given a set of clusters |
 | `bluster`| [`bootstrapStability()`](https://rdrr.io/bioc/bluster/man/bootstrapStability.html)| Assess cluster stability by bootstrapping  | Generate cluster bootstrap replicates to estimate cluster robustness to sampling noise  |
+
+
+### `patchwork`
+
+
+Read the [`patchwork` package documentation](https://rdrr.io/cran/patchwork), and a [vignette on its usage](https://patchwork.data-imaginist.com/articles/patchwork.html).
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+| `patchwork` | [`wrap_plots()`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Wrap plots | Wrap multiple `ggplot2` objects into a single multi-panel plot  |
+| `patchwork` | [`+`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Place `ggplot2` objects side-by-side by adding them together with a `+`. The `patchwork` package must be loaded to use this symbol with plots |
+| `patchwork` | [`/`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Stack `ggplot2` objects on top of one another "dividing" them with a `/`. The `patchwork` package must be loaded to use this symbol with plots |
