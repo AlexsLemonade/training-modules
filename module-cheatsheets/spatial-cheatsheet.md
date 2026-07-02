@@ -116,3 +116,21 @@ Read the [`patchwork` package documentation](https://rdrr.io/cran/patchwork), an
 | `patchwork` | [`wrap_plots()`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Wrap plots | Wrap multiple `ggplot2` objects into a single multi-panel plot  |
 | `patchwork` | [`+`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Place `ggplot2` objects side-by-side by adding them together with a `+`. The `patchwork` package must be loaded to use this symbol with plots |
 | `patchwork` | [`/`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Stack `ggplot2` objects on top of one another "dividing" them with a `/`. The `patchwork` package must be loaded to use this symbol with plots |
+
+
+
+
+## `bluster`
+
+Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and vignettes on its usage:
+
+* [Flexible clustering for Bioconductor](https://rdrr.io/bioc/bluster/f/vignettes/clusterRows.Rmd)
+* [Assorted clustering diagnostics](https://rdrr.io/bioc/bluster/f/vignettes/diagnostics.Rmd)
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `bluster`| [`NNGraphParam()`](https://rdrr.io/bioc/bluster/man/NNGraphParam-class.html)| Graph-based clustering parameters | Set up parameters for nearest-neighbor (NN) graph-based clustering algorithms within `scran::clusterCells()` or `bluster::clusterRows()` |
+| `bluster`| [`approxSilhouette()`](https://rdrr.io/bioc/bluster/man/approxSilhouette.html)| Approximate silhouette width | Calculate an approximate silhouette width for each cell given a set of clusters |
+| `bluster`| [`neighborPurity()`](https://rdrr.io/bioc/bluster/man/neighborPurity.html)| Compute neighborhood purity | Calculate neighborhood purity for each cell given a set of clusters |
+| `bluster`| [`bootstrapStability()`](https://rdrr.io/bioc/bluster/man/bootstrapStability.html)| Assess cluster stability by bootstrapping  | Generate cluster bootstrap replicates to estimate cluster robustness to sampling noise  |
