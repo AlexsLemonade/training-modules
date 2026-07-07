@@ -105,7 +105,7 @@ Note that many of their vignettes use of image-based spatial transcriptomics dat
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
 | `Banksy` | [`computeBanksy()`](https://www.bioconductor.org/packages/release/bioc/vignettes/Banksy/inst/doc/domain-segment.html#running-banksy)  | Compute `Banksy` | Compute the component neighborhood matrices for the `Banksy` matrix |
-| `Banksy`| [`runBanksyPCA()`](https://www.bioconductor.org/packages/release/bioc/vignettes/Banksy/inst/doc/domain-segment.html#running-banksy)| Run `Banksy` PCA | Run PCA on a `Banksy` matrix while weighting the spatial neighborhood context |
+| `Banksy`| [`runBanksyPCA()`](https://www.bioconductor.org/packages/release/bioc/vignettes/Banksy/inst/doc/domain-segment.html#running-banksy)| Run `Banksy` PCA | Run PCA on a `Banksy` matrix with a weighted spatial neighborhood context |
 
 
 ### `spacexr`
