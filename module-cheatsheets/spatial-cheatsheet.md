@@ -123,7 +123,7 @@ Read the [`spacexr` package documentation](https://www.bioconductor.org/packages
 <div style="page-break-after: always;"></div>
 
 
-### `scuttle`, `scran` , and `scater`
+### `scuttle`, `scran`, and `scater`
 
 
 Read the [`scuttle` package documentation](https://rdrr.io/bioc/scuttle/), and a [vignette on its usage](https://rdrr.io/bioc/scuttle/f/vignettes/overview.Rmd).
