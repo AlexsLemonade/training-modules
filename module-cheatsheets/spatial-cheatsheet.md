@@ -20,7 +20,7 @@ If you have a different version of R or other R packages, the documentation may 
 - [`SpotSweeper`](#spotsweeper)
 - [`Banksy`](#banksy)
 - [`spacexr`](#spacexr)
-- [`scuttle`, `scran` , and `scater`](#scuttle-scran--and-scater)
+- [`scuttle`, `scran`, and `scater`](#scuttle-scran-and-scater)
 - [`bluster`](#bluster)
 - [`patchwork`](#patchwork)
 
