@@ -53,6 +53,7 @@ mkdir -p spatial/data/ovarian-carcinoma
 mkdir -p spatial/data/wilms-tumor/SCPCS000190
 mkdir -p spatial/data/osteo/GSM8478586
 mkdir -p spatial/data/crc-v1
+mkdir -p spatial/data/brca-xenium
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -119,6 +120,7 @@ link_locs=(
   spatial/data/wilms-tumor/SCPCS000190/spaceranger
   spatial/data/osteo/GSM8478586/normalized
   spatial/data/reference
+  spatial/data/brca-xenium/xenium
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
