@@ -23,7 +23,7 @@ Instead, it measures a targeted panel of a few hundred genes directly inside int
 
 There are two big differences to be aware of when processing Xenium data:
 
-- Resolution is subcellular and truly single-cell.
+- Resolution is subcellular.
 Each detected transcript has an `(x, y, z)` location in the tissue, and transcripts are assigned to individual cells identified by image segmentation. 
 So the columns of our data are _cells_, not the multi-cell _spots_ you get with Visium.
 
@@ -46,7 +46,7 @@ library(ggplot2)
 library(patchwork)
 
 # Set ggplot2 theme
-ggplot2::theme_set(ggplot2::theme_bw())
+theme_set(theme_bw())
 ```
 
 ### Directories and files
@@ -56,6 +56,7 @@ The specific files present will depend on the Xenium software version and assay,
 
 We've placed the Xenium output bundle for this breast cancer sample in the directory `data/brca-xenium/xenium`, organized as XOA returns it.
 
+<!--TODO: Describe how cell typing was done-->
 We also have an annotations file containing cell type annotations from the original publication. 
 
 We'll define the path to both the Xenium output and the annotations file here. 
@@ -129,10 +130,12 @@ This is the file that provides our spatial coordinates and column (cell) metadat
 ##### `transcripts.parquet` / `transcripts.csv.gz`
 
 This is the subcellular data that distinguishes Xenium from spot-based methods.
+This is analogous to the `tissue_positions_list.csv` for Visium.
 
 ##### `cell_boundaries.parquet` and `nucleus_boundaries.parquet` (plus `.csv.gz` versions)
 
 The polygon vertices defining each cell's and each nucleus's segmentation outline.
+<!--TODO: Clarify how these relate to the count matrix which has a cell (not nucleus) dimension -->
 
 ##### `analysis/` and `analysis.zarr.zip`
 
@@ -149,6 +152,7 @@ We don't have these to save space (as of right now), but these are the tissue mo
 ### Import with `SpatialExperimentIO`
 
 We'll import the counts and spatial information into a `SpatialExperiment` (SPE) object using the `SpatialExperimentIO` package.
+Note that here we are not using `VisiumIO` as our dataset is from Xenium, which is distinct from the previous Visium data sets we have been working with.
 
 The only argument the function strictly requires is the path to the output bundle directory.
 Below we also pass a few arguments explicitly (count matrix and per-cell metadata) just so we can see what files are required, but we are still using the defaults.
@@ -199,6 +203,7 @@ TODO: Fill in with text talking about segmentation
 ### A note on control features and `altExps`
 
 A Xenium panel does not only include genes.
+<!--TODO: Explain what codebook and codewords are-->
 The codebook also contains several categories of control features that let us estimate background and error rates:
 
 - Negative control probes target sequences that are _not_ present in the transcriptome, so any counts reflect nonspecific probe binding (background).
@@ -212,7 +217,8 @@ We can see which control experiments were separated out here:
 
 ```{r inspect-altexps, live = TRUE}
 # control features are stored separately from the gene panel, as altExps
-altExpNames(spe)
+altExpNames(spe) |> 
+  purrr::map(\(name) altExp(spe, name))
 ```
 
 ## Add in cell type annotations 
@@ -241,8 +247,8 @@ cell_types_df <- cell_types_df |>
       stringr::str_detect(cell_type_annotation, "Macrophages") ~ "Macrophage",
       stringr::str_detect(cell_type_annotation, "DCIS") ~ "DCIS",
       stringr::str_detect(cell_type_annotation, "Myoepi") ~ "Myoepithelial cell",
-      stringr::str_detect(cell_type_annotation, "Tumor") ~ "Tumor",
       stringr::str_detect(cell_type_annotation, "Hybrid") ~ "Hybrid",
+      stringr::str_detect(cell_type_annotation, "Tumor") ~ "Tumor",
       stringr::str_detect(cell_type_annotation, "DCs") ~ "Dendritic cell",
       .default = cell_type_annotation
     ) |>
@@ -251,9 +257,15 @@ cell_types_df <- cell_types_df |>
 
 # check the counts of the lumped categories
 cell_types_df |>
+<<<<<<< HEAD
+  dplyr::count(cell_types_lumped) |> 
+  dplyr::arrange(desc(n))
+=======
   dplyr::count(cell_types_lumped) |>
   dplyr::arrange(n)
+>>>>>>> 548e80c60ba25456cae6d3b733c8dab1bbbe95b1
 ```
+
 
 Now we join the annotations onto the object's `colData` by `cell_id`.
 Cells that are not present in the annotation file will get `NA`.
@@ -271,20 +283,33 @@ head(colData(spe))
 To keep colors consistent across plots, we'll build a single named palette mapping each lumped cell type to a color, and reuse it.
 
 ```{r celltype-palette}
-# build a named color palette for the lumped cell types
-# we have 14 cell types and alphabet has 26 distinct colors
-cell_type_levels <- sort(unique(spe$cell_types_lumped))
-cell_type_palette <- setNames(
-  # reverse the order so cell types that are close together in space are distinct
-  rev(palette.colors(palette = "alphabet")),
-  cell_type_levels
+# build a custom palette 
+cell_type_palette <- list(
+  "Stromal" = "#F6222E",
+  "Tumor" = "#3283FE", 
+  "DCIS" = "#325A9B",
+  "Macrophage" = "#85660D",
+  "Myoepithelial cell" = "#F7E1A0",
+  "Endothelial" = "#AA0DFE",
+  "CD4+ T Cells" = "#16FF32",
+  "CD8+ T Cells" = "#1C8356",
+  "B Cells" = "#FC1CBF",
+  "Perivascular-like" = "#FEAF16",
+  "Dendritic cell" = "#1CBE4F",
+  "Mast Cells" = "#565656",
+  "Unlabeled" = "grey90"
 )
+
 # unlabeled should be greyed out
 cell_type_palette$Unlabeled <- "grey90"
 ```
 
 
 ```{r plot-celltypes, live = TRUE}
+#| fig.height: 8
+#| fig.width: 8
+
+# plot all spots colored by cell type 
 ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
   scale_color_manual(values = cell_type_palette)
 ```
@@ -293,7 +318,8 @@ ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
 ## Identifying low quality spots 
 
 We use `SpaceTrooper` to compute per-cell quality-control metrics that are tailored to imaging-based spatial data (e.g., cell area, total counts, and control-feature counts).
-`SpaceTrooper` needs to know which technology produced the data, which we set in the object's `metadata()` first.
+`SpaceTrooper` can be used with many different imaging based spatial transcriptomics platforms (e.g., CosMx, MERFISH). 
+Therefore we need to specify which technology produced the data, which we set in the object's `metadata()` first.
 
 ```{r spatial-qc}
 # tell SpaceTrooper which platform this is
@@ -301,7 +327,10 @@ metadata(spe)$technology <- "10X_Xenium"
 
 # compute spatial per-cell QC metrics (adds columns like cell area, and probe counts)
 # note that some of this may have been pre-calculated for this experiment but we'll re-do that here
-spe <- SpaceTrooper::spatialPerCellQC(spe)
+spe <- SpaceTrooper::spatialPerCellQC(
+  spe, 
+  use_altexps = FALSE # ignore altexps as we won't use these
+)
 
 head(colData(spe))
 ```
@@ -326,11 +355,14 @@ Cells with very few counts for their area are often debris or segmentation artif
 Below we can color the cells by these QC metrics. 
 
 ```{r plot-qc}
-p1 <- ggspavis::plotCoords(spe, annotate = "Area_um") +
-  scale_color_viridis_c()
+#| fig.width: 8
 
-p2 <- ggspavis::plotCoords(spe, annotate = "total") +
-  scale_color_viridis_c()
+p1 <- ggspavis::plotCoords(spe, annotate = "total") +
+  ggplot2::scale_color_distiller(palette = "Blues", direction = 1)
+
+p2 <- ggspavis::plotCoords(spe, annotate = "Area_um") +
+  scale_color_viridis_c() +
+  ggplot2::scale_color_distiller(palette = "YlOrRd", direction = 1)
 
 p1 + p2
 ```
@@ -345,6 +377,12 @@ count_area_ratio <- spe$total / spe$Area_um
 # (3 median absolute deviations below the median, on the log2 scale since the metric is a ratio)
 outliers <- scater::isOutlier(count_area_ratio, log = TRUE, type = "lower", nmads = 3)
 
+# print the output
+outliers
+```
+
+
+```{r define-threshold, live=TRUE}
 # pull out the numeric threshold for plotting
 threshold <- attr(outliers, "threshold")[1]
 ```
@@ -377,17 +415,19 @@ exclude <- outliers |
 sum(exclude) / length(exclude)
 ```
 
-```{r plot-remove}
-# store the flag and visualize which cells will be removed
-spe$remove <- exclude
+```{r plot-exclude}
+# store the flag and visualize which cells will be excluded
+spe$exclude <- exclude
 
-ggspavis::plotCoords(spe, annotate = "remove") +
-  guides(color = guide_legend(override.aes = list(size = 4)))
+ggspavis::plotCoords(spe, annotate = "exclude") +
+  guides(color = guide_legend(override.aes = list(size = 4))) +
+  # add custom colors so excluded cells are easy to see
+  scale_color_manual(values = c("grey90", "#00274C"))
 ```
 
 ```{r filter-cells, live = TRUE}
 # keep only the cells not flagged for removal
-filtered_spe <- spe[, !spe$remove]
+filtered_spe <- spe[, !spe$exclude]
 
 dim(filtered_spe)
 ```
