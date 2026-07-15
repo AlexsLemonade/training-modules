@@ -1,0 +1,56 @@
+# Workflow for obtaining the Janesick breast cancer Xenium dataset from 10x
+# includes downloading and formatting annotations
+from pathlib import Path
+
+configfile: "config.yaml"
+
+base_dir = Path(config["base_dir"])
+xenium_dir = base_dir / "xenium"
+output_annotations_tsv = base_dir / config["output_annotations_tsv"]
+
+
+rule targets:
+    input:
+        xenium_dir,
+        output_annotations_tsv,
+
+
+# get the 10x dataset itself
+rule download_10x:
+    output:
+        directory(xenium_dir)
+    params:
+        url_xenium = config["url_xenium"],
+    shell:
+        """
+        curl -L --fail {params.url_xenium} -o temp_outs.zip
+        unzip temp_outs.zip
+        mv outs {xenium_dir}
+        
+        # remove the morphology images since they are ~ 5 GB and we won't use them
+        find {output} -type f -name '*.tif' -delete
+        
+        # clean up 
+        rm temp_outs.zip
+        """
+
+
+# download and prepare the annotations TSV
+rule prepare_ref:
+    input:
+        xenium_dir
+    output:
+        output_annotations_tsv
+    params:
+        annotations = config["url_annotations"],
+    shell:
+        """
+        curl --output-dir {xenium_dir} -O {params.annotations}
+        Rscript format-annotations.R \
+          --input_file "{xenium_dir}/Cell_Barcode_Type_Matrices.xlsx" \
+          --output_file {output}
+          
+        # clean up 
+        rm {xenium_dir}/Cell_Barcode_Type_Matrices.xlsx
+        """
+        

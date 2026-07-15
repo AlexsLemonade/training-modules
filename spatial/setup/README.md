@@ -158,3 +158,43 @@ This will create both a directory `../data/crc-v1/` with the following files:
 ```
 
 The `crc-v1/normalized/` directory was then copied to `/shared/data/training-modules/spatial/data/`.
+
+
+### BRCA Xenium
+
+This data comes from this 10x Genomics dataset: <https://www.10xgenomics.com/products/xenium-in-situ/preview-dataset-human-breast>
+
+Specifically, the Xenium outputs for `In Situ Sample 1, Replicate 1` are downloaded and saved to the `xenium` folder. 
+The cell type annotations for this sample can be found in sheet 4 of the supplemental Excel file saved here: <https://cdn.10xgenomics.com/raw/upload/v1695234604/Xenium%20Preview%20Data/Cell_Barcode_Type_Matrices.xlsx>
+
+To download and prepare input data for the workshop, change directories to the `setup/brca-xenium` directory and run the following.
+
+```sh
+snakemake -j2
+```
+
+This will create a directory `../data/brca-xenium/` with the following files:
+
+```console
+├── Janesick_annotations.tsv
+└── xenium
+    ├── analysis
+    ├── analysis_summary.html
+    ├── analysis.zarr.zip
+    ├── cell_boundaries.csv.gz
+    ├── cell_boundaries.parquet
+    ├── cell_feature_matrix
+    ├── cell_feature_matrix.h5
+    ├── cell_feature_matrix.zarr.zip
+    ├── cells.csv.gz
+    ├── cells.parquet
+    ├── cells.zarr.zip
+    ├── experiment.xenium
+    ├── gene_panel.json
+    ├── metrics_summary.csv
+    ├── nucleus_boundaries.csv.gz
+    ├── nucleus_boundaries.parquet
+    ├── transcripts.csv.gz
+    ├── transcripts.parquet
+    └── transcripts.zarr.zip
+```
