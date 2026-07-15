@@ -173,7 +173,7 @@ To download and prepare input data for the workshop, change directories to the `
 snakemake -j2
 ```
 
-This will create both a directory `../data/brca-xenium/` with the following files:
+This will create a directory `../data/brca-xenium/` with the following files:
 
 ```console
 ├── Janesick_annotations.tsv
