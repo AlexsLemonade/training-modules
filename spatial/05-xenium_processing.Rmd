@@ -257,13 +257,8 @@ cell_types_df <- cell_types_df |>
 
 # check the counts of the lumped categories
 cell_types_df |>
-<<<<<<< HEAD
   dplyr::count(cell_types_lumped) |> 
   dplyr::arrange(desc(n))
-=======
-  dplyr::count(cell_types_lumped) |>
-  dplyr::arrange(n)
->>>>>>> 548e80c60ba25456cae6d3b733c8dab1bbbe95b1
 ```
 
 
@@ -294,7 +289,7 @@ cell_type_palette <- list(
   "CD4+ T Cells" = "#16FF32",
   "CD8+ T Cells" = "#1C8356",
   "B Cells" = "#FC1CBF",
-  "Perivascular-like" = "#FEAF16",
+  "Perivascular-Like" = "#FEAF16",
   "Dendritic cell" = "#1CBE4F",
   "Mast Cells" = "#565656",
   "Unlabeled" = "grey90"
@@ -304,9 +299,14 @@ cell_type_palette <- list(
 cell_type_palette$Unlabeled <- "grey90"
 ```
 
+```{r set-celltype-levels}
+# re-order celltypes for plotting by setting them as a factor
+spe$cell_types_lumped <- as.factor(spe$cell_types_lumped) |> 
+  forcats::fct_relevel(names(cell_type_palette))
+```
+
 
 ```{r plot-celltypes, live = TRUE}
-#| fig.height: 8
 #| fig.width: 8
 
 # plot all spots colored by cell type 
@@ -321,6 +321,9 @@ We use `SpaceTrooper` to compute per-cell quality-control metrics that are tailo
 `SpaceTrooper` can be used with many different imaging based spatial transcriptomics platforms (e.g., CosMx, MERFISH). 
 Therefore we need to specify which technology produced the data, which we set in the object's `metadata()` first.
 
+<!--TODO: Note about the warning being expected for Xenium data since that metric is not calculated upon input. 
+Ultimately the metric is used for generating a QC score that is specifically useful for CosMx data and other data that have stitching artifacts within their FOV border-->
+
 ```{r spatial-qc}
 # tell SpaceTrooper which platform this is
 metadata(spe)$technology <- "10X_Xenium"
@@ -328,7 +331,7 @@ metadata(spe)$technology <- "10X_Xenium"
 # compute spatial per-cell QC metrics (adds columns like cell area, and probe counts)
 # note that some of this may have been pre-calculated for this experiment but we'll re-do that here
 spe <- SpaceTrooper::spatialPerCellQC(
-  spe, 
+  spe,
   use_altexps = FALSE # ignore altexps as we won't use these
 )
 
