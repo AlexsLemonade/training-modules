@@ -353,14 +353,15 @@ ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
 
 ## Identifying low quality cells 
 
-Cells from imaging based methods can be considered low-quality because of two different reason: 
+Cells from imaging based methods can be considered low-quality for one of two reasons: 
 
 1. The cell has a high level of background noise or has had issues decoding the codewords, as indicated by high per-cell counts for the negative control probes or negative codewords. 
+For Xenium, this information is stored in `control_probe_counts` and `control_codeword_counts` in the `colData`. 
 2. The cell has a low number of gene expression counts compared to other cells of the same size, indicating the cells may be debris or segmentation artifacts. 
+This information should be calculated for each cell. 
 
-We will use [`SpaceTrooper`](https://bioconductor.org/packages/SpaceTrooper) ([Banzi _et al.,_ 2025](https://doi.org/10.64898/2025.12.24.696336)) to compute per-cell quality-control metrics that are tailored to imaging-based spatial data.
-This includes cell area, total counts, and control-feature counts. 
-Cell area and total counts are calculated from the main experiment while each of the alternative experiments are used to calculate control-feature counts.
+We will use [`SpaceTrooper`](https://bioconductor.org/packages/SpaceTrooper) ([Banzi _et al.,_ 2025](https://doi.org/10.64898/2025.12.24.696336)) to compute per-cell quality-control metrics that are tailored to imaging-based spatial data. 
+This includes cell area and total counts which is calculated from the `counts` assay in the main experiment. 
 
 `SpaceTrooper` supports many imaging-based spatial transcriptomics platforms (e.g., CosMx, MERFISH, Xenium).
 Because some of its metrics are platform-specific, we tell it which technology produced the data by setting it in the object's `metadata()` first.
@@ -379,7 +380,7 @@ metadata(spe)$technology <- "10X_Xenium"
 # note that some of this may have been pre-calculated for this experiment but we'll re-do that here
 spe <- SpaceTrooper::spatialPerCellQC(
   spe,
-  use_altexps = TRUE # calculate total counts for each control probe
+  use_altexps = FALSE # don't calculate metrics for altexperiments
 )
 
 head(colData(spe))
@@ -390,10 +391,12 @@ The ones we will use for QC include `total` and `Area_um`:
 
 - `total`: total transcript counts per cell summed over all panel genes.
 - `Area_um`: the cell's area in square microns, derived from its segmentation polygon.
-- `altexps_NegControlProbe_sum` and `altexps_NegControlCodeword_sum`: per-cell counts falling on the negative control probe and negative control codeword categories, which serve as our direct read-out of background and decoding error.
 
-**Note:** For this particular experiment, these metrics were already stored in the columns `total_counts`, `cell_area`, `control_probe_counts`, and `control_codeword_counts`, but this will not be the case for all imaging-based experiments. 
+**Note:** For this particular experiment, these metrics were already stored in the columns `total_counts` and `cell_area` found in the `colData`, but this will not be the case for all imaging-based experiments. 
 This is why we will use the columns calculated by `SpaceTrooper` and not the original columns. 
+
+We will ultimately combine this information with the existing control-feature counts stored in `control_probe_counts` and `control_codeword_counts`, which quanity the total counts falling on the negative control probe and negative control codeword categories. 
+This information serves as a direct read-out of background and decoding error.
 
 It also writes the centroid coordinates into `colData` as `x_centroid`/`y_centroid`.
 Because `spatialCoords()` already holds columns with those exact names, `ggspavis` errors on the duplicated names when it assembles its plotting data frame.
