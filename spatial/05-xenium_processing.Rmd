@@ -21,7 +21,7 @@ output:
 Unlike sequencing-based methods such as single-cell RNA-seq or Visium, Xenium does not sequence anything.
 Instead, it measures a targeted panel of a few hundred genes directly inside intact tissue by repeated rounds of fluorescence imaging, then computationally decodes those images into individual transcript molecules.
 
-There are two big differences to be aware of when processing Xenium data:
+There are two big differences between Xenium and Visium data to be aware of:
 
 - Resolution is subcellular.
 Each detected transcript has an `(x, y, z)` location in the tissue, and transcripts are assigned to individual cells identified by image segmentation. 
@@ -30,8 +30,9 @@ So the columns of our data are _cells_, not the multi-cell _spots_ you get with 
 - The gene set is fixed and small.
 We only measure the genes on the panel (here, 313 genes), so we can't discover expression of genes that weren't targeted, but we get very high sensitivity and spatial precision for the ones we do measure.
 
-<!--TODO: Add in appropriate links-->
-In this notebook we read in a Xenium human breast cancer dataset (the Janesick et al. dataset), compute quality-control metrics, remove low-quality cells, and normalize the expression values.
+In this notebook we will be working with a Xenium human breast cancer dataset.
+The data come from [Janesick _et al._ (2023)](https://doi.org/10.1038/s41467-023-43458-x), a widely used, publicly available benchmark study that profiled serial formalin-fixed paraffin-embedded (FFPE) human breast cancer sections with matched single-cell RNA-seq, Visium, and Xenium.
+The Xenium run used the 313-gene human breast panel, which encompasses a 280-gene pre-designed panel plus 33 custom add-on genes. 
 
 ## Set up
 
@@ -55,9 +56,12 @@ Xenium data comes as an output bundle produced by the Xenium Onboard Analysis (X
 The specific files present will depend on the Xenium software version and assay, but they are all described in detail in the [10x Genomics documentation](https://www.10xgenomics.com/support/software/xenium-onboard-analysis/latest/analysis/xoa-output-understanding-outputs).
 
 We've placed the Xenium output bundle for this breast cancer sample in the directory `data/brca-xenium/xenium`, organized as XOA returns it.
+Note that we have removed the morphology images since we will not use those here and they take up a lot of space.
 
-<!--TODO: Describe how cell typing was done-->
-We also have an annotations file containing cell type annotations from the original publication. 
+We also have an annotations file containing cell type annotations from the original publication.
+In [Janesick _et al._ (2023)](https://doi.org/10.1038/s41467-023-43458-x), cell types were first annotated using a single-cell RNA-seq dataset from the same tissue. 
+In particular, cells were clustered and clusters were annotated using canonical marker genes.
+The labels from the single-cell RNA-seq experiment were used as a reference for transferring annotations onto the Xenium cells, giving each segmented cell a cell type call.
 
 We'll define the path to both the Xenium output and the annotations file here. 
 
@@ -101,7 +105,7 @@ The instrument:
 - decoded transcripts from the images
 - segmented cells 
 - assigned transcripts to cells 
-- built the count matrix
+- and built the count matrix
 
 Let's look at what's in the bundle:
 
@@ -112,42 +116,50 @@ dir(xenium_outs_dir)
 
 Below are brief descriptions of the core files in a Xenium output bundle.
 Not every file is always present since it depends on the software version and the exact assay used.
+The [10x Genomics documentation](https://www.10xgenomics.com/support/software/xenium-onboard-analysis/latest/analysis/xoa-output-understanding-outputs) is the authoritative reference for the full list.
 
-<!--TODO: Fill in file specific information -->
 ##### `experiment.xenium`
 
-A JSON file of run-level metadata: the gene panel, pixel size, software versions, and file paths.
-This is the entry-point file that most loaders (including the one we use below) read first.
+A JSON file of run-level metadata including the gene panel, pixel size, software versions, and file paths.
+This is the entry-point file that most loaders read first.
 
 ##### `cell_feature_matrix.h5` (and `cell_feature_matrix/`, `cell_feature_matrix.zarr.zip`)
 
-Analogous to the feature barcode matrix output from Cell Ranger/Space Ranger. 
+The cell-by-feature count matrix, analogous to the feature-barcode matrix from Cell Ranger/Space Ranger.
+Rows are features (panel genes plus control categories) and columns are segmented cells.
+It contains only transcripts that passed the default quality threshold (Q-Score ≥ 20).
+The same data are provided in HDF5 (`.h5`), a Matrix Market directory, and Zarr formats, but we will we use the `.h5` version.
 
 ##### `cells.parquet` / `cells.csv.gz` (and `cells.zarr.zip`)
 
-This is the file that provides our spatial coordinates and column (cell) metadata.
+This file provides our spatial coordinates and column (cell) metadata.
+It includes each cell's ID, centroid coordinates (`x_centroid`, `y_centroid`) in microns, cell and nucleus area, transcript counts, and the segmentation method used.
 
 ##### `transcripts.parquet` / `transcripts.csv.gz`
 
-This is the subcellular data that distinguishes Xenium from spot-based methods.
-This is analogous to the `tissue_positions_list.csv` for Visium.
+This file contains the individual decoded transcript molecules, each with an `(x, y, z)` location, the gene it decoded to, a quality score, and the cell it was assigned to (if any).
+This subcellular, molecule-level table is what distinguishes Xenium from spot-based methods. 
+It is somewhat similar to `tissue_positions_list.csv` in Visium, but at far higher resolution.
 
 ##### `cell_boundaries.parquet` and `nucleus_boundaries.parquet` (plus `.csv.gz` versions)
 
-The polygon vertices defining each cell's and each nucleus's segmentation outline.
-<!--TODO: Clarify how these relate to the count matrix which has a cell (not nucleus) dimension -->
+The polygon vertices defining each cell's and each nucleus's segmentation outline which is useful for plotting and for any polygon-based QC metrics like cell area and shape.
+Nucleus boundaries come from segmenting the DAPI image and cell boundaries come from expanding or otherwise extending those nuclei (see the segmentation note below).
+The count matrix is summarized at the **cell** level so that transcripts are assigned to the cell polygons. 
+This means that `cell_boundaries` correspond to the columns of our object (or `spots` in Visium), while `nucleus_boundaries` is supplementary information about the nuclear compartment.
 
 ##### `analysis/` and `analysis.zarr.zip`
 
-The instrument's automated secondary analysis.
+The instrument's automated secondary analysis (e.g., dimensionality reduction and clustering) produced on-instrument.
 
 ##### `metrics_summary.csv` and `analysis_summary.html`
 
-Summary information as CSV and HTML 
+Run-level QC summaries as a CSV and a HTML report which includes transcript quality, segmentation method breakdown, control rates, and similar diagnostics.
 
 ##### Morphology images (`morphology.ome.tif`, `morphology_mip.ome.tif`, `morphology_focus.ome.tif` / `morphology_focus/`)
 
-We don't have these to save space (as of right now), but these are the tissue morphology/DAPI images
+The tissue morphology images, including the DAPI nuclear stain and any additional stains that might be present for multi-modal assays.
+We don't include these here to save space, but they are what you would use to visually inspect or re-run segmentation.
 
 ### Import with `SpatialExperimentIO`
 
@@ -155,9 +167,9 @@ We'll import the counts and spatial information into a `SpatialExperiment` (SPE)
 Note that here we are not using `VisiumIO` as our dataset is from Xenium, which is distinct from the previous Visium data sets we have been working with.
 
 The only argument the function strictly requires is the path to the output bundle directory.
-Below we also pass a few arguments explicitly (count matrix and per-cell metadata) just so we can see what files are required, but we are still using the defaults.
+Below we also pass a few arguments explicitly, like the count matrix and per-cell metadata, just so we can see what files are required, but we are still using the defaults.
 
-By default the function also moves the Xenium control features (negative control probes, negative control codewords, unassigned codewords, etc.) out of the main gene matrix and into `altExps`, and adds the `experiment.xenium` metadata and the transcript/boundary parquet paths to `metadata()`.
+By default, the function also moves the Xenium control features (negative control probes, negative control codewords, unassigned codewords, etc.) out of the main gene matrix and into `altExps`, and adds the `experiment.xenium` metadata and the transcript/boundary parquet paths to `metadata()`.
 
 ```{r import-xenium, live = TRUE}
 spe <- SpatialExperimentIO::readXeniumSXE(
@@ -177,7 +189,7 @@ spe
 
 A few things to notice about this object:
 
-- The dimensions show only 313 genes but roughly 167,000 cells.
+- The dimensions show only 313 genes and roughly 167,000 cells.
   The gene count is small because Xenium measures a targeted panel, and because the control features have been split off into `altExps` (so the main matrix is genes only).
 - Each column corresponds to one cell.
 There are no barcodes, or spot barcodes, just cell ids.
@@ -198,20 +210,40 @@ ggspavis::plotCoords(spe)
 
 ### A note on segmentation 
 
-TODO: Fill in with text talking about segmentation 
+Because Xenium reports data per cell, every count depends on cell segmentation which is a computational approach that draws a boundary around each cell and decides which transcripts belong to each cell.
+Segmentation quality therefore directly affects downstream results, and it remains an active area of research as no method handles every tissue perfectly.
+
+The Xenium Onboard Analysis pipeline segments cells in two broad ways depending on the assay ([10x Genomics segmentation algorithms](https://www.10xgenomics.com/support/software/xenium-onboard-analysis/latest/algorithms-overview/segmentation)):
+
+- **Nuclear expansion:** Nuclei are detected from the DAPI stain, then each nucleus boundary is expanded outward (isotropically, up to ~5 µm by default) to approximate the cell body. 
+- **Multimodal cell segmentation:** When the multi-tissue stain mix is used, a cell boundary stain (identified through membrane markers such as ATP1A1/CD45/E-Cadherin) is used to identify the true cell membrane, and an interior stain (18S rRNA) is used alongside the DAPI stain to identify the nuclei. 
+In this scenario, nuclear expansion is used as a fallback.
+
+This particular dataset only included a DAPI stain so cell segmentation was done using nuclear expansion. 
 
 ### A note on control features and `altExps`
 
-A Xenium panel does not only include genes.
-<!--TODO: Explain what codebook and codewords are-->
-The codebook also contains several categories of control features that let us estimate background and error rates:
+A Xenium panel includes probes for both targeted genes and control probes. 
 
-- Negative control probes target sequences that are _not_ present in the transcriptome, so any counts reflect nonspecific probe binding (background).
-- Negative control codewords are valid codewords deliberately left unassigned to any gene, so counts reflect optical/decoding errors.
-- Other categories (unassigned/deprecated codewords, and, for some panels, genomic or antisense controls) exist too.
+To understand the control categories, it helps to know how Xenium turns images into counts.
+Each targeted gene is detected not by sequencing but by a characteristic pattern of fluorescent signals across imaging channels and cycles.
+That pattern is called a **codeword**, and the full lookup table mapping codewords to genes is the **codebook** ([10x Genomics Xenium panel design concepts and terms](https://www.10xgenomics.com/support/software/xenium-panel-designer/latest/tutorials/xenium-panel-design-concepts-terms)).
+Decoding is the process of reading the observed signal at each detected fluorescent punctum and matching it to a codeword (and therefore a gene), with a quality score attached to each call.
 
-So we don't mix these with real gene counts, `readXeniumSXE()` moves them into alternative experiments stored alongside the main object.
-These can be accessed with `altExp`. 
+The codebook deliberately reserves some codewords and probes as controls, which let us estimate background and error rates:
+
+- **Negative control probes** are physical probes included in the panel that target sequences _not_ present in the transcriptome. Counts on these reflect nonspecific probe binding, so they measure assay background.
+- **Negative control codewords** are valid codewords that are deliberately left unassigned to any real gene. 
+Counts on these reflect optical or decoding errors, so they measure decoding specificity.
+- **Antisense** are probes targeting the antisense strand. 
+Counts on these reflect nonspecific probe binding and measure assay backgound. 
+- **BLANK** codewords are empty codewords that map to nothing. 
+These are also used to identify decoding specificity. 
+Note that this category does not appear in newer versions and has been replaced with Unassigned codewords.
+
+Because a high-quality cell should have essentially no control counts, these features are a powerful QC signal and we will use them below.
+To keep them from being mistaken for real gene counts, `readXeniumSXE()` moves them out of the main matrix and into alternative experiments (`altExps`) stored alongside the main object.
+These can be accessed with `altExp()`.
 
 We can see which control experiments were separated out here:
 
@@ -299,11 +331,15 @@ cell_type_palette <- list(
 cell_type_palette$Unlabeled <- "grey90"
 ```
 
+Finally, we'll use factors to define the order of the cell types so that they appear in the legend in the same order that we have defined above rather than in alphabetical order. 
+
 ```{r set-celltype-levels}
 # re-order celltypes for plotting by setting them as a factor
 spe$cell_types_lumped <- as.factor(spe$cell_types_lumped) |> 
   forcats::fct_relevel(names(cell_type_palette))
 ```
+
+Now that we have prepared our data, we can create our plot showing the lumped cell type annotations across the slide. 
 
 
 ```{r plot-celltypes, live = TRUE}
@@ -315,14 +351,25 @@ ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
 ```
 
 
-## Identifying low quality spots 
+## Identifying low quality cells 
 
-We use `SpaceTrooper` to compute per-cell quality-control metrics that are tailored to imaging-based spatial data (e.g., cell area, total counts, and control-feature counts).
-`SpaceTrooper` can be used with many different imaging based spatial transcriptomics platforms (e.g., CosMx, MERFISH). 
-Therefore we need to specify which technology produced the data, which we set in the object's `metadata()` first.
+Cells from imaging based methods can be considered low-quality because of two different reason: 
 
-<!--TODO: Note about the warning being expected for Xenium data since that metric is not calculated upon input. 
-Ultimately the metric is used for generating a QC score that is specifically useful for CosMx data and other data that have stitching artifacts within their FOV border-->
+1. The cell has a high level of background noise or has had issues decoding the codewords, as indicated by high per-cell counts for the negative control probes or negative codewords. 
+2. The cell has a low number of gene expression counts compared to other cells of the same size, indicating the cells may be debris or segmentation artifacts. 
+
+We will use [`SpaceTrooper`](https://bioconductor.org/packages/SpaceTrooper) ([Banzi _et al.,_ 2025](https://doi.org/10.64898/2025.12.24.696336)) to compute per-cell quality-control metrics that are tailored to imaging-based spatial data.
+This includes cell area, total counts, and control-feature counts. 
+Cell area and total counts are calculated from the main experiment while each of the alternative experiments are used to calculate control-feature counts.
+
+`SpaceTrooper` supports many imaging-based spatial transcriptomics platforms (e.g., CosMx, MERFISH, Xenium).
+Because some of its metrics are platform-specific, we tell it which technology produced the data by setting it in the object's `metadata()` first.
+
+**Note** that you may see a warning when running the step below.
+This is expected for Xenium data.
+`SpaceTrooper` can compute a border-related metric based on cell aspect ratio and distance to the nearest field-of-view border that feeds its combined quality score.
+That metric exists to capture stitching artifacts seen at field-of-view borders. 
+Although you can calculate these metrics for Xenium, the Xenium output is not expected to have field-of-view border artifacts, so the metric is not calculated here and the warning simply notes its absence.
 
 ```{r spatial-qc}
 # tell SpaceTrooper which platform this is
@@ -332,17 +379,25 @@ metadata(spe)$technology <- "10X_Xenium"
 # note that some of this may have been pre-calculated for this experiment but we'll re-do that here
 spe <- SpaceTrooper::spatialPerCellQC(
   spe,
-  use_altexps = FALSE # ignore altexps as we won't use these
+  use_altexps = TRUE # calculate total counts for each control probe
 )
 
 head(colData(spe))
 ```
 
-<!--TODO: Add in some text about the new columns that are added-->
+`spatialPerCellQC()` adds several per-cell QC columns to `colData()`. 
+The ones we will use for QC include `total` and `Area_um`: 
 
-`spatialPerCellQC()` writes the centroid coordinates into `colData` as `x_centroid`/`y_centroid`.
+- `total`: total transcript counts per cell summed over all panel genes.
+- `Area_um`: the cell's area in square microns, derived from its segmentation polygon.
+- `altexps_NegControlProbe_sum` and `altexps_NegControlCodeword_sum`: per-cell counts falling on the negative control probe and negative control codeword categories, which serve as our direct read-out of background and decoding error.
+
+**Note:** For this particular experiment, these metrics were already stored in the columns `total_counts`, `cell_area`, `control_probe_counts`, and `control_codeword_counts`, but this will not be the case for all imaging-based experiments. 
+This is why we will use the columns calculated by `SpaceTrooper` and not the original columns. 
+
+It also writes the centroid coordinates into `colData` as `x_centroid`/`y_centroid`.
 Because `spatialCoords()` already holds columns with those exact names, `ggspavis` errors on the duplicated names when it assembles its plotting data frame.
-We drop the `colData` copies (the coordinates still live safely in `spatialCoords`):
+We drop the `colData` copies in the code below, but note that the coordinates still live safely in `spatialCoords`:
 
 ```{r dedupe-coords}
 # remove the duplicated coordinate columns from colData to avoid a name
@@ -359,7 +414,6 @@ Below we can color the cells by these QC metrics.
 
 ```{r plot-qc}
 #| fig.width: 8
-
 p1 <- ggspavis::plotCoords(spe, annotate = "total") +
   ggplot2::scale_color_distiller(palette = "Blues", direction = 1)
 
@@ -370,7 +424,13 @@ p2 <- ggspavis::plotCoords(spe, annotate = "Area_um") +
 p1 + p2
 ```
 
-We'll then calculate outliers by finding the ratio between total counts and area and getting the threshold for three median absolute deviations (MADs) below the median. 
+To flag these cells, we summarize each cell by its counts-per-area ratio and look for cells that sit far below the bulk of the distribution.
+Specifically, we use `scater::isOutlier()` to flag cells whose ratio falls more than three median absolute deviations (MADs) below the median.
+
+* The MAD is a robust measure of spread and is less sensitive to extreme values than the standard deviation. 
+* We will use the common cutoff of three MADs. 
+* We only flag the low side, since it is unusually _few_ counts for a cell's area that signals debris or a failed segmentation.
+* We work on the log scale because the ratio is strictly positive and right-skewed, which makes a symmetric MAD rule more appropriate.
 
 ```{r count-area-outliers}
 # counts-per-area ratio for each cell
@@ -384,29 +444,34 @@ outliers <- scater::isOutlier(count_area_ratio, log = TRUE, type = "lower", nmad
 outliers
 ```
 
+Now we can pull out the specific threshold corresponding to 3 MADs below the median from the `outliers` object. 
 
 ```{r define-threshold, live=TRUE}
 # pull out the numeric threshold for plotting
 threshold <- attr(outliers, "threshold")[1]
 ```
 
+We'll also plot the distribution of the ratio and the chosen cutoff. 
+
 ```{r plot-threshold}
 # visualize the distribution and the chosen threshold
 ggplot(mapping = aes(log(count_area_ratio))) +
   geom_histogram(bins = 100, fill = "grey90", color = "black") +
   theme_bw() +
-  geom_vline(xintercept = log(threshold))
+  geom_vline(xintercept = log(threshold)) +
+  labs(
+    x = "Log (total counts/area)"
+  )
 ```
 
 
 
 ## Filtering low quality spots
 
-Now we can filter. 
-
-In addition to the counts-per-area outliers, we use the control features as a quality signal.
+Now we can filter by combining the counts-per-area QC metric with information from the control features as a secondary quality signal. 
 A high-quality cell should have essentially no control counts. 
-Any counts in these categories indicate background or errors in that cell, so we exclude cells with a nonzero count in either control category.
+Any counts in these categories indicate background or errors in that cell. 
+Therefore we exclude cells with a nonzero count in either control category or with a counts-per-area ratio below the cutoff. 
 
 ```{r flag-exclude}
 # a cell is excluded if it is a counts-per-area outlier OR has any control counts
@@ -418,6 +483,8 @@ exclude <- outliers |
 sum(exclude) / length(exclude)
 ```
 
+Now we can add a new column to the SPE indicating which cells to exclude and use that to visualize what cells will be excluded during filtering. 
+
 ```{r plot-exclude}
 # store the flag and visualize which cells will be excluded
 spe$exclude <- exclude
@@ -427,6 +494,11 @@ ggspavis::plotCoords(spe, annotate = "exclude") +
   # add custom colors so excluded cells are easy to see
   scale_color_manual(values = c("grey90", "#00274C"))
 ```
+
+It looks like theres a group of cells at the top that are flagged, likely due to an issue with tissue placement on the slide. 
+We also see random cells that are low-quality scattered throughout the slide, which is typical of Xenium data.
+
+Let's go ahead and filter our cells and remove them from the SPE object.
 
 ```{r filter-cells, live = TRUE}
 # keep only the cells not flagged for removal
@@ -438,8 +510,14 @@ dim(filtered_spe)
 
 ## Normalization 
 
-Following the recommendations in [OSTA](https://bioconductor.org/books/release/OSTA/pages/img-intermediate-processing.html#normalization), we'll use a simple library-size normalization. 
-This is the same normalization we would use for Visium data. 
+Following the recommendations in [OSTA](https://bioconductor.org/books/release/OSTA/pages/img-intermediate-processing.html#normalization) (Orchestrating Spatial Transcriptomics Analysis with Bioconductor), we'll use a simple library-size normalization.
+This is the same normalization we would use for Visium data and will ensure that the differences in total counts across cells don't dominate downstream analyses. 
+
+This includes: 
+
+* Computing a per-cell size factor proportional to each cell's total counts
+* Dividing the expression counts by that size factor for each cell 
+* Log-transforming the data
 
 ```{r normalize, live = TRUE}
 # calculate per-spot size factors
@@ -451,6 +529,8 @@ normalized_spe <- scuttle::logNormCounts(normalized_spe)
 
 
 ## Export
+
+Finally, we save the filtered, normalized `SpatialExperiment` object as an `.rds` file so it can be loaded directly into later notebooks without repeating the steps above.
 
 ```{r}
 readr::write_rds(normalized_spe, output_spe_file)
