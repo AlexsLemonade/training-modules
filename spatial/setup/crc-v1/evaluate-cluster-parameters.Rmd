@@ -1,0 +1,335 @@
+---
+title: "Identifying parameters for clustering the CRC v1 dataset"
+author: "Data Lab for ALSF"
+date: "2026"
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+  html_document:
+    toc: true
+    df_print: paged
+---
+
+The goal of this notebook is to identify appropriate parameters to use to cluster (using expression values only) the CRC dataset. 
+We will use the Leiden algorithm with the modularity objective function and Jaccard weighting for all clusters.
+But, we'll explore different values for `k` (nearest neighbors) as well as `resolution` using metrics silhouette width, neighborhood purity, and stability with ARI.
+
+# Setup and import
+
+
+```{r}
+suppressPackageStartupMessages({
+  library(SpatialExperiment)
+  library(ggplot2)
+})
+
+# set theme for ggplot2 plots
+theme_set(theme_bw())
+```
+
+First, we'll set a random seed and read in the data.
+
+```{r}
+set.seed(2026)
+```
+
+
+```{r}
+data_dir <- here::here("data/crc-v1/normalized")
+crc_rds <- file.path(data_dir, "crc_normalized_spe.rds")
+```
+
+
+```{r}
+spe <- readRDS(crc_rds)
+```
+
+# Calculate clusters across parameter values
+
+We'll build a grid that combines a range of resolution values with a range of nearest-neighbor values, so we can see how both parameters jointly affect clustering.
+
+```{r define param grid}
+res_params <- seq(0.25, 1.5, 0.25)
+k_params <- seq(5, 30, 5)
+
+# combine into a grid of all resolution/k combinations
+param_grid <- tidyr::expand_grid(
+  res_param = res_params,
+  k_param = k_params
+) |>
+  dplyr::mutate(combo = glue::glue("res{res_param}_k{k_param}"))
+```
+
+
+Next, we'll calculate the PCA matrix we'll use for clustering, considering only the top 2000 highly-variable genes.
+
+```{r}
+gene_variance <- scran::modelGeneVar(spe)
+hv_genes <- scran::getTopHVGs(gene_variance, n = 2000)
+spe <- scater::runPCA(spe, subset_row = hv_genes)
+```
+
+We'll calculate clusters over the grid of parameter combinations, using Leiden with modularity objective function and Jaccard weighting.
+
+```{r}
+cluster_list <- param_grid |>
+  # Perform clustering for each resolution/k combination
+  purrr::pmap(
+    \(res_param, k_param, combo) {
+      
+      cluster_params <- bluster::NNGraphParam(
+        k = k_param,
+        type = "jaccard",
+        cluster.fun = "leiden",
+        cluster.args = list(
+          objective_function = "modularity",
+          resolution = res_param
+        )
+      )
+
+      scran::clusterCells(
+        spe, 
+        use.dimred = "PCA",
+        BLUSPARAM = cluster_params
+      )
+    }
+  ) |>
+  purrr::set_names(param_grid$combo)
+```
+
+How many clusters are in each combination of parameter values?
+Note that random seed state used for each calculation here will not precisely correspond to the exercise notebook itself, so this number of clusters applies primarily to this exploration.
+
+```{r}
+param_grid |>
+  dplyr::mutate(
+    n_clusters = purrr::map_int(cluster_list, \(x) length(levels(x)))
+  ) |>
+  tidyr::pivot_wider(
+    res_param, 
+    names_from = k_param, 
+    values_from = n_clusters, 
+    names_prefix = "k"
+  )
+```
+
+Next, we'll evaluate these clusters using several metrics.
+
+# Evaluate clusters
+
+## Silhouette width
+
+Silhouette width is commonly used to measure how well separated clusters are.
+For each spot, we compare the average distance to other spots in the same cluster to the average distance to spots in different clusters.
+_Note_: When we say "distance" here, we are referring to the nearest-neighbor graph used to build clusters, _not_ physical distance in the tissue section.
+This value ranges from -1 to 1.
+Spots in well-separated clusters should have high silhouette values closer to 1.
+You can read more about silhouette width purity from the [_Orchestrating Single Cell Analysis with Bioconductor_ book](https://bioconductor.org/books/3.22/OSCA.advanced/clustering-redux.html#silhouette-width).
+It's worth noting that due to the high complexity of transcriptomic data, it's very rare to see silhouette values that are actually close to 1; we'll interpret results here as "higher is better."
+
+
+```{r calculate silhouette width}
+cluster_silhouette_df <- cluster_list |>
+  purrr::map(
+    \(clusters) {
+      bluster::approxSilhouette(
+        reducedDim(spe, "PCA"), 
+        clusters
+      ) |>
+        # coerce to data frame
+        as.data.frame() |>
+        # store barcodes as a column, not row names
+        tibble::rownames_to_column(var = "barcode")
+    }
+  ) |>
+  # combine all data frames into one, storing the combo label for each in a new column
+  purrr::list_rbind(names_to = "combo") |>
+  # split the combo label back out into resolution and k columns
+  tidyr::separate(combo, into = c("resolution", "k"), sep = "_") |>
+  dplyr::mutate(
+    resolution = stringr::str_remove(resolution, "^res") |> as.numeric() |> as.factor(),
+    k = stringr::str_remove(k, "^k") |> as.numeric() |> as.factor()
+  )
+```
+
+
+
+```{r silhouette plot, solution = TRUE}
+# Plot violin plot of silhouette width across resolution values, faceted by k
+ggplot(cluster_silhouette_df) +
+  aes(x = resolution, y = width) +
+  ggforce::geom_sina(size = 0.5) + 
+  stat_summary(color = "red") +
+  geom_hline(color = "blue", yintercept = 0) +
+  facet_wrap(vars(k), labeller = label_both)
+```
+
+The blue line above is at 0, which represents the middle of the silhouette width scale.
+
+
+## Neighborhood purity
+
+Neighborhood purity is a single metric per spot defined as the proportion of neighboring spots that are assigned to the same cluster.
+Neighborhood purity ranges from 0 to 1.
+Spots in well-separated clusters should have high purity values closer to 1, since there should be minimal overlap between member and neighboring spots.
+You can read more about neighborhood purity from the [_Orchestrating Single Cell Analysis with Bioconductor_ book](https://bioconductor.org/books/3.22/OSCA.advanced/clustering-redux.html#cluster-purity).
+
+As with silhouette width, neighborhood purity values will tend to be higher when there are very few clusters - when there aren't many clusters, it's much more likely that neighboring cells will be in the same cluster as one another, regardless of whether the clustering itself is optimal.
+
+
+```{r calculate neighborhood purity, solution = TRUE}
+# Calculate neighborhood purity for each set of clusters
+cluster_purity_df <- cluster_list |>
+  purrr::map(
+    \(clusters) {
+      bluster::neighborPurity(
+        reducedDim(spe, "PCA"), 
+        clusters
+      ) |>
+      as.data.frame() |>
+      tibble::rownames_to_column(var = "barcode") |>
+      dplyr::mutate(cluster = clusters)
+    }
+  ) |>
+  purrr::list_rbind(names_to = "combo") |>
+  tidyr::separate(combo, into = c("resolution", "k"), sep = "_") |>
+  dplyr::mutate(
+    resolution = stringr::str_remove(resolution, "^res") |> as.numeric() |> as.factor(),
+    k = stringr::str_remove(k, "^k") |> as.numeric() |> as.factor()
+  )
+
+```
+
+
+
+```{r}
+# Plot boxplots of purity across resolution values, faceted by k
+ggplot(cluster_purity_df) +
+  aes(x = resolution, y = purity) +
+  ggforce::geom_sina(size = 0.25) + 
+  stat_summary(color = "red") +
+  # guiding line close to medians to help see
+  geom_hline(color = "blue", yintercept = 0.75) +
+  facet_wrap(vars(k), labeller = label_both)
+```
+
+The blue line above is at 0.7, which was chosen based on the values seen the plot to guide visual interpretation; this value is not specifically meaningful.
+
+
+## Stability
+
+The last metric we'll assess is stability which uses a boostrapping procedure:
+
+* Sample PCA rows (aka, spots) with replacement to create a bootstrapped PCA matrix 
+* Perform clustering on this bootstrapped PCA matrix
+* Compare the bootstrapped clusters to the original ones using (here) a metric called Adjusted Rand Index (ARI)
+
+
+ARI asks whether spots grouped together in one clustering (here, the original clusters) are still grouped together in a different clustering (here, a set of bootstrapped clusters).
+ARI itself is the proportion of pairs of spots which have the same status (e.g., clustered together or separately) in both clusterings being compared.
+ARI ranges from -1 to 1, where:
+
+* A value of 1 indicates clusterings are completely overlapping
+* A value of -1 indicates clusterings are completely distinct
+* A value of 0 indicates a random relationship
+
+Therefore, if clusters are stable, we expect that spots clustered together in the original clusters are also grouped together in the bootstrapped clusters and ARI values are high across bootstrap replicates.
+
+
+```{r}
+stability_index <- purrr::pmap(
+  param_grid,
+  \(res_param, k_param, combo) {
+    clusters <- cluster_list[[combo]]
+
+    # First, define the clustering parameters
+    cluster_params <- bluster::NNGraphParam(
+      k = k_param,
+      type = "jaccard",
+      cluster.fun = "leiden",
+      cluster.args = list(
+        objective_function = "modularity",
+        # Make sure the resolution value we pass in is numeric!
+        resolution = as.numeric(res_param)
+      )
+    )
+
+    # Perform bootstrapping and calculate stability with 100 bootstrap replicates
+    # We use this purrr::map() approach to get a full distribution and plot each replicate individually
+    # This has a longer runtime than running all 100 at once, but provides more insight
+    values <- purrr::map_dbl(1:100, \(x) {
+        bluster::bootstrapStability(
+          reducedDim(spe, "PCA"),
+          clusters = clusters,
+          BLUSPARAM = cluster_params,
+          iterations = 1,
+          mode = "index"
+        )}
+      )
+    values
+  }
+) |>
+  purrr::set_names(param_grid$combo)
+```
+
+```{r}
+stability_df <- stability_index |>
+  as.data.frame() |>
+  tidyr::pivot_longer(
+    everything(),
+    names_to = "combo", 
+    values_to = "stability"
+  ) |>
+  tidyr::separate(combo, into = c("resolution", "k"), sep = "_") |>
+  dplyr::mutate(
+    resolution = stringr::str_remove(resolution, "^res") |> as.numeric() |> as.factor(),
+    k = stringr::str_remove(k, "^k") |> as.numeric() |> as.factor()
+  )
+
+
+ggplot(stability_df) + 
+  aes(x = resolution, y = stability) + 
+  ggforce::geom_sina(size = 0.5) + 
+  stat_summary(color = "red") +
+  geom_hline(color = "blue", yintercept = 0.65, alpha = 0.5) +
+  facet_wrap(vars(k), labeller = label_both)
+```
+
+The blue line above is at 0.65, which was chosen based on the values seen the plot to guide visual interpretation; this value is not specifically meaningful.
+
+
+# Conclusions
+
+We observe the following trends:
+
+1. Silhouette width is fairly consistent across all parameter combinations and centered around 0. 
+If anything, `resolution = 0.5` at `k` between 20-30 a bit lower, but overall this does not seem like a very informative metric in this case given the shared symmetry around 0.
+
+2. Neighborhood purity is higher for lower resolutions, which is a consequence of the purity metric itself when there are fewer clusters present.
+We see the highest values at `resolution = 0.5` at `k` between 20-30, which are the parameter ranges with the slightly lower silhouette width. 
+
+3. Stability increases with `k`, and the highest ARI is coming from `k = 25/30` at `resolution = 1.5`, which had 15/14 clusters, respectfully.
+This combination did have _marginally_ (but probably not very meaningfully) higher silhouette width, but was lower on purity. 
+Aside from this, the other combinations with highest means are are `resolution=1.5/k=25`, `resolution=0.75`/`k=30`, and `resolution=1.25/k=30`, as well as `resolution=0.5/k=30` but this last combination has a higher spread.
+
+Considering all metrics, the parameters `resolution = 0.75` and `k = 30`, in particular with its higher purity values and tight stability distribution, seems reasonable to proceed with.
+
+To conclude, we'll visualize these clusters.
+Again, given differences in random seed state, these clusters may not precisely match those that will be calculated in the workshop.
+
+```{r, fig.width = 4}
+spe$cluster <- cluster_list$res0.75_k30
+ggspavis::plotCoords(
+  spe, 
+  annotate = "cluster", 
+  point_size = 2
+) +
+  scale_color_brewer(palette = "Paired")
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
