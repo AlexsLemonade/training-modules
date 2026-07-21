@@ -160,7 +160,7 @@ This will create both a directory `../data/crc-v1/` with the following files:
 The `crc-v1/normalized/` directory was then copied to `/shared/data/training-modules/spatial/data/`.
 
 
-This directory also contains a notebook `evaluate-cluster-parameters.Rmd` (which was manually run) that identifies reliable clustering parameters for use in this dataset's associated exercise notebook.
+This directory also contains a notebook `evaluate-cluster-parameters.Rmd` (which was manually run) that identifies reliable clustering parameters for use in this data's associated exercise notebook.
 
 ### BRCA Xenium
 
