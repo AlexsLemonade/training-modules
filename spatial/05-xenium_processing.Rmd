@@ -143,14 +143,15 @@ It is somewhat similar to `tissue_positions_list.csv` in Visium, but at far high
 
 ##### `cell_boundaries.parquet` and `nucleus_boundaries.parquet` (plus `.csv.gz` versions)
 
-The polygon vertices defining each cell's and each nucleus's segmentation outline which is useful for plotting and for any polygon-based QC metrics like cell area and shape.
+These files describe the polygons that define each cell's and each nucleus's segmentation outline.
+These polygons are useful for plotting and for calculating QC metrics like cell area and shape.
 Nucleus boundaries come from segmenting the DAPI image and cell boundaries come from expanding or otherwise extending those nuclei (see the segmentation note below).
 The count matrix is summarized at the **cell** level so that transcripts are assigned to the cell polygons. 
 This means that `cell_boundaries` correspond to the columns of our object (or `spots` in Visium), while `nucleus_boundaries` is supplementary information about the nuclear compartment.
 
 ##### `analysis/` and `analysis.zarr.zip`
 
-The instrument's automated secondary analysis (e.g., dimensionality reduction and clustering) produced on-instrument.
+These files contain automated secondary analysis (e.g., dimensionality reduction and clustering) that are produced on-instrument.
 
 ##### `metrics_summary.csv` and `analysis_summary.html`
 
@@ -167,7 +168,7 @@ We'll import the counts and spatial information into a `SpatialExperiment` (SPE)
 Note that here we are not using `VisiumIO` as our dataset is from Xenium, which is distinct from the previous Visium data sets we have been working with.
 
 The only argument the function strictly requires is the path to the output bundle directory.
-Below we also pass a few arguments explicitly, like the count matrix and per-cell metadata, just so we can see what files are required, but we are still using the defaults.
+In the code below, we set a few arguments explicitly, like the count matrix and per-cell metadata, just so we can see what files are required, but we are still using the defaults.
 
 By default, the function also moves the Xenium control features (negative control probes, negative control codewords, unassigned codewords, etc.) out of the main gene matrix and into `altExps`, and adds the `experiment.xenium` metadata and the transcript/boundary parquet paths to `metadata()`.
 
@@ -210,7 +211,8 @@ ggspavis::plotCoords(spe)
 
 ### A note on segmentation 
 
-Because Xenium reports data per cell, every count depends on cell segmentation which is a computational approach that draws a boundary around each cell and decides which transcripts belong to each cell.
+Because Xenium reports data per cell, every count depends on the cell segmentation step.
+Segmentation employs a computational algorithm to identify a boundary for each cell and decides which transcripts belong to each cell.
 Segmentation quality therefore directly affects downstream results, and it remains an active area of research as no method handles every tissue perfectly.
 
 The Xenium Onboard Analysis pipeline segments cells in two broad ways depending on the assay ([10x Genomics segmentation algorithms](https://www.10xgenomics.com/support/software/xenium-onboard-analysis/latest/algorithms-overview/segmentation)):
@@ -233,7 +235,7 @@ Decoding is the process of reading the observed signal at each detected fluoresc
 The codebook deliberately reserves some codewords and probes as controls, which let us estimate background and error rates:
 
 - **Negative control probes** are physical probes included in the panel that target sequences _not_ present in the transcriptome. Counts on these reflect nonspecific probe binding, so they measure assay background.
-- **Negative control codewords** are valid codewords that are deliberately left unassigned to any real gene. 
+- **Negative control codewords** are valid codewords that are deliberately left unassigned to any real probe in the panel. 
 Counts on these reflect optical or decoding errors, so they measure decoding specificity.
 - **Antisense** are probes targeting the antisense strand. 
 Counts on these reflect nonspecific probe binding and measure assay background. 
@@ -242,7 +244,7 @@ These are also used to identify decoding specificity.
 Note that this category does not appear in newer versions and has been replaced with Unassigned codewords.
 
 Because a high-quality cell should have essentially no control counts, these features are a powerful QC signal and we will use them below.
-To keep them from being mistaken for real gene counts, `readXeniumSXE()` moves them out of the main matrix and into alternative experiments (`altExps`) stored alongside the main object.
+To keep control counts from being mistaken for real gene counts, `readXeniumSXE()` moves them out of the main matrix and into alternative experiments (`altExps`) stored alongside the main object.
 These can be accessed with `altExp()`.
 
 We can see which control experiments were separated out here:
@@ -295,7 +297,7 @@ cell_types_df |>
 
 
 Now we join the annotations onto the object's `colData` by `cell_id`.
-Cells that are not present in the annotation file will get `NA`.
+Cells that are not present in the annotation file will be assigned as `NA`.
 
 ```{r add-annotations}
 coldata_df <- colData(spe) |>
@@ -422,7 +424,7 @@ p1 <- ggspavis::plotCoords(spe, annotate = "total") +
 
 p2 <- ggspavis::plotCoords(spe, annotate = "Area_um") +
   scale_color_viridis_c() +
-  ggplot2::scale_color_distiller(palette = "YlOrRd", direction = 1)
+ ggplot2::scale_color_distiller(palette = "YlOrRd", direction = 1)
 
 p1 + p2
 ```
@@ -431,7 +433,7 @@ To flag these cells, we summarize each cell by its counts-per-area ratio and loo
 Specifically, we use `scater::isOutlier()` to flag cells whose ratio falls more than three median absolute deviations (MADs) below the median.
 
 * The MAD is a robust measure of spread and is less sensitive to extreme values than the standard deviation. 
-* We will use the common cutoff of three MADs. 
+* We will use the common cutoff of 3 * MAD. 
 * We only flag the low side, since it is unusually _few_ counts for a cell's area that signals debris or a failed segmentation.
 * We work on the log scale because the ratio is strictly positive and right-skewed, which makes a symmetric MAD rule more appropriate.
 
