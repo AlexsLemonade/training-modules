@@ -213,7 +213,9 @@ ggspavis::plotCoords(spe)
 
 Because Xenium reports data per cell, every count depends on the cell segmentation step.
 Segmentation employs a computational algorithm to identify a boundary for each cell and decides which transcripts belong to each cell.
-Segmentation quality therefore directly affects downstream results, and it remains an active area of research as no method handles every tissue perfectly.
+Segmentation quality therefore directly affects downstream results, but no current method handles every tissue perfectly. 
+Different cell types, such as neurons and muscle cells have non-cuboidal shapes so segmentation approaches for tisseus with those cell types maybe more difficult than others. 
+Improving sementation remains an active area of research. 
 
 The Xenium Onboard Analysis pipeline segments cells in two broad ways depending on the assay ([10x Genomics segmentation algorithms](https://www.10xgenomics.com/support/software/xenium-onboard-analysis/latest/algorithms-overview/segmentation)):
 
@@ -228,20 +230,22 @@ This particular dataset only included a DAPI stain so cell segmentation was done
 A Xenium panel includes probes for both targeted genes and control probes. 
 
 To understand the control categories, it helps to know how Xenium turns images into counts.
-Each targeted gene is detected not by sequencing but by a characteristic pattern of fluorescent signals across imaging channels and cycles.
+Each targeted gene is detected not by sequencing but by a characteristic pattern of fluorescent signals at a specific site (punctum) across imaging channels and cycles.
 That pattern is called a **codeword**, and the full lookup table mapping codewords to genes is the **codebook** ([10x Genomics Xenium panel design concepts and terms](https://www.10xgenomics.com/support/software/xenium-panel-designer/latest/tutorials/xenium-panel-design-concepts-terms)).
 Decoding is the process of reading the observed signal at each detected fluorescent punctum and matching it to a codeword (and therefore a gene), with a quality score attached to each call.
 
 The codebook deliberately reserves some codewords and probes as controls, which let us estimate background and error rates:
 
-- **Negative control probes** are physical probes included in the panel that target sequences _not_ present in the transcriptome. Counts on these reflect nonspecific probe binding, so they measure assay background.
+- **Negative control probes** are physical probes included in the panel that target sequences _not_ present in the transcriptome. 
+Counts on these reflect nonspecific probe binding, so they measure assay background.
 - **Negative control codewords** are valid codewords that are deliberately left unassigned to any real probe in the panel. 
 Counts on these reflect optical or decoding errors, so they measure decoding specificity.
 - **Antisense** are probes targeting the antisense strand. 
 Counts on these reflect nonspecific probe binding and measure assay background. 
-- **BLANK** codewords are empty codewords that map to nothing. 
+- **BLANK** codewords are unused codewords.
+There is no probe in a particular gene panel that will generate the codeword. 
 These are also used to identify decoding specificity. 
-Note that this category does not appear in newer versions and has been replaced with Unassigned codewords.
+Note that although the probes are named with `BLANK` these correspond to Unassigned codewords described in the [10x documentation](https://www.10xgenomics.com/support/software/xenium-onboard-analysis/latest/algorithms-overview/xoa-algorithms#qvs). 
 
 Because a high-quality cell should have essentially no control counts, these features are a powerful QC signal and we will use them below.
 To keep control counts from being mistaken for real gene counts, `readXeniumSXE()` moves them out of the main matrix and into alternative experiments (`altExps`) stored alongside the main object.
@@ -249,7 +253,7 @@ These can be accessed with `altExp()`.
 
 We can see which control experiments were separated out here:
 
-```{r inspect-altexps, live = TRUE}
+```{r inspect-altexps}
 # control features are stored separately from the gene panel, as altExps
 altExpNames(spe) |> 
   purrr::map(\(name) altExp(spe, name))
@@ -268,7 +272,9 @@ head(cell_types_df)
 
 ```{r annotations-table}
 # how many cells of each annotated type?
-table(cell_types_df$cell_type_annotation)
+cell_types_df |> 
+  dplyr::count(cell_type_annotation) |> 
+  dplyr::arrange(desc(n))
 ```
 
 The original annotations are fairly fine-grained.
@@ -326,11 +332,9 @@ cell_type_palette <- list(
   "Perivascular-Like" = "#FEAF16",
   "Dendritic cell" = "#1CBE4F",
   "Mast Cells" = "#565656",
+  "Hybrid" = "#FFF000",
   "Unlabeled" = "grey90"
 )
-
-# unlabeled should be greyed out
-cell_type_palette$Unlabeled <- "grey90"
 ```
 
 Finally, we'll use factors to define the order of the cell types so that they appear in the legend in the same order that we have defined above rather than in alphabetical order. 
@@ -346,6 +350,7 @@ Now that we have prepared our data, we can create our plot showing the lumped ce
 
 ```{r plot-celltypes, live = TRUE}
 #| fig.width: 8
+#| message: FALSE
 
 # plot all spots colored by cell type 
 ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
@@ -360,58 +365,12 @@ Cells from imaging based methods can be considered low-quality for one of two re
 1. The cell has a high level of background noise or has had issues decoding the codewords, as indicated by high per-cell counts for the negative control probes or negative codewords. 
 For Xenium, this information is stored in `control_probe_counts` and `control_codeword_counts` in the `colData`. 
 2. The cell has a low number of gene expression counts compared to other cells of the same size, indicating the cells may be debris or segmentation artifacts. 
-This information should be calculated for each cell. 
+For Xenium, this information is stored in `total_counts` and `cell_area` in the `colData`. 
 
-We will use [`SpaceTrooper`](https://bioconductor.org/packages/SpaceTrooper) ([Banzi _et al.,_ 2025](https://doi.org/10.64898/2025.12.24.696336)) to compute per-cell quality-control metrics that are tailored to imaging-based spatial data. 
-This includes cell area and total counts which is calculated from the `counts` assay in the main experiment. 
-
-`SpaceTrooper` supports many imaging-based spatial transcriptomics platforms (e.g., CosMx, MERFISH, Xenium).
-Because some of its metrics are platform-specific, we tell it which technology produced the data by setting it in the object's `metadata()` first.
-
-**Note** that you may see a warning when running the step below.
-This is expected for Xenium data.
-`SpaceTrooper` can compute a border-related metric based on cell aspect ratio and distance to the nearest field-of-view border that feeds its combined quality score.
-That metric exists to capture stitching artifacts seen at field-of-view borders. 
-Although you can calculate these metrics for Xenium, the Xenium output is not expected to have field-of-view border artifacts, so the metric is not calculated here and the warning simply notes its absence.
-
-```{r spatial-qc}
-# tell SpaceTrooper which platform this is
-metadata(spe)$technology <- "10X_Xenium"
-
-# compute spatial per-cell QC metrics (adds columns like cell area, and probe counts)
-# note that some of this may have been pre-calculated for this experiment but we'll re-do that here
-spe <- SpaceTrooper::spatialPerCellQC(
-  spe,
-  use_altexps = FALSE # don't calculate metrics for altexperiments
-)
-
-head(colData(spe))
-```
-
-`spatialPerCellQC()` adds several per-cell QC columns to `colData()`. 
-The ones we will use for QC include `total` and `Area_um`: 
-
-- `total`: total transcript counts per cell summed over all panel genes.
-- `Area_um`: the cell's area in square microns, derived from its segmentation polygon.
-
-**Note:** For this particular experiment, these metrics were already stored in the columns `total_counts` and `cell_area` found in the `colData`, but this will not be the case for all imaging-based experiments. 
-This is why we will use the columns calculated by `SpaceTrooper` and not the original columns. 
-
-We will ultimately combine this information with the existing control-feature counts stored in `control_probe_counts` and `control_codeword_counts`, which quantity the total counts falling on the negative control probe and negative control codeword categories. 
-This information serves as a direct read-out of background and decoding error.
-
-It also writes the centroid coordinates into `colData` as `x_centroid`/`y_centroid`.
-Because `spatialCoords()` already holds columns with those exact names, `ggspavis` errors on the duplicated names when it assembles its plotting data frame.
-We drop the `colData` copies in the code below, but note that the coordinates still live safely in `spatialCoords`:
-
-```{r dedupe-coords}
-# remove the duplicated coordinate columns from colData to avoid a name
-# collision with spatialCoords when plotting
-colData(spe) <- colData(spe) |>
-  as.data.frame() |>
-  dplyr::select(-c("x_centroid", "y_centroid")) |>
-  DataFrame()
-```
+**Note:** For other imaging based methods, this information may not be pre-calculated. 
+In this case the [`SpaceTrooper`](https://bioconductor.org/packages/SpaceTrooper) ([Banzi _et al.,_ 2025](https://doi.org/10.64898/2025.12.24.696336)) package can be used to compute per-cell quality-control metrics that are tailored to imaging-based spatial data. 
+Additionally, the exact filtering steps shown here may not be applicable for all imaging based platforms. 
+Please consult [OSTA section on quality control for imaging-based platforms](https://bioconductor.org/books/release/OSTA/pages/img-quality-control.html) for more details. 
 
 Low-quality cells tend to be outliers in the relationship between total counts and cell area. 
 Cells with very few counts for their area are often debris or segmentation artifacts. 
@@ -419,11 +378,12 @@ Below we can color the cells by these QC metrics.
 
 ```{r plot-qc}
 #| fig.width: 8
-p1 <- ggspavis::plotCoords(spe, annotate = "total") +
+#| message: FALSE
+
+p1 <- ggspavis::plotCoords(spe, annotate = "total_counts") +
   ggplot2::scale_color_distiller(palette = "Blues", direction = 1)
 
-p2 <- ggspavis::plotCoords(spe, annotate = "Area_um") +
-  scale_color_viridis_c() +
+p2 <- ggspavis::plotCoords(spe, annotate = "cell_area") +
  ggplot2::scale_color_distiller(palette = "YlOrRd", direction = 1)
 
 p1 + p2
@@ -435,18 +395,19 @@ Specifically, we use `scater::isOutlier()` to flag cells whose ratio falls more 
 * The MAD is a robust measure of spread and is less sensitive to extreme values than the standard deviation. 
 * We will use the common cutoff of 3 * MAD. 
 * We only flag the low side, since it is unusually _few_ counts for a cell's area that signals debris or a failed segmentation.
-* We work on the log scale because the ratio is strictly positive and right-skewed, which makes a symmetric MAD rule more appropriate.
+* We work on the log scale because the ratio is strictly positive and right-skewed. 
+Using the log scale will make the distribution more symmetric which is what is assumed when using the 3 * MAD rule.
 
 ```{r count-area-outliers}
 # counts-per-area ratio for each cell
-count_area_ratio <- spe$total / spe$Area_um
+count_area_ratio <- spe$total_counts / spe$cell_area
 
 # flag cells that are outliers on the low side
 # (3 median absolute deviations below the median, on the log2 scale since the metric is a ratio)
 outliers <- scater::isOutlier(count_area_ratio, log = TRUE, type = "lower", nmads = 3)
 
-# print the output
-outliers
+# print the structure which tells us where to find the identified threshold
+str(outliers)
 ```
 
 Now we can pull out the specific threshold corresponding to 3 MADs below the median from the `outliers` object. 
@@ -478,32 +439,60 @@ A high-quality cell should have essentially no control counts.
 Any counts in these categories indicate background or errors in that cell. 
 Therefore we exclude cells with a nonzero count in either control category or with a counts-per-area ratio below the cutoff. 
 
-```{r flag-exclude}
-# a cell is excluded if it is a counts-per-area outlier OR has any control counts
-exclude <- outliers |
-  spe$control_probe_counts > 0 |
-  spe$control_codeword_counts > 0
+First, let's look at what cells get filtered by using just the counts-per-area QC metric. 
 
-# fraction of cells flagged for removal
-sum(exclude) / length(exclude)
+```{r count-outliers, live=TRUE}
+# how many cells would get filtered? 
+sum(outliers)
 ```
 
-Now we can add a new column to the SPE indicating which cells to exclude and use that to visualize what cells will be excluded during filtering. 
 
-```{r plot-exclude}
-# store the flag and visualize which cells will be excluded
-spe$exclude <- exclude
+```{r visualize-counts-outliers}
+# now visualize them using the spatial coordinates 
+spe$counts_per_area_outliers <- outliers
 
-ggspavis::plotCoords(spe, annotate = "exclude") +
+ggspavis::plotCoords(spe, annotate = "counts_per_area_outliers") +
   guides(color = guide_legend(override.aes = list(size = 4))) +
   # add custom colors so excluded cells are easy to see
   scale_color_manual(values = c("grey90", "#00274C"))
 ```
 
-It looks like there's a group of cells at the top that are flagged, likely due to an issue with tissue placement on the slide. 
-We also see random cells that are low-quality scattered throughout the slide, which is typical of Xenium data.
+It looks like most of the cells that would be excluded if we used this metric alone are towards the edges of the tissue. 
+This is likely an artifact of the tissue placement. 
 
-Let's go ahead and filter our cells and remove them from the SPE object.
+Now, let's look at cells that get filtered by using just the control metrics.
+These are cells with either `control_probe_counts` or `control_codeword_counts` > 0. 
+
+```{r count-control-outliers}
+# add a column indicating if the cell has any control probes detected
+spe$control_exclude <- spe$control_probe_counts > 0 | spe$control_codeword_counts > 0
+
+# how many cells would be excluded
+sum(spe$control_exclude)
+```
+
+```{r visualize-control-outliers}
+ggspavis::plotCoords(spe, annotate = "control_exclude") +
+  guides(color = guide_legend(override.aes = list(size = 4))) +
+  # add custom colors so excluded cells are easy to see
+  scale_color_manual(values = c("grey90", "#00274C"))
+```
+
+In contrast, the cells that have controls detected and are therefore considered low-quality tend to be scattered randomly throughout the tissue, which is expected in Xenium. 
+
+Ultimately, we want to filter out both cells that have a low counts-per-area ratio and have detectable counts for control probes and codewords. 
+
+Let's do that below and add a new column to the SPE object indicating which cells should be removed.
+
+```{r flag-exclude, live = TRUE}
+# a cell is excluded if it is a counts-per-area outlier OR has any control counts
+spe$exclude <- spe$counts_per_area_outliers | spe$control_exclude
+
+# fraction of cells flagged for removal
+sum(spe$exclude) / length(spe$exclude)
+```
+
+We'll then filter our cells and remove them from the SPE object.
 
 ```{r filter-cells, live = TRUE}
 # keep only the cells not flagged for removal
