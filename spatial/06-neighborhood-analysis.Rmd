@@ -65,7 +65,10 @@ normalized_dir <- file.path(data_dir, "normalized")
 normalized_rds <- file.path(normalized_dir, "brca_xenium_normalized.rds")
 
 # the path to a tsv file containing a palette of colors for the cell types present in this dataset
-cell_type_palette_file <- file.path("palettes", "brca-xenium-cell-type-palette.tsv")
+cell_type_palette_file <- file.path(
+  data_dir, 
+  "brca-xenium-cell-type-palette.tsv"
+)
 ```
 
 We'll also set up the output paths we need at the end of the notebook.
@@ -126,6 +129,12 @@ ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
   scale_color_manual(values = cell_type_palette)
 ```
 
+Note that we still have a fair amount of "Unlabeled" cells. 
+Let's remove those from our analysis as we don't really know what they are so we don't want them to confound results. 
+
+```{r}
+spe <- spe[, spe$cell_types_lumped != "Unlabeled"]
+```
 
 
 ## Identifying cell neighborhoods with `hoodscanR` 
@@ -249,12 +258,11 @@ That gives us full control over the appearance and makes it easy to adjust later
 We plot the first 100 cells here just to keep the heatmap legible.
 
 ```{r neighborhood-heatmap}
-# plot the neighborhood profiles for the first 100 cells
+# plot the neighborhood profiles for the first 500 cells
 
 ComplexHeatmap::Heatmap(
-  t(hoods[1:100,]), # transpose so cells are columns
+  t(hoods[1:500,]), # transpose so cells are columns
   col            = scico::scico(200, palette = "acton", direction = -1),
-  rect_gp        = grid::gpar(col = "white", lwd = 1),
   name           = "Probability",
   column_title   = "Probability of cell types\n within 100 nearest neighbors",
   column_title_gp = grid::gpar(fontsize = 15),
@@ -457,6 +465,29 @@ ggplot(coldata_df, aes(y = perplexity, x = clusters)) +
 ```
 
 TODO: text around confirming that the single-cell-type domains have low perplexity and the mixed domains have high perplexity.
+
+We can also go back to the heatmap of the neighborhood profile and include the domain annotations. 
+
+```{r domain-heatmap}
+domain_annotations <- ComplexHeatmap::columnAnnotation(
+  "Domain" = spe$clusters[1:500]
+)
+
+ComplexHeatmap::Heatmap(
+  t(hoods[1:500,]), # transpose so cells are columns
+  col            = scico::scico(200, palette = "acton", direction = -1),
+  name           = "Probability",
+  column_title   = "Probability of cell types\n within 100 nearest neighbors",
+  column_title_gp = grid::gpar(fontsize = 15),
+  column_dend_height = grid::unit(1, "cm"),
+  row_dend_width = unit(1, "cm"),
+  column_names_rot = 45,
+  top_annotation = domain_annotations,
+  cluster_rows   = TRUE,     # group cells with similar profiles together
+  cluster_columns = TRUE,    # group cell types that co-occur together
+  show_column_names = FALSE     # hide per-cell labels; there are too many to read
+)
+```
 
 
 ## Export 
