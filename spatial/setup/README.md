@@ -160,6 +160,8 @@ This will create both a directory `../data/crc-v1/` with the following files:
 The `crc-v1/normalized/` directory was then copied to `/shared/data/training-modules/spatial/data/`.
 
 
+This directory also contains a notebook `evaluate-cluster-parameters.Rmd` (which was manually run) that identifies reliable clustering parameters for use in the associated exercise notebook.
+
 ### BRCA Xenium
 
 This data comes from this 10x Genomics dataset: <https://www.10xgenomics.com/products/xenium-in-situ/preview-dataset-human-breast>
