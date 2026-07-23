@@ -91,6 +91,12 @@ output_spe_file <- file.path(
   normalized_dir,
   "brca_xenium_normalized.rds"
 )
+
+# output cell type color palette
+output_color_palette_file <- file.path(
+  data_dir, 
+  "brca-xenium-cell-type-palette.tsv"
+)
 ```
 
 
@@ -334,7 +340,7 @@ cell_type_palette <- list(
   "Perivascular-Like" = "#FEAF16",
   "Dendritic cell" = "#1CBE4F",
   "Mast Cells" = "#565656",
-  "Hybrid" = "#FFF000",
+  "Hybrid" = "#FFFF00",
   "Unlabeled" = "grey90"
 )
 ```
@@ -528,8 +534,14 @@ normalized_spe <- scuttle::logNormCounts(normalized_spe)
 
 Finally, we save the filtered, normalized `SpatialExperiment` object as an `.rds` file so it can be loaded directly into later notebooks without repeating the steps above.
 
-```{r}
+```{r export-spe}
 readr::write_rds(normalized_spe, output_spe_file)
+```
+
+```{r export-palette}
+cell_type_palette |> 
+  tibble::enframe(name = "cell_type", values = "color") |> 
+  readr::write_tsv(output_color_palette_file)
 ```
 
 
