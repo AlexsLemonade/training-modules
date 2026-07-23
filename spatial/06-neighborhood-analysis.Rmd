@@ -1,0 +1,518 @@
+---
+title: "Spatial neighborhood analysis"
+author: Data Lab for ALSF
+date: 2026
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+## Objectives
+
+- Use `hoodscanR` to create a neighborhood profile for each cell
+- Use the output from `hoodscanR` to quantify the complexity of spatial neighborhoods 
+- Identify cell types that are commonly co-localized 
+- Use `hoodscanR` for domain detection
+
+## Introduction 
+
+Spatial neighborhood analysis is a way to summarize which cell types are near other cell types and describe the local tissue environment.
+
+In this notebook we'll use the [`hoodscanR`](https://www.bioconductor.org/packages/release/bioc/html/hoodscanR.html) package to look at the following characteristics.
+
+1. Neighborhood profiles, or the mix of cell types among each cells' nearest neighbors.
+2. Neighborhood complexity, which defines if a cell sitting in a "pure" environment dominated by one cell type, or a highly mixed one.
+3. Co-localization, which tells us which cell types tend to show up in the same neighborhoods across the whole slide.
+4. Domain detection, which uses clustering of neighborhood profiles to identify spatial domains that share a similar neighborhood profile.
+
+The general idea behind `hoodscanR` is to look at each cell's k nearest neighbors, convert the distances to those neighbors into probabilities, and then summarize those probabilities by cell type.
+The result is a per-cell profile which is a set of probabilities describing how likely that cell type is to be found in the neighborhood of each cell. 
+
+## Setup 
+
+To begin, we'll load the packages we'll use throughout this notebook and set the random seed.
+Setting a seed matters here because a few of the calculations in `hoodscanR` involve randomness, and we want the notebook to give the same results each time it is run.
+
+```{r libraries}
+suppressPackageStartupMessages({
+  # The main class we use for spatial transcriptomic data
+  library(SpatialExperiment)
+  # functions for plotting
+  library(ggplot2)
+})
+
+# Set theme for ggplot2 plotting
+theme_set(theme_bw())
+
+# Set a seed so the random steps (tau estimation, k-means) are reproducible
+set.seed(2026)
+```
+
+### Directories and files
+
+Next, we'll define paths to the normalized SPE object that we prepared in the previous notebook. 
+This object is stored in `data/brca-xenium/normalized`. 
+
+```{r inputs}
+# top level data directory for brca xenium data
+data_dir <- file.path("data", "brca-xenium")
+
+# data directory for the normalized data
+normalized_dir <- file.path(data_dir, "normalized")
+
+# the normalized SPE object we will read in
+normalized_rds <- file.path(normalized_dir, "brca_xenium_normalized.rds")
+
+# the path to a tsv file containing a palette of colors for the cell types present in this dataset
+cell_type_palette_file <- file.path(
+  data_dir, 
+  "brca-xenium-cell-type-palette.tsv"
+)
+```
+
+We'll also set up the output paths we need at the end of the notebook.
+
+```{r outputs}
+# path to analysis directory
+analysis_dir <- file.path("analysis", "brca-xenium")
+fs::dir_create(analysis_dir)
+
+# path to output spe file
+hoodscanr_results_file <- file.path(analysis_dir, "hoodscanr_spe.rds")
+```
+
+
+Now we'll read in the normalized object. 
+
+```{r read-normalized, live = TRUE}
+# read the normalized SpatialExperiment object created in the previous notebook
+spe <- readr::read_rds(normalized_rds)
+```
+
+<!--TODO: We don't really need this section since we just looked at in the previous notebook, but I thought it would be helpful to have this plot here? I'm okay to take it out or replace it with a table of cell types if that's more helpful.-->
+As a reminder, let's look at the cell types that are present in this dataset. 
+We'll use the `cell_types_lumped` column that we created in the previous notebook for the plot and for the neighborhood analysis.
+
+Since this is a new notebook, we'll need to set the palette of colors to use for each cell type again. 
+
+```{r celltype-palette}
+# read in a custom palette mapping each cell type to a fixed color, so that
+# colors stay consistent across every plot in the notebook
+cell_type_palette <- readr::read_tsv(cell_type_palette_file, col_types = list(.default = "c")) |> 
+  # turn the dataframe into a named list 
+  # where the first column is names and the second column is values
+  tibble::deframe()
+
+cell_type_palette
+```
+
+Setting the cell type column as a factor lets us control the order the cell types appear in legends and plots.
+We use the order of the palette we just defined so the two always match.
+
+```{r set-celltype-levels}
+# re-order celltypes for plotting by setting them as a factor,
+# using the palette order as the factor level order
+spe$cell_types_lumped <- factor(
+  spe$cell_types_lumped, 
+  levels = names(cell_type_palette)
+)
+```
+
+With the palette and factor levels in place, we can plot the cells in their spatial coordinates, colored by cell type.
+
+```{r plot-celltypes}
+#| fig.width: 8
+
+# plot the cells at their spatial coordinates, colored by lumped cell type
+ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
+  scale_color_manual(values = cell_type_palette)
+```
+
+Note that we still have a fair amount of "Unlabeled" cells. 
+Let's remove those from our analysis as we don't really know what they are so we don't want them to confound results. 
+
+```{r}
+spe <- spe[, spe$cell_types_lumped != "Unlabeled"]
+```
+
+
+## Identifying cell neighborhoods with `hoodscanR` 
+
+The core output of `hoodscanR` is a neighborhood profile for every cell.
+To build it, the package takes three steps that we'll walk through one at a time:
+
+1. Find the k nearest neighboring cells for each cell (`findNearCells`).
+2. Convert the distances to those neighbors into probabilities, so that closer cells contribute more (`scanHoods`).
+3. Group those per-neighbor probabilities by cell type, giving each cell a probability of being surrounded by each cell type (`mergeByGroup`).
+
+The end result is a matrix with one row per cell and one column per cell type, where each value is the probability that the cell's local neighborhood contains that cell type.
+
+### Setup the `hoodscanR` object
+
+`hoodscanR` expects the annotation it should use to live in a standardized column called `cell_annotation`, and it expects the spatial coordinates to be in the `spatialCoords` of the object.
+Let's first add a new column to the `colData` named `cell_annotation` and fill it with the same contents as `cell_types_lumped`. 
+
+```{r add-annotation-column, live=TRUE}
+# reformat the SPE for hoodscanR 
+# which expects a column named `cell_annotation` to use for neighborhood identification
+spe$cell_annotation <- spe$cell_types_lumped
+```
+
+Now let's check to see if the spatial coordinates are indeed present in `spatialCoords`. 
+
+```{r setup-hood, live=TRUE}
+spatialCoords(spe)[1:10, ]
+```
+
+Great, it looks like our object is all set to run `hoodscanR`.  
+
+### Generate the probability matrix
+
+The first step is to find the nearest neighbors for each cell based on physical distance.
+`findNearCells()` does this using an approximate nearest-neighbor search, returning the `k` closest cells for every cell in the dataset.
+Note that distance here is the Euclidean distance between the x and y coordinates on the slide. 
+
+The choice of `k` sets the size of the neighborhood we're describing.
+<!--TODO: Fill in some more information about choosing k and why we're using the default-->
+ 
+```{r nearest-neighbors, live=TRUE}
+# for each cell, find its k nearest neighboring cells
+neighbors <- hoodscanR::findNearCells(
+  spe, 
+  k = 100, # number of nearest neighbors to consider for each cell
+  anno_col = "cell_annotation" # default 
+)
+```
+
+What's inside this object? 
+We have `cells` and `distance`.
+Both are matrices (all the same type), but the cells are stored as a data frame.
+
+```{r inspect-structure}
+str(neighbors, max.level = 1)
+```
+
+
+The `cells` matrix has one row per cell and one column per neighbor (`nearest_cell_1` through `nearest_cell_100`).
+Each entry is the cell type of that neighbor.
+
+```{r inspect-cells, live=TRUE}
+neighbors$cells[1:10, 1:10]
+```
+
+The `distance` matrix has the same shape, but each entry is the physical distance from the cell to that neighbor.
+
+```{r inspect-distance, live=TRUE}
+neighbors$distance[1:10, 1:5]
+```
+
+<!--TODO: Address the fact that there are missing numbers in the rows (due to cells that are filtered)
+And note that the nearest_cell_1, etc corresponds to the 100 nearest cells and not the cell index-->
+
+Next we convert those distances into probabilities with `scanHoods()`.
+For each cell, the distances to its neighbors are passed through a softmax transformation, which transforms a vector into a probability distribution where all values sum to 1.
+The effect is that nearer cells get more weight than farther ones.
+
+<!--TODO: Add explanation of softmax here and/or in slides-->
+
+The `tau` parameter controls how quickly that weight falls off with distance.
+Small values of Tau capture local neighborhoods and large values of Tau capture global neighborhoods. 
+We'll use the default value of Tau, which is 1/5 * median(D), where D is the distance matrix. 
+This is recommended by the authors to capture local neighborhoods. 
+
+```{r prob-mtx, live=TRUE}
+# convert neighbor distances into probabilities
+prob_mtx <- hoodscanR::scanHoods(neighbors$distance)
+```
+
+In this matrix each row is a cell and each column is one of its 100 neighbors.
+The value is the probability weight assigned to that neighbor and every row sums to 1.
+
+```{r inspect-prob-mtx, live=TRUE}
+prob_mtx[1:10, 1:10]
+```
+
+Right now the columns are individual neighbors, which isn't very interpretable on its own.
+`mergeByGroup()` fixes this by combining the neighbor probabilities according to the cell type of each neighbor by adding the probability weights of all neighbors that share a cell type.
+It needs both the probability matrix (the weights) and the `cells` matrix (the cell type of each neighbor) to do this.
+
+```{r merge-probabilities, live=TRUE}
+# collapse the per-neighbor probabilities into one probability per cell type
+hoods <- hoodscanR::mergeByGroup(
+  prob_mtx, 
+  neighbors$cells
+)
+```
+
+Now each row is still a cell, but the columns are cell types, and each value is the probability that another cell in the focal cell's neighborhood is that cell type.
+These per-cell probabilities are the neighborhood profiles that we will explore for the rest of the notebook.
+
+```{r inspect-hoods}
+hoods[1:10, ]
+```
+
+A nice way to get a feel for these profiles is to plot them as a heatmap, with cells as rows and cell types as columns.
+`hoodscanR` provides `plotHoodMat()` for this, but that function is a thin wrapper around `ComplexHeatmap` and doesn't expose many options, so we'll call `ComplexHeatmap::Heatmap()` directly.
+That gives us full control over the appearance and makes it easy to adjust later.
+We plot the first 100 cells here just to keep the heatmap legible.
+
+```{r neighborhood-heatmap}
+# plot the neighborhood profiles for the first 500 cells
+
+ComplexHeatmap::Heatmap(
+  t(hoods[1:500,]), # transpose so cells are columns
+  col            = scico::scico(200, palette = "acton", direction = -1),
+  name           = "Probability",
+  column_title   = "Probability of cell types\n within 100 nearest neighbors",
+  column_title_gp = grid::gpar(fontsize = 15),
+  column_dend_height = grid::unit(1, "cm"),
+  row_dend_width = unit(1, "cm"),
+  column_names_rot = 45,
+  cluster_rows   = TRUE,     # group cells with similar profiles together
+  cluster_columns = TRUE,    # group cell types that co-occur together
+  show_column_names = FALSE     # hide per-cell labels; there are too many to read
+)
+```
+
+TODO: interpretation of the heatmap and point out blocks of cells with similar neighborhood profiles and which cell types cluster together.
+
+
+## Measuring neighborhood complexity 
+
+A neighborhood profile can be dominated by a single cell type or a mix of many cell types.
+`hoodscanR` quantifies this using perplexity, which is the effective number of cell types in the neighborhood. 
+A perplexity near 1 means the neighborhood is essentially one cell type; a higher perplexity means a more mixed environment.
+
+Before we can calculate these, we need to attach the neighborhood profiles back onto our SPE object with `mergeHoodSpe()`, which adds one column per cell type to the `colData`.
+
+```{r merge-hood-spe, live=TRUE}
+# merge the neighborhood profiles back into the spe object
+spe <- hoodscanR::mergeHoodSpe(
+  spe, 
+  hoods
+)
+
+# one column per cell type has been added
+# holding that probability that cell type is in the neighborhood of the specified cell in that row
+colData(spe) |> 
+  head()
+```
+
+Now we can calculate entropy and perplexity from those probability columns.
+
+```{r calc-metrics}
+# calculate entropy and perplexity from the neighborhood probability columns
+spe <- hoodscanR::calcMetrics(
+  spe, 
+  pm_cols = colnames(hoods)
+)
+
+# now we can see both entropy and perplexity added to the colData
+colData(spe) |> 
+  head()
+```
+
+Since the columns are now in the SPE object, we can use the `ggspavis::plotCoords()` function we have used previously. 
+We could use `hoodscanR::plotTissue()` but the plots are the same. 
+
+```{r plot-perplexity}
+# plot perplexity across the tissue to see where neighborhoods are more mixed
+ggspavis::plotCoords(spe, annotate = "perplexity") +
+  scale_color_viridis_c()
+```
+
+TODO: interpretation of the perplexity map and note where on the slide neighborhoods are more homogeneous vs. more mixed.
+
+
+## Co-localization 
+
+We can also use the neighborhood profiles to look at which cell types tend to be together, or co-localized.
+`plotColocal()` answers this by first correlating the per-cell neighborhood probabilities across every pair of cell types and then plotting that correlation in a heatmap.
+
+```{r plot-colocal}
+#| fig.height: 5
+
+# correlate neighborhood profiles between cell types to find co-localized pairs
+hoodscanR::plotColocal(
+  spe, 
+  pm_cols = colnames(hoods),
+  hm_width = 8,
+  hm_height = 8
+)
+```
+
+TODO: Some discussion about the cell types that are present in the same area
+We see overlap in T cell populations, Endothelial with Perivascular-Like, and Myoepithelial with DCIS
+
+## Domain detection 
+
+The neighborhood profiles can also be used to partition the tissue into domains, or groups of cells with similar neighborhood profiles.
+`clustByHood()` does this by running k-means clustering on the per-cell neighborhood profiles, so cells are grouped by the company they keep rather than by their own expression.
+
+This is conceptually related to domain-detection tools like `Banksy`, but the emphasis is different. 
+With `Banksy` we cluster cells based on both expression and local neighborhood.
+Here we are clustering cells by their neighborhood composition and do not consider gene expression.
+
+As with `k` in the nearest-neighbor step, the number of clusters `k` here is a choice we have to make, and it strongly shapes the result.
+It's worth spending time exploring a few values of `k` to find one that gives interpretable, stable domains.
+
+TODO: Do we want to keep this in instruction or move to exercise notebook? 
+Note that this does take 2-3 minutes to run. 
+
+```{r}
+# candidate numbers of domains to try
+k_range <- 2:12
+
+# construct a dataframe with value of k and within-cluster sumo f squares
+elbow_df <- tibble::tibble(k = k_range) |>
+  dplyr::mutate(
+    # fit k-means on the neighbourhood probability matrix for each k...
+    fit  = purrr::map(k, \(x) kmeans(hoods, centers = x, nstart = 25, iter.max = 50)),
+    # and pull out the total within-cluster sum of squares
+    wcss = purrr::map_dbl(fit, "tot.withinss")
+  )
+
+# make the elbow plot
+ggplot(elbow_df, aes(x = k, y = wcss)) +
+  geom_line(colour = "grey60") +
+  geom_point(size = 2.5) +
+  scale_x_continuous(breaks = k_range) +
+  labs(
+    title    = "Elbow plot for domain identification",
+    x = "Number of domains (k)",
+    y = "Total within-cluster sum of squares (WCSS)"
+  )
+```
+
+
+```{r clust-domains, live=TRUE}
+# cluster cells into spatial domains based on their neighborhood profiles
+spe <- hoodscanR::clustByHood(
+  spe, 
+  pm_cols = colnames(hoods),
+  k = 6 # number of domains, chosen from the elbow plot above
+)
+```
+
+We can see how many cells fall into each domain.
+
+```{r domain-table, live=TRUE}
+table(spe$clusters)
+```
+
+
+For each domain, we can look at which cell types it is made of by plotting the distribution of neighborhood probabilities within each domain.
+
+```{r plot-probdist}
+#| fig.height: 8
+#| fig.width: 12
+
+# for each domain, show the distribution of neighborhood probabilities per cell type
+hoodscanR::plotProbDist(
+  spe, 
+  pm_cols = colnames(hoods), 
+  by_cluster = TRUE, 
+  plot_all = TRUE, 
+  fill = hoods,
+  show_clusters = seq(6), # show 6 domains
+  outlier.size  = 0.1     # shrink the boxplot outlier points
+) + 
+  # default is 3 columns, but let's use 4
+  facet_wrap(vars(clusters), 
+             ncol = 3,
+             scales = "free_x") +
+  # and remove the strip background
+  theme(strip.background = element_rect(fill = "transparent")) +
+  # add some colors to cell types
+  scale_fill_manual(values = cell_type_palette)  +
+  # change the default legend title
+  labs(fill = "Cell types")
+```
+
+TODO: Some text about domains dominated by one cell type (3 and 8 are DCIS and tumor) vs a mix of cell types (4 and 5)
+
+Now we can map the domains back onto the tissue.
+
+```{r plot-domains}
+#| message: FALSE
+
+# create a color palette to use for domain plots
+domain_colors <- setNames(
+  palette.colors(n = 6, palette = "Dark2"),
+  1:6
+)
+
+# plot the domains across the tissue
+ggspavis::plotCoords(spe, annotate = "clusters", point_size = 0.1) + 
+  scale_color_manual(values = domain_colors) + 
+  guides(color = ggplot2::guide_legend(
+      override.aes = list(size = 3), # enlarge the legend keys so colors are readable
+      title = "domains"
+  ))
+```
+
+TODO: interpretation of the domain map
+
+The overall complexity of cell types present within a domain should also be reflected in the perplexity measure we looked at earlier. 
+We can plot the perplexity for all cells in each domain and see if that is true. 
+
+```{r plot-perplexity-domains}
+# pull the colData into a data frame for plotting with ggplot2
+coldata_df <- colData(spe) |> 
+  as.data.frame()
+
+# using perplexity to measure the complexity of each domain
+ggplot(coldata_df, aes(y = perplexity, x = clusters)) +
+  ggforce::geom_sina(size = 0.5) +
+  theme_bw() +
+  labs(
+    x = "Domain",
+    title = "Perplexity of cells in each domain"
+  )
+```
+
+TODO: text around confirming that the single-cell-type domains have low perplexity and the mixed domains have high perplexity.
+
+We can also go back to the heatmap of the neighborhood profile and include the domain annotations. 
+
+```{r domain-heatmap}
+# specify annotations to use for columns
+domain_annotations <- ComplexHeatmap::columnAnnotation(
+  "Domain" = spe$clusters[1:500],
+  col = list("Domain" = domain_colors)
+)
+
+ComplexHeatmap::Heatmap(
+  t(hoods[1:500,]), # transpose so cells are columns
+  col            = scico::scico(200, palette = "acton", direction = -1),
+  name           = "Probability",
+  column_title   = "Probability of cell types\n within 100 nearest neighbors",
+  column_title_gp = grid::gpar(fontsize = 15),
+  column_dend_height = grid::unit(1, "cm"),
+  row_dend_width = unit(1, "cm"),
+  column_names_rot = 45,
+  top_annotation = domain_annotations,
+  cluster_rows   = TRUE,     # group cells with similar profiles together
+  cluster_columns = TRUE,    # group cell types that co-occur together
+  show_column_names = FALSE     # hide per-cell labels; there are too many to read
+)
+```
+
+
+## Export 
+
+Finally, we'll save our results.
+We'll save the modified SPE objects with the results from `hoodscanR` to a new object. 
+
+```{r export}
+readr::write_rds(spe, hoodscanr_results_file)
+```
+
+## Session info
+
+As usual, we'll end with `sessionInfo()` to record the package versions we used for this notebook.
+
+```{r session-info}
+sessionInfo()
+```

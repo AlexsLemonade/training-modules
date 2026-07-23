@@ -87,6 +87,12 @@ output_spe_file <- file.path(
   normalized_dir,
   "brca_xenium_normalized.rds"
 )
+
+# output cell type color palette
+output_color_palette_file <- file.path(
+  data_dir, 
+  "brca-xenium-cell-type-palette.tsv"
+)
 ```
 
 
@@ -292,11 +298,9 @@ cell_type_palette <- list(
   "Perivascular-Like" = "#FEAF16",
   "Dendritic cell" = "#1CBE4F",
   "Mast Cells" = "#565656",
+  "Hybrid" = "#FFFF00",
   "Unlabeled" = "grey90"
 )
-
-# unlabeled should be greyed out
-cell_type_palette$Unlabeled <- "grey90"
 ```
 
 ```{r set-celltype-levels}
@@ -452,8 +456,14 @@ normalized_spe <- scuttle::logNormCounts(normalized_spe)
 
 ## Export
 
-```{r}
+```{r export-spe}
 readr::write_rds(normalized_spe, output_spe_file)
+```
+
+```{r export-palette}
+cell_type_palette |> 
+  tibble::enframe(name = "cell_type", values = "color") |> 
+  readr::write_tsv(output_color_palette_file)
 ```
 
 
