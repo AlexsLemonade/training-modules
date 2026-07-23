@@ -391,7 +391,7 @@ ggplot(elbow_df, aes(x = k, y = wcss)) +
 spe <- hoodscanR::clustByHood(
   spe, 
   pm_cols = colnames(hoods),
-  k = 8 # number of domains, chosen from the elbow plot above
+  k = 6 # number of domains, chosen from the elbow plot above
 )
 ```
 
@@ -415,12 +415,12 @@ hoodscanR::plotProbDist(
   by_cluster = TRUE, 
   plot_all = TRUE, 
   fill = hoods,
-  show_clusters = seq(8), # show all 8 domains (default only shows 6)
+  show_clusters = seq(6), # show 6 domains
   outlier.size  = 0.1     # shrink the boxplot outlier points
 ) + 
   # default is 3 columns, but let's use 4
   facet_wrap(vars(clusters), 
-             ncol = 4,
+             ncol = 3,
              scales = "free_x") +
   # and remove the strip background
   theme(strip.background = element_rect(fill = "transparent")) +
@@ -435,9 +435,17 @@ TODO: Some text about domains dominated by one cell type (3 and 8 are DCIS and t
 Now we can map the domains back onto the tissue.
 
 ```{r plot-domains}
+#| message: FALSE
+
+# create a color palette to use for domain plots
+domain_colors <- setNames(
+  palette.colors(n = 6, palette = "Dark2"),
+  1:6
+)
+
 # plot the domains across the tissue
 ggspavis::plotCoords(spe, annotate = "clusters", point_size = 0.1) + 
-  scale_color_brewer(palette = "Dark2") +
+  scale_color_manual(values = domain_colors) + 
   guides(color = ggplot2::guide_legend(
       override.aes = list(size = 3), # enlarge the legend keys so colors are readable
       title = "domains"
@@ -469,14 +477,10 @@ TODO: text around confirming that the single-cell-type domains have low perplexi
 We can also go back to the heatmap of the neighborhood profile and include the domain annotations. 
 
 ```{r domain-heatmap}
-domain_colors <- setNames(
-  palette.colors(n = 8, palette = "Dark2"),
-  1:8
-)
-
+# specify annotations to use for columns
 domain_annotations <- ComplexHeatmap::columnAnnotation(
-  "Domain" = spe$clusters[1:500]
-  cols = list("Domain" = domain_colors)
+  "Domain" = spe$clusters[1:500],
+  col = list("Domain" = domain_colors)
 )
 
 ComplexHeatmap::Heatmap(
