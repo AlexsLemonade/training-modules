@@ -39,3 +39,6 @@ library(LoomExperiment)
 
 # Needed for SingleR to run de with wilcox, for cell type exercises
 library(scrapper)
+
+# Needed for spatial clustering exercise
+library(pals)
