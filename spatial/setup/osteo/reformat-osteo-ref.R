@@ -43,8 +43,8 @@ set.seed(2026)
 # Read in SPE
 spe <- readr::read_rds(opt$spe)
 
-## Read in the original reference object with qs
-mm_mets <- qs::qread(opt$input)
+## Read in the original reference object with qs2
+mm_mets <- qs2::qs_read(opt$input)
 
 # Downsample for reproducibility
 cells_keep <- mm_mets@meta.data |>
