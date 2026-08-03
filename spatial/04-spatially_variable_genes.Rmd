@@ -10,8 +10,8 @@ output:
 
 ## Objectives
 
-- Introduce the SpatialFeatureExperiment and Voyager packages
-- Demonstrate two methods for identifying Spatially Variable Genes
+- Introduce the `SpatialFeatureExperiment` and `Voyager` packages
+- Demonstrate two methods for identifying spatially variable genes
 
 ## Introduction
 
@@ -19,7 +19,7 @@ Coming Soon
 
 ## Set up
 
-First we will load the SpatialExperiment package, as we have done before, as well as some familuar packages for plotting.
+First we will load the `SpatialExperiment` package, as we have done before, as well as some familiar packages for plotting.
 
 We'll also set a random seed for reproducibility.
 
@@ -86,10 +86,10 @@ hvg_spe <- spe[hvg_vector, ]
 ```
 
 
-## The SpatialFeatureExperiment object
+## The `SpatialFeatureExperiment` object
 
-For spatial analysis, it can be convenient to use a slightly modified object type, Spatial Feature Experiment (SFE).
-This is an extension of the SpatialExperiment (SPE) class that includes additional slots for spatial features, such as a graph that defines how cells are connected to each other.
+For spatial analysis, it can be convenient to use a slightly modified object type, `SpatialFeatureExperiment` (SFE).
+This is an extension of the `SpatialExperiment` (SPE) class that includes additional slots for spatial features, such as a graph that defines how cells are connected to each other.
 Almost all functions that work with SPEs will also work with SFEs (though not the reverse). 
 
 However, there are differences with respect to how images are stored and plotting defaults, so we will be using a different package for most plots: `Voyager`.
@@ -107,7 +107,7 @@ Trial and error...
 It is worth noting that if we had read in the original Space Ranger data with `SpatialFeatureExperiment` directly, the image flip would have been done by default, but here we have to add it manually.
 
 
-```{r SFE conversion`}
+```{r sfe_conversion}
 sfe <- SpatialFeatureExperiment::toSpatialFeatureExperiment(hvg_spe) |>
   # flip the coordinates to match how we have been looking at them
   SpatialFeatureExperiment::mirror() |>
@@ -139,7 +139,7 @@ The next step is to define the graph that defines how cells are connected to eac
 For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which uses the known barcodes and their locations to define a graph that connects nearby spots.
 This is a nice shortcut, but for other kinds of spatial data (such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findKNNGraph()` to find the nearest neighbors for each cell, and then define the graph based on that.
 
-We will store that in the colGraph slot of the SFE object (this is one of the things we get from that package)
+We will store that in the `colGraph` slot of the SFE object (this is one of the things we get from that package)
 
 ```{r define graph}
 # use the Visium barcodes to define the graph
@@ -173,7 +173,7 @@ This includes all of the spots where we have data.
 The measure of spatial covariation we will use is Moran's I.
 This is a measure of spatial autocorrelation, or how similar values are at nearby locations.
 
-Comes from Patrick Moran, who I know from popgen (Moran process is an overlapping generations model for popgen)
+Comes from Patrick Moran, who I recognize from population genetics (Moran process is an overlapping generations model for popgen)
 
 Once we have the graph defined, we can calculate Moran's I for each gene using the `Voyager::runMoransI()` function.
 
@@ -241,7 +241,7 @@ rowData(sfe)
 ```
 
 
-Let's compare P values for the basic and mc versions:
+Let's compare P values for the basic and Monte Carlo versions:
 
 ```{r moran_dataframe}
 
@@ -305,9 +305,9 @@ top_moran <- moran_df |>
 ```
 
 
-We'll use Voyager for the plot.
+We'll use `Voyager` for the plot.
 
-Much like ggspavis in results, but maybe some nicer defaults?
+Much like `ggspavis` in results, but maybe some nicer defaults?
 
 ```{r}
 Voyager::plotSpatialFeature(
@@ -319,9 +319,9 @@ Voyager::plotSpatialFeature(
 )
 ```
 
-### nnSVG
+### `nnSVG`
 
-Let's try nnSVG now, since that is more specifically designed for this kind of data.
+Let's try `nnSVG` now, since that is more specifically designed for this kind of data.
 
 TODO: Add some more context about the method
 
@@ -406,7 +406,7 @@ ggplot(svg_df, aes(x = moran_i, y = nnsvg_propsv)) +
 
 So for a lot of genes we get very similar scores, but nnSVG is uncovering some genes as spatially variable that Moran's I does not, presumably because it models the spatial variation in a more flexible way.
 
-LEt's look at the top few:
+Let's look at the top few:
 
 ```{r}
 top_nnsvg <- svg_df |>
