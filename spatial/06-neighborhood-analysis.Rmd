@@ -22,12 +22,12 @@ Spatial neighborhood analysis is a way to summarize which cell types are near ot
 In this notebook we'll use the [`hoodscanR`](https://www.bioconductor.org/packages/release/bioc/html/hoodscanR.html) package to look at the following characteristics.
 
 1. Neighborhood profiles, or the mix of cell types among each cells' nearest neighbors.
-2. Neighborhood complexity, which defines if a cell sitting in a "pure" environment dominated by one cell type, or a highly mixed one.
+2. Neighborhood complexity, which defines if a cell is sitting in a "pure" environment dominated by one cell type, or a highly mixed one.
 3. Co-localization, which tells us which cell types tend to show up in the same neighborhoods across the whole slide.
 4. Domain detection, which uses clustering of neighborhood profiles to identify spatial domains that share a similar neighborhood profile.
 
 The general idea behind `hoodscanR` is to look at each cell's k nearest neighbors, convert the distances to those neighbors into probabilities, and then summarize those probabilities by cell type.
-The result is a per-cell profile which is a set of probabilities describing how likely that cell type is to be found in the neighborhood of each cell. 
+The result is one profile per cell which includes a set of probabilities describing how likely each cell type is to be found in that cell's neighborhood.
 
 ## Setup 
 
@@ -90,11 +90,11 @@ Now we'll read in the normalized object.
 spe <- readr::read_rds(normalized_rds)
 ```
 
-<!--TODO: We don't really need this section since we just looked at in the previous notebook, but I thought it would be helpful to have this plot here? I'm okay to take it out or replace it with a table of cell types if that's more helpful.-->
+
 As a reminder, let's look at the cell types that are present in this dataset. 
 We'll use the `cell_types_lumped` column that we created in the previous notebook for the plot and for the neighborhood analysis.
-
-Since this is a new notebook, we'll need to set the palette of colors to use for each cell type again. 
+For the color palette, we'll read in a TSV file with the colors to use for each cell type. 
+Saving the color palette as a TSV file can be a helpful way to use the same color palettes across multiple notebooks and/or scripts.
 
 ```{r celltype-palette}
 # read in a custom palette mapping each cell type to a fixed color, so that
@@ -108,7 +108,7 @@ cell_type_palette
 ```
 
 Setting the cell type column as a factor lets us control the order the cell types appear in legends and plots.
-We use the order of the palette we just defined so the two always match.
+We use the order of the palette provided in the TSV file.
 
 ```{r set-celltype-levels}
 # re-order celltypes for plotting by setting them as a factor,
@@ -129,10 +129,17 @@ ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
   scale_color_manual(values = cell_type_palette)
 ```
 
-Note that we still have a fair amount of "Unlabeled" cells. 
-Let's remove those from our analysis as we don't really know what they are so we don't want them to confound results. 
+Note that we still have a fair number of "Unlabeled" cells. 
+From the original publication, the Xenium data was projected onto the single-cell RNA-seq data and the 30 nearest neighbors were identified for each cell.
+If at least half of those neighbors shared the same cell type, then that cell type was used as the cell type label. 
+If this criteria was not met, then the cell was annotated as "Unlabeled". 
 
-```{r}
+Because all "Unlabeled" cells would have the same cell type, they would be grouped together in the neighborhood analysis. 
+It's likely that these cells are not all the same, so let's remove them to ensure they don't confound results. 
+
+
+```{r remove-unlabeled, live = TRUE}
+# remove any unlabeled cells from the spe
 spe <- spe[, spe$cell_types_lumped != "Unlabeled"]
 ```
 
@@ -174,7 +181,11 @@ The first step is to find the nearest neighbors for each cell based on physical 
 Note that distance here is the Euclidean distance between the x and y coordinates on the slide. 
 
 The choice of `k` sets the size of the neighborhood we're describing.
-<!--TODO: Fill in some more information about choosing k and why we're using the default-->
+A small `k` describes the tight ring of cells immediately around each cell, while a large `k` describes a broader region of tissue.
+
+Here we'll use `k = 100`, which is the default for `findNearCells()`.
+One hundred neighbors is large enough that each cell's profile is stable, meaning one unusual neighbor can't dominate it, but still small enough to describe a local region rather than the whole slide.
+When you apply this to your own data, it's worth trying a couple of values of `k` and checking whether the patterns you see hold up.
  
 ```{r nearest-neighbors, live=TRUE}
 # for each cell, find its k nearest neighboring cells
@@ -186,8 +197,8 @@ neighbors <- hoodscanR::findNearCells(
 ```
 
 What's inside this object? 
-We have `cells` and `distance`.
-Both are matrices (all the same type), but the cells are stored as a data frame.
+It's a list with two elements, `cells` and `distance`.
+Both have the same shape, one row per cell and one column per neighbor, but `cells` is a data frame holding cell type labels and `distance` is a numeric matrix.
 
 ```{r inspect-structure}
 str(neighbors, max.level = 1)
@@ -207,19 +218,34 @@ The `distance` matrix has the same shape, but each entry is the physical distanc
 neighbors$distance[1:10, 1:5]
 ```
 
-<!--TODO: Address the fact that there are missing numbers in the rows (due to cells that are filtered)
-And note that the nearest_cell_1, etc corresponds to the 100 nearest cells and not the cell index-->
+Two things are worth noticing about the row and column names here.
+
+The row names are the cell IDs carried over from the SPE object.
+Because we filtered out low quality cells in the previous notebook and removed the "Unlabeled" cells, some IDs may be missing.
+The gaps in ID numbers is expected.
+
+The column names are ranks, not cell IDs.
+`nearest_cell_1` is each cell's closest neighbor, `nearest_cell_2` is its second closest, and so on out to the 100th.
+This is why the distances increase from left to right in every row.
 
 Next we convert those distances into probabilities with `scanHoods()`.
 For each cell, the distances to its neighbors are passed through a softmax transformation, which transforms a vector into a probability distribution where all values sum to 1.
 The effect is that nearer cells get more weight than farther ones.
 
-<!--TODO: Add explanation of softmax here and/or in slides-->
+The softmax works in two steps.
+
+* First, each neighbor's distance is turned into a weight that shrinks exponentially as the distance grows, so a cell twice as far away contributes much less than half as much.
+* Second, all 100 weights for a cell are divided by their sum, so they add up to 1 and can be read as probabilities.
+The result is that the closest neighbors take up most of the probability and distant neighbors contribute very little.
 
 The `tau` parameter controls how quickly that weight falls off with distance.
-Small values of Tau capture local neighborhoods and large values of Tau capture global neighborhoods. 
-We'll use the default value of Tau, which is 1/5 * median(D), where D is the distance matrix. 
-This is recommended by the authors to capture local neighborhoods. 
+
+* A small `tau` makes the drop-off sharp, so the profile is dominated by the closest handful of cells, giving a very local view.
+* A large `tau` makes the drop-off gradual, so all 100 neighbors contribute more evenly, giving a more global view.
+
+We'll use the default value of `tau`, which is the median of the squared distances divided by 5.
+This is recommended by the authors to capture local neighborhoods.
+`scanHoods()` reports the value it used, so you'll see it printed below.
 
 ```{r prob-mtx, live=TRUE}
 # convert neighbor distances into probabilities
@@ -234,8 +260,8 @@ prob_mtx[1:10, 1:10]
 ```
 
 Right now the columns are individual neighbors, which isn't very interpretable on its own.
-`mergeByGroup()` fixes this by combining the neighbor probabilities according to the cell type of each neighbor by adding the probability weights of all neighbors that share a cell type.
-It needs both the probability matrix (the weights) and the `cells` matrix (the cell type of each neighbor) to do this.
+`mergeByGroup()` fixes this by adding up the probability weights of all neighbors that share a cell type.
+It needs both the probability matrix, for the weights, and the `cells` matrix, for the cell type of each neighbor.
 
 ```{r merge-probabilities, live=TRUE}
 # collapse the per-neighbor probabilities into one probability per cell type
@@ -253,13 +279,17 @@ hoods[1:10, ]
 ```
 
 A nice way to get a feel for these profiles is to plot them as a heatmap, with cells as rows and cell types as columns.
-`hoodscanR` provides `plotHoodMat()` for this, but that function is a thin wrapper around `ComplexHeatmap` and doesn't expose many options, so we'll call `ComplexHeatmap::Heatmap()` directly.
-That gives us full control over the appearance and makes it easy to adjust later.
-We plot the first 100 cells here just to keep the heatmap legible.
+We'll use the `ComplexHeatmap` package to do this since it has some nice customization options. 
+You can learn more about this package, including all of the many plot modifications, from the [`ComplexHeatmap` documentation](https://jokergoo.github.io/ComplexHeatmap-reference/book/). 
+
+Alternatively, `hoodscanR` provides `plotHoodMat()`, which makes a similar plot with fewer options for customization.
+
+We will plot the first 500 cells here just to keep the heatmap legible.
+Each column will be a cell and each row will represent a cell type. 
+The color indicates the probability of a given cell type appearing in the nearest 100 neighbors of each cell.
 
 ```{r neighborhood-heatmap}
 # plot the neighborhood profiles for the first 500 cells
-
 ComplexHeatmap::Heatmap(
   t(hoods[1:500,]), # transpose so cells are columns
   col            = scico::scico(200, palette = "acton", direction = -1),
@@ -267,7 +297,7 @@ ComplexHeatmap::Heatmap(
   column_title   = "Probability of cell types\n within 100 nearest neighbors",
   column_title_gp = grid::gpar(fontsize = 15),
   column_dend_height = grid::unit(1, "cm"),
-  row_dend_width = unit(1, "cm"),
+  row_dend_width = grid::unit(1, "cm"),
   column_names_rot = 45,
   cluster_rows   = TRUE,     # group cells with similar profiles together
   cluster_columns = TRUE,    # group cell types that co-occur together
@@ -275,14 +305,18 @@ ComplexHeatmap::Heatmap(
 )
 ```
 
-TODO: interpretation of the heatmap and point out blocks of cells with similar neighborhood profiles and which cell types cluster together.
+This heatmap helps us visualize neighborhood profiles and makes it easy to see when certain cell types might be found in the same neighborhood. 
+For example, there appears to be immune cell neighborhoods where macrophages, T cells, and B cells are all found in the neighborhood of the same cell. 
+We also see tumor neighborhoods with both DCIS and tumor cells. 
 
+Do you see any indication that some cells have neighborhoods comprised of both tumor and immune cells? 
+Are there other patterns you notice?
 
 ## Measuring neighborhood complexity 
 
 A neighborhood profile can be dominated by a single cell type or a mix of many cell types.
 `hoodscanR` quantifies this using perplexity, which is the effective number of cell types in the neighborhood. 
-A perplexity near 1 means the neighborhood is essentially one cell type; a higher perplexity means a more mixed environment.
+A perplexity near 1 means the neighborhood is essentially one cell type and a higher perplexity means a more mixed environment.
 
 Before we can calculate these, we need to attach the neighborhood profiles back onto our SPE object with `mergeHoodSpe()`, which adds one column per cell type to the `colData`.
 
@@ -314,21 +348,27 @@ colData(spe) |>
 ```
 
 Since the columns are now in the SPE object, we can use the `ggspavis::plotCoords()` function we have used previously. 
-We could use `hoodscanR::plotTissue()` but the plots are the same. 
+(`hoodscanR` also provides a function, `hoodscanR::plotTissue()`, to make these plots, but the output is the same).
 
 ```{r plot-perplexity}
+#| message: FALSE 
+
 # plot perplexity across the tissue to see where neighborhoods are more mixed
 ggspavis::plotCoords(spe, annotate = "perplexity") +
   scale_color_viridis_c()
 ```
 
-TODO: interpretation of the perplexity map and note where on the slide neighborhoods are more homogeneous vs. more mixed.
-
+The perplexity measure helps classify regions of the slide as homogeneous or complex. 
+Areas with high perplexity (yellow) are more complex, meaning multiple cell types are present in a single neighborhood. 
+Areas with low perplexity (blue) are more homogeneous, meaning the neighborhood is dominated by a single cell type.
 
 ## Co-localization 
 
-We can also use the neighborhood profiles to look at which cell types tend to be together, or co-localized.
+We can also use the neighborhood profiles to look at which cell types tend to appear close to each other based on physical distance or are co-localized.
 `plotColocal()` answers this by first correlating the per-cell neighborhood probabilities across every pair of cell types and then plotting that correlation in a heatmap.
+
+Cell types with a correlation close to 1 are more likely to be found close together on the slide. 
+Cell types with a correlation close to -1 are more likely to be found far from each other on the slide.
 
 ```{r plot-colocal}
 #| fig.height: 5
@@ -342,8 +382,11 @@ hoodscanR::plotColocal(
 )
 ```
 
-TODO: Some discussion about the cell types that are present in the same area
-We see overlap in T cell populations, Endothelial with Perivascular-Like, and Myoepithelial with DCIS
+
+Similar to what we saw when we made the heatmap of neighborhood profiles, we see that immune cells, specifically T cell types and B cells, have high correlation values and tend to co-localize together. 
+In contrast, we see that the same immune cell types have low correlation with tumor cells, suggesting that they are less likely to be found together. 
+
+What other cell types co-localize with each other? 
 
 ## Domain detection 
 
@@ -355,19 +398,26 @@ With `Banksy` we cluster cells based on both expression and local neighborhood.
 Here we are clustering cells by their neighborhood composition and do not consider gene expression.
 
 As with `k` in the nearest-neighbor step, the number of clusters `k` here is a choice we have to make, and it strongly shapes the result.
-It's worth spending time exploring a few values of `k` to find one that gives interpretable, stable domains.
+To choose `k`, we will cluster the neighborhood profiles using a range of `k` values and create an elbow plot. 
 
-TODO: Do we want to keep this in instruction or move to exercise notebook? 
-Note that this does take 2-3 minutes to run. 
+For each value of `k`, k-means assigns every cell to a domain, and we record the total within-cluster sum of squares (WCSS).
+The WCSS is the summed squared distance from each cell to the center of the domain it was assigned to, so a smaller value means cells sit closer to their domain's center.
 
-```{r}
+WCSS always decreases as `k` increases, because more domains means every cell has a nearer center to belong to.
+A large drop tells us the new domain pulled apart two groups that really were different, while a small drop tells us it just split a group that was already fairly uniform.
+Therefore, we are looking for the point where the curve stops dropping steeply.
+That bend in the curve, the "elbow", is the largest `k` that still buys us a meaningful improvement.
+
+```{r elbow-plot}
+#| warning: FALSE
+
 # candidate numbers of domains to try
 k_range <- 2:12
 
-# construct a dataframe with value of k and within-cluster sumo f squares
+# construct a dataframe with value of k and within-cluster sum of squares
 elbow_df <- tibble::tibble(k = k_range) |>
   dplyr::mutate(
-    # fit k-means on the neighbourhood probability matrix for each k...
+    # fit k-means on the neighborhood probability matrix for each k...
     fit  = purrr::map(k, \(x) kmeans(hoods, centers = x, nstart = 25, iter.max = 50)),
     # and pull out the total within-cluster sum of squares
     wcss = purrr::map_dbl(fit, "tot.withinss")
@@ -385,6 +435,12 @@ ggplot(elbow_df, aes(x = k, y = wcss)) +
   )
 ```
 
+From this plot we see that k=6 is a reasonable choice. 
+
+Keep in mind that picking the elbow is a judgment call rather than a calculation, and two people can reasonably read 5 or 7 off the same plot.
+What matters more is whether the domains you end up with are interpretable, which is exactly what we check in the plots that follow.
+If several domains turn out to have nearly identical neighborhood profiles, that is a sign `k` is too high.
+If a single domain is an obvious mix of two very different profiles, `k` is too low.
 
 ```{r clust-domains, live=TRUE}
 # cluster cells into spatial domains based on their neighborhood profiles
@@ -402,7 +458,7 @@ table(spe$clusters)
 ```
 
 
-For each domain, we can look at which cell types it is made of by plotting the distribution of neighborhood probabilities within each domain.
+We can look at which cell types comprise each domain by plotting the distribution of neighborhood probabilities faceted by domain.
 
 ```{r plot-probdist}
 #| fig.height: 8
@@ -418,7 +474,7 @@ hoodscanR::plotProbDist(
   show_clusters = seq(6), # show 6 domains
   outlier.size  = 0.1     # shrink the boxplot outlier points
 ) + 
-  # default is 3 columns, but let's use 4
+  # arrange the domains in 3 columns
   facet_wrap(vars(clusters), 
              ncol = 3,
              scales = "free_x") +
@@ -430,7 +486,10 @@ hoodscanR::plotProbDist(
   labs(fill = "Cell types")
 ```
 
-TODO: Some text about domains dominated by one cell type (3 and 8 are DCIS and tumor) vs a mix of cell types (4 and 5)
+This plot is helpful in showing us which cell types contribute to which domain, and ultimately which cell types tend to be found in the same neighborhood profile. 
+Specifically, we see that domain 2 is dominated by tumor cells while domain 4 is a mix of DCIS and Myoepithelial cells. 
+
+What other patterns do you see? 
 
 Now we can map the domains back onto the tissue.
 
@@ -452,10 +511,9 @@ ggspavis::plotCoords(spe, annotate = "clusters", point_size = 0.1) +
   ))
 ```
 
-TODO: interpretation of the domain map
-
 The overall complexity of cell types present within a domain should also be reflected in the perplexity measure we looked at earlier. 
 We can plot the perplexity for all cells in each domain and see if that is true. 
+Here we expect domains dominated by a single cell type to have a low perplexity while domains with a mix of cell types should have a high perplexity.
 
 ```{r plot-perplexity-domains}
 # pull the colData into a data frame for plotting with ggplot2
@@ -465,16 +523,17 @@ coldata_df <- colData(spe) |>
 # using perplexity to measure the complexity of each domain
 ggplot(coldata_df, aes(y = perplexity, x = clusters)) +
   ggforce::geom_sina(size = 0.5) +
-  theme_bw() +
   labs(
     x = "Domain",
     title = "Perplexity of cells in each domain"
   )
 ```
 
-TODO: text around confirming that the single-cell-type domains have low perplexity and the mixed domains have high perplexity.
+Here we see that the domains with a higher diversity of cell types (e.g., domains 3, 4, and 6) have a higher perplexity. 
 
-We can also go back to the heatmap of the neighborhood profile and include the domain annotations. 
+Finally, we will return to the heatmap we made earlier showing the neighborhood profile for the top 500 cells. 
+We will enhance our plot by adding in the domains for each cell as a column-level annotation. 
+We should see that cells with similar neighborhood profiles are assigned to the same domain. 
 
 ```{r domain-heatmap}
 # specify annotations to use for columns
@@ -490,7 +549,7 @@ ComplexHeatmap::Heatmap(
   column_title   = "Probability of cell types\n within 100 nearest neighbors",
   column_title_gp = grid::gpar(fontsize = 15),
   column_dend_height = grid::unit(1, "cm"),
-  row_dend_width = unit(1, "cm"),
+  row_dend_width = grid::unit(1, "cm"),
   column_names_rot = 45,
   top_annotation = domain_annotations,
   cluster_rows   = TRUE,     # group cells with similar profiles together
@@ -499,11 +558,12 @@ ComplexHeatmap::Heatmap(
 )
 ```
 
+Here we can see that domain 2 (on the left side of the plot) is composed of cells that all have mostly tumor cells in their local neighborhood. 
+In contrast, cells that belong to domain 6 have varying types of immune cells in their local neighborhood. 
 
 ## Export 
 
-Finally, we'll save our results.
-We'll save the modified SPE objects with the results from `hoodscanR` to a new object. 
+Lastly, we'll save our results by saving the modified SPE objects with the results from `hoodscanR`. 
 
 ```{r export}
 readr::write_rds(spe, hoodscanr_results_file)
