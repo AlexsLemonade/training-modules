@@ -1,0 +1,72 @@
+# Workflow for obtaining the colon cancer Visium dataset from 10x
+# and a reference single-cell library from Oliviera to use for annotating
+# includes a script to prep the normalized visium data and normalized SCE for use in the exercise notebook
+from pathlib import Path
+
+configfile: "config.yaml"
+
+base_dir = Path(config["base_dir"])
+visium_dir = base_dir / "visium_hd"
+sc_dir = base_dir / "single_cell"
+output_normalized_spe = base_dir / config["output_normalized_spe"]
+output_normalized_sce = base_dir / config["output_normalized_sce"]
+
+
+rule targets:
+    input:
+        visium_dir,
+        sc_dir,
+        output_normalized_spe,
+        output_normalized_sce,
+
+
+# get the Visium and single cell datasets from 10x
+rule download_10x:
+    output:
+        directory(visium_dir),
+        directory(sc_dir),
+    params:
+        url_visium = config["url_visium"],
+        url_single_cell = config["url_single_cell"],
+    shell:
+        """
+        curl -L --fail {params.url_visium} -o temp_visium.tar.gz
+        tar -xzf temp_visium.tar.gz
+        mv Visium_HD_6p5mm_Human_Colon_Cancer_segmented_outputs {visium_dir}
+        
+        curl -L --fail {params.url_single_cell} -o temp_single_cell.tar.gz
+        tar -xzf temp_single_cell.tar.gz
+        mv HumanColonCancer_Flex_Multiplex_count_filtered_feature_bc_matrix {sc_dir}
+
+        # clean up 
+        rm temp_visium.tar.gz
+        rm temp_single_cell.tar.gz
+        """
+
+
+# prepare the normalized SPE object 
+rule prepare_spatial_experiment:
+    input:
+        visium_dir
+    output:
+        output_normalized_spe
+    shell:
+        """
+        Rscript prepare-spatial-experiment.R \
+          --input_dir {visium_dir} \
+          --output_file {output}
+        """
+        
+# prepare the normalized SCE object 
+rule prepare_single_cell:
+    input:
+        sc_dir
+    output:
+        output_normalized_sce
+    shell:
+        """
+        Rscript prepare-single-cell.R \
+                  --input_dir {sc_dir} \
+                  --output_file {output}
+        """
+        
