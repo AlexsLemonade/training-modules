@@ -150,8 +150,6 @@ spe <- spe[, spe$cell_types_lumped != "Unlabeled"]
 The core output of `hoodscanR` is a neighborhood profile for every cell.
 To build it, the package takes three steps that we'll walk through one at a time:
 
-1. Find the k nearest neighboring cells for each cell (`findNearCells`).
-2. Convert the distances to those neighbors into probabilities, so that closer cells contribute more (`scanHoods`).
 1. Find the k nearest neighboring cells for each cell (`findNearCells()`).
 2. Convert the distances to those neighbors into probabilities, so that closer cells contribute more (`scanHoods()`).
 3. Group those per-neighbor probabilities by cell type, giving each cell a probability of being surrounded by each cell type (`mergeByGroup()`).
@@ -188,8 +186,11 @@ A small `k` describes the tight ring of cells immediately around each cell, whil
 
 Here we'll use `k = 100`, which is the default for `findNearCells()`.
 100 neighbors is large enough that each cell's profile is stable, meaning one unusual neighbor can't dominate it, but still small enough to describe a local region rather than the whole slide.
-When you apply this to your own data, it's worth trying a couple of values of `k` and checking whether the patterns you see hold up.
- 
+
+When you apply this to your own data, it's worth trying a couple of values of `k`. 
+This can tell you about stability of the neighborhoods and how changing the size of the neighborhood might impact your overall results. 
+For example, choosing to include only 10 cells in each cell's neighborhood is likely to give you more homogeneous neighborhood profiles than choosing 100 cells simply because there are less cells to choose from.
+
 ```{r nearest-neighbors, live=TRUE}
 # for each cell, find its k nearest neighboring cells
 neighbors <- hoodscanR::findNearCells(
@@ -208,7 +209,7 @@ str(neighbors, max.level = 1)
 ```
 
 
-The `cells` matrix has one row per cell and one column per neighbor (`nearest_cell_1` through `nearest_cell_100`).
+The `cells` data frame has one row per cell and one column per neighbor (`nearest_cell_1` through `nearest_cell_100`).
 Each entry is the cell type of that neighbor.
 
 ```{r inspect-cells, live=TRUE}
@@ -223,11 +224,11 @@ neighbors$distance[1:10, 1:5]
 
 Two things are worth noticing about the row and column names here.
 
-The row names are the cell IDs carried over from the SPE object.
+1. The row names are the cell IDs carried over from the SPE object.
 Because we filtered out low-quality cells in the previous notebook and removed the "Unlabeled" cells, some IDs may be missing.
 The jumps in ID numbers are expected.
 
-The column names are ranks, not cell IDs.
+2. The column names are ranks, not cell IDs.
 `nearest_cell_1` is each cell's closest neighbor, `nearest_cell_2` is its second closest, and so on out to the 100th.
 This is why the distances increase from left to right in every row.
 
@@ -245,6 +246,9 @@ The `tau` parameter controls how quickly that weight falls off with distance.
 
 * A small `tau` makes the drop-off sharp, so the profile is dominated by the closest handful of cells, giving a very local view.
 * A large `tau` makes the drop-off gradual, so all 100 neighbors contribute more evenly, giving a more global view.
+
+Note that the choice of `k` will dictate how many neighbors are included in these calculations, so both `k` and `tau` work together to generate the final neighborhood profile. 
+It's important to choose both of these parameters based on your scientific question. 
 
 We'll use the default value of `tau`, which is the median of the squared distances divided by 5.
 This is recommended by the authors to capture local neighborhoods.
@@ -282,7 +286,7 @@ hoods[1:10, ]
 ```
 
 A nice way to get a feel for these profiles is to plot them as a heatmap, with cells as rows and cell types as columns.
-We'll use the `ComplexHeatmap` package to do this since it has some nice customization options. 
+We'll use the `ComplexHeatmap` package to do this since it has some nice customization options, allowing us to have more control over our heatmap's aesthetics.
 You can learn more about this package, including all of the many plot modifications, from the [`ComplexHeatmap` documentation](https://jokergoo.github.io/ComplexHeatmap-reference/book/). 
 
 Alternatively, `hoodscanR` provides `plotHoodMat()`, which makes a similar plot with fewer options for customization.
@@ -308,8 +312,10 @@ ComplexHeatmap::Heatmap(
 ```
 
 This heatmap helps us visualize neighborhood profiles and makes it easy to see when certain cell types might be found in the same neighborhood. 
-For example, there appears to be immune cell neighborhoods where macrophages, T cells, and B cells are all found in the neighborhood of the same cell. 
+For example, there appear to be immune cell neighborhoods where macrophages, T cells, and B cells are all found in the neighborhood of the same cell. 
 We also see tumor neighborhoods with both DCIS and tumor cells. 
+However, this heatmap only tells you about the neighborhoods of individual cells and does not provide information about how cell types as a whole interact together. 
+To understand that, we will have to look at the neighborhood profiles of all cells together, which we will do in a later section. 
 
 Do you see any indication that some cells have neighborhoods comprised of both tumor and immune cells? 
 Are there other patterns you notice?
@@ -320,7 +326,7 @@ A neighborhood profile can be dominated by a single cell type or a mix of many c
 `hoodscanR` quantifies this using perplexity, which is the effective number of cell types in the neighborhood. 
 A perplexity near 1 means the neighborhood is essentially one cell type and a higher perplexity means a more mixed environment.
 
-Before we can calculate these, we need to attach the neighborhood profiles back onto our SPE object with `mergeHoodSpe()`, which adds one column per cell type to the `colData`.
+Before we can calculate this metric, we need to attach the neighborhood profiles back onto our SPE object with `mergeHoodSpe()`, which adds one column per cell type to the `colData`.
 
 ```{r merge-hood-spe, live=TRUE}
 # merge the neighborhood profiles back into the spe object
@@ -335,7 +341,9 @@ colData(spe) |>
   head()
 ```
 
-Now we can calculate entropy and perplexity from those probability columns.
+Now we can calculate perplexity from those probability columns.
+Note that running the `calcMetrics()` function will also calculate entropy, which is ultimately used to calculate perplexity. 
+We will focus on perplexity for these plots, but you could theoretically use either metric as the trends will be the same.
 
 ```{r calc-metrics}
 # calculate entropy and perplexity from the neighborhood probability columns
