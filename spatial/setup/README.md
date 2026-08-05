@@ -138,7 +138,7 @@ Note that this assumes that the file `../../data/reference/hs_mitochondrial_gene
 snakemake -j2
 ```
 
-This will create both a directory `../data/crc-v1/` with the following files:
+This will create a directory `../data/crc-v1/` with the following files:
 
 ```console
 ├── normalized
@@ -200,3 +200,52 @@ This will create a directory `../data/brca-xenium/` with the following files:
     ├── transcripts.parquet
     └── transcripts.zarr.zip
 ```
+
+### CRC Visium HD
+
+This data comes from this 10x Genomics Visium HD dataset: <https://www.10xgenomics.com/datasets/visium-hd-cytassist-6p5mm-human-colon-cancer>.
+Additionally, we obtain a single-cell reference dataset used to annotate the Visium HD dataset from this collection of samples: <https://www.10xgenomics.com/platforms/visium/product-family/dataset-human-crc>
+Specifically, we grab the `Chromium Single Cell Flex, aggregated` sample. 
+Annotations are obtained from: <https://github.com/10XGenomics/HumanColonCancer_VisiumHD/blob/main/MetaData/SingleCell_MetaData.csv.gz>
+
+To download and prepare input data for the workshop, change directories to the `setup/crc-hd` directory and run the following.
+
+```sh
+snakemake -j2
+```
+
+This will create a directory `../data/crc-hd/` with the following files:
+
+```console
+├── crc_hd_normalized_spe.rds
+├── crc_single_cell_normalized_sce.rds
+├── single_cell
+│   └── filtered_feature_bc_matrix.h5
+└── visium_hd
+    ├── filtered_feature_bc_matrix
+    │   ├── barcodes.tsv.gz
+    │   ├── features.tsv.gz
+    │   └── matrix.mtx.gz
+    ├── filtered_feature_bc_matrix.h5
+    ├── raw_feature_bc_matrix
+    │   ├── barcodes.tsv.gz
+    │   ├── features.tsv.gz
+    │   └── matrix.mtx.gz
+    ├── raw_feature_bc_matrix.h5
+    ├── cell_segmentations.geojson
+    ├── graphclust_annotated_cell_segmentations.geojson
+    ├── graphclust_annotated_nucleus_segmentations.geojson
+    ├── nucleus_segmentations.geojson
+    └── spatial
+        ├── aligned_fiducials.jpg
+        ├── aligned_tissue_image.jpg
+        ├── detected_tissue_image.jpg
+        ├── cytassist_image.tiff
+        ├── scalefactors_json.json
+        ├── tissue_hires_image.png
+        ├── tissue_lowres_image.png
+        └── final_alignment.json
+
+```
+
+The `crc-hd` directory was then copied to `/shared/data/training-modules/spatial/data/`.
