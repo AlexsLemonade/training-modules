@@ -25,8 +25,6 @@ crop_fraction <- 1 / 3
 # Number of workers to use for SpotSweeper outlier detection
 n_workers <- 4
 
-# Number of MADs from the local median beyond which a cell is called an outlier
-mito_cutoff <- 3
 
 # Command line options ---------------------------------------------------------
 
@@ -121,7 +119,6 @@ sub <- SpotSweeper::localOutliers(
   metric = "subsets_mito_percent",
   direction = "higher",
   log = FALSE,
-  cutoff = mito_cutoff,
   workers = n_workers
 )
 
