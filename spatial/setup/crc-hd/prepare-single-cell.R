@@ -40,16 +40,16 @@ opts <- parse_args(OptionParser(option_list = option_list))
 annotations_url <- "https://raw.githubusercontent.com/10XGenomics/HumanColonCancer_VisiumHD/main/MetaData/SingleCell_MetaData.csv.gz"
 
 # read in sce and annotations
-sce <- DropletUtils::read10xCounts(opts$input_dir)
+sce <- DropletUtils::read10xCounts(opts$input_h5_file)
 annotations_df <- readr::read_csv(annotations_url)
 
 # Prep SCE ---------------------------------------------------------------------
 # add in cell type information and QCFilter column to colData
-colData(sce) <- colData(sce) |>
+coldata_df <- colData(sce) |>
   as.data.frame() |>
-  dplyr::left_join(annotations_df, by = c("Barcode")) |>
-  DataFrame(row.names = colnames(sce))
+  dplyr::left_join(annotations_df, by = c("Barcode"))
 
+colData(sce) <- DataFrame(coldata_df, row.names = coldata_df$Barcode)
 
 # remove bad cells based on QCFilter column
 sce <- sce[, sce$QCFilter == "Keep"]
