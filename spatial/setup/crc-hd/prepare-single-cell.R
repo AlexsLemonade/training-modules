@@ -27,6 +27,11 @@ option_list <- list(
     help = "Path to the filtered feature bc h5ad output file from Cell Ranger"
   ),
   make_option(
+    "--annotations_url",
+    type = "character",
+    help = "URL to TSV file with qc and annotation information"
+  ),
+  make_option(
     "--output_file",
     type = "character",
     help = "Path to write the normalized SCE"
@@ -36,12 +41,10 @@ option_list <- list(
 opts <- parse_args(OptionParser(option_list = option_list))
 
 # Read in data -----------------------------------------------------------------
-# url to file on Github with reference cell type annotations
-annotations_url <- "https://raw.githubusercontent.com/10XGenomics/HumanColonCancer_VisiumHD/main/MetaData/SingleCell_MetaData.csv.gz"
 
 # read in sce and annotations
 sce <- DropletUtils::read10xCounts(opts$input_h5_file)
-annotations_df <- readr::read_csv(annotations_url)
+annotations_df <- readr::read_csv(opts$annotations_url)
 
 # Prep SCE ---------------------------------------------------------------------
 # add in cell type information and QCFilter column to colData

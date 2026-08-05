@@ -28,23 +28,6 @@ n_workers <- 4
 # Number of MADs from the local median beyond which a cell is called an outlier
 mito_cutoff <- 3
 
-# Functions --------------------------------------------------------------------
-
-#' Crop an SPE object to a rectangular bounding box
-#'
-#' @param spe A SpatialExperiment object.
-#' @param box A list with `xmin`, `xmax`, `ymin`, and `ymax` elements giving the
-#'   bounding box in spatial coordinate units.
-#'
-#' @return The SPE subset to cells whose spatial coordinates fall inside `box`.
-crop <- function(spe, box) {
-  box <- as.list(box)
-  xy <- spatialCoords(spe)
-
-  spe[, xy[, 1] > box$xmin & xy[, 1] < box$xmax &
-        xy[, 2] > box$ymin & xy[, 2] < box$ymax]
-}
-
 # Command line options ---------------------------------------------------------
 
 option_list <- list(
@@ -97,7 +80,8 @@ box <- list(
   ymax = ys[2] - dy
 )
 
-sub <- crop(spe, box)
+sub <- spe[, xy[, 1] > box$xmin & xy[, 1] < box$xmax &
+      xy[, 2] > box$ymin & xy[, 2] < box$ymax]
 
 # Calculate QC metrics ---------------------------------------------------------
 
@@ -137,7 +121,8 @@ sub <- SpotSweeper::localOutliers(
   metric = "subsets_mito_percent",
   direction = "higher",
   log = FALSE,
-  cutoff = mito_cutoff
+  cutoff = mito_cutoff,
+  workers = n_workers
 )
 
 # Combine all outlier calls into a single column to filter on
