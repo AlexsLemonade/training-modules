@@ -122,6 +122,8 @@ link_locs=(
   spatial/data/osteo/GSM8478586/normalized
   spatial/data/reference
   spatial/data/brca-xenium/xenium
+  spatial/data/crc-hd/visium_hd
+  spatial/data/crc-hd/single_cell
   spatial/data/crc-hd/crc_hd_normalized_spe.rds
   spatial/data/crc-hd/crc_single_cell_normalized_sce.rds
   machine-learning/data/open-pbta
