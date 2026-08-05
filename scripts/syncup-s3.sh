@@ -60,6 +60,8 @@ sync_dirs=(
   spatial/data/osteo/GSM8478586/spaceranger
   spatial/data/reference
   spatial/data/brca-xenium/xenium
+  spatial/data/crc-hd/crc_hd_normalized_spe.rds
+  spatial/data/crc-hd/crc_single_cell_normalized_sce.rds
   machine-learning/data/open-pbta/processed
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma

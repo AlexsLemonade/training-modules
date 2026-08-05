@@ -7,7 +7,7 @@ configfile: "config.yaml"
 
 base_dir = Path(config["base_dir"])
 visium_dir = base_dir / "visium_hd"
-sc_dir = base_dir / "single_cell"
+sc_h5_file = base_dir / "single_cell" / "filtered_feature_bc_matrix.h5"
 output_normalized_spe = base_dir / config["output_normalized_spe"]
 output_normalized_sce = base_dir / config["output_normalized_sce"]
 
@@ -15,7 +15,7 @@ output_normalized_sce = base_dir / config["output_normalized_sce"]
 rule targets:
     input:
         visium_dir,
-        sc_dir,
+        sc_h5_file,
         output_normalized_spe,
         output_normalized_sce,
 
@@ -24,7 +24,7 @@ rule targets:
 rule download_10x:
     output:
         directory(visium_dir),
-        directory(sc_dir),
+        directory(sc_h5_file),
     params:
         url_visium = config["url_visium"],
         url_single_cell = config["url_single_cell"],
@@ -32,15 +32,12 @@ rule download_10x:
         """
         curl -L --fail {params.url_visium} -o temp_visium.tar.gz
         tar -xzf temp_visium.tar.gz
-        mv Visium_HD_6p5mm_Human_Colon_Cancer_segmented_outputs {visium_dir}
+        mv segmented_outputs {visium_dir}
         
-        curl -L --fail {params.url_single_cell} -o temp_single_cell.tar.gz
-        tar -xzf temp_single_cell.tar.gz
-        mv HumanColonCancer_Flex_Multiplex_count_filtered_feature_bc_matrix {sc_dir}
+        curl -L --fail {params.url_single_cell} -o sc_h5_file
 
         # clean up 
         rm temp_visium.tar.gz
-        rm temp_single_cell.tar.gz
         """
 
 
@@ -57,16 +54,16 @@ rule prepare_spatial_experiment:
           --output_file {output}
         """
         
-# prepare the normalized SCE object 
+# prepare the reference SCE object 
 rule prepare_single_cell:
     input:
-        sc_dir
+        sc_h5_file
     output:
         output_normalized_sce
     shell:
         """
         Rscript prepare-single-cell.R \
-                  --input_dir {sc_dir} \
+                  --input_h5_file {sc_h5_file} \
                   --output_file {output}
         """
         
