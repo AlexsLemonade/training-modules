@@ -1,6 +1,8 @@
 # Workflow for obtaining the colon cancer Visium dataset from 10x
-# and a reference single-cell library from Oliviera to use for annotating
-# includes a script to prep the normalized visium data and normalized SCE for use in the exercise notebook
+# and a reference single-cell library from Oliviera to use for annotating.
+# Includes scripts to prep the normalized Visium data and normalized SCE
+# for use in the exercise notebook.
+
 from pathlib import Path
 
 configfile: "config.yaml"
@@ -14,56 +16,69 @@ output_normalized_sce = base_dir / config["output_normalized_sce"]
 
 rule targets:
     input:
-        visium_dir,
-        sc_h5_file,
         output_normalized_spe,
         output_normalized_sce,
 
 
-# get the Visium and single cell datasets from 10x
-rule download_10x:
+# Download and unpack the Visium HD segmented outputs from 10x
+rule download_visium:
     output:
         directory(visium_dir),
-        directory(sc_h5_file),
     params:
-        url_visium = config["url_visium"],
-        url_single_cell = config["url_single_cell"],
+        url=config["url_visium"],
     shell:
         """
-        curl -L --fail {params.url_visium} -o temp_visium.tar.gz
-        tar -xzf temp_visium.tar.gz
-        mv segmented_outputs {visium_dir}
+        # scratch space alongside the target, so parent dirs get created too
+        mkdir -p {output}_tmp
+        curl -L --fail {params.url} -o {output}_tmp/visium.tar.gz
+        tar -xzf {output}_tmp/visium.tar.gz -C {output}_tmp
+        mv {output}_tmp/segmented_outputs {output}
+        rm -rf {output}_tmp
         
-        curl -L --fail {params.url_single_cell} -o sc_h5_file
-
-        # clean up 
-        rm temp_visium.tar.gz
+        # clean up extra files 
+        rm {output}/cloupe.cloupe
+        rm -rf {output}/analysis
+        rm -rf {output}/cell_types
+        rm -rf {output}/celltype_annotated_segmentation
         """
 
 
-# prepare the normalized SPE object 
+# Download the single-cell reference matrix from 10x
+rule download_single_cell:
+    output:
+        sc_h5_file,
+    params:
+        url=config["url_single_cell"],
+    shell:
+        """
+        mkdir -p $(dirname {output})
+        curl -L --fail {params.url} -o {output}
+        """
+
+
+# Prepare the normalized SPE object
 rule prepare_spatial_experiment:
     input:
-        visium_dir
+        visium_dir,
     output:
-        output_normalized_spe
+        output_normalized_spe,
     shell:
         """
         Rscript prepare-spatial-experiment.R \
-          --input_dir {visium_dir} \
+          --input_dir {input} \
           --output_file {output}
         """
-        
-# prepare the reference SCE object 
+
+
+# Prepare the reference SCE object
 rule prepare_single_cell:
     input:
-        sc_h5_file
+        sc_h5_file,
     output:
-        output_normalized_sce
+        output_normalized_sce,
     shell:
         """
         Rscript prepare-single-cell.R \
-                  --input_h5_file {sc_h5_file} \
-                  --output_file {output}
+          --input_h5_file {input} \
+          --output_file {output}
         """
-        
