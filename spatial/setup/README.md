@@ -203,7 +203,7 @@ This will create a directory `../data/brca-xenium/` with the following files:
 
 ### CRC Visium HD
 
-This data comes from this 10x Genomics Visium HD dataset: <https://www.10xgenomics.com/datasets/visium-hd-cytassist-6p5mm-human-colon-cancer>.
+This data comes from this 10x Genomics Visium HD colorectal cancer dataset: <https://www.10xgenomics.com/datasets/visium-hd-cytassist-6p5mm-human-colon-cancer>.
 Additionally, we obtain a single-cell reference dataset used to annotate the Visium HD dataset from this collection of samples: <https://www.10xgenomics.com/platforms/visium/product-family/dataset-human-crc>
 Specifically, we grab the `Chromium Single Cell Flex, aggregated` sample. 
 Annotations are obtained from: <https://github.com/10XGenomics/HumanColonCancer_VisiumHD/blob/main/MetaData/SingleCell_MetaData.csv.gz>
