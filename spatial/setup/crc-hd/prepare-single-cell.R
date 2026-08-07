@@ -22,9 +22,9 @@ set.seed(2026)
 
 option_list <- list(
   make_option(
-    "--input_h5_file",
+    "--input_dir",
     type = "character",
-    help = "Path to the filtered feature bc h5ad output file from Cell Ranger"
+    help = "Path to the filtered feature bc directory from Cell Ranger"
   ),
   make_option(
     "--annotations_url",
@@ -43,7 +43,7 @@ opts <- parse_args(OptionParser(option_list = option_list))
 # Read in data -----------------------------------------------------------------
 
 # read in sce and annotations
-sce <- DropletUtils::read10xCounts(opts$input_h5_file)
+sce <- DropletUtils::read10xCounts(opts$input_dir)
 annotations_df <- readr::read_csv(opts$annotations_url)
 
 # Prep SCE ---------------------------------------------------------------------

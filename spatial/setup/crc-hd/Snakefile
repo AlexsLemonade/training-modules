@@ -9,7 +9,7 @@ configfile: "config.yaml"
 
 base_dir = Path(config["base_dir"])
 visium_dir = base_dir / "visium_hd"
-sc_h5_file = base_dir / "single_cell" / "filtered_feature_bc_matrix.h5"
+sce_dir = base_dir / "single_cell"
 output_normalized_spe = base_dir / config["output_normalized_spe"]
 output_normalized_sce = base_dir / config["output_normalized_sce"]
 
@@ -46,13 +46,15 @@ rule download_visium:
 # Download the single-cell reference matrix from 10x
 rule download_single_cell:
     output:
-        sc_h5_file,
+        directory(sce_dir),
     params:
         url=config["url_single_cell"],
     shell:
         """
-        mkdir -p $(dirname {output})
-        curl -L --fail {params.url} -o {output}
+        # scratch space alongside the target, so parent dirs get created too
+        mkdir -p {output}
+        curl -L --fail {params.url} -o single_cell.tar.gz
+        tar -xzf single_cell.tar.gz -C {output}
         """
 
 
@@ -73,15 +75,15 @@ rule prepare_spatial_experiment:
 # Prepare the reference SCE object
 rule prepare_single_cell:
     input:
-        sc_h5_file,
+        sce_dir,
     params:
-        url=config["annotations_url"]
+        url=config["url_annotations"]
     output:
         output_normalized_sce,
     shell:
         """
         Rscript prepare-single-cell.R \
-          --input_h5_file {input} \
+          --input_dir {input}/filtered_feature_bc_matrix \
           --annotations_url {params.url} \
           --output_file {output}
         """

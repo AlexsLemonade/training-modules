@@ -46,7 +46,7 @@ opts <- parse_args(OptionParser(option_list = option_list))
 # Import data ------------------------------------------------------------------
 
 spe <- VisiumIO::TENxVisiumHD(
-  format = "h5",
+  format = "mtx", # use mtx to ensure counts assay is an actual matrix and not just reference to h5 file
   images = "lowres",
   segmented_outputs = opts$input_dir
 ) |>
