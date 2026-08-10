@@ -1,0 +1,89 @@
+# Workflow for obtaining the colon cancer Visium dataset from 10x
+# and a reference single-cell library from Oliviera to use for annotating.
+# Includes scripts to prep the normalized Visium data and normalized SCE
+# for use in the exercise notebook.
+
+from pathlib import Path
+
+configfile: "config.yaml"
+
+base_dir = Path(config["base_dir"])
+visium_dir = base_dir / "visium_hd"
+sce_dir = base_dir / "single_cell"
+output_normalized_spe = base_dir / config["output_normalized_spe"]
+output_normalized_sce = base_dir / config["output_normalized_sce"]
+
+
+rule targets:
+    input:
+        output_normalized_spe,
+        output_normalized_sce,
+
+
+# Download and unpack the Visium HD segmented outputs from 10x
+rule download_visium:
+    output:
+        directory(visium_dir),
+    params:
+        url=config["url_visium"],
+    shell:
+        """
+        # scratch space alongside the target, so parent dirs get created too
+        mkdir -p {output}_tmp
+        curl -L --fail {params.url} -o {output}_tmp/visium.tar.gz
+        tar -xzf {output}_tmp/visium.tar.gz -C {output}_tmp
+        mv {output}_tmp/segmented_outputs {output}
+        rm -rf {output}_tmp
+        
+        # clean up extra files 
+        rm {output}/cloupe.cloupe
+        rm -rf {output}/analysis
+        rm -rf {output}/cell_types
+        rm -rf {output}/celltype_annotated_segmentation
+        """
+
+
+# Download the single-cell reference matrix from 10x
+rule download_single_cell:
+    output:
+        directory(sce_dir),
+    params:
+        url=config["url_single_cell"],
+    shell:
+        """
+        # scratch space alongside the target, so parent dirs get created too
+        mkdir -p {output}
+        curl -L --fail {params.url} -o single_cell.tar.gz
+        tar -xzf single_cell.tar.gz -C {output}
+        """
+
+
+# Prepare the normalized SPE object
+rule prepare_spatial_experiment:
+    input:
+        visium_dir,
+    output:
+        output_normalized_spe,
+    shell:
+        """
+        Rscript prepare-spatial-experiment.R \
+          --input_dir {input} \
+          --output_file {output}
+        """
+
+
+# Prepare the reference SCE object
+rule prepare_single_cell:
+    input:
+        sce_dir,
+    params:
+        url=config["url_annotations"]
+    output:
+        output_normalized_sce,
+    shell:
+        """
+        Rscript prepare-single-cell.R \
+          --input_dir {input}/filtered_feature_bc_matrix \
+          --annotations_url {params.url} \
+          --output_file {output}
+        """
