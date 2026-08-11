@@ -10,7 +10,7 @@ sample_dir      = base_dir / config["sample_id"]
 spaceranger_dir = sample_dir / "spaceranger"
 normalized_dir  = sample_dir / "normalized"
 mito_genes_file = ref_dir / "mm_mitochondrial_genes.tsv"
-results_dir     = Path(config["results_dir"]) / config["sample_id"]
+analysis_dir    = Path(config["analysis_dir"]) / config["sample_id"]
 
 rule targets:
     input:
@@ -86,16 +86,16 @@ rule reformat_osteo_ref:
         
 rule calculate_moran:
     input: normalized_dir / config["output_osteo_spe"]
-    output: results_dir / config["output_moran_tsv"]
+    output: analysis_dir / config["output_moran_tsv"]
     params: 
         script = "calculate-moran.R",
         reps = 100000,
-    threads: 10
+    threads: 12
     shell:
         """
         Rscript {params.script} \
           -i {input} \
           -o {output} \
-          -r {params.reps}
+          -r {params.reps} \
           -t {threads}
         """
