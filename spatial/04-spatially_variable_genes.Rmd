@@ -55,6 +55,11 @@ sample_id <- "GSM8478586"
 data_dir <- file.path("data/osteo", sample_id, "normalized")
 
 normalized_rds <- file.path(data_dir, "osteo_normalized_spe.rds")
+
+# we will also use some pre-computed results, which can be found in the `analysis` directory
+analysis_dir <- file.path("analysis/osteo", sample_id)
+moran_mc100k_tsv <- file.path(analysis_dir, "moran_mc100k.tsv")
+
 ```
 
 
@@ -228,14 +233,15 @@ rowData(sfe)
 
 
 We could also do a more careful test based on Monte Carlo simulation, but this will be slow, as we essentially we have to resample and recalculate for some number of replicates.
+We'll start with 1000 replicates for time.
 
 ```{r moran-mc, live = TRUE}
-reps <- 100000
+reps <- 1000
 sfe <- Voyager::runUnivariate(
   sfe,
   type = "moran.mc",
   nsim = reps,
-  BPPARAM = BiocParallel::MulticoreParam(12)
+  BPPARAM = BiocParallel::MulticoreParam(4)
 )
 ```
 
@@ -275,10 +281,41 @@ ggplot(moran_df, aes(x = moran_test_neglogp, y = moran_mc_neglogp)) +
   ) +
   # restrict the values since some moran.test values are very large
   # which makes it hard to see the rest of the points
-  xlim(0, 5)
+  xlim(0, 7) +
+  # add a y=x line for comparison
+  geom_abline(slope = 1, intercept = 0, color = "forestgreen")
 ```
 
 Not too bad in the broad strokes, but definitely starts to disagree as we get to higher levels of significance.
+This is largely driven by the fact that the smallest P value we can get with the Monte Carlo test is 1/(reps + 1), which is 0.001 in this case, while the parametric test can go much lower than that.
+
+We could do better with more replicates, but that takes a very long time to run... so we pre-calculated a set with 100,000 replicates.
+
+```{r read-moran_mc100k}
+moran_mc100k_df <- readr::read_tsv(moran_mc100k_tsv) |>
+  dplyr::select(ID, moran_mc100k_p = moran.mc_p.value_GSM8478586)
+
+moran_df <- moran_df |>
+  dplyr::left_join(moran_mc100k_df, by = "ID") |>
+  dplyr::mutate(
+    moran_mc100k_neglogp = -log10(moranmc100k_p)
+  ) 
+```
+
+
+```{r plot-moran-mc-100k}
+ggplot(moran_df, aes(x = moran_test_neglogp, y = moran_mc100k_neglogp)) +
+  geom_point(alpha = 0.4) +
+  labs(
+    x = "Moran's I -log10(P) (moran.test)",
+    y = "Moran's I -log10(P) (moran.mc 100k)"
+  ) +
+  xlim(0, 7) +
+  geom_abline(slope = 1, intercept = 0, color = "forestgreen")
+```
+
+It seems like the parametric approximation tends to overestimate significance at smaller P values.
+(Though this does not say that either is accurate; just that they agree)
 
 Let's apply a multiple testing correction to the P values, and assign significance for each at an FDR of 0.05.
 
@@ -286,7 +323,7 @@ Let's apply a multiple testing correction to the P values, and assign significan
 moran_df <- moran_df |>
   dplyr::mutate(
     moran_test_p_adjust = p.adjust(moran_test_p, method = "BH"),
-    moran_mc_p_adjust = p.adjust(moran_mc_p, method = "BH"),
+    moran_mc_p_adjust = p.adjust(moran_mc100k_p, method = "BH"),
     moran_test_sig = moran_test_p_adjust < 0.05,
     moran_mc_sig = moran_mc_p_adjust < 0.05
   )
@@ -370,20 +407,17 @@ svg_df <- rowData(sfe) |>
   as.data.frame() |>
   dplyr::select(
     ID,
-    moran_i = paste0("moran_", sample_id),
-    moran_test_p = paste0("moran.test_p.value_", sample_id),
-    moran_mc_p = paste0("moran.mc_p.value_", sample_id),
     nnsvg_stat = LR_stat,
     nnsvg_propsv = prop_sv,
     nnsvg_p = pval,
     nnsvg_p_adjust = padj
   ) |>
   dplyr::mutate(
-    moran_test_padj = p.adjust(moran_test_p, method = "BH"),
-    moran_mc_padj = p.adjust(moran_mc_p, method = "BH"),
-    moran_test_neglogp = -log10(moran_test_p),
-    moran_mc_neglogp = -log10(moran_mc_p),
     nnsvg_neglogp = -log10(nnsvg_p),
+  ) |>
+  dplyr::left_join(
+    moran_df,
+    by = "ID"
   )
 ```
 
