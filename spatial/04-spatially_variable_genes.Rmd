@@ -426,7 +426,7 @@ svg_df <- rowData(sfe) |>
 ggplot(svg_df, aes(x = moran_test_neglogp, y = nnsvg_neglogp)) +
   geom_point(alpha = 0.4) +
   labs(
-    x = "Moran's I -log10(P value) (moran.test)",
+    x = "Moran's I -log10(P) (moran.test)",
     y = "nnSVG -log10(P value)"
   ) +
   xlim(0, 5)
@@ -440,6 +440,15 @@ ggplot(svg_df, aes(x = moran_i, y = nnsvg_propsv)) +
   labs(
     x = "Moran's I",
     y = "Proportion of variance explained by spatial location"
+  ) + 
+  annotate(
+    geom = "label", 
+    x = 0.5, 
+    y = 0, 
+    label = paste0(
+      "Spearman correlation: ", 
+      cor(svg_df$moran_i, svg_df$nnsvg_propsv, method = 'spearman')
+    )
   )
 ```
 
@@ -460,7 +469,7 @@ Voyager::plotSpatialFeature(
 )
 ```
 
-This does seem to detect more punctate expression patterns.
+This does seem to detect more punctate expression patterns, where expression of some genes is found in specific distinct spots rather than varying across larger scales.
 
 
 ### Comparing SVGs and HVGs
@@ -480,20 +489,21 @@ svg_hvg_df <- svg_df |>
 ```
 
 
-```{r, svg-hvg-cor}
-cor(
-  svg_hvg_df$nnsvg_propsv,
-  svg_hvg_df$bio_variance,
-  method = "spearman"
-)
-```
-
 ```{r plot-svg-hvg}
 ggplot(svg_hvg_df, aes(x = bio_variance, y = nnsvg_propsv)) +
   geom_point(alpha = 0.4) +
   labs(
     x = "Biological variance",
     y = "Proportion of variance explained by spatial location"
+  ) + 
+  annotate(
+    geom = "label", 
+    x = 2, 
+    y = 0, 
+    label = paste0(
+      "Spearman correlation: ", 
+      cor(svg_hvg_df$bio_variance, svg_hvg_df$nnsvg_propsv, method = "spearman")
+    )
   )
 ```
 
