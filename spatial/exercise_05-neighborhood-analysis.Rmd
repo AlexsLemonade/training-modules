@@ -1,0 +1,602 @@
+---
+title: "Spatial Transcriptomics Exercise: Neighborhood analysis with Visium HD data"
+author: Data Lab for ALSF
+date: 2026
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+In this exercise notebook, we'll be looking at a 10x Visium HD dataset from a colorectal cancer (CRC) sample.
+
+---
+
+In this exercise notebook you will,
+
+- Part A: Read in and annotate a Visium HD dataset
+- Part B: Perform neighborhood analysis with `hoodscanR`
+- Part C: Perform domain detection with `hoodscanR`
+- Part D: Explore parameters for `hoodscanR`
+
+## Part A: Read in and annotate a Visium HD dataset
+
+First, let's load the libraries we will use throughout this notebook.
+
+```{r load-libraries}
+library(SpatialExperiment)
+library(ggplot2)
+library(patchwork)
+```
+
+```{r theme-set}
+# Set theme for ggplot2 plotting
+theme_set(theme_bw())
+
+# Set a seed so the random steps (tau estimation, k-means) are reproducible
+set.seed(2026)
+```
+
+
+Next, we'll define the paths to the input files we will use in this notebook.
+
+```{r input-paths}
+# define path to data directory
+data_dir <- file.path("data", "crc-hd")
+
+# paths to input SPE and reference SCE which will be used for annotation
+normalized_spe_file <- file.path(data_dir, "crc_hd_normalized_spe.rds")
+ref_sce_file <- file.path(data_dir, "crc_single_cell_normalized_sce.rds")
+```
+
+We'll also define the path where we will save the final annotated `SpatialExperiment` object at the end of this notebook.
+
+```{r output-paths}
+# define path to results directory and create it if it doesn't exist
+results_dir <- file.path("results")
+fs::dir_create(results_dir)
+
+# path to save the final SPE object with annotations and neighborhood results
+hood_spe_file <- file.path(results_dir, "crc_hd_hood_spe.rds")
+```
+
+### About Visium HD outputs
+
+Unlike regular Visium, where transcripts are captured in 55 µm spots, Visium HD slides contain a continuous grid of 2 µm barcoded squares.
+Space Ranger provides several outputs from a Visium HD run:
+
+- The raw 2 µm binned output
+- The same data aggregated into 8 µm and 16 µm bins, which are commonly used for analysis since individual 2 µm bins are very sparse
+- Segmented outputs, where nuclei are identified in the tissue image and nearby 2 µm bins are grouped together into what is _estimated_ to be a single cell
+
+In this notebook we will be working with the **segmented outputs**.
+The segmented outputs folder contains a filtered feature-cell matrix with counts summed across each segmented cell, the spatial coordinates for each cell, and the cell segmentation geometries derived from the tissue image.
+
+We have already pre-processed this data for you, since filtering and normalization for Visium HD follow the same steps we used for regular Visium in the previous notebook.
+This means the object you are reading in below has already been filtered to remove low-quality cells and contains normalized counts in the `logcounts` assay.
+
+Read in both the pre-processed `SpatialExperiment` (SPE) object and the reference `SingleCellExperiment` (SCE) object.
+
+```{r read-input-data}
+# read in SPE and reference SCE
+spe <- readr::read_rds(normalized_spe_file)
+ref_sce <- readr::read_rds(ref_sce_file)
+```
+
+### Annotate with SingleR
+
+The main difference here is that with segmented outputs we get information for what is estimated to be a single cell and not a spot.
+We can therefore annotate these cells similar to how we would with single-cell RNA-seq.
+
+Here we will use `SingleR`, a reference-based annotation method.
+`SingleR` compares the expression profile of each cell in our dataset to a reference dataset that already has cell type labels, and assigns each of our cells the label it most closely resembles.
+For our reference, we will use a previously annotated single-cell RNA-seq dataset from CRC samples, where cell type labels are stored in the `Level1` column of the `colData`.
+
+If you would like a more detailed discussion of cell type annotation methods, including `SingleR`, we have a whole notebook on annotation in our [Introduction to single-cell RNA-seq training materials](https://github.com/AlexsLemonade/training-modules) that you can reference.
+
+Let's first explore our reference object and the cell types it contains.
+Use the `unique()` function to look at the cell type labels found in the `Level1` column of `ref_sce`.
+
+Note that this reference has been downsampled to 1000 cells per cell type to keep the object size manageable; the original reference had > 250K cells.
+
+```{r explore-ref, solution=TRUE}
+# print the unique cell type labels in the Level1 column of ref_sce
+unique(ref_sce$Level1)
+```
+
+Now let's go ahead and annotate.
+
+### What does `SingleR` do?
+<!--Note that this is mostly copied over from the cell type annotation instruction notebook-->
+
+As mentioned earlier, `SingleR` builds a model from a set of training data, and then uses that model to classify cells (or groups of cells) in new datasets.
+
+`SingleR` works by first identifying a set of marker genes that can be used to differentiate among the cell types in the reference dataset.
+It does this by performing pairwise comparisons among all of the cell types, and retaining the top set of genes differentiating each pair.
+The idea is that this set of genes will be the most informative for differentiating cell types.
+
+Then, for each cell, `SingleR` calculates the Spearman correlation between expression of that cell and each cell type (using only the genes chosen earlier).
+Notably, this is a non-parametric correlation, so the scaling and normalization that we apply (or don't) should not matter!
+Note that if you used a single-cell technology that produces full-length transcripts (i.e., SMART-seq), you will probably want to convert your counts to Transcripts per Million (TPM), to allow more consistent ranking among transcripts of different lengths.
+
+The reference cell type with the highest correlation is then chosen as the cell type assignment for that cell.
+If there are multiple cell types with high scores, an optional fine-tuning step repeats the process using only the most relevant genes for those cell types.
+
+### Running `SingleR`
+
+Now we can run `SingleR` using the convenience function `SingleR::SingleR()`, which performs the marker gene selection (training) and classification in a single step.
+We will save the output to an object named `singler_results`.
+
+We will need to supply the following arguments:
+
+- `test`: our SPE object, `spe`
+- `ref`: the reference object, `ref_sce`
+- `labels`: the vector of reference labels to use, here the `Level1` column of `ref_sce`
+- `aggr.ref = TRUE`: this pseudobulks cells of the same cell type in the reference, which speeds things up considerably
+
+
+```{r run-singler}
+# annotate cells in the SPE using the Level1 labels from the reference SCE
+singler_results <- SingleR::SingleR(
+  test = spe,
+  ref = ref_sce,
+  labels = ref_sce$Level1,
+  aggr.ref = TRUE # pseudobulk cells of the same cell type for speed
+)
+```
+
+Let's explore the results from `SingleR`.
+The output is a `DataFrame` with one row per cell in our SPE and the following components:
+
+- `scores`: a matrix of correlation-based scores for each cell (rows) and each reference cell type (columns); higher scores indicate a closer match
+- `labels`: the cell type with the highest score for each cell
+- `delta.next`: the difference in score between the assigned label and the next-best label; small values indicate the assignment was ambiguous
+- `pruned.labels`: the same as `labels`, but low-quality or ambiguous assignments have been replaced with `NA`
+
+```{r singler-results}
+singler_results
+```
+
+We can also pull out individual components of the results object for use in our analysis.
+Here we will save the pruned labels (where low-quality assignments have been given an `NA` label), storing them back in our SPE object (specifically to a new column of the `colData` table).
+
+Store the `pruned.labels` in a new `colData` column named `cell_annotation`, since ultimately that's the column name expected by `hoodscanR`.
+
+```{r add-annotations}
+# save the pruned labels to a new colData column named cell_annotation
+spe$cell_annotation <- singler_results$pruned.labels
+```
+
+Now count how many of each cell type we see in our spatial data.
+You can do this by using the `table()` function on the `cell_annotation` column.
+
+```{r count-celltypes, solution=TRUE}
+# count the number of cells assigned to each cell type
+table(spe$cell_annotation)
+```
+
+What are the dominant cell types that you see?
+
+Next we can visualize the cell types on a coordinate plot.
+First, we will define a distinct color palette with one color per cell type, so cell types are easy to tell apart in this plot and in later plots.
+
+```{r celltype-palette}
+# get the cell type labels, dropping any NA values
+celltypes <- na.omit(unique(spe$cell_annotation))
+
+# create a named vector of distinct colors, one per cell type
+cell_type_palette <- setNames(
+  palette.colors(length(celltypes), palette = "Classic Tableau"),
+  celltypes
+)
+```
+
+Now use the `ggspavis::plotCoords()` function to plot the cells, coloring by the `cell_annotation` column (hint: use the `annotate` argument).
+Add `scale_color_manual()` to apply the `cell_type_palette` we just created; you can use the `na.value` argument to give any unannotated cells a neutral color like `"grey80"`.
+
+```{r plot-celltypes, solution=TRUE}
+# plot cells on the tissue colored by cell type using our custom palette
+ggspavis::plotCoords(spe, annotate = "cell_annotation") +
+  scale_color_manual(values = cell_type_palette, na.value = "gray90")
+```
+
+<!--TODO: Add interpretation text for the cell type plot-->
+
+## Part B: Perform neighborhood analysis with `hoodscanR`
+
+Now we'll perform neighborhood analysis with `hoodscanR`.
+Similar to the previous notebook, where we removed unlabeled spots before neighborhood analysis, we first need to remove any cells with an `NA` annotation.
+
+Filter `spe` to keep only cells where `cell_annotation` is not `NA`.
+Hint: remember that cells are columns of the SPE object, and you can use `!is.na()` to identify the cells to keep.
+
+```{r remove-na, solution=TRUE}
+# remove cells that did not receive a cell type annotation
+spe <- spe[, !is.na(spe$cell_annotation)]
+```
+
+Neighborhood analysis with `hoodscanR` happens in three steps, each with its own function:
+
+1. `hoodscanR::findNearCells()`: for each cell, find its k nearest neighboring cells
+2. `hoodscanR::scanHoods()`: convert the distances to those neighbors into probabilities
+3. `hoodscanR::mergeByGroup()`: collapse the per-neighbor probabilities into one probability per cell type
+
+First, use `hoodscanR::findNearCells()` to find the 100 nearest neighbors for each cell, and save the output to an object named `neighbors`.
+You will need to provide the `spe` object and set `k = 100`.
+Note that the `anno_col` argument tells the function which `colData` column holds the cell type labels. 
+Its default is `"cell_annotation"`, which is why we used that column name earlier.
+
+```{r nearest-neighbors, solution=TRUE}
+# for each cell, find its k nearest neighboring cells
+neighbors <- hoodscanR::findNearCells(
+  spe,
+  k = 100, # number of nearest neighbors to consider for each cell
+  anno_col = "cell_annotation" # default
+)
+```
+
+Next, use `hoodscanR::scanHoods()` to convert the neighbor distances into probabilities, saving the output as `prob_mtx`.
+
+```{r prob-mtx, solution=TRUE}
+# convert neighbor distances into probabilities
+prob_mtx <- hoodscanR::scanHoods(neighbors$distance)
+```
+
+Finally, use `hoodscanR::mergeByGroup()` to collapse the per-neighbor probabilities into one probability per cell type, saving the output as `hoods`.
+This function takes two arguments: the probability matrix and the cell type annotations of each neighbor, stored in the `cells` element of the `neighbors` object.
+
+```{r merge-probabilities, solution=TRUE}
+# collapse the per-neighbor probabilities into one probability per cell type
+hoods <- hoodscanR::mergeByGroup(
+  prob_mtx,
+  neighbors$cells
+)
+```
+
+Let's visualize the neighborhood profiles we just created for a subset of cells using a heatmap.
+
+```{r neighborhood-heatmap}
+# plot the neighborhood profiles for the first 500 cells
+ComplexHeatmap::Heatmap(
+  t(hoods[1:500, ]), # transpose so cells are columns
+  col            = scico::scico(200, palette = "acton", direction = -1),
+  name           = "Probability",
+  column_title   = "Probability of cell types\n within 100 nearest neighbors",
+  column_title_gp = grid::gpar(fontsize = 15),
+  column_dend_height = grid::unit(1, "cm"),
+  row_dend_width = unit(1, "cm"),
+  column_names_rot = 45,
+  cluster_rows   = TRUE,     # group cells with similar profiles together
+  cluster_columns = TRUE,    # group cell types that co-occur together
+  show_column_names = FALSE  # hide per-cell labels; there are too many to read
+)
+```
+
+<!--TODO: Add interpretation text for the neighborhood heatmap-->
+
+### Measuring neighborhood complexity
+
+Before we can calculate any metrics, we need to add the neighborhood probabilities back into our SPE object.
+Use `hoodscanR::mergeHoodSpe()` to merge the `hoods` matrix into `spe`, saving the result back to `spe`.
+This adds one new `colData` column per cell type, holding the neighborhood probabilities.
+
+```{r merge-hood-spe}
+# first we need to make sure that the rows in hoods have the same column names as in the original object
+# this seems to be something specific to Visium data where generating the neighbor profiles doesn't keep the original cell id? 
+rownames(hoods) <- colnames(spe)
+
+# merge the neighborhood profiles back into the spe object
+spe <- hoodscanR::mergeHoodSpe(
+  spe,
+  hoods
+)
+```
+
+Now we can calculate entropy and perplexity from those probability columns.
+
+Use `hoodscanR::calcMetrics()` to add these metrics to `spe`, saving the result back to `spe`.
+Hint: the `pm_cols` argument tells the function which columns hold the probabilities; you can use `colnames(hoods)` to get those column names.
+
+```{r calc-metrics, solution=TRUE}
+# calculate entropy and perplexity from the neighborhood probability columns
+spe <- hoodscanR::calcMetrics(
+  spe,
+  pm_cols = colnames(hoods)
+)
+```
+
+We can now plot either entropy or perplexity across the tissue.
+These two metrics measure the same underlying quantity but on different scales, so we expect the plots to show very similar patterns.
+
+Make a coordinate plots with `ggspavis::plotCoords()`, using either `"entropy"` or `"perplexity"` for the `annotate` argument. 
+The solution will show both plots.
+
+```{r plot-entropy, solution=TRUE}
+# plot entropy across the tissue
+entropy_plot <- ggspavis::plotCoords(spe, annotate = "entropy") +
+  scale_color_viridis_c()
+
+# plot perplexity across the tissue
+perplexity_plot <- ggspavis::plotCoords(spe, annotate = "perplexity") +
+  scale_color_viridis_c()
+
+# combine the plots side by side with patchwork
+entropy_plot + perplexity_plot
+```
+
+Where in the tissue do you see the most mixed neighborhoods?
+
+### Co-localization
+
+We can also use the neighborhood profiles to look at which cell types tend to be found together, or co-localized.
+Use `hoodscanR::plotColocal()` to create this heatmap.
+You will need to provide the `spe` object and the `pm_cols` argument, just like you did for `calcMetrics()`.
+We recommend using `hm_width = 8`, and `hm_height = 8` to keep the heatmap a readable size.
+
+```{r plot-colocal, solution=TRUE}
+#| fig.height: 5
+
+# correlate neighborhood profiles between cell types to find co-localized pairs
+hoodscanR::plotColocal(
+  spe,
+  pm_cols = colnames(hoods),
+  hm_width = 8,
+  hm_height = 8
+)
+```
+
+Which cell types appear to be co-localized?
+
+<!--TODO: Add interpretation text for the co-localization heatmap-->
+
+## Part C: Perform domain detection with `hoodscanR`
+
+`hoodscanR` identifies spatial domains by clustering cells with k-means based on their neighborhood profiles.
+K-means requires us to choose the number of clusters (domains), so before clustering we will make an elbow plot to help pick a reasonable value of k.
+
+For each candidate value of k, we fit k-means to the neighborhood probability matrix and record the total within-cluster sum of squares (WCSS), a measure of how tightly cells cluster together.
+
+```{r wcss-calculation}
+# candidate numbers of domains to try
+k_range <- 2:12
+
+# construct a data frame with each value of k and its within-cluster sum of squares
+elbow_df <- k_range |>
+  purrr::map(\(k){
+    fit <- kmeans(hoods, centers = k, nstart = 25, iter.max = 50)
+    data.frame(k = k, wcss = fit$tot.withinss)
+  }) |>
+  purrr::list_rbind()
+```
+
+
+```{r elbow-plot}
+# make the elbow plot
+ggplot(elbow_df, aes(x = k, y = wcss)) +
+  geom_line(colour = "grey60") +
+  geom_point(size = 2.5) +
+  scale_x_continuous(breaks = k_range) +
+  labs(
+    title = "Elbow plot for domain identification",
+    x = "Number of domains (k)",
+    y = "Total within-cluster sum of squares (WCSS)"
+  )
+```
+
+Use the elbow plot to pick the value of k you think is best.
+WCSS always decreases as k increases, so we are not looking for the smallest value.
+Instead, look for the "elbow" of the curve or the point where adding more domains stops giving a substantial drop in WCSS and the curve begins to flatten out.
+Choosing a k near the elbow gives us domains that capture real structure in the data without splitting the tissue into more domains than we can meaningfully interpret.
+There is often no single right answer, so it's okay if your choice differs slightly from ours!
+
+Now cluster the cells into spatial domains using `hoodscanR::clustByHood()`, saving the result back to `spe`.
+You will need to provide the `spe` object, the `pm_cols` argument (same as before), and your chosen value of `k`.
+This will add a new `colData` column named `clusters` holding the domain assignment for each cell.
+
+```{r cluster-domains, solution=TRUE}
+# cluster cells into spatial domains based on their neighborhood profiles
+spe <- hoodscanR::clustByHood(
+  spe,
+  pm_cols = colnames(hoods),
+  k = 8 # number of domains, chosen from the elbow plot above
+)
+```
+
+Use `table()` to see how many cells fall into each domain.
+
+```{r domain-table, solution=TRUE}
+# count the number of cells assigned to each domain
+table(spe$clusters)
+```
+
+Let's also see where the domains fall in the tissue.
+Use `hoodscanR::plotTissue()` to plot the cells colored by domain.
+
+```{r plot-domains, solution=TRUE}
+# plot the spatial domains on the tissue
+hoodscanR::plotTissue(spe, color = clusters, size = 0.1) +
+  scale_color_brewer(palette = "Paired") +
+  # make the legend points larger and easier to see
+  guides(color = ggplot2::guide_legend(override.aes = list(size = 2)))
+```
+
+For each domain, we can look at which cell types it is made of by plotting the distribution of neighborhood probabilities within each domain.
+
+```{r plot-probdist}
+#| fig.height: 8
+#| fig.width: 12
+
+# for each domain, show the distribution of neighborhood probabilities per cell type
+hoodscanR::plotProbDist(
+  spe,
+  pm_cols = colnames(hoods),
+  by_cluster = TRUE,
+  plot_all = TRUE,
+  fill = hoods,
+  show_clusters = seq(8), # show all domains; change this if you chose a different k
+  outlier.size  = 0.1     # shrink the boxplot outlier points
+) +
+  # default is 3 columns, but let's use 4
+  facet_wrap(vars(clusters),
+             ncol = 4,
+             scales = "free_x") +
+  # and remove the strip background
+  theme(strip.background = element_rect(fill = "transparent")) +
+  # add some colors to cell types
+  scale_fill_manual(values = cell_type_palette) +
+  # change the default legend title
+  labs(fill = "Cell types")
+```
+
+Which cell types define each domain?
+
+<!--TODO: Add interpretation text for the probability distribution plot-->
+
+## Part D: Explore parameters for `hoodscanR`
+
+So far we have used the default parameters for `hoodscanR::scanHoods()`.
+One important parameter to consider is `tau`, which controls how quickly a neighbor's contribution to the probabilities decays with distance.
+By default, `scanHoods()` calculates `tau` as the median squared neighbor distance divided by 5.
+
+- With a **smaller `tau`**, only the closest neighbors contribute meaningfully, so the profiles capture very **local** neighborhoods.
+- With a **larger `tau`**, more distant neighbors still contribute, so the profiles capture broader, more **global** neighborhoods.
+
+Using a larger `tau` can therefore change the neighborhood profiles we create and, in turn, the neighborhood complexity (perplexity) and the spatial domains we detect.
+<!--TODO: Add some text about how this could change biological interpretation of results-->
+
+In this section, we will repeat the `hoodscanR` workflow from Part B, but this time with a larger, more "global" `tau`, and compare the results to our original "local" run.
+
+One nice shortcut: finding the nearest neighbors does not depend on `tau` at all, since the cells and their distances haven't changed.
+That means we can reuse the `neighbors` object from Part B and only need to repeat the steps that come after `findNearCells()`.
+
+We also don't want to overwrite the results already stored in `spe`, since we'll need those for our comparisons.
+Start by making a copy of `spe` named `global_spe`. 
+We will store all of the global `tau` results in this copy while `spe` keeps the local results.
+
+```{r copy-spe, solution=TRUE}
+# make a copy of the SPE to hold the global tau results,
+# so we don't overwrite the local results stored in spe
+global_spe <- spe
+```
+
+Next, calculate the global value of `tau` and save it as `global_tau`.
+Remember that the default `tau` is the median squared neighbor distance divided by 5.
+Here, we'll calculate the median squared neighbor distance but *don't* divide it by anything which makes `tau` five times larger than the default, capturing more global neighborhoods.
+
+```{r global-tau}
+# calculate a global tau: the median squared neighbor distance,
+# which is 5x larger than the default of median(distance^2) / 5
+global_tau <- median(neighbors$distance^2)
+```
+
+Now repeat the neighborhood analysis steps from Part B, this time supplying your new `tau`:
+
+Use `hoodscanR::scanHoods()` to convert the distances in `neighbors$distance` into probabilities, this time setting the `tau` argument to `global_tau`.
+Save the output as `global_prob_mtx`.
+
+```{r global-prob-mtx, solution=TRUE}
+# convert neighbor distances into probabilities using the global tau
+global_prob_mtx <- hoodscanR::scanHoods(
+  neighbors$distance,
+  tau = global_tau
+)
+```
+
+Now use `hoodscanR::mergeByGroup()` with `global_prob_mtx` and `neighbors$cells` to collapse the probabilities to one per cell type.
+Save the output as `global_hoods`.
+
+```{r global-merge-probabilities, solution=TRUE}
+# collapse the per-neighbor probabilities into one probability per cell type
+global_hoods <- hoodscanR::mergeByGroup(
+  global_prob_mtx,
+  neighbors$cells
+)
+```
+
+Just like in Part B, we now need to merge the new neighborhood probabilities into our SPE object.
+
+```{r global-merge-spe}
+# reset the column names to make sure they match
+rownames(global_hoods) <- colnames(global_spe)
+
+# merge the global neighborhood profiles into the copied spe object
+global_spe <- hoodscanR::mergeHoodSpe(
+  global_spe,
+  global_hoods
+)
+```
+
+### Compare domain assignments
+
+Let's see how the choice of `tau` affects the spatial domains we detect.
+Repeat the domain detection from Part C by running `hoodscanR::clustByHood()` on `global_spe`, saving the result back to `global_spe`.
+Be sure to use `colnames(global_hoods)` for the `pm_cols` argument and the *same* value of `k` you chose from the elbow plot in Part C, so the two clustering results are comparable.
+
+```{r global-cluster-domains, solution=TRUE}
+# cluster cells into spatial domains using the global neighborhood profiles
+global_spe <- hoodscanR::clustByHood(
+  global_spe,
+  pm_cols = colnames(global_hoods),
+  k = 8 # use the same k you chose in Part C
+)
+```
+
+Similar to when we compared clustering results in previous notebooks, we can make a heatmap comparing the cells assigned to each domain in the local run versus the global run.
+If `tau` had no effect, we would expect each local domain to line up neatly with a single global domain.
+
+First, we'll pull out the domain assignments from each run and add a prefix (e.g., `"local_"` and `"global_"`) so we can tell them apart in the heatmap. 
+Then we'll use `table()` to build a matrix counting how many cells fall into each combination of local and global domain, and plot that matrix with `pheatmap::pheatmap()`.
+
+```{r cluster-heatmap}
+# pull out the domain assignments and add prefixes to the labels
+local_clusters <- glue::glue("local_{spe$clusters}")
+global_clusters <- glue::glue("global_{global_spe$clusters}")
+
+# count cells in each combination of local and global domain
+clusters_table <- table(local_clusters, global_clusters)
+
+# normalize by the number of cells in each local tau cluster, which appear on rows
+clusters_table <- prop.table(clusters_table, 1)
+
+# plot the comparison as a heatmap
+pheatmap::pheatmap(clusters_table)
+```
+
+Finally, we can quantify how similar the two sets of domain assignments are by calculating the Adjusted Rand Index (ARI).
+The ARI ranges from 0 to 1, where 1 means the two clusterings are identical and values near 0 mean the assignments agree no more than expected by chance.
+
+<!--TODO: Add some more text about ARI interpretation.
+Add a link to the clustering exercise. 
+Should we also show the diag here? 
+-->
+
+Use `bluster::pairwiseRand()` with `mode = "index"` to calculate the ARI between the local and global domain assignments.
+
+```{r calculate-ari, solution=TRUE}
+# calculate the ARI between local and global domain assignments
+bluster::pairwiseRand(
+  spe$clusters,
+  global_spe$clusters,
+  mode = "index"
+)
+```
+
+Based on the heatmap and the ARI, how much does the choice of `tau` ultimately affect the resulting neighborhood profiles and domains?
+
+<!--TODO: Add interpretation text for the domain comparison and ARI-->
+
+## Save results
+
+Before we finish, save the SPE object from our original analysis, which contains the cell type annotations, neighborhood probabilities, metrics, and domain assignments.
+Use `readr::write_rds()` to save `spe` to the `hood_spe_file` path we defined at the top of the notebook.
+
+```{r save-results, solution=TRUE}
+# save the annotated SPE with neighborhood results
+readr::write_rds(spe, hood_spe_file)
+```
+
+## Session Info
+
+```{r session-info}
+sessionInfo()
+```
