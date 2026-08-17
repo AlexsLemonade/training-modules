@@ -23,6 +23,9 @@ If you have a different version of R or other R packages, the documentation may 
 - [`scuttle`, `scran`, and `scater`](#scuttle-scran-and-scater)
 - [`bluster`](#bluster)
 - [`patchwork`](#patchwork)
+- [`pals`](#pals)
+- [`pheatmap`](#pheatmap)
+- [`purrr`](#purrr)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -164,6 +167,8 @@ Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and vi
 | `bluster`| [`approxSilhouette()`](https://rdrr.io/bioc/bluster/man/approxSilhouette.html)| Approximate silhouette width | Calculate an approximate silhouette width for each cell given a set of clusters |
 | `bluster`| [`neighborPurity()`](https://rdrr.io/bioc/bluster/man/neighborPurity.html)| Compute neighborhood purity | Calculate neighborhood purity for each cell given a set of clusters |
 | `bluster`| [`bootstrapStability()`](https://rdrr.io/bioc/bluster/man/bootstrapStability.html)| Assess cluster stability by bootstrapping  | Generate cluster bootstrap replicates to estimate cluster robustness to sampling noise  |
+| `bluster` | [`pairwiseRand()`](https://rdrr.io/bioc/bluster/man/pairwiseRand.html) | Compute pairwise Rand indices | Calculate the Rand index (adjusted, by default) between pairs of clustering results, using one of several available calculation modes | 
+
 
 
 ### `patchwork`
@@ -177,3 +182,38 @@ Read the [`patchwork` package documentation](https://rdrr.io/cran/patchwork), an
 | `patchwork` | [`wrap_plots()`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Wrap plots | Wrap multiple `ggplot2` objects into a single multi-panel plot  |
 | `patchwork` | [`+`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Place `ggplot2` objects side-by-side by adding them together with a `+`. The `patchwork` package must be loaded to use this symbol with plots |
 | `patchwork` | [`/`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Stack `ggplot2` objects on top of one another "dividing" them with a `/`. The `patchwork` package must be loaded to use this symbol with plots |
+
+
+<div style="page-break-after: always;"></div>
+
+
+### `pals`
+
+Read the [`pals` package documentation](https://rdrr.io/cran/pals/man/pals.html), and a [vignette on its usage](https://kwstat.github.io/pals/articles/pals_examples.html).
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+| `pals` | [`alphabet()`](https://rdrr.io/cran/pals/man/discrete.html)  | Alphabet palette | Create a discrete palette from the "alphabet" set of colors |
+
+
+### `pheatmap`
+
+Read the [`pheatmap` package documentation](https://rdrr.io/cran/pheatmap/).
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `pheatmap`| [`pheatmap()`](https://rdrr.io/cran/pheatmap/man/pheatmap.html)| Pretty heatmap | Plot a (pretty!) clustered heatmap |
+
+
+
+### `purrr`
+
+Read the [`purrr` package documentation](https://purrr.tidyverse.org/) and a [vignette on its usage](https://purrr.tidyverse.org/articles/base.html), and download the [`purr` package cheatsheet](https://github.com/rstudio/cheatsheets/raw/main/purrr.pdf).
+
+| Library/Package| Piece of Code| What it's called| What it does |
+|----------------|--------------|-----------------|--------------|
+| `purrr`| [`map()`](https://purrr.tidyverse.org/reference/map.html)| map | Apply a function across each element of list; return a list |
+| `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| imap |  Apply a function across each element of list and its index/names; return a list |
+| `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by applying a given function |
