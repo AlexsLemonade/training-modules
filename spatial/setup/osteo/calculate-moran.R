@@ -38,7 +38,6 @@ opt <- parse_args(OptionParser(option_list = option_list))
 # read file
 spe <- readr::read_rds(opt$input)
 
-# Calculate Moran's I with MC stats
 
 gene_variance <- scran::modelGeneVar(spe)
 
@@ -56,6 +55,7 @@ SpatialFeatureExperiment::colGraph(
   sfe
 ) <- SpatialFeatureExperiment::findVisiumGraph(sfe)
 
+# Calculate Moran's I with MC stats
 
 sfe <- Voyager::runUnivariate(
   sfe,

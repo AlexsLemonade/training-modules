@@ -59,7 +59,6 @@ normalized_rds <- file.path(data_dir, "osteo_normalized_spe.rds")
 # we will also use some pre-computed results, which can be found in the `analysis` directory
 analysis_dir <- file.path("analysis/osteo", sample_id)
 moran_mc100k_tsv <- file.path(analysis_dir, "moran_mc100k.tsv")
-
 ```
 
 
@@ -161,7 +160,7 @@ We'll plot the graph we just made.
 
 
 ```{r plot-graph, live = TRUE}
-Voyager::plotColGraph(sfe, ) +
+Voyager::plotColGraph(sfe) +
   # the units are arbitrary, so let's leave them and the grid lines off
   theme(
     axis.ticks = element_blank(),
@@ -194,7 +193,7 @@ This gives us an I value for each gene as well as the kurtosis of the gene's exp
 rowData(sfe)
 ```
 
-You'll notice that the new column names include the sample_id, which is a bit annoying, but it is necessary to keep things separate if we have multiple samples.
+You'll notice that the new column names include the `sample_id`, which is a bit annoying, but it is necessary to keep things separate if we have multiple samples.
 We'll make sure to set that as a variable so we can reuse it as needed.
 
 Let's first look at the distribution of Moran's I values across all (highly variable) genes:
@@ -298,7 +297,7 @@ moran_mc100k_df <- readr::read_tsv(moran_mc100k_tsv) |>
 moran_df <- moran_df |>
   dplyr::left_join(moran_mc100k_df, by = "ID") |>
   dplyr::mutate(
-    moran_mc100k_neglogp = -log10(moranmc100k_p)
+    moran_mc100k_neglogp = -log10(moran_mc100k_p)
   ) 
 ```
 
@@ -413,7 +412,7 @@ svg_df <- rowData(sfe) |>
     nnsvg_p_adjust = padj
   ) |>
   dplyr::mutate(
-    nnsvg_neglogp = -log10(nnsvg_p),
+    nnsvg_neglogp = -log10(nnsvg_p)
   ) |>
   dplyr::left_join(
     moran_df,
@@ -432,7 +431,7 @@ ggplot(svg_df, aes(x = moran_test_neglogp, y = nnsvg_neglogp)) +
   xlim(0, 5)
 ```
 
-Rather than comparing just the P values, we could also look at the correlation between I and the `nnsvg`'s `prop_sv` statistic.
+Rather than comparing just the P values, we could also look at the correlation between I and `nnsvg`'s `prop_sv` statistic.
 
 ```{r plot-moran-nnsvg-stats}
 ggplot(svg_df, aes(x = moran_i, y = nnsvg_propsv)) +
