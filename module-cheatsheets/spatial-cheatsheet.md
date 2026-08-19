@@ -216,4 +216,4 @@ Read the [`purrr` package documentation](https://purrr.tidyverse.org/) and a [vi
 |----------------|--------------|-----------------|--------------|
 | `purrr`| [`map()`](https://purrr.tidyverse.org/reference/map.html)| map | Apply a function across each element of list; return a list |
 | `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| imap |  Apply a function across each element of list and its index/names; return a list |
-| `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by repeatedly applying a given function |
+| `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by repeatedly applying a given function. Can also be used to iteratively modify a single object. |
