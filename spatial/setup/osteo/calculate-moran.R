@@ -30,10 +30,17 @@ option_list <- list(
     type = "integer",
     default = 8,
     help = "Number of threads to use for parallelization"
+  ),
+  make_option(
+    "--seed",
+    type = "integer",
+    default = 123,
+    help = "Random seed for reproducibility"
   )
 )
 # parse arguments
 opt <- parse_args(OptionParser(option_list = option_list))
+set.seed(opt$seed)
 
 # read file
 spe <- readr::read_rds(opt$input)
