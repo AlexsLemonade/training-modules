@@ -8,7 +8,14 @@ output:
     toc_float: true
 ---
 
-In this exercise notebook, we'll be looking at a 10x Visium HD dataset from a colorectal cancer (CRC) sample.
+In this exercise notebook, we'll be looking at a [10x Visium HD dataset from a colorectal cancer (CRC) sample](https://www.10xgenomics.com/datasets/visium-hd-cytassist-6p5mm-human-colon-cancer).
+
+Unlike the Xenium platform we used in the instruction notebook, which measures a targeted panel of genes using imaging-based in situ hybridization, Visium HD is a sequencing-based method that captures the whole transcriptome.
+This means Visium HD gives us untargeted, genome-wide expression data, though at a somewhat coarser effective resolution than Xenium's single-molecule imaging.
+
+Because whole Visium HD slides are large and can be cumbersome to work with, in this notebook we will only be looking at a small section of the slide.
+
+To annotate cell types in this dataset, we'll use a previously annotated [single-cell RNA-seq reference dataset from CRC samples](https://www.10xgenomics.com/platforms/visium/product-family/dataset-human-crc).
 
 ---
 
@@ -85,14 +92,28 @@ ref_sce <- readr::read_rds(ref_sce_file)
 
 ### Annotate with SingleR
 
-The main difference here is that with segmented outputs we get information for what is estimated to be a single cell and not a spot.
-We can therefore annotate these cells similar to how we would with single-cell RNA-seq.
+Because segmented outputs means we get information for what is estimated to be a single cell, we can annotate these cells similar to how we would with single-cell RNA-seq.
 
 Here we will use `SingleR`, a reference-based annotation method.
 `SingleR` compares the expression profile of each cell in our dataset to a reference dataset that already has cell type labels, and assigns each of our cells the label it most closely resembles.
-For our reference, we will use a previously annotated single-cell RNA-seq dataset from CRC samples, where cell type labels are stored in the `Level1` column of the `colData`.
 
-If you would like a more detailed discussion of cell type annotation methods, including `SingleR`, we have a whole notebook on annotation in our [Introduction to single-cell RNA-seq training materials](https://github.com/AlexsLemonade/training-modules) that you can reference.
+If you would like a more detailed discussion of cell type annotation methods, including `SingleR`, we have a whole notebook on annotation in our [Introduction to single-cell RNA-seq training materials](https://github.com/AlexsLemonade/training-modules/blob/master/scRNA-seq/06-celltype_annotation.Rmd) that you can reference.
+
+### What does `SingleR` do?
+
+`SingleR` builds a model from a reference dataset, and then uses that model to classify cells (or groups of cells) in new datasets.
+
+`SingleR` works by first identifying a set of marker genes that can be used to differentiate among the cell types in the reference dataset.
+It does this by performing pairwise comparisons among all of the cell types, and retaining the top set of genes differentiating each pair.
+The idea is that this set of genes will be the most informative for differentiating cell types.
+
+Then, for each cell, `SingleR` calculates the Spearman correlation between expression of that cell and each cell type (using only the genes chosen earlier).
+Notably, this is a non-parametric correlation, so the scaling and normalization that we apply (or don't) should not matter!
+
+The reference cell type with the highest correlation is then chosen as the cell type assignment for that cell.
+If there are multiple cell types with high scores, an optional fine-tuning step repeats the process using only the most relevant genes for those cell types.
+
+For our reference, we will use a previously annotated single-cell RNA-seq dataset from CRC samples, where cell type labels are stored in the `Level1` column of the `colData`.
 
 Let's first explore our reference object and the cell types it contains.
 Use the `unique()` function to look at the cell type labels found in the `Level1` column of `ref_sce`.
@@ -106,22 +127,6 @@ unique(ref_sce$Level1)
 
 Now let's go ahead and annotate.
 
-### What does `SingleR` do?
-<!--Note that this is mostly copied over from the cell type annotation instruction notebook-->
-
-As mentioned earlier, `SingleR` builds a model from a set of training data, and then uses that model to classify cells (or groups of cells) in new datasets.
-
-`SingleR` works by first identifying a set of marker genes that can be used to differentiate among the cell types in the reference dataset.
-It does this by performing pairwise comparisons among all of the cell types, and retaining the top set of genes differentiating each pair.
-The idea is that this set of genes will be the most informative for differentiating cell types.
-
-Then, for each cell, `SingleR` calculates the Spearman correlation between expression of that cell and each cell type (using only the genes chosen earlier).
-Notably, this is a non-parametric correlation, so the scaling and normalization that we apply (or don't) should not matter!
-Note that if you used a single-cell technology that produces full-length transcripts (i.e., SMART-seq), you will probably want to convert your counts to Transcripts per Million (TPM), to allow more consistent ranking among transcripts of different lengths.
-
-The reference cell type with the highest correlation is then chosen as the cell type assignment for that cell.
-If there are multiple cell types with high scores, an optional fine-tuning step repeats the process using only the most relevant genes for those cell types.
-
 ### Running `SingleR`
 
 Now we can run `SingleR` using the convenience function `SingleR::SingleR()`, which performs the marker gene selection (training) and classification in a single step.
@@ -132,7 +137,7 @@ We will need to supply the following arguments:
 - `test`: our SPE object, `spe`
 - `ref`: the reference object, `ref_sce`
 - `labels`: the vector of reference labels to use, here the `Level1` column of `ref_sce`
-- `aggr.ref = TRUE`: this pseudobulks cells of the same cell type in the reference, which speeds things up considerably
+- `aggr.ref = TRUE`: this [pseudobulks cells of the same cell type in the reference](https://bioconductor.org/books/release/SingleRBook/sc-mode.html#pseudo-bulk-aggregation), which speeds things up considerably
 
 
 ```{r run-singler}
@@ -175,7 +180,8 @@ You can do this by using the `table()` function on the `cell_annotation` column.
 table(spe$cell_annotation)
 ```
 
-What are the dominant cell types that you see?
+Does this match your expectations for the most common cell types based on counts we observed?
+Do any cell types appear to co-occur?
 
 Next we can visualize the cell types on a coordinate plot.
 First, we will define a distinct color palette with one color per cell type, so cell types are easy to tell apart in this plot and in later plots.
@@ -195,19 +201,22 @@ Now use the `ggspavis::plotCoords()` function to plot the cells, coloring by the
 Add `scale_color_manual()` to apply the `cell_type_palette` we just created; you can use the `na.value` argument to give any unannotated cells a neutral color like `"grey80"`.
 
 ```{r plot-celltypes, solution=TRUE}
+#| message: FALSE 
+
 # plot cells on the tissue colored by cell type using our custom palette
 ggspavis::plotCoords(spe, annotate = "cell_annotation") +
   scale_color_manual(values = cell_type_palette, na.value = "gray90")
 ```
 
-<!--TODO: Add interpretation text for the cell type plot-->
+What cell types appear to be most dominant? 
+Do you see any consistent patterns that might indicate a neighborhood? 
 
 ## Part B: Perform neighborhood analysis with `hoodscanR`
 
 Now we'll perform neighborhood analysis with `hoodscanR`.
 Similar to the previous notebook, where we removed unlabeled spots before neighborhood analysis, we first need to remove any cells with an `NA` annotation.
 
-Filter `spe` to keep only cells where `cell_annotation` is not `NA`.
+Filter `spe` to keep only cells where `cell_annotation` is not `NA`, saving the result back to `spe`.
 Hint: remember that cells are columns of the SPE object, and you can use `!is.na()` to identify the cells to keep.
 
 ```{r remove-na, solution=TRUE}
@@ -217,7 +226,7 @@ spe <- spe[, !is.na(spe$cell_annotation)]
 
 Neighborhood analysis with `hoodscanR` happens in three steps, each with its own function:
 
-1. `hoodscanR::findNearCells()`: for each cell, find its k nearest neighboring cells
+1. `hoodscanR::findNearCells()`: for each cell, find its `k` nearest neighboring cells
 2. `hoodscanR::scanHoods()`: convert the distances to those neighbors into probabilities
 3. `hoodscanR::mergeByGroup()`: collapse the per-neighbor probabilities into one probability per cell type
 
@@ -235,7 +244,7 @@ neighbors <- hoodscanR::findNearCells(
 )
 ```
 
-Next, use `hoodscanR::scanHoods()` to convert the neighbor distances into probabilities, saving the output as `prob_mtx`.
+Next, use `hoodscanR::scanHoods()` to convert the neighbor distances into probabilities, using `neighbors$distance` as the input, and save the output as `prob_mtx`.
 
 ```{r prob-mtx, solution=TRUE}
 # convert neighbor distances into probabilities
@@ -243,7 +252,7 @@ prob_mtx <- hoodscanR::scanHoods(neighbors$distance)
 ```
 
 Finally, use `hoodscanR::mergeByGroup()` to collapse the per-neighbor probabilities into one probability per cell type, saving the output as `hoods`.
-This function takes two arguments: the probability matrix and the cell type annotations of each neighbor, stored in the `cells` element of the `neighbors` object.
+This function takes two arguments: the probability matrix `prob_mtx`, and the cell type annotations of each neighbor, stored in `neighbors$cells`.
 
 ```{r merge-probabilities, solution=TRUE}
 # collapse the per-neighbor probabilities into one probability per cell type
@@ -272,7 +281,8 @@ ComplexHeatmap::Heatmap(
 )
 ```
 
-<!--TODO: Add interpretation text for the neighborhood heatmap-->
+Which cell types appear to be in the same neighborhood? 
+Are there any cell types that tend to only have neighbors of the same type? 
 
 ### Measuring neighborhood complexity
 
@@ -282,7 +292,6 @@ This adds one new `colData` column per cell type, holding the neighborhood proba
 
 ```{r merge-hood-spe}
 # first we need to make sure that the rows in hoods have the same column names as in the original object
-# this seems to be something specific to Visium data where generating the neighbor profiles doesn't keep the original cell id? 
 rownames(hoods) <- colnames(spe)
 
 # merge the neighborhood profiles back into the spe object
@@ -308,10 +317,13 @@ spe <- hoodscanR::calcMetrics(
 We can now plot either entropy or perplexity across the tissue.
 These two metrics measure the same underlying quantity but on different scales, so we expect the plots to show very similar patterns.
 
-Make a coordinate plots with `ggspavis::plotCoords()`, using either `"entropy"` or `"perplexity"` for the `annotate` argument. 
-The solution will show both plots.
+Make a coordinate plot with `ggspavis::plotCoords()`, using either `"entropy"` or `"perplexity"` for the `annotate` argument, and save it as `entropy_plot`.
+You can use `scale_color_viridis_c()` to make it easy to see differences across the tissue. 
+Note that although we are only asking you to make one of the plots, the solution will show both plots. 
 
 ```{r plot-entropy, solution=TRUE}
+#| message: FALSE 
+
 # plot entropy across the tissue
 entropy_plot <- ggspavis::plotCoords(spe, annotate = "entropy") +
   scale_color_viridis_c()
@@ -331,7 +343,7 @@ Where in the tissue do you see the most mixed neighborhoods?
 We can also use the neighborhood profiles to look at which cell types tend to be found together, or co-localized.
 Use `hoodscanR::plotColocal()` to create this heatmap.
 You will need to provide the `spe` object and the `pm_cols` argument, just like you did for `calcMetrics()`.
-We recommend using `hm_width = 8`, and `hm_height = 8` to keep the heatmap a readable size.
+We recommend using `hm_width = 8` and `hm_height = 8` to keep the heatmap a readable size.
 
 ```{r plot-colocal, solution=TRUE}
 #| fig.height: 5
@@ -346,15 +358,14 @@ hoodscanR::plotColocal(
 ```
 
 Which cell types appear to be co-localized?
-
-<!--TODO: Add interpretation text for the co-localization heatmap-->
+Which cell types appear to be isolated from other cell types? 
 
 ## Part C: Perform domain detection with `hoodscanR`
 
 `hoodscanR` identifies spatial domains by clustering cells with k-means based on their neighborhood profiles.
-K-means requires us to choose the number of clusters (domains), so before clustering we will make an elbow plot to help pick a reasonable value of k.
+K-means requires us to choose the number of clusters (domains), so before clustering we will make an elbow plot to help pick a reasonable value of `k`.
 
-For each candidate value of k, we fit k-means to the neighborhood probability matrix and record the total within-cluster sum of squares (WCSS), a measure of how tightly cells cluster together.
+For each candidate value of `k`, we fit k-means to the neighborhood probability matrix and record the total within-cluster sum of squares (WCSS), a measure of how tightly cells cluster together.
 
 ```{r wcss-calculation}
 # candidate numbers of domains to try
@@ -383,10 +394,10 @@ ggplot(elbow_df, aes(x = k, y = wcss)) +
   )
 ```
 
-Use the elbow plot to pick the value of k you think is best.
-WCSS always decreases as k increases, so we are not looking for the smallest value.
+Use the elbow plot to pick the value of `k` you think is best.
+WCSS always decreases as `k` increases, so we are not looking for the smallest value.
 Instead, look for the "elbow" of the curve or the point where adding more domains stops giving a substantial drop in WCSS and the curve begins to flatten out.
-Choosing a k near the elbow gives us domains that capture real structure in the data without splitting the tissue into more domains than we can meaningfully interpret.
+Choosing a `k` near the elbow gives us domains that capture real structure in the data without splitting the tissue into more domains than we can meaningfully interpret.
 There is often no single right answer, so it's okay if your choice differs slightly from ours!
 
 Now cluster the cells into spatial domains using `hoodscanR::clustByHood()`, saving the result back to `spe`.
@@ -410,7 +421,8 @@ table(spe$clusters)
 ```
 
 Let's also see where the domains fall in the tissue.
-Use `hoodscanR::plotTissue()` to plot the cells colored by domain.
+Use `hoodscanR::plotTissue()` to plot the cells, providing the `spe` object and setting `color = clusters` to color cells by their domain assignment.
+Note that `clusters` is a column in the `colData` of `spe`, but `plotTissue()` lets you refer to it without quotes.
 
 ```{r plot-domains, solution=TRUE}
 # plot the spatial domains on the tissue
@@ -421,8 +433,10 @@ hoodscanR::plotTissue(spe, color = clusters, size = 0.1) +
 ```
 
 For each domain, we can look at which cell types it is made of by plotting the distribution of neighborhood probabilities within each domain.
+Use `hoodscanR::plotProbDist()` to make a box plot. 
+Be sure to provide the number of domains with the `show_clusters = seq(k)` option, where `k` is the value that you chose from your elbow plot. 
 
-```{r plot-probdist}
+```{r plot-probdist, solution=TRUE}
 #| fig.height: 8
 #| fig.width: 12
 
@@ -449,22 +463,32 @@ hoodscanR::plotProbDist(
 ```
 
 Which cell types define each domain?
-
-<!--TODO: Add interpretation text for the probability distribution plot-->
+Are there any domains that are dominated by one cell type? 
+How about domains that are a mix of cell types? 
 
 ## Part D: Explore parameters for `hoodscanR`
 
 So far we have used the default parameters for `hoodscanR::scanHoods()`.
 One important parameter to consider is `tau`, which controls how quickly a neighbor's contribution to the probabilities decays with distance.
-By default, `scanHoods()` calculates `tau` as the median squared neighbor distance divided by 5.
+
+This is more than a technical detail, because changing `tau` changes the biological question we are asking.
+Using a larger `tau` can therefore change the neighborhood profiles we create and, in turn, the neighborhood complexity (perplexity) and the spatial domains we detect.
+A small `tau` emphasizes a cell's immediate surroundings, so the profiles describe the microenvironment a cell is in close contact with, such as the handful of immune cells directly abutting a tumor cell.
+A large `tau` smooths over those fine distinctions and instead describes which broader tissue region a cell sits in, such as the tumor core, the surrounding stroma, or an immune-rich border.
+
+This means the same tissue can tell us different stories depending on the `tau` we choose.
+A cell that appears to sit in a fairly uniform, single-cell-type neighborhood at a local scale may look like it sits in a well-mixed neighborhood at a global scale, so perplexity tends to increase as `tau` grows.
+In the same way, domains detected with a large `tau` are usually fewer and smoother and line up more closely with recognizable tissue architecture, while domains detected with a small `tau` are more fragmented and can pick out small niches, like a pocket of immune cells infiltrating a tumor.
+
+Neither scale is inherently more correct.
+The right choice of `tau` depends on the scale of the biology you are asking about, so it's worth trying more than one value and seeing which structures hold up.
+In summary: 
 
 - With a **smaller `tau`**, only the closest neighbors contribute meaningfully, so the profiles capture very **local** neighborhoods.
 - With a **larger `tau`**, more distant neighbors still contribute, so the profiles capture broader, more **global** neighborhoods.
 
-Using a larger `tau` can therefore change the neighborhood profiles we create and, in turn, the neighborhood complexity (perplexity) and the spatial domains we detect.
-<!--TODO: Add some text about how this could change biological interpretation of results-->
-
 In this section, we will repeat the `hoodscanR` workflow from Part B, but this time with a larger, more "global" `tau`, and compare the results to our original "local" run.
+By default, `scanHoods()` calculates `tau` as the median squared neighbor distance divided by 5, but here we will set `tau` as the median squared neighbor distance without dividing by any factor.
 
 One nice shortcut: finding the nearest neighbors does not depend on `tau` at all, since the cells and their distances haven't changed.
 That means we can reuse the `neighbors` object from Part B and only need to repeat the steps that come after `findNearCells()`.
@@ -562,15 +586,15 @@ clusters_table <- prop.table(clusters_table, 1)
 pheatmap::pheatmap(clusters_table)
 ```
 
+Are there any domains that appear to have a 1:1 relationship? 
+Are any domains that are present with the global `tau` that get split up in the local `tau`? 
+
 Finally, we can quantify how similar the two sets of domain assignments are by calculating the Adjusted Rand Index (ARI).
 The ARI ranges from 0 to 1, where 1 means the two clusterings are identical and values near 0 mean the assignments agree no more than expected by chance.
 
-<!--TODO: Add some more text about ARI interpretation.
-Add a link to the clustering exercise. 
-Should we also show the diag here? 
--->
+If you'd like a refresher on the Adjusted Rand Index and how it's used to compare clustering results, revisit the clustering exercise notebook earlier in this course.
 
-Use `bluster::pairwiseRand()` with `mode = "index"` to calculate the ARI between the local and global domain assignments.
+Use `bluster::pairwiseRand()` to calculate the ARI between the local and global domain assignments, passing `spe$clusters` and `global_spe$clusters` as the two sets of cluster assignments to compare, and setting `mode = "index"`.
 
 ```{r calculate-ari, solution=TRUE}
 # calculate the ARI between local and global domain assignments
@@ -583,7 +607,22 @@ bluster::pairwiseRand(
 
 Based on the heatmap and the ARI, how much does the choice of `tau` ultimately affect the resulting neighborhood profiles and domains?
 
-<!--TODO: Add interpretation text for the domain comparison and ARI-->
+In our solution, we get an ARI of about 0.56, though your exact value may differ slightly if you chose a different `k` (we used `k=8`).
+That value sits squarely in the middle of the range, and it tells us something more interesting than either extreme would.
+The two sets of domains are clearly related to one another and agree far more than we would expect by chance, but they are nowhere near identical, so a substantial fraction of cells were assigned to a different domain once we widened the neighborhood.
+
+Reading this alongside the heatmap fills in the picture, since the ARI on its own can't tell us *which* domains changed.
+It's worth looking at which local domains map cleanly onto a single global domain and which ones spread across several, or collapse together.
+You may find that some domains hold up no matter how we define a neighborhood, while others rearrange as soon as more distant neighbors are allowed to contribute.
+
+This is a difference worth sitting with rather than resolving, because there isn't one correct value of `tau`.
+The scale that makes sense depends on the question you're asking.
+If you want to know which cell types are in direct contact with one another, a local `tau` is the right tool.
+If you want to map out broader tissue compartments, a larger `tau` may describe that organization better.
+Both are reasonable descriptions of the same tissue, just at different resolutions.
+
+So exploring `tau` is really part of the analysis rather than a parameter to set once and forget.
+Trying a few values and seeing which structures persist and which shift around tells you something about the tissue itself, and about how much confidence to place in any one set of domains.
 
 ## Save results
 
