@@ -19,33 +19,35 @@ Coming Soon
 
 ## Set up
 
-First we will load the `SpatialExperiment` package, as we have done before, as well as some familiar packages for plotting.
+For our setup, we will start by loading the `SpatialExperiment` package, as we have done before, as well as some familiar packages for plotting.
+We'll also set our default theme for `ggplot2`, and set a seed for reproducibility.
 
-We'll also set a random seed for reproducibility.
 
 ### Libraries
 
-```{r libraries}
+```{r setup}
 # The main class we use for spatial transcriptomic data
 suppressPackageStartupMessages({
   library(SpatialExperiment)
+  library(ggplot2)
+  library(patchwork)
 })
-
-library(ggplot2)
-library(patchwork)
 
 # Set default ggplot2 theme
 theme_set(theme_bw())
-```
 
-
-```{r seed}
+# Set seed
 set.seed(2026)
 ```
 
 ### Files
 
-We will use the same pre-normalized osteoarthritis Visium dataset that we have been using in the previous notebooks.
+The dataset we will be working with is the same pre-normalized osteosarcoma Visium dataset that we have used in previous notebooks.
+If you recall, this sample is from a mouse sample with osteosarcoma lung metastases from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049).
+
+We'll load in the pre-normalized data to save a number of starting steps.
+
+For a later part of this analysis, we will also want to use some pre-computed results (some of the analyses are slow), so we will define those paths here as well.
 
 ```{r inputs}
 # define sample id we'll be analyzing
@@ -64,7 +66,7 @@ moran_mc100k_tsv <- file.path(analysis_dir, "moran_mc100k.tsv")
 
 ### Import
 
-Let's start by reading in the pre-processed SPE object:
+With all of those paths defined, we will load in our normalized data, which is already formatted as a `SpatialExperiment` object.
 
 ```{r import-rds}
 spe <- readr::read_rds(normalized_rds)
@@ -72,9 +74,12 @@ spe <- readr::read_rds(normalized_rds)
 
 ## Identifying Highly Variable Genes
 
-For the first part of this notebook, we are going to use the scran package to identify highly variable genes, just as we have done before.
-Many of the calculations we will be doing for spatial analysis are not particularly fast, so this will help us speed up calculations.
-But more practically, if a gene is not particularly variable overall, it is quite unlikely to be spatially variable, and we are not likely to get much signal from it.
+In theory, we could proceed directly to identifying spatially variable genes, but in practice it is often useful to first filter the data to only include highly variable genes (HVGs).
+This is because many of the calculations we will be doing for spatial analysis are not particularly fast, so this will help us speed up calculations.
+We justify this in part by the fact that if a gene is not particularly variable overall, it is quite unlikely to be spatially variable, so we are not likely to miss many important genes.
+
+We will identify the HVGs using the `scran` package, which is designed for working with single-cell RNA-seq data, but will work here just as well with the spot data.
+We'll first model the gene variance to separate the biological component of the variance from the technical component, and then select the top 2000 HVGs by their biological variation. 
 
 ```{r find-hvg}
 # model gene variance
@@ -84,64 +89,88 @@ gene_variance <- scran::modelGeneVar(spe)
 hvg_vector <- scran::getTopHVGs(gene_variance, n = 2000)
 ```
 
+After selecting the HVGs, we can now filter the SPE to include only those genes.
+We'll store that in a new variable called `hvg_spe`.
+
 ```{r filter-spe, live = TRUE}
 # filter the SPE to only include the highly variable genes
 hvg_spe <- spe[hvg_vector, ]
 ```
 
+We can verify that the gene filtering happened by looking at the number of rows in the SPE before and after filtering:
+
+```{r check-rows}
+glue::glue("Before filtering: {nrow(spe)} rows.")
+glue::glue("After filtering: {nrow(hvg_spe)} rows.")
+```
+
+
 
 ## The `SpatialFeatureExperiment` object
 
-For spatial analysis, it can be convenient to use a slightly modified object type, `SpatialFeatureExperiment` (SFE).
-This is an extension of the `SpatialExperiment` (SPE) class that includes additional slots for spatial features, such as a graph that defines how cells are connected to each other.
+For spatial analysis, it can be convenient to use a slightly different object type from the SpatialExperiment (SPE object that we have been working with so far.
+For the rest of this notebook, we will be using `SpatialFeatureExperiment` (SFE) objects, which are an extension of the `SpatialExperiment` (SPE) objects that include additional slots for spatial features, most notably a way to represent a graph that defines how cells are connected to each other in space.
+
 Almost all functions that work with SPEs will also work with SFEs (though not the reverse).
+However, there are differences with respect to how images are stored and plotting defaults, so we will be using a different package for most of our spatial plots. Rather than `ggspavis`, we will be using the `Voyager` package, which is designed for working with SFE objects.
+It works a bit differently, but still uses `ggplot2` as the underlying plotting engine, so we can still use the same kinds of `ggplot2` functions to modify the plots if we want to.
 
-However, there are differences with respect to how images are stored and plotting defaults, so we will be using a different package for most plots: `Voyager`.
 
-Let's create that to start:
+### Converting from SPE to SFE
 
-First we have to convert our SPE to an SFE, which is pretty simple!
-Well it would be if it weren't for the fact that the plotting functions we are going to use have different defaults.
+The conversion from SPE to SFE is fairly straightforward, but there are a few things to be aware of.
+The most important one right now is that  that the plotting functions we are going to use have different defaults:
 
 `ggspavis` plots the origin of the spatial features in the upper left, while `Voyager` plots it in the lower left, so to match the way we have been looking at things, we will mirror the plots.
-`ggspavis` also automatically flips the image to match it's preferred orientation, but `Voyager` expects that this has been done when the images are imported, so we have to do another flip for just the image.
+(If you were doing all your plotting using a `Voyager` function, you might not need to do this, as the orientation is arbitrary, but since we have been using `ggspavis` for most of our plots so far, we will mirror the coordinates to match what we have been looking at.)
+To make things even more confusing `ggspavis` also automatically flips the image to match it's preferred orientation, but `Voyager` expects that this has been done when the images are imported, so we have to do another flip for just the image.
 How did we find this out?
 Trial and error...
 
-It is worth noting that if we had read in the original Space Ranger data with `SpatialFeatureExperiment` directly, the image flip would have been done by default, but here we have to add it manually.
+To perform the initial conversion, we will use the `SpatialFeatureExperiment::toSpatialFeatureExperiment()` function, which takes an SPE object and converts it to an SFE object.
+We will also specify the units for the spatial coordinates, which in this case are in pixels. 
+This isn't really required, and we won't do anything with it except to show that the SFE object supports it.
 
+Af the initial conversion function, we use `SpatialFeatureExperiment::mirror()` to flip the Y axis coordinates and then flip the image a second time using `SpatialFeatureExperiment::mirrorImg()`.
+Just note that the exact series of flips you need are going to depend on how the data was read in the first time. 
 
 ```{r sfe-conversion, live = TRUE}
-sfe <- SpatialFeatureExperiment::toSpatialFeatureExperiment(hvg_spe) |>
+sfe <- SpatialFeatureExperiment::toSpatialFeatureExperiment(
+  hvg_spe,
+  unit = "full_res_image_pixel"
+) |>
   # flip the coordinates to match how we have been looking at them
   SpatialFeatureExperiment::mirror() |>
   # we have to flip the image again to match: it was upside down
   SpatialFeatureExperiment::mirrorImg()
 ```
 
-Let's look at the contents of the SFE:
+Now we have an SFE object, and we can look at the contents to see what is in there:
 
 ```{r SFE-contents, live = TRUE}
 sfe
 ```
 
-The first part looks pretty much the same as the SPE object, but you will notice a few extra slots in the summary:
+The first part looks pretty much the same as the SPE object that you should be familiar with at this point:
+- `assays` with `counts` a`nd `logcounts`
+- rows for genes, columns for spots
+- reducedDims for PCA and UMAP (not present here yet)
+- `spatialCoords` for the X and Y coordinates of the spots
+- `imgData` for the image data
 
-- `unit`
-- `Geometries`
-- `colGeometries`
-- `Graphs`
+But you will notice a few extra slots in the summary:
 
-For now most of these are empty.
+- `unit` is where the unit we defined earlier is stored.
+- `Geometries` stores the shapes and locations of features. In our case, we have only the `colGeometries`, which stores the location of each spot.
+- `Graphs`: stores the graphs that define the relationships between spots or cells, though we do not have anything defined here yet.
 
-One thing you will see here is that the `SpatialFeatureExperiment` package is built from the start to accommodate multiple samples, so the graphs will be divided up by sample.
-We only have one, but we will see some consequences of this as we move forward.
+One thing you may notice here is that the `SpatialFeatureExperiment` package is built from the start to accommodate multiple samples, so the graphs will be divided up by sample.
 
-The first thing we will do is to define contents for the Graphs
+### Generating spatial graphs
 
-The next step is to define the graph that defines how cells are connected to each other.
+The next step is to define the graph that defines how cells are connected to each other in space.
 For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which uses the known barcodes and their locations to define a graph that connects nearby spots.
-This is a nice shortcut, but for other kinds of spatial data (such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findKNNGraph()` to find the nearest neighbors for each cell, and then define the graph based on that.
+This is a nice shortcut, but for other kinds of spatial data (such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findSpatialNeighbors()` to find the nearest neighbors for each cell, and then define the graph based on that.
 
 We will store that in the `colGraph` slot of the SFE object (this is one of the things we get from that package)
 
