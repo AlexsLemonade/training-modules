@@ -1,0 +1,582 @@
+---
+title: "Identifying spatially variable genes"
+author: Data Lab for ALSF
+date: "2026"
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+## Objectives
+
+- Introduce the `SpatialFeatureExperiment` and `Voyager` packages
+- Demonstrate two methods for identifying spatially variable genes
+
+## Introduction
+
+Coming Soon
+
+## Set up
+
+First we will load the `SpatialExperiment` package, as we have done before, as well as some familiar packages for plotting.
+
+We'll also set a random seed for reproducibility.
+
+### Libraries
+
+```{r libraries}
+# The main class we use for spatial transcriptomic data
+suppressPackageStartupMessages({
+  library(SpatialExperiment)
+})
+
+library(ggplot2)
+library(patchwork)
+
+# Set default ggplot2 theme
+theme_set(theme_bw())
+```
+
+
+```{r seed}
+set.seed(2026)
+```
+
+### Files
+
+Wilms tumor data
+
+```{r inputs}
+# define sample id we'll be analyzing
+sample_id <- "SCPCS000190"
+
+# data directory for this sample
+data_dir <- file.path("data/wilms-tumor", sample_id, "normalized")
+
+normalized_rds <- file.path(data_dir, "SCPCS000190_normalized.rds")
+```
+
+
+### Import
+
+Let's start by reading in the pre-processed SPE object:
+
+```{r import-rds}
+spe <- readr::read_rds(normalized_rds)
+```
+
+Let's make sure the sample id is set correctly for later import:
+```{r}
+spe$sample_id <- sample_id
+imgData(spe)$sample_id <- sample_id
+```
+
+
+
+Last time we calculated hvgs first, but this time let's convert first, just to show that everything with spe works with sfe as well. 
+
+
+
+```{r sfe-conversion, live = TRUE}
+sfe <- SpatialFeatureExperiment::toSpatialFeatureExperiment(spe) |>
+  # flip the coordinates to match how we have been looking at them
+  SpatialFeatureExperiment::mirror() |>
+  # we have to flip the image again to match: it was upside down
+  SpatialFeatureExperiment::mirrorImg()
+```
+
+
+## Identifying Highly Variable Genes
+
+For the first part of this notebook, we are going to use the scran package to identify highly variable genes, just as we have done before.
+Many of the calculations we will be doing for spatial analysis are not particularly fast, so this will help us speed up calculations.
+But more practically, if a gene is not particularly variable overall, it is quite unlikely to be spatially variable, and we are not likely to get much signal from it.
+
+```{r find-hvg}
+# model gene variance
+gene_variance <- scran::modelGeneVar(sfe)
+
+# calculate the top 2000 HVGs
+hvg_vector <- scran::getTopHVGs(gene_variance, n = 2000)
+```
+
+```{r filter-spe, live = TRUE}
+# filter the SPE to only include the highly variable genes
+sfe <- sfe[hvg_vector, ]
+```
+
+
+Let's look at the contents of the SFE:
+
+```{r SFE-contents, live = TRUE}
+sfe
+```
+
+The first part looks pretty much the same as the SPE object, but you will notice a few extra slots in the summary:
+
+- `unit`
+- `Geometries`
+- `colGeometries`
+- `Graphs`
+
+For now most of these are empty.
+
+One thing you will see here is that the `SpatialFeatureExperiment` package is built from the start to accommodate multiple samples, so the graphs will be divided up by sample.
+We only have one, but we will see some consequences of this as we move forward.
+
+The first thing we will do is to define contents for the Graphs
+
+The next step is to define the graph that defines how cells are connected to each other.
+For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which uses the known barcodes and their locations to define a graph that connects nearby spots.
+This is a nice shortcut, but for other kinds of spatial data (such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findKNNGraph()` to find the nearest neighbors for each cell, and then define the graph based on that.
+
+We will store that in the `colGraph` slot of the SFE object (this is one of the things we get from that package)
+
+```{r define-graph}
+#| error: true
+
+# use the Visium barcodes to define the graph
+SpatialFeatureExperiment::colGraph(
+  sfe
+) <- SpatialFeatureExperiment::findVisiumGraph(sfe)
+```
+
+We get an error here because there are some isolated points in the graph, which is not allowed.
+We could ignore it by setting `zero.policy = TRUE`, but then we would have to deal with those points downstream as well, so it is probably better to just dropt them.
+
+Instead we will use a feature to find debris cells.
+The distance cutoff here matters a lot, 300 seems to work well for this dataset with the resolution here, it does depend a lot on the units!
+
+```{r}
+sfe <- SpatialFeatureExperiment::findDebrisCells(sfe, distance_cutoff = 300)
+```
+
+
+```{r}
+Voyager::plotSpatialFeature(
+  sfe,
+  size = 1.5,
+  features = "is_debris",
+  image_id = "lowres"
+)
+```
+
+
+```{r}
+sfe <- sfe[, !sfe$is_debris]
+```
+
+
+Now we will make the colGraph again: 
+```{r}
+SpatialFeatureExperiment::colGraph(
+  sfe
+) <- SpatialFeatureExperiment::findVisiumGraph(sfe)
+```
+
+Warnings about subgraphs are probably fine.
+
+
+
+```{r plot-graph, live = TRUE}
+Voyager::plotColGraph(sfe) +
+  # the units are arbitrary, so let's leave them and the grid lines off
+  theme(
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    panel.grid = element_blank()
+  )
+```
+
+
+Possibly: include SpatialFeatureExperiment::findSpatialNeighbors()?
+
+
+## Identify Spatially Variable Genes
+
+### Moran's I
+
+
+```{r moranI, live = TRUE}
+sfe <- Voyager::runMoransI(sfe)
+```
+
+This gives us an I value for each gene as well as the kurtosis of the gene's expression (how fat the tails are) as a value `K`.
+TODO: add better kurtosis explanation (what does high or low mean?)
+
+```{r view_moran}
+rowData(sfe)
+```
+
+You'll notice that the new column names include the `sample_id`, which is a bit annoying, but it is necessary to keep things separate if we have multiple samples.
+We'll make sure to set that as a variable so we can reuse it as needed.
+
+Let's first look at the distribution of Moran's I values across all (highly variable) genes:
+
+
+```{r moran-hist}
+rowData(sfe) |>
+  as.data.frame() |>
+  ggplot(aes(x = .data[[paste0("moran_", sample_id)]])) +
+  geom_histogram(bins = 50) +
+  labs(
+    x = "Moran's I",
+    y = "Number of genes"
+  )
+```
+
+
+We get a value there, but no measure of significance.
+
+We can calculate those using the more general `Voyager::runUnivariate()` function, which can do other types of tests as well
+For that we can use either `moran.test()` or `moran.mc()` from the `spdep` package.
+TODO: clarify where these functions are coming from
+
+`moran.test` is relatively fast, so we can do that first (though it is not likely to be as accurate, as it does not account for the structure of the graph).
+
+
+```{r moran-test, live = TRUE}
+sfe <- Voyager::runUnivariate(
+  sfe,
+  type = "moran.test",
+  BPPARAM = BiocParallel::MulticoreParam(4)
+)
+
+rowData(sfe)
+```
+
+
+```{r view-mc-result}
+rowData(sfe)
+```
+
+
+Let's apply a multiple testing correction to the P values, and assign significance for each at an FDR of 0.05.
+
+```{r moran-significant}
+moran_df <- rowData(sfe) |>
+  as.data.frame() |>
+  dplyr::select(
+    ID,
+    moran_i = paste0("moran_", sample_id),
+    moran_test_p = paste0("moran.test_p.value_", sample_id)
+    
+  ) |>
+  dplyr::mutate(
+    moran_test_neglogp = -log10(moran_test_p),
+    moran_test_p_adjust = p.adjust(moran_test_p, method = "BH"),
+    moran_test_sig = moran_test_p_adjust < 0.05
+  )
+```
+
+```{r count-moran-significance}
+moran_df |>
+  dplyr::count(moran_test_sig)
+```
+
+Either way, we get the vast majority of genes as "significant" which is not too surprising.
+Using significance as a filter here is not likely to be very useful.
+
+
+Let's make a plot of the top few genes:
+
+```{r get-top-moran, live = TRUE}
+top_moran <- moran_df |>
+  dplyr::slice_max(moran_i, n = 6) |>
+  dplyr::pull(ID)
+```
+
+
+```{r plot-top-moran, live = TRUE}
+Voyager::plotSpatialFeature(
+  sfe,
+  features = top_moran,
+  ncol = 2,
+  # use gene symbols instead of ensembl IDs for the plot
+  swap_rownames = "Symbol"
+)
+```
+
+### `nnSVG`
+
+Let's try `nnSVG` now, since that is more specifically designed for this kind of data.
+
+TODO: Add some more context about the method
+
+The main advantage that it has is that it can model the spatial variation in a more flexible way, allowing for different scales of spatial variation.
+
+We could perform this analysis on all genes, but again for now we will restrict ourselves to HVGs for time.
+
+Note that this function works either on an SFE or an SPE object, but we will use the SFE object here since we already have it.
+
+```{r run-nnsvg, live = TRUE}
+sfe <- nnSVG::nnSVG(sfe, n_threads = 12)
+```
+
+Pause here for a break.
+This is much slower, but we get significance calculations by default.
+
+```{r count-nnsvg-significance, live = TRUE}
+rowData(sfe) |>
+  as.data.frame() |>
+  dplyr::filter(padj < 0.05) |>
+  nrow()
+```
+
+Again, most of them!
+So most genes are significantly spatially variable, which is perhaps not a huge surprise.
+
+Other stats we can look at include `prop_sv`, which is the proportion of variation that is attributable to spatial variation.
+
+How do the P values compare across methods?
+
+```{r collate-results}
+svg_df <- rowData(sfe) |>
+  as.data.frame() |>
+  dplyr::select(
+    ID,
+    nnsvg_stat = LR_stat,
+    nnsvg_propsv = prop_sv,
+    nnsvg_p = pval,
+    nnsvg_p_adjust = padj
+  ) |>
+  dplyr::mutate(
+    nnsvg_neglogp = -log10(nnsvg_p)
+  ) |>
+  dplyr::left_join(
+    moran_df,
+    by = "ID"
+  )
+```
+
+
+```{r plot-moran-nnsvg-p}
+ggplot(svg_df, aes(x = moran_test_neglogp, y = nnsvg_neglogp)) +
+  geom_point(alpha = 0.4) +
+  labs(
+    x = "Moran's I -log10(P) (moran.test)",
+    y = "nnSVG -log10(P)"
+  ) +
+  xlim(0, 5)
+```
+
+Rather than comparing just the P values, we could also look at the correlation between I and `nnsvg`'s `prop_sv` statistic.
+
+```{r plot-moran-nnsvg-stats}
+ggplot(svg_df, aes(x = moran_i, y = nnsvg_propsv)) +
+  geom_point(alpha = 0.4) +
+  labs(
+    x = "Moran's I",
+    y = "Proportion of variance explained by spatial location"
+  ) +
+  annotate(
+    geom = "label",
+    x = 0.5,
+    y = 0,
+    label = paste0(
+      "Spearman correlation: ",
+      round(cor(svg_df$moran_i, svg_df$nnsvg_propsv, method = "spearman"), 2)
+    )
+  )
+```
+
+So for a lot of genes we get very similar scores, but `nnSVG` is uncovering some genes as spatially variable that Moran's I does not, presumably because it models the spatial variation in a more flexible way.
+
+Let's look at the top few:
+
+```{r}
+top_nnsvg <- svg_df |>
+  dplyr::slice_max(nnsvg_propsv, n = 6) |>
+  dplyr::pull(ID)
+
+Voyager::plotSpatialFeature(
+  sfe,
+  features = top_nnsvg,
+  ncol = 2,
+  swap_rownames = "Symbol"
+)
+```
+
+This does seem to detect more punctate expression patterns, where expression of some genes is found in specific distinct spots rather than varying across larger scales.
+
+## Looking within Regions
+
+You may have notice that there seems to be two main areas of this slide: A top region and a lower region.
+As discussed in the first instruction, these may be the blastemal and stromal regions of a tumor. 
+
+Let's do some quick clustering to see if we can detect that more broadly. We'll use BANKSY
+
+
+```{r}
+
+sfe <- Banksy::computeBanksy(sfe, assay_name = "logcounts", k_geom = 18)
+```
+```{r}
+sfe <- Banksy::runBanksyPCA(sfe)
+```
+
+really simple clustering: only 2 groups
+
+```{r}
+sfe <- Banksy::clusterBanksy(sfe, algo = "kmeans", kmeans.centers = 2)
+```
+
+```{r}
+Voyager::plotSpatialFeature(
+  sfe,
+  features = "clust_M0_lam0.2_kmeans2",
+  image_id = "lowres",
+  size = 1.5
+)
+```
+
+The clustering here is very preliminary, but let's see if we can use it to look at the spatially variable genes within each of these regions.
+
+Calculate number of spots per cluster
+
+```{r}
+table(sfe$clust_M0_lam0.2_kmeans2)
+```
+
+
+Let's take the smaller cluster and see if we can detect spatially variable genes within this group of cells.
+
+```{r}
+smallclust <- names(which.min(table(sfe$clust_M0_lam0.2_kmeans2)))
+# get the list of spots in this cluster
+smallclust_spots <- colnames(sfe)[sfe$clust_M0_lam0.2_kmeans2 == smallclust]
+```
+
+
+```{r}
+small_spe <- spe[, smallclust_spots]
+```
+
+This fails because of the zero.policy issue, so we temporarilty convert to SPE to subset, then back to SFE:
+```{r}
+small_sfe <- SpatialFeatureExperiment::toSpatialFeatureExperiment(small_spe) |>
+  SpatialFeatureExperiment::mirror() |>
+  SpatialFeatureExperiment::mirrorImg()
+
+```
+
+
+re-find HVGs
+```{r}
+small_gene_variance <- scran::modelGeneVar(small_sfe)
+small_hvg_vector <- scran::getTopHVGs(small_gene_variance, n = 2000)
+
+small_sfe <- small_sfe[small_hvg_vector, ]
+
+```
+
+```{r}
+SpatialFeatureExperiment::colGraph(
+  small_sfe
+) <- SpatialFeatureExperiment::findVisiumGraph(small_sfe)
+```
+
+
+
+```{r}
+Voyager::plotColGraph(small_sfe)
+```
+
+
+
+Remove "debris", for which we will also include isolated spots that are a bit bigger.
+
+There is some kind of bug if you do this directly on the SFE after subsetting, so we will pull out the coordinates directly for this calculation:
+
+
+```{r}
+small_debris  <- SpatialFeatureExperiment::findDebrisCells(
+  SpatialFeatureExperiment::spatialCoords(small_sfe),
+  distance_cutoff = 300,
+  max_cells = 20
+)
+
+small_sfe <- small_sfe[, !small_debris]
+```
+ 
+Plot the graph for this smaller cluster
+
+```{r}
+Voyager::plotColGraph(small_sfe)
+```
+
+We'll run Moran's I and nnsvg on this SFE
+
+```{r}
+small_sfe <- Voyager::runMoransI(small_sfe)
+small_sfe <- Voyager::runUnivariate(
+  small_sfe,
+  type = "moran.test",
+  BPPARAM = BiocParallel::MulticoreParam(12)
+)
+```
+
+```{r}
+small_sfe <- nnSVG::nnSVG(small_sfe, n_threads = 12)
+```
+
+Pull out the results and compare to the full slide results:
+```{r}
+small_svg_df <- rowData(small_sfe) |>
+  as.data.frame() |>
+  dplyr::select(
+    ID,
+    moran_i = paste0("moran_", sample_id),
+    moran_test_p = paste0("moran.test_p.value_", sample_id),
+    nnsvg_stat = LR_stat,
+    nnsvg_propsv = prop_sv,
+    nnsvg_p = pval,
+    nnsvg_p_adjust = padj
+  ) |>
+  dplyr::mutate(
+    moran_test_neglogp = -log10(moran_test_p),
+    moran_test_p_adjust = p.adjust(moran_test_p, method = "BH"),
+    moran_test_sig = moran_test_p_adjust < 0.05,
+    nnsvg_neglogp = -log10(nnsvg_p),
+    nnsvg_sig = nnsvg_p_adjust < 0.05
+  )
+```
+
+```{r}
+small_svg_df |>
+  dplyr::count(moran_test_sig, nnsvg_sig)
+```
+We still see a large number of significant genes, but the number is certainly smaller than for the full slide. 
+Some of this is probably just power though.
+
+
+```{r}
+small_top_moran <- small_svg_df |>
+  dplyr::slice_max(moran_test_neglogp, n = 6) |>
+  dplyr::pull(ID)
+
+plot <- Voyager::plotSpatialFeature(
+  small_sfe,
+  features = small_top_moran,
+  ncol = 2,
+  swap_rownames = "Symbol",
+) 
+
+```
+  
+
+```{r}
+plot
+
+```
+
+
+
+
+## Session info
+
+```{r}
+sessionInfo()
+```
+
