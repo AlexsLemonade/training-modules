@@ -26,6 +26,9 @@ If you have a different version of R or other R packages, the documentation may 
 - [`pals`](#pals)
 - [`pheatmap`](#pheatmap)
 - [`purrr`](#purrr)
+- [`SpatialExperimentIO`](#spatialexperimentio)
+- [`ComplexHeatmap`](#complexheatmap)
+- [`hoodscanR`](#hoodscanr)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -217,3 +220,48 @@ Read the [`purrr` package documentation](https://purrr.tidyverse.org/) and a [vi
 | `purrr`| [`map()`](https://purrr.tidyverse.org/reference/map.html)| map | Apply a function across each element of list; return a list |
 | `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| imap |  Apply a function across each element of list and its index/names; return a list |
 | `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by repeatedly applying a given function. Can also be used to iteratively modify a single object. |
+
+<div style="page-break-after: always;"></div>
+
+### `SpatialExperimentIO`
+
+<!-- TODO: This package has not yet made it to rdrr -->
+Read the [`SpatialExperimentIO` package documentation](https://www.bioconductor.org/packages/release/bioc/html/SpatialExperimentIO.html) and a [vignette on its usage](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperimentIO/inst/doc/SpatialExperimentIO.html).
+
+This package provides reader functions for imaging-based spatial transcriptomics platforms, including Xenium (10x Genomics), CosMx (NanoString), MERSCOPE (Vizgen), and STARmap PLUS.
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+| `SpatialExperimentIO` | [`readXeniumSXE()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperimentIO/inst/doc/SpatialExperimentIO.html#xenium) | Read Xenium into a Spatial Experiment | Loads an unzipped 10x Genomics Xenium output bundle directory into a `SpatialExperiment` object |
+
+
+### `ComplexHeatmap`
+
+Read the [`ComplexHeatmap` package documentation](https://rdrr.io/bioc/ComplexHeatmap/) and the [`ComplexHeatmap` Complete Reference e-book](https://jokergoo.github.io/ComplexHeatmap-reference/book/).
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `ComplexHeatmap`| [`Heatmap()`](https://rdrr.io/bioc/ComplexHeatmap/man/Heatmap.html)| Heatmap | Create a clustered heatmap from a matrix, with options to split, annotate, and combine it with other heatmaps |
+
+<div style="page-break-after: always;"></div>
+
+### `hoodscanR`
+
+<!-- TODO: This package has not yet made it to rdrr -->
+Read the [`hoodscanR` package documentation](https://www.bioconductor.org/packages/release/bioc/html/hoodscanR.html) and a [vignette on its usage](https://www.bioconductor.org/packages/release/bioc/vignettes/hoodscanR/inst/doc/Quick_start.html).
+
+Note that the functions in this package are generally run in sequence, where the output of one function is the input to the next.
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+| `hoodscanR` | [`findNearCells()`](https://davislaboratory.github.io/hoodscanR/reference/findNearCells.html) | Find the k-the nearest cells for each | Find the `k` nearest cells to each cell in a `SpatialExperiment` object, returning a list with a matrix of distances and a matrix of the annotations (e.g., cell types) of those neighboring cells |
+| `hoodscanR` | [`scanHoods()`](https://davislaboratory.github.io/hoodscanR/reference/scanHoods.html) | Scan cellular neighborhoods | Apply a modified softmax algorithm to the distance matrix from `hoodscanR::findNearCells()` to calculate the probability that each cell is associated with each of its nearest neighboring cells |
+| `hoodscanR` | [`mergeByGroup()`](https://davislaboratory.github.io/hoodscanR/reference/mergeByGroup.html) | Merge probability matrix based on annotations | Collapse the probability matrix from `hoodscanR::scanHoods()` by annotation, so that each column is a group (e.g., a cell type) rather than an individual neighboring cell |
+| `hoodscanR` | [`mergeHoodSpe()`](https://davislaboratory.github.io/hoodscanR/reference/mergeHoodSpe.html) | Merge probability matrix into Spatial Experiment object | Add the merged probability matrix into the `colData` of a `SpatialExperiment` object |
+| `hoodscanR` | [`calcMetrics()`](https://davislaboratory.github.io/hoodscanR/reference/calcMetrics.html) | Calculate metrics for probability matrix | Calculate the entropy and perplexity of the probability matrix for each cell, which summarize how mixed or how distinct that cell's neighborhood is, and store them in `colData` |
+| `hoodscanR` | [`plotColocal()`](https://davislaboratory.github.io/hoodscanR/reference/plotColocal.html) | Plot heatmap for neighborhood analysis | Plot a heatmap of the Pearson correlations between cells' neighborhood probability distributions to show which groups tend to colocalize |
+| `hoodscanR` | [`clustByHood()`](https://davislaboratory.github.io/hoodscanR/reference/clustByHood.html) | Cluster the probability matrix with K-means | Perform k-means clustering on the probability matrix to assign each cell to a neighborhood cluster |
+| `hoodscanR` | [`plotProbDist()`](https://davislaboratory.github.io/hoodscanR/reference/plotProbDist.html) | Plot probability distribution | Plot the distribution of neighborhood probabilities, optionally split by a grouping variable such as the neighborhood clusters from `hoodscanR::clustByHood()` |
