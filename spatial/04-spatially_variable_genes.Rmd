@@ -15,11 +15,20 @@ output:
 
 ## Introduction
 
-Coming Soon
+We have previously looked at genes that are highly variable without looking specifically at how that variation is arranged spatially.
+Ideally, we would be able to identify genes that not only vary among spots, but where that variation is spatially structured, and therefore more likely to be biologically meaningful in differentiating tissues or microenvironments.
+There are a large and ever-expanding set of methods for identifying spatially variable genes (SVGs), many of which have been reviewed and compared by [Li et al. (2025)](https://doi.org/10.1186/s13059-025-03731-2) and [Yan, Hua and Li (2025)](https://doi.org/10.1038/s41467-025-56080-w).
+Here we will focus on two methods: Moran's *I* and `nnSVG`. 
+
+Moran's *I* ([Moran, 1950](https://doi.org/10.2307/2332142)) is a quite old measure of spatial autocorrelation that has a long history in fields like geography and ecology.
+We will use an implementation of the Moran's *I* and related tests from the `Voyager` package ([Moses et al. 2023](https://doi.org/10.1101/2023.07.20.549945)), which works with an extension of the `SpatialExperiment` class we have been working with called `SpatialFeatureExperiment`. 
+
+`nnSVG` ([Weber et al. 2023](https://doi.org/10.1038/s41467-023-39748-z))is a method specifically designed for spatial transcriptomic data that can allow for more flexible identification of spatially variable genes.  
+
 
 ## Set up
 
-For our setup, we will start by loading the `SpatialExperiment` package, as we have done before, as well as some familiar packages for plotting.
+For our initial setup, we will start by loading the `SpatialExperiment` package, as we have done before, as well as some familiar packages for plotting.
 We'll also set our default theme for `ggplot2`, and set a seed for reproducibility.
 
 
@@ -45,7 +54,7 @@ set.seed(2026)
 The dataset we will be working with is the same pre-normalized osteosarcoma Visium dataset that we have used in previous notebooks.
 If you recall, this sample is from a mouse sample with osteosarcoma lung metastases from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049).
 
-We'll load in the pre-normalized data to save a number of starting steps.
+We'll load in the pre-normalized data to save ourseleves from recomputing the same statistics we have already calculated in previous steps.
 
 For a later part of this analysis, we will also want to use some pre-computed results (some of the analyses are slow), so we will define those paths here as well.
 
@@ -72,10 +81,11 @@ With all of those paths defined, we will load in our normalized data, which is a
 spe <- readr::read_rds(normalized_rds)
 ```
 
+
 ## Identifying Highly Variable Genes
 
 In theory, we could proceed directly to identifying spatially variable genes, but in practice it is often useful to first filter the data to only include highly variable genes (HVGs).
-This is because many of the calculations we will be doing for spatial analysis are not particularly fast, so this will help us speed up calculations.
+This is because many of the calculations we will be doing for spatial analysis are not particularly fast, so it will help to have a shorter gene lists to start with.
 We justify this in part by the fact that if a gene is not particularly variable overall, it is quite unlikely to be spatially variable, so we are not likely to miss many important genes.
 
 We will identify the HVGs using the `scran` package, which is designed for working with single-cell RNA-seq data, but will work here just as well with the spot data.
@@ -89,7 +99,7 @@ gene_variance <- scran::modelGeneVar(spe)
 hvg_vector <- scran::getTopHVGs(gene_variance, n = 2000)
 ```
 
-After selecting the HVGs, we can now filter the SPE to include only those genes.
+After selecting the HVGs, we can now filter the SPE object to include only those genes.
 We'll store that in a new variable called `hvg_spe`.
 
 ```{r filter-spe, live = TRUE}
@@ -113,16 +123,18 @@ For the rest of this notebook, we will be using `SpatialFeatureExperiment` (SFE)
 
 Almost all functions that work with SPEs will also work with SFEs (though not the reverse).
 However, there are differences with respect to how images are stored and plotting defaults, so we will be using a different package for most of our spatial plots. Rather than `ggspavis`, we will be using the `Voyager` package, which is designed for working with SFE objects.
-It works a bit differently, but still uses `ggplot2` as the underlying plotting engine, so we can still use the same kinds of `ggplot2` functions to modify the plots if we want to.
+The functions used in `Voyager` work a bit differently from the `ggspavis` equivalents, but still use `ggplot2` as the underlying plotting engine.
 
 
 ### Converting from SPE to SFE
 
 The conversion from SPE to SFE is fairly straightforward, but there are a few things to be aware of.
-The most important one right now is that  that the plotting functions we are going to use have different defaults:
+The most important one right now is thatthat the plotting functions we are going to use have different defaults.
 
-`ggspavis` plots the origin of the spatial features in the upper left, while `Voyager` plots it in the lower left, so to match the way we have been looking at things, we will mirror the plots.
-(If you were doing all your plotting using a `Voyager` function, you might not need to do this, as the orientation is arbitrary, but since we have been using `ggspavis` for most of our plots so far, we will mirror the coordinates to match what we have been looking at.)
+In particular, by default `ggspavis` plots the origin (0,0) of the spatial coordinates in the upper left, while `Voyager` plots it in the lower left.
+To match our previous plots, we will flip the coordinates so that our plots match the orientation we have been using so far.
+(If you were doing all your plotting using a `Voyager` function, you might not need to do this, as the orientation is arbitrary.)
+
 To make things even more confusing `ggspavis` also automatically flips the image to match it's preferred orientation, but `Voyager` expects that this has been done when the images are imported, so we have to do another flip for just the image.
 How did we find this out?
 Trial and error...
@@ -131,7 +143,9 @@ To perform the initial conversion, we will use the `SpatialFeatureExperiment::to
 We will also specify the units for the spatial coordinates, which in this case are in pixels. 
 This isn't really required, and we won't do anything with it except to show that the SFE object supports it.
 
-Af the initial conversion function, we use `SpatialFeatureExperiment::mirror()` to flip the Y axis coordinates and then flip the image a second time using `SpatialFeatureExperiment::mirrorImg()`.
+After the initial conversion function, we will deal with the coordinate and image flipping. 
+We use `SpatialFeatureExperiment::mirror()` to flip the Y axis coordinates and then flip the image a second time using `SpatialFeatureExperiment::mirrorImg()`.
+Both of these will change only the Y axis orientation, which is the one we are most concerned about.
 Just note that the exact series of flips you need are going to depend on how the data was read in the first time. 
 
 ```{r sfe-conversion, live = TRUE}
@@ -145,20 +159,21 @@ sfe <- SpatialFeatureExperiment::toSpatialFeatureExperiment(
   SpatialFeatureExperiment::mirrorImg()
 ```
 
-Now we have an SFE object, and we can look at the contents to see what is in there:
+Now we have an SFE object, and we can look at the contents by printing the object summary:
 
 ```{r SFE-contents, live = TRUE}
 sfe
 ```
 
 The first part looks pretty much the same as the SPE object that you should be familiar with at this point:
-- `assays` with `counts` a`nd `logcounts`
+
+- `assays` with `counts` and `logcounts`
 - rows for genes, columns for spots
-- reducedDims for PCA and UMAP (not present here yet)
+- `reducedDims` for PCA and UMAP (not present here yet)
 - `spatialCoords` for the X and Y coordinates of the spots
 - `imgData` for the image data
 
-But you will notice a few extra slots in the summary:
+In addition to these, there are a few extra slots shown in the summary:
 
 - `unit` is where the unit we defined earlier is stored.
 - `Geometries` stores the shapes and locations of features. In our case, we have only the `colGeometries`, which stores the location of each spot.
@@ -168,11 +183,16 @@ One thing you may notice here is that the `SpatialFeatureExperiment` package is 
 
 ### Generating spatial graphs
 
-The next step is to define the graph that defines how cells are connected to each other in space.
-For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which uses the known barcodes and their locations to define a graph that connects nearby spots.
-This is a nice shortcut, but for other kinds of spatial data (such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findSpatialNeighbors()` to find the nearest neighbors for each cell, and then define the graph based on that.
+The power of the `SpatialFeatureExperiment` package comes from the ability to define graphs that describe how cells are connected to each other.
+Many of the analyses methods that this package supports require a graph to be defined, so we will need to create one next. 
 
-We will store that in the `colGraph` slot of the SFE object (this is one of the things we get from that package)
+For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which uses the known barcodes and their locations to define a graph that connects nearby spots.
+This is a nice shortcut, but for other kinds of spatial data (such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findSpatialNeighbors()` to find the nearest neighbors for each cell and define a graph based on that.
+
+We will store the graph we generate in the `colGraph` slot of the SFE object, as it is a graph that describes the relationships between columns (spots) in the object.
+The SpatialFeatureExperiment package also allows the definition of row graphs, which would describe relationships between rows (genes), as well as annotation graphs that can be used for higher level groupings of regions (such as cell segmentation) that do not correspond to the raw data.
+We will not be using those here, but they may apply for other types of spatial data or other types of questions.
+
 
 ```{r define-graph, live = TRUE}
 # use the Visium barcodes to define the graph
@@ -185,8 +205,7 @@ sfe
 ```
 
 Now we can make our first plot using the `Voyager` package, which is designed for working with SFE objects.
-We'll plot the graph we just made.
-
+We'll plot the graph that we just made using the `Voyager::plotColGraph()` function, which will show the spots and the connections between them as defined in the graph.
 
 ```{r plot-graph, live = TRUE}
 Voyager::plotColGraph(sfe) +
@@ -198,36 +217,37 @@ Voyager::plotColGraph(sfe) +
   )
 ```
 
-This includes all of the spots where we have data.
-
+You can see that this has reproduced the hexagonal pattern of the Visium spots, and that each spot is connected to its six neighbors in the graph, so long as spots have not been removed by previous filtering.
+It isn't that exciting a plot on its own, but it will serve as the basis for the spatial analysis we will be doing next.
 
 ## Identify Spatially Variable Genes
 
-### Moran's I
+### Moran's *I*
 
-The measure of spatial covariation we will use is Moran's *I*.
+As mentioned earlier, the first measure of spatial variation we will look at is Moran's *I*
 This is a measure of spatial autocorrelation, or how similar values are at nearby locations.
+If a gene is expressed in a spatially structured way, we would expect that nearby spots would have similar expression values for that gene, which will result in a high Moran's *I* value.
+If there is no spatial structure, we will expect that nearby spots will have uncorrelated expression values, which will result in a Moran's *I* value near zero.
 
-Comes from Patrick Moran, who I recognize from population genetics (Moran process is an overlapping generations model for evolution)
-
-Once we have the graph defined, we can calculate Moran's *I* for each gene using the `Voyager::runMoransI()` function.
+To calculate Moran's *I*, we will use the `Voyager::runMoransI()` function, which takes an SFE object (with a colGraph) and calculates Moran's *I* for each gene in the object.
+This function (which is largely running a function from the `spdep` package) gives us the Moran's *I* value as well as a *K* value. 
+The *K* value is a measure of kurtosis, which is a measure of the overall shape of the distribution of expression values is for that gene.
+A larger value indicates that the distribution has heavier ("fatter") tails and higher likelihood of extreme values. 
+This is used in the estimates of significance that we will apply later.
 
 ```{r moranI, live = TRUE}
 sfe <- Voyager::runMoransI(sfe)
 ```
 
-This gives us an I value for each gene as well as the kurtosis of the gene's expression (how fat the tails are) as a value `K`.
-TODO: add better kurtosis explanation (what does high or low mean?)
+To view the values, we will look at the `rowData()` of the SFE object, as these are calculated for each gene (row) in the object.
 
 ```{r view_moran}
 rowData(sfe)
 ```
 
-You'll notice that the new column names include the `sample_id`, which is a bit annoying, but it is necessary to keep things separate if we have multiple samples.
-We'll make sure to set that as a variable so we can reuse it as needed.
+You'll notice that the new column names include the `sample_id` value, which is a bit annoying, but it is necessary to keep things separate if our object contained multiple samples.
 
-Let's first look at the distribution of Moran's I values across all (highly variable) genes:
-
+Let's first look at the distribution of Moran's *I* values across all (highly variable) genes:
 
 ```{r moran-hist}
 rowData(sfe) |>
@@ -240,29 +260,35 @@ rowData(sfe) |>
   )
 ```
 
+Moran's *I* can range from -1 to 1, with values near 0 indicating no spatial structure, and values near 1 indicating strong spatial structure.
+(Negative values are possible and would indicate that nearby spots are more dissimilar than expected by chance, but this is not very common in practice.)
+In this case, we see that most genes have a positive Moran's *I* value, with values ranging well above 0.5 for some genes.
+While we could use these values to rank the genes on the basis of the strength of their spatial structure, we might also like to assign significance to these values.
 
-We get a value there, but no measure of significance.
+To calculate significance, we will can take a couple of different approaches.
+The first uses a parametric method that incorporates the observed kurtosis to calculate significance.
+This will be relatively fast, but does not necessarily account for the specific graph structure or distribution of values in the data.
 
-We can calculate those using the more general `Voyager::runUnivariate()` function, which can do other types of tests as well
-For that we can use either `moran.test()` or `moran.mc()` from the `spdep` package.
-TODO: clarify where these functions are coming from
+The other uses a Monte Carlo simulation to calculate significance by resampling the data and recalculating Moran's *I* for each replicate.
+Both of these functions (as well as the `runMoransI()` function, interally) are implemented in the `spdep` package which was designed for general spatial data.
+To use them conveniently with our SFE objects, we will use the more  `Voyager::runUnivariate()` function, which will call them appropriately for us and store the results in the `rowData()` of the SFE object.
 
-`moran.test` is relatively fast, so we can do that first (though it is not likely to be as accurate, as it does not account for the structure of the graph).
+For the parametric test, we will use `type = "moran.test"` to call the `spdep::moran.test()` function, while for the Monte Carlo test we will use `type = "moran.mc"` to call the `spdep::moran.mc()` function.
 
+`moran.test` is relatively fast, so we will do that first.
 
 ```{r moran-test, live = TRUE}
 sfe <- Voyager::runUnivariate(
   sfe,
-  type = "moran.test",
-  BPPARAM = BiocParallel::MulticoreParam(4)
+  type = "moran.test"
 )
 
 rowData(sfe)
 ```
 
 
-We could also do a more careful test based on Monte Carlo simulation, but this will be slow, as we essentially we have to resample and recalculate for some number of replicates.
-We'll start with 1000 replicates for time.
+The Monte Carlo simulation will be much slower, as we will we have to resample and recalculate the statistics for each replicate, and we will want a lot of replicates for accurate statistics.
+We'll start with 1000 replicates for time, and we will also use the `BiocParallel` package to run the replicates in parallel for a bit more of a speedup.
 
 ```{r moran-mc, live = TRUE}
 reps <- 1000
