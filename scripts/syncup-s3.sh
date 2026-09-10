@@ -80,6 +80,7 @@ sync_files=(
   scRNA-seq-advanced/data/ewing-sarcoma/annotations/ewing_sarcoma_sample_metadata.tsv
   scRNA-seq-advanced/data/rms/annotations/rms_sample_metadata.tsv
   scRNA-seq-advanced/data/reference/hs_mitochondrial_genes.tsv
+  spatial/analysis/osteo/GSM8478586/moran_mc100k.tsv
   spatial/data/osteo/GSM8478586/normalized/osteo_normalized_spe.rds
   spatial/data/crc-v1/normalized/crc_normalized_spe.rds
   spatial/data/brca-xenium/Janesick_annotations.tsv
