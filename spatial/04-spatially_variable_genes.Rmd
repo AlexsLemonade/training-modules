@@ -54,7 +54,7 @@ set.seed(2026)
 The dataset we will be working with is the same pre-normalized osteosarcoma Visium dataset that we have used in previous notebooks.
 If you recall, this sample is from a mouse sample with osteosarcoma lung metastases from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049).
 
-We'll load in the pre-normalized data to save ourseleves from recomputing the same statistics we have already calculated in previous steps.
+We'll load in the pre-normalized data to save ourselves from recomputing the same statistics we have already calculated in previous steps.
 
 For a later part of this analysis, we will also want to use some pre-computed results (some of the analyses are slow), so we will define those paths here as well.
 
@@ -129,7 +129,7 @@ The functions used in `Voyager` work a bit differently from the `ggspavis` equiv
 ### Converting from SPE to SFE
 
 The conversion from SPE to SFE is fairly straightforward, but there are a few things to be aware of.
-The most important one right now is thatthat the plotting functions we are going to use have different defaults.
+The most important one right now is that the plotting functions we are going to use have different defaults.
 
 In particular, by default `ggspavis` plots the origin (0,0) of the spatial coordinates in the upper left, while `Voyager` plots it in the lower left.
 To match our previous plots, we will flip the coordinates so that our plots match the orientation we have been using so far.
@@ -190,7 +190,7 @@ For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which 
 This is a nice shortcut, but for other kinds of spatial data (such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findSpatialNeighbors()` to find the nearest neighbors for each cell and define a graph based on that.
 
 We will store the graph we generate in the `colGraph` slot of the SFE object, as it is a graph that describes the relationships between columns (spots) in the object.
-The SpatialFeatureExperiment package also allows the definition of row graphs, which would describe relationships between rows (genes), as well as annotation graphs that can be used for higher level groupings of regions (such as cell segmentation) that do not correspond to the raw data.
+The `SpatialFeatureExperiment` package also allows the definition of row graphs, which would describe relationships between rows (genes), as well as annotation graphs that can be used for higher level groupings of regions (such as cell segmentation) that do not correspond to the raw data.
 We will not be using those here, but they may apply for other types of spatial data or other types of questions.
 
 
@@ -229,7 +229,7 @@ This is a measure of spatial autocorrelation, or how similar values are at nearb
 If a gene is expressed in a spatially structured way, we would expect that nearby spots would have similar expression values for that gene, which will result in a high Moran's *I* value.
 If there is no spatial structure, we will expect that nearby spots will have uncorrelated expression values, which will result in a Moran's *I* value near zero.
 
-To calculate Moran's *I*, we will use the `Voyager::runMoransI()` function, which takes an SFE object (with a colGraph) and calculates Moran's *I* for each gene in the object.
+To calculate Moran's *I*, we will use the `Voyager::runMoransI()` function, which takes an SFE object (with a `colGraph`) and calculates Moran's *I* for each gene in the object.
 This function (which is largely running a function from the `spdep` package) gives us the Moran's *I* value as well as a *K* value. 
 The *K* value is a measure of kurtosis, which is a measure of the overall shape of the distribution of expression values is for that gene.
 A larger value indicates that the distribution has heavier ("fatter") tails and higher likelihood of extreme values. 
@@ -270,7 +270,7 @@ The first uses a parametric method that incorporates the observed kurtosis to ca
 This will be relatively fast, but does not necessarily account for the specific graph structure or distribution of values in the data.
 
 The other uses a Monte Carlo simulation to calculate significance by resampling the data and recalculating Moran's *I* for each replicate.
-Both of these functions (as well as the `runMoransI()` function, interally) are implemented in the `spdep` package which was designed for general spatial data.
+Both of these functions (as well as the `runMoransI()` function, internally) are implemented in the `spdep` package which was designed for general spatial data.
 To use them conveniently with our SFE objects, we will use the more  `Voyager::runUnivariate()` function, which will call them appropriately for us and store the results in the `rowData()` of the SFE object.
 
 For the parametric test, we will use `type = "moran.test"` to call the `spdep::moran.test()` function, while for the Monte Carlo test we will use `type = "moran.mc"` to call the `spdep::moran.mc()` function.
@@ -387,7 +387,7 @@ ggplot(moran_df, aes(x = moran_test_neglogp, y = moran_mc100k_neglogp)) +
 It seems like the parametric approximation tends to overestimate significance at smaller P values relative to the Monte Carlo estimate.
 It is a little hard to say which, if either, is "more accurate" from this information alone, however.
 Both make assumptions about the data and that the null model expectations are appropriate, which we have not delved far into.
-If we really wanted to compare the methods well, we migth perform more tests with known spatial patterns and effects.
+If we really wanted to compare the methods well, we might perform more tests with known spatial patterns and effects.
 That isn't really our goal here, but we did want to have a little look at how they differ. 
 
 
@@ -524,8 +524,8 @@ ggplot(svg_df, aes(x = moran_test_neglogp, y = nnsvg_neglogp)) +
 
 Overall we do see similar patterns of significance, but the significance rank order definitely does change for a number of genes.
 
-Rather than comparing just the P values, we can also look at the relationship between Moran's *I* and `nnsvg`'s `prop_sv` statistic.
-We are probably going to be most interested in genes that have a higher proportion of variation that is driven by spatial variation, so this can be a useful measure that nnSVG provides.
+Rather than comparing just the P values, we can also look at the relationship between Moran's *I* and `nnSVG`'s `prop_sv` statistic.
+We are probably going to be most interested in genes that have a higher proportion of variation that is driven by spatial variation, so this can be a useful measure that `nnSVG` provides.
 We'll include the correlation between the two measures as a label on the plot.
 
 
