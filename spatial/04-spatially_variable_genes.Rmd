@@ -15,15 +15,15 @@ output:
 
 ## Introduction
 
-We have previously looked at genes that are highly variable without looking specifically at how that variation is arranged spatially.
-Ideally, we would be able to identify genes that not only vary among spots, but where that variation is spatially structured, and therefore more likely to be biologically meaningful in differentiating tissues or microenvironments.
-There are a large and ever-expanding set of methods for identifying spatially variable genes (SVGs), many of which have been reviewed and compared by [Li et al. (2025)](https://doi.org/10.1186/s13059-025-03731-2) and [Yan, Hua and Li (2025)](https://doi.org/10.1038/s41467-025-56080-w).
-Here we will focus on two methods: Moran's *I* and `nnSVG`. 
+We have previously looked at genes that are highly variable among spots, without looking specifically at how that variation is spatially arranged across the sample.
+Genes where expression variation is spatially structured are more likely to be biologically meaningful in differentiating tissues or microenvironments.
+There are a large and ever-expanding set of methods for identifying such spatially variable genes (SVGs), many of which have been reviewed and compared by [Li et al. (2025)](https://doi.org/10.1186/s13059-025-03731-2) and [Yan, Hua and Li (2025)](https://doi.org/10.1038/s41467-025-56080-w).
+Here we will focus on two methods: Moran's *I* and `nnSVG`.
 
 Moran's *I* ([Moran, 1950](https://doi.org/10.2307/2332142)) is a quite old measure of spatial autocorrelation that has a long history in fields like geography and ecology.
-We will use an implementation of the Moran's *I* and related tests from the `Voyager` package ([Moses et al. 2023](https://doi.org/10.1101/2023.07.20.549945)), which works with an extension of the `SpatialExperiment` class we have been working with called `SpatialFeatureExperiment`. 
+We will use an implementation of the Moran's *I* and related tests from the `Voyager` package ([Moses et al. 2023](https://doi.org/10.1101/2023.07.20.549945)), which works with an extension of the `SpatialExperiment` class we have been working with called `SpatialFeatureExperiment`.
 
-`nnSVG` ([Weber et al. 2023](https://doi.org/10.1038/s41467-023-39748-z))is a method specifically designed for spatial transcriptomic data that can allow for more flexible identification of spatially variable genes.  
+`nnSVG` ([Weber et al. 2023](https://doi.org/10.1038/s41467-023-39748-z))is a method specifically designed for spatial transcriptomic data that can allow for more flexible identification of spatially variable genes.
 
 
 ## Set up
@@ -140,13 +140,13 @@ How did we find this out?
 Trial and error...
 
 To perform the initial conversion, we will use the `SpatialFeatureExperiment::toSpatialFeatureExperiment()` function, which takes an SPE object and converts it to an SFE object.
-We will also specify the units for the spatial coordinates, which in this case are in pixels. 
+We will also specify the units for the spatial coordinates, which in this case are in pixels.
 This isn't really required, and we won't do anything with it except to show that the SFE object supports it.
 
-After the initial conversion function, we will deal with the coordinate and image flipping. 
+After the initial conversion function, we will deal with the coordinate and image flipping.
 We use `SpatialFeatureExperiment::mirror()` to flip the Y axis coordinates and then flip the image a second time using `SpatialFeatureExperiment::mirrorImg()`.
 Both of these will change only the Y axis orientation, which is the one we are most concerned about.
-Just note that the exact series of flips you need are going to depend on how the data was read in the first time. 
+Just note that the exact series of flips you need are going to depend on how the data was read in the first time.
 
 ```{r sfe-conversion, live = TRUE}
 sfe <- SpatialFeatureExperiment::toSpatialFeatureExperiment(
@@ -184,7 +184,7 @@ One thing you may notice here is that the `SpatialFeatureExperiment` package is 
 ### Generating spatial graphs
 
 The power of the `SpatialFeatureExperiment` package comes from the ability to define graphs that describe how cells are connected to each other.
-Many of the analyses methods that this package supports require a graph to be defined, so we will need to create one next. 
+Many of the analyses methods that this package supports require a graph to be defined, so we will need to create one next.
 
 For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which uses the known barcodes and their locations to define a graph that connects nearby spots.
 This is a nice shortcut, but for other kinds of spatial data (such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findSpatialNeighbors()` to find the nearest neighbors for each cell and define a graph based on that.
@@ -284,7 +284,7 @@ sfe <- Voyager::runUnivariate(
 )
 ```
 
-And let's look at the results in the `rowData()` of the SFE object: 
+And let's look at the results in the `rowData()` of the SFE object:
 The main thing we will want to look at is the P value, which is stored in the `moran.test_p.value_GSM8478586` column, but the other columns are also potentially useful for understanding the results.
 (You may note that this method calculates the Moran's I value again, storing it in `moran.test_Moran.I.statistic_GSM8478586`.)
 
@@ -388,7 +388,7 @@ It seems like the parametric approximation tends to overestimate significance at
 It is a little hard to say which, if either, is "more accurate" from this information alone, however.
 Both make assumptions about the data and that the null model expectations are appropriate, which we have not delved far into.
 If we really wanted to compare the methods well, we might perform more tests with known spatial patterns and effects.
-That isn't really our goal here, but we did want to have a little look at how they differ. 
+That isn't really our goal here, but we did want to have a little look at how they differ.
 
 
 For now, let's try to get a general sense of how many genes show "significant" spatial variation.
@@ -457,11 +457,11 @@ sfe <- nnSVG::nnSVG(sfe, n_threads = 4)
 
 Once we start this analysis, it is a good time for a break, as it can take a long time to run.
 
-Once that finishes, we can look at the results, which are stored in the `rowData` of the SFE object. 
+Once that finishes, we can look at the results, which are stored in the `rowData` of the SFE object.
 
 
 ```{r view-nnsvg}
-# view names 
+# view names
 names(rowData(sfe))
 ```
 
@@ -584,7 +584,7 @@ svg_hvg_df <- svg_df |>
   )
 ```
 
-Finally, we can make a plot that compares the `nnSVG` proportion of spatial variation to the biological variation. 
+Finally, we can make a plot that compares the `nnSVG` proportion of spatial variation to the biological variation.
 
 ```{r plot-svg-hvg}
 ggplot(svg_hvg_df, aes(x = bio_variance, y = nnsvg_propsv)) +
