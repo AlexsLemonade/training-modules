@@ -16,8 +16,8 @@ output:
 ## Introduction
 
 We have previously looked at genes that are highly variable among spots, without looking specifically at how that variation is spatially arranged across the sample.
-Genes where expression variation is spatially structured are more likely to be biologically meaningful in differentiating tissues or microenvironments.
-There are a large and ever-expanding set of methods for identifying such spatially variable genes (SVGs), many of which have been reviewed and compared by [Li et al. (2025)](https://doi.org/10.1186/s13059-025-03731-2) and [Yan, Hua and Li (2025)](https://doi.org/10.1038/s41467-025-56080-w).
+Genes where expression variation is spatially structured are more likely to be biologically meaningful in differentiating tissues or microenvironments, and we would like to be able to directly identify such spatially variable genes (SVGs).
+There are a large and ever-expanding set of methods for identifying SVGs, many of which have been reviewed and compared by [Li et al. (2025)](https://doi.org/10.1186/s13059-025-03731-2) and [Yan, Hua and Li (2025)](https://doi.org/10.1038/s41467-025-56080-w).
 Here we will focus on two methods: Moran's *I* and `nnSVG`.
 
 Moran's *I* ([Moran, 1950](https://doi.org/10.2307/2332142)) is a quite old measure of spatial autocorrelation that has a long history in fields like geography and ecology.
@@ -28,11 +28,10 @@ We will use an implementation of the Moran's *I* and related tests from the `Voy
 
 ## Set up
 
+### Libraries
+
 For our initial setup, we will start by loading the `SpatialExperiment` package, as we have done before, as well as some familiar packages for plotting.
 We'll also set our default theme for `ggplot2`, and set a seed for reproducibility.
-
-
-### Libraries
 
 ```{r setup}
 # The main class we use for spatial transcriptomic data
@@ -89,7 +88,7 @@ This is because many of the calculations we will be doing for spatial analysis a
 We justify this in part by the fact that if a gene is not particularly variable overall, it is quite unlikely to be spatially variable, so we are not likely to miss many important genes.
 
 We will identify the HVGs using the `scran` package, which is designed for working with single-cell RNA-seq data, but also works well with the spot data.
-We'll first model the gene variance to separate the biological component of the variance from the technical component, and then select the top 2000 HVGs by their biological variation. 
+We'll first model the gene variance to separate the biological component of the variance from the technical component, and then select the top 2000 HVGs by their biological variation.
 
 ```{r find-hvg}
 # model gene variance
@@ -184,10 +183,13 @@ One thing you may notice here is that the `SpatialFeatureExperiment` package is 
 ### Generating spatial graphs
 
 The power of the `SpatialFeatureExperiment` package comes from the ability to define graphs that describe how cells are connected to each other.
-Many of the analyses methods that this package supports require a graph to be defined, so we will need to create one next.
+These spatial graphs are particularly useful because they define relationships between neighboring spots or cells that do not depend on the exact orientation of the slide; this makes them robust to variations in how the tissue is positioned or imaged.
+Many analyses methods use these graphs to calculate statistics on the spatial relationships between spots.
+We will see that many of analysis functions in the `Voyager` package for analysis of spatial expression are built around older and more more general `spdep` package, which implements many spatial statistics and methods for analyzing spatial data.
+To take advantage of these spatial graphs and the analyses they enable, we will first need to define the graph for our data and store it in the SFE object.
 
-For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which uses the known barcodes and their locations to define a graph that connects nearby spots.
-This is a nice shortcut, but for other kinds of spatial data (such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findSpatialNeighbors()` to find the nearest neighbors for each cell and define a graph based on that.
+For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which uses the known barcodes and their locations to define a pre-computed graph that connects nearby spots.
+This is a nice shortcut, but for other kinds of spatial data where the spatial coordinates are not pre-defined(such as image-based Xenium data), we would have to use a function like `SpatialFeatureExperiment::findSpatialNeighbors()` to first find the nearest neighbors for each cell based on their spatial coordinates and define a new graph based on that information.
 
 We will store the graph we generate in the `colGraph` slot of the SFE object, as it is a graph that describes the relationships between columns (spots) in the object.
 The `SpatialFeatureExperiment` package also allows the definition of row graphs, which would describe relationships between rows (genes), as well as annotation graphs that can be used for higher level groupings of regions (such as cell segmentation) that do not correspond to the raw data.
@@ -230,9 +232,9 @@ If a gene is expressed in a spatially structured way, we would expect that nearb
 If there is no spatial structure, we will expect that nearby spots will have uncorrelated expression values, which will result in a Moran's *I* value near zero.
 
 To calculate Moran's *I*, we will use the `Voyager::runMoransI()` function, which takes an SFE object (with a `colGraph`) and calculates Moran's *I* for each gene in the object.
-This function (which is largely running a function from the `spdep` package) gives us the Moran's *I* value as well as a *K* value. 
+This function (which is largely running a function from the `spdep` package) gives us the Moran's *I* value as well as a *K* value.
 The *K* value is a measure of kurtosis, which is a measure of the overall shape of the distribution of expression values for that gene.
-A larger value indicates that the distribution has heavier ("fatter") tails and higher likelihood of extreme values. 
+A larger value indicates that the distribution has heavier ("fatter") tails and higher likelihood of extreme values.
 This is used in the estimates of significance that we will apply later.
 
 ```{r moranI, live = TRUE}
@@ -525,7 +527,10 @@ ggplot(svg_df, aes(x = moran_test_neglogp, y = nnsvg_neglogp)) +
 Overall we do see similar patterns of significance, but the significance rank order definitely does change for a number of genes.
 
 Rather than comparing just the P values, we can also look at the relationship between Moran's *I* and `nnSVG`'s `prop_sv` statistic.
-We are probably going to be most interested in genes that have a higher proportion of variation that is driven by spatial variation, so this can be a useful measure that `nnSVG` provides.
+These two statistics measure slightly different things: Moran's *I* quantifies the overall spatial autocorrelation of gene expression, while `prop_sv` estimates the proportion of expression variance that can be attributed to spatial effects (i.e., how much of the gene's expression pattern is driven by spatial location).
+However, they would normally be expected to be well correlated, as genes with a higher Moran's *I* would also tend to have a higher `prop_sv`.
+Deviations will be most apparent when the scale component of `nnSVG` is playing a larger role and deviating from the overall spatial autocorrelation captured by Moran's *I*.
+
 We'll include the correlation between the two measures as a label on the plot.
 
 
