@@ -20,7 +20,7 @@ In this notebook, we'll cluster expression data from a mouse sample with osteosa
 This sample was processed using second-generation Visium technology and quantified with `Space Ranger 2.1.1`.
 We have already processed this dataset for you, including filtering out low quality spots (`SpotSweeper` removed 20 low-quality spots) and normalization, which you can see in this notebook: <https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/osteo/prepare-osteo-data.Rmd>.
 
-As we have discussed, Visium spatial transcriptomics data does not quantify expression at the single-cell level, but rather each Visium spot captures the combined expression of 5-20 cells.
+As we have discussed, Visium spatial transcriptomics data does not quantify expression at the single-cell level, but rather each Visium spot captures the combined expression of 1-10 cells.
 This means that when we perform clustering on Visium data, we are actually clustering spots with similar transcriptional profiles, not individual cells.
 
 Also unlike single-cell data, we now have an additional consideration of spatial information.
@@ -54,7 +54,7 @@ theme_set(theme_bw())
 
 We'll set a seed for reproducibility, since we'll be running UMAP and clustering.
 
-```{r}
+```{r seed}
 set.seed(2026)
 ```
 
@@ -76,7 +76,7 @@ normalized_rds <- file.path(data_dir, "osteo_normalized_spe.rds")
 We'll also define the path for outputting clusters.
 To save space, we'll conclude by exporting a TSV with the clusters we calculate in this notebook (along with other per-spot metadata).
 
-```{r}
+```{r outputs}
 cluster_tsv <- file.path(data_dir, "osteo_clusters.tsv")
 ```
 
@@ -120,7 +120,7 @@ he_plot
 This image clearly shows regions of tumor cells amid the lung parenchyma, which appears less dense because of the lung's alveolar spaces.
 
 Let's also get a sense of the RNA counts here by plotting some of the QC statistics that were calculated for you, including the total UMIs (`sum`) and number of unique detected genes (`detected`).
-Note that these plots use set an upper limit on the color scale to be able to see lower value spots more clearly.
+Note that these plots use an upper limit on the color scale to be able to see lower value spots more clearly.
 
 ```{r show qc}
 #| warning: false
@@ -242,7 +242,7 @@ umap_nonspatial <- scater::plotUMAP(
 coords_nonspatial <- plotCoords(
   spe,
   annotate = "cluster_nonspatial",
-  point_size = 1.25
+  point_size = 1
 ) +
   # set custom palette and legend title
   scale_color_brewer(
@@ -262,10 +262,10 @@ What patterns do you see, for example between tumor and parenchymal regions?
 ### Spatially-aware clustering with Banksy
 
 
-[`Banksy`](https://prabhakarlab.github.io/Banksy/) ([Singhal et al. 2024](https://doi.org/10.1038/s41588-024-01664-3)) is a package for spatially-aware dimensionality reduction and clustering.
+[`Banksy`](https://prabhakarlab.github.io/Banksy/) ([Singhal _et al._ 2024](https://doi.org/10.1038/s41588-024-01664-3)) is a package for spatially-aware dimensionality reduction and clustering.
 These spatially-aware clusters can also serve as a first step towards tissue domain identification.
 
-This method rests on the assumption that spots in the same tissue domain tend not only to share similar expression profiles, but tend also to be surrounded by spots with similar expression.
+This method rests on the assumption that spots in the same tissue domain tend not only to share similar expression profiles, but also tend to be surrounded by spots with similar expression.
 In other words, nearby spots are likely to be transcriptionally similar. 
 `Banksy` leverages this insight by incorporating neighborhood information into the PCA itself.
 Performing clustering on this spatially-aware PCA allows `Banksy` to identify clusters with both distinct expression and tissue domain structure.
@@ -281,9 +281,9 @@ When AGF is turned on, a second `Banksy` matrix is stored as the `H1` assay (the
 
 2. **Run `Banksy` PCA** with `Banksy::runBanksyPCA()`.
 
-`Banksy::runBanksyPCA()` first creates single matrix that is a weighted combination of the normalized expression in `logcounts` and the `Banksy` neighborhood matrix (`H0` or `H0` and `H1` if AGF is on). 
+`Banksy::runBanksyPCA()` first creates a single matrix that is a weighted combination of the normalized expression in `logcounts` and the `Banksy` neighborhood matrix (`H0` or `H0` and `H1` if AGF is on). 
 To combine these matrices, `Banksy` introduces the `lambda` parameter.
-`lambda` ranges from 0 -- 1 and controls how much weight is given to the `Banksy` matrix neighborhood information relative to `logcounts` expression, where a value of 0 considers only `logcounts` expression. 
+`lambda` ranges from 0 -- 1 and controls how much weight is given to the `Banksy` neighborhood information matrix relative to `logcounts` expression, where a value of 0 considers only `logcounts` expression. 
 The `Banksy` authors recommend a value of `lambda = 0.2` for Visium spot data, as described in [this `Banksy` vignette on parameter selection](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
 
 
@@ -410,7 +410,7 @@ umap_banksky_nonagf <- scater::plotReducedDim(
 coords_banksky_nonagf <- plotCoords(
   hvg_spe,
   annotate = "cluster_banksy_nonagf",
-  point_size = 1.25
+  point_size = 1
 ) +
   # set custom palette and legend title
   scale_color_brewer(
@@ -456,7 +456,7 @@ hvg_spe
 
 The SPE now contains an additional assay, `H1`, which stores the AGF-based neighborhood expression profile.
 Note that if you re-run `Banksy::computeBanksy()` with different parameters, the new object will only include the new `H0` and `H1`, as well the `BANKSY_params` entry from that run.
-We are saving back to the existing variable, so we are losing our previous results.
+We are saving back to the existing object, so we are losing our previous results.
 
 If you want to preserve results from multiple runs, you will need to keep this in mind and store each set of results separately.
 
@@ -565,6 +565,7 @@ For this heatmap, we'll specifically use the `Banksy` AGF clusters.
 We'll also normalize each column by the total number of spots in the given non-spatial cluster; each tile will be colored by the proportion of spots in the non-spatial cluster.
 
 ```{r cluster banksy heatmap}
+# table of cells in each cluster
 clusters_tab <- table(
   colData(hvg_spe)$cluster_nonspatial,
   colData(hvg_spe)$cluster_banksy_agf
@@ -586,7 +587,7 @@ pheatmap::pheatmap(
 )
 ```
  
-The heatmap shows non-spatial clusters labeled with "Non" and `Banksy` AGF clusters labeled with "AGF" and how the relate to one another.
+The heatmap shows non-spatial clusters labeled with "Non" and `Banksy` AGF clusters labeled with "AGF" and how they relate to one another.
 For example, non-spatial clusters labeled above as `Non3` and `Non5` contain tumor-rich spots, and each each appear to be split across several Banksy AGF clusters.
 On the other hand, cluster `AGF1` does not correspond strongly to any single non-spatial cluster, and appears spatially concentrated in the top-right region of the tissue. 
 How do you interpret these observations? 
