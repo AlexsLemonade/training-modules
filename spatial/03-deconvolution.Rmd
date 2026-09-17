@@ -18,7 +18,7 @@ output:
 
 In this notebook, we'll continue working with the mouse osteosarcoma lung metastases sample from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049) that we explored in the spatial clustering notebook.
 
-As we have discussed, each Visium spot captures the combined expression of approximately 5-20 cells, not a single cell.
+As we have discussed, each Visium spot captures the combined expression of approximately 1-10 cells, not a single cell.
 While the clustering analysis from the previous notebook identified groups of spots with similar transcriptional profiles, clustering alone cannot tell us which specific cell types are contributing to each spot's expression.
 To move from spot-level expression to cell-type-level information, we can apply **deconvolution**, which decomposes each spot's bulk gene expression into contributions from different cell types and estimates their relative proportions.
 
@@ -42,7 +42,6 @@ suppressPackageStartupMessages({
   # The main class we use for spatial transcriptomic data
   library(SpatialExperiment)
   # Packages to support plotting
-  library(ggspavis)
   library(ggplot2)
   library(patchwork)
 })
@@ -139,8 +138,8 @@ We'll refer back to this image throughout the notebook when interpreting the spa
 #| fig.width: 5
 
 # define H&E plot for general use in notebook
-he_plot <- plotVisium(spe, spots = FALSE, zoom = TRUE) +
-  ggtitle("H&E") +
+he_plot <- ggspavis::plotVisium(spe, spots = FALSE, zoom = TRUE) +
+  labs(title = "H&E") +
   # add styling to match other panels
   theme(
     plot.title = element_text(
@@ -181,15 +180,15 @@ mouse_markers |>
       # translate to ensembl id using SPE rownames
       ensembl_id <- rownames(spe)[rowData(spe)$Symbol == gene_symbol]
       
-        plotCoords(
+        ggspavis::plotCoords(
           spe, 
           annotate = ensembl_id, 
           assay = "logcounts", 
           pal = "viridis", 
           point_size = 1
         ) + 
-          ggtitle( 
-            glue::glue("{gene_category} ({gene_symbol})") 
+          labs( 
+            title = glue::glue("{gene_category} ({gene_symbol})") 
           ) +
           theme(
             legend.key.width = unit(0.3, "cm"),
@@ -199,7 +198,8 @@ mouse_markers |>
             plot.title = element_text(hjust = 0)
           )
     }
-  ) |> wrap_plots(ncol = 4)
+  ) |> 
+  wrap_plots(ncol = 4)
 ```
 
 Based on these gene expression plots, what cell types do you think are likely common in the dataset?
@@ -463,7 +463,7 @@ Let's plot these proportions using our `plot_all_props()` function, specifying t
 plot_all_props(rctd_full, assay = "proportions")
 ```
 
-How does this full mode result compare to results from doublet mode?
+How do the results from full mode compare to results from doublet mode?
 Does it change your interpretation of the overall cell type landscape?
 
 One pattern worth examining more closely is that immune lymphoid cell proportions again appear close to zero throughout, consistent with our earlier marker gene exploration.
@@ -489,7 +489,7 @@ ggplot(proportions_df) +
 
 The histogram confirms that the estimated immune lymphoid proportions are indeed quite close to zero, but not all zero.
 But are these low values real signal or just noise?
-One key consideration for answering this question is that there are only 5-20 cells per spot, so very small proportions start to become implausible: for example, a proportion of 1\% means 1 out of 100 cells, but we certainly don't have _that_ many cells in a spot!
+One key consideration for answering this question is that there are only 1-10 cells per spot, so very small proportions start to become implausible: for example, a proportion of 1\% means 1 out of 100 cells, but we certainly don't have _that_ many cells in a spot!
 This means that in practice, proportions below 5-10% are less reliable indicators of cell type presence. 
 Because of this, we will apply a 0.1 proportion threshold to filter out cell type labels that may be noise. 
 
@@ -531,6 +531,8 @@ present_df |>
 
 With this reference, we see that most spots contain 2-4 cell types at this threshold, with a small number of spots containing 5 or more cell types.
 This suggests that doublet mode likely underestimated the true cellular heterogeneity in this tissue, so we'll continue with our exploration using the full mode results.
+
+### Explore deconvolution results
 
 Let's now look at the actual composition of spots to understand what cell types are present and how they vary across the tissue.
 For this, we'll make a stacked bar plot showing the cell type proportions for each spot, ordered by their tumor cell proportion.
@@ -684,6 +686,7 @@ ggplot(cooccur_df) +
     axis.text.x = element_text(angle = 30, hjust = 1)
   )
 ```
+
 A few patterns stand out:
 
 - The tumor–mesenchymal pairing has the most negative log ratio, indicating these two cell types tend to occupy different spots.
