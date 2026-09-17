@@ -129,7 +129,7 @@ Read the [`Voyager` package documentation](https://pachterlab.github.io/voyager/
 | `Voyager` | [`runUnivariate()`](https://pachterlab.github.io/voyager/reference/calculateUnivariate.html) | Univariate analysis | Performs univariate analysis for spatial features in a `SpatialFeatureExperiment` object using various methods (including Moran's I tests) |
 | `Voyager` | [`plotImage()`](https://pachterlab.github.io/voyager/reference/plotImage.html) | Plot image | Plots an image (e.g., H&E image) associated with a `SpatialFeatureExperiment` object |
 | `Voyager` | [`plotColGraph()`](https://pachterlab.github.io/voyager/reference/plotColGraph.html) | Plot column graph | Performs multivariate analysis for spatial features in a `SpatialFeatureExperiment` object using various methods |
-| `Voyager` | [`plotSpatialFeature()`](https://pachterlab.github.io/voyager/reference/plotSpatialFeature.html) | Plot spatial feature | Plots a feature valueusing the spatial coordinates in a `SpatialFeatureExperiment` object |
+| `Voyager` | [`plotSpatialFeature()`](https://pachterlab.github.io/voyager/reference/plotSpatialFeature.html) | Plot spatial feature | Plots a feature value using the spatial coordinates in a `SpatialFeatureExperiment` object |
 
 
 <div style="page-break-after: always;"></div>
