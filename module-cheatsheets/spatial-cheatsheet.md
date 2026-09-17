@@ -16,18 +16,20 @@ If you have a different version of R or other R packages, the documentation may 
 
 - [`SpatialExperiment`](#spatialexperiment)
 - [`VisiumIO`](#visiumio)
+- [`SpatialExperimentIO`](#spatialexperimentio)
+- [`SpatialFeatureExperiment`](#spatialfeatureexperiment)
 - [`ggspavis`](#ggspavis)
+- [`Voyager`](#voyager)
 - [`SpotSweeper`](#spotsweeper)
 - [`Banksy`](#banksy)
 - [`spacexr`](#spacexr)
-- [`SpatialExperimentIO`](#spatialexperimentio)
 - [`hoodscanR`](#hoodscanr)
 - [`scuttle`, `scran`, and `scater`](#scuttle-scran-and-scater)
 - [`bluster`](#bluster)
 - [`patchwork`](#patchwork)
 - [`pals`](#pals)
-- [`pheatmap`](#pheatmap)
 - [`purrr`](#purrr)
+- [`pheatmap`](#pheatmap)
 - [`ComplexHeatmap`](#complexheatmap)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -66,8 +68,43 @@ Read the R package [`VisiumIO` documentation](https://www.bioconductor.org/packa
 | `VisiumIO` | [`TENxVisium()`](https://www.bioconductor.org/packages/release/bioc/vignettes/VisiumIO/inst/doc/VisiumIO.html#tenxvisium) | 10x Visium | Constructor function for importing 10x Visium data |
 | `VisiumIO`| [`import()`](https://www.bioconductor.org/packages/release/bioc/vignettes/VisiumIO/inst/doc/VisiumIO.html#importing-into-spatialexperiment) | Import | Loads 10x Visium data defined with the `TENxVisium()` constructor function |
 
+### `SpatialExperimentIO`
+
+<!-- TODO: This package has not yet made it to rdrr -->
+Read the [`SpatialExperimentIO` package documentation](https://www.bioconductor.org/packages/release/bioc/html/SpatialExperimentIO.html) and a [vignette on its usage](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperimentIO/inst/doc/SpatialExperimentIO.html).
+
+This package provides reader functions for imaging-based spatial transcriptomics platforms, including Xenium (10x Genomics), CosMx (NanoString), MERSCOPE (Vizgen), and STARmap PLUS.
 
 
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+| `SpatialExperimentIO` | [`readXeniumSXE()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperimentIO/inst/doc/SpatialExperimentIO.html#xenium) | Read Xenium into a Spatial Experiment | Loads an unzipped 10x Genomics Xenium output bundle directory into a `SpatialExperiment` object |
+
+
+<div style="page-break-after: always;"></div>
+
+### `SpatialFeatureExperiment`
+
+<!-- TODO: This package has not yet made it to rdrr -->
+Read the [`SpatialFeatureExperiment` package documentation](https://pachterlab.github.io/SpatialFeatureExperiment/).
+
+This package provides functions for working with spatial transcriptomics data in the `SpatialFeatureExperiment` format, including reading data from various platforms (Visium, CosMx, Xenium), transforming spatial coordinates, and constructing spatial graphs.
+
+|Library/Package|Piece of Code|What it's called| What it does|
+|---------------|-------------|----------------|-------------|
+| `SpatialFeatureExperiment` | [`toSpatialFeatureExperiment(x)`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/SpatialFeatureExperiment-coercion.html) | Convert to SFE | Convert a `SpatialExperiment` or `Seurat` object to a `SpatialFeatureExperiment` object |
+| `SpatialFeatureExperiment` | [`read10xVisiumSFE()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/read10xVisiumSFE.html) | Read 10x Visium | Read 10x Visium data from Space Ranger into a `SpatialFeatureExperiment` object |
+| `SpatialFeatureExperiment` | [`readXenium()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/readXenium.html) | Read Xenium | Read Xenium data into a `SpatialFeatureExperiment` object |
+| `SpatialFeatureExperiment` | [`mirror()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/SFE-transform.html) | Mirror | Flip the spatial coordinates of a `SpatialFeatureExperiment` object |
+| `SpatialFeatureExperiment` | [`mirrorImg()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/SFE-image.html) | Mirror image | Flip the image in a `SpatialFeatureExperiment` object |
+| `SpatialFeatureExperiment` | [`colGraph()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/spatialGraphs.html) | Column graph | Get or set the column graph of a `SpatialFeatureExperiment` object |
+| `SpatialFeatureExperiment` | [`bbox()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/bbox-SpatialFeatureExperiment-method.html) | Bounding box | Get the bounding box (crop) of a `SpatialFeatureExperiment` object |
+| `SpatialFeatureExperiment` | [`findDebrisCells()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/findDebrisCells.html) | Find debris cells | Identify debris cells in a `SpatialFeatureExperiment` object (or the spatial coordinates of the cells) |
+| `SpatialFeatureExperiment` | [`findSpatialNeighbors()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/findSpatialNeighbors.html) | Spatial neighbor graph | Create a graph representing the spatial relationships between spots |
+| `SpatialFeatureExperiment` | [`findVisiumGraph()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/findVisiumGraph.html) | Visium graph | Create a graph representing the spatial relationships between spots in a Visium dataset |
+
+
+<div style="page-break-after: always;"></div>
 
 ### `ggspavis`
 
@@ -80,6 +117,20 @@ Read the [`ggspavis` package documentation](https://www.bioconductor.org/package
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
 | `ggspavis` | [`plotCoords()`](https://www.bioconductor.org/packages/release/bioc/vignettes/ggspavis/inst/doc/ggspavis_overview.html#spot-shape---slide-seq-and-visium) | Plot coordinates | Creates a spot plot showing spatial locations in x/y with options for spot annotation  |
 | `ggspavis` | [`plotVisium()`](https://www.bioconductor.org/packages/release/bioc/vignettes/ggspavis/inst/doc/ggspavis_overview.html#spot-shape---slide-seq-and-visium) | Plot Visium | Creates a spot plot for Visium data specifically showing spatial locations in x/y with options for spot annotation as well as an option to show the spatial image, e.g., the H&E image  |
+
+
+### `Voyager`
+
+<!-- TODO: This package has not yet made it to rdrr -->
+Read the [`Voyager` package documentation](https://pachterlab.github.io/voyager/).
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
+| `Voyager` | [`runMoransI()`](https://pachterlab.github.io/voyager/reference/calculateUnivariate.html) | Moran's I | Computes Moran's I statistic for spatial autocorrelation in a `SpatialFeatureExperiment` object |
+| `Voyager` | [`runUnivariate()`](https://pachterlab.github.io/voyager/reference/calculateUnivariate.html) | Univariate analysis | Performs univariate analysis for spatial features in a `SpatialFeatureExperiment` object using various methods (including Moran's I tests) |
+| `Voyager` | [`plotImage()`](https://pachterlab.github.io/voyager/reference/plotImage.html) | Plot image | Plots an image (e.g., H&E image) associated with a `SpatialFeatureExperiment` object |
+| `Voyager` | [`plotColGraph()`](https://pachterlab.github.io/voyager/reference/plotColGraph.html) | Plot column graph | Performs multivariate analysis for spatial features in a `SpatialFeatureExperiment` object using various methods |
+| `Voyager` | [`plotSpatialFeature()`](https://pachterlab.github.io/voyager/reference/plotSpatialFeature.html) | Plot spatial feature | Plots a feature value using the spatial coordinates in a `SpatialFeatureExperiment` object |
 
 
 <div style="page-break-after: always;"></div>
@@ -128,19 +179,6 @@ Read the [`spacexr` package documentation](https://www.bioconductor.org/packages
 
 <div style="page-break-after: always;"></div>
 
-### `SpatialExperimentIO`
-
-<!-- TODO: This package has not yet made it to rdrr -->
-Read the [`SpatialExperimentIO` package documentation](https://www.bioconductor.org/packages/release/bioc/html/SpatialExperimentIO.html) and a [vignette on its usage](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperimentIO/inst/doc/SpatialExperimentIO.html).
-
-This package provides reader functions for imaging-based spatial transcriptomics platforms, including Xenium (10x Genomics), CosMx (NanoString), MERSCOPE (Vizgen), and STARmap PLUS.
-
-
-| Library/Package      | Piece of Code      | What it's called    | What it does  |
-|----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
-| `SpatialExperimentIO` | [`readXeniumSXE()`](https://www.bioconductor.org/packages/release/bioc/vignettes/SpatialExperimentIO/inst/doc/SpatialExperimentIO.html#xenium) | Read Xenium into a Spatial Experiment | Loads an unzipped 10x Genomics Xenium output bundle directory into a `SpatialExperiment` object |
-
-<div style="page-break-after: always;"></div>
 
 ### `hoodscanR`
 
@@ -204,7 +242,7 @@ Read the [`bluster` package documentation](https://rdrr.io/bioc/bluster/) and vi
 | `bluster`| [`approxSilhouette()`](https://rdrr.io/bioc/bluster/man/approxSilhouette.html)| Approximate silhouette width | Calculate an approximate silhouette width for each cell given a set of clusters |
 | `bluster`| [`neighborPurity()`](https://rdrr.io/bioc/bluster/man/neighborPurity.html)| Compute neighborhood purity | Calculate neighborhood purity for each cell given a set of clusters |
 | `bluster`| [`bootstrapStability()`](https://rdrr.io/bioc/bluster/man/bootstrapStability.html)| Assess cluster stability by bootstrapping  | Generate cluster bootstrap replicates to estimate cluster robustness to sampling noise  |
-| `bluster` | [`pairwiseRand()`](https://rdrr.io/bioc/bluster/man/pairwiseRand.html) | Compute pairwise Rand indices | Calculate the Rand index (adjusted, by default) between pairs of clustering results, using one of several available calculation modes | 
+| `bluster` | [`pairwiseRand()`](https://rdrr.io/bioc/bluster/man/pairwiseRand.html) | Compute pairwise Rand indices | Calculate the Rand index (adjusted, by default) between pairs of clustering results, using one of several available calculation modes |
 
 
 
@@ -216,9 +254,10 @@ Read the [`patchwork` package documentation](https://rdrr.io/cran/patchwork), an
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|----------------------------|--------------------------------------------|--------------------------------------------------------------|
-| `patchwork` | [`wrap_plots()`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Wrap plots | Wrap multiple `ggplot2` objects into a single multi-panel plot  |
 | `patchwork` | [`+`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Place `ggplot2` objects side-by-side by adding them together with a `+`. The `patchwork` package must be loaded to use this symbol with plots |
 | `patchwork` | [`/`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Plot arithmetic | Stack `ggplot2` objects on top of one another "dividing" them with a `/`. The `patchwork` package must be loaded to use this symbol with plots |
+| `patchwork` | [`wrap_plots()`](https://rdrr.io/cran/patchwork/man/wrap_plots.html)  | Wrap plots | Wrap multiple `ggplot2` objects into a single multi-panel plot  |
+| `patchwork` | [`plot_layout()`](https://rdrr.io/cran/patchwork/man/plot_layout.html)  | Customize layout | Customize the layout of plots arranged with `patchwork` |
 
 
 <div style="page-break-after: always;"></div>
@@ -234,17 +273,6 @@ Read the [`pals` package documentation](https://rdrr.io/cran/pals/man/pals.html)
 | `pals` | [`alphabet()`](https://rdrr.io/cran/pals/man/discrete.html)  | Alphabet palette | Create a discrete palette from the "alphabet" set of colors |
 
 
-### `pheatmap`
-
-Read the [`pheatmap` package documentation](https://rdrr.io/cran/pheatmap/).
-
-
-| Library/Package      | Piece of Code      | What it's called    | What it does  |
-|----------------------|--------------------|---------------------|---------------|
-| `pheatmap`| [`pheatmap()`](https://rdrr.io/cran/pheatmap/man/pheatmap.html)| Pretty heatmap | Plot a (pretty!) clustered heatmap |
-
-
-
 ### `purrr`
 
 Read the [`purrr` package documentation](https://purrr.tidyverse.org/) and a [vignette on its usage](https://purrr.tidyverse.org/articles/base.html), and download the [`purr` package cheatsheet](https://github.com/rstudio/cheatsheets/raw/main/purrr.pdf).
@@ -255,6 +283,15 @@ Read the [`purrr` package documentation](https://purrr.tidyverse.org/) and a [vi
 | `purrr`| [`imap()`](https://purrr.tidyverse.org/reference/imap.html)| imap |  Apply a function across each element of list and its index/names; return a list |
 | `purrr`| [`reduce()`](https://purrr.tidyverse.org/reference/reduce.html)| Reduce |  Reduce a list to a single value by repeatedly applying a given function. Can also be used to iteratively modify a single object. |
 
+### `pheatmap`
+
+Read the [`pheatmap` package documentation](https://rdrr.io/cran/pheatmap/).
+
+
+| Library/Package      | Piece of Code      | What it's called    | What it does  |
+|----------------------|--------------------|---------------------|---------------|
+| `pheatmap`| [`pheatmap()`](https://rdrr.io/cran/pheatmap/man/pheatmap.html)| Pretty heatmap | Plot a (pretty!) clustered heatmap |
+
 
 ### `ComplexHeatmap`
 
@@ -264,3 +301,4 @@ Read the [`ComplexHeatmap` package documentation](https://rdrr.io/bioc/ComplexHe
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
 |----------------------|--------------------|---------------------|---------------|
 | `ComplexHeatmap`| [`Heatmap()`](https://rdrr.io/bioc/ComplexHeatmap/man/Heatmap.html)| Heatmap | Create a clustered heatmap from a matrix, with options to split, annotate, and combine it with other heatmaps |
+
