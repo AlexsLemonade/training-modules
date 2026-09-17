@@ -121,6 +121,7 @@ Read the [`ggspavis` package documentation](https://www.bioconductor.org/package
 
 ### `Voyager`
 
+<!-- TODO: This package has not yet made it to rdrr -->
 Read the [`Voyager` package documentation](https://pachterlab.github.io/voyager/).
 
 | Library/Package      | Piece of Code      | What it's called    | What it does  |
