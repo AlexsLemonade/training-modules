@@ -34,10 +34,11 @@ To begin, we'll load `SpatialExperiment`, the core package for spatial transcrip
 library(SpatialExperiment)
 
 # To support plotting
+library(ggplot2)
 library(patchwork)
 
 # Set ggplot2 theme
-ggplot2::theme_set(ggplot2::theme_bw())
+theme_set(theme_bw())
 ```
 
 ### Directories and files
@@ -340,9 +341,9 @@ ggspavis::plotVisium(
   # specify a custom palette
   pal = c("Yes" = "yellow", "No" = "red")
 ) +
-  # use ggplot2::guides() to override legend titles in ggspavis
-  ggplot2::guides(
-    fill = ggplot2::guide_legend(
+  # use guides() to override legend titles in ggspavis
+  guides(
+    fill = guide_legend(
       title = "Spot overlaps tissue", 
       override.aes = list(size = 2)
     )
@@ -417,20 +418,20 @@ coldata_df <- colData(filtered_spe) |>
   tibble::rownames_to_column("barcode") 
 
 # Define density plots for each statistic
-qc_plot_sum <- ggplot2::ggplot(coldata_df) + 
-  ggplot2::aes(x = sum) + 
-  ggplot2::geom_density(fill = "lightblue") +
-  ggplot2::labs(title = "Total unique UMIs")
+qc_plot_sum <- ggplot(coldata_df) + 
+  aes(x = sum) + 
+  geom_density(fill = "lightblue") +
+  labs(title = "Total unique UMIs")
 
-qc_plot_detected <- ggplot2::ggplot(coldata_df) + 
-  ggplot2::aes(x = detected) + 
-  ggplot2::geom_density(fill = "steelblue") +
-  ggplot2::labs(title = "Total detected genes")
+qc_plot_detected <- ggplot(coldata_df) + 
+  aes(x = detected) + 
+  geom_density(fill = "steelblue") +
+  labs(title = "Total detected genes")
 
-qc_plot_mito <- ggplot2::ggplot(coldata_df) + 
-  ggplot2::aes(x = subsets_mito_percent) + 
-  ggplot2::geom_density(fill = "slateblue") +
-  ggplot2::labs(title = "Mitochondrial %")
+qc_plot_mito <- ggplot(coldata_df) + 
+  aes(x = subsets_mito_percent) + 
+  geom_density(fill = "slateblue") +
+  labs(title = "Mitochondrial %")
 
 
 # Plot together with patchwork
@@ -463,30 +464,30 @@ We'll also include the H&E plot here to be able to quickly compare patterns seen
 #| message: false
 
 he_plot <- ggspavis::plotVisium(filtered_spe, spots = FALSE, zoom = TRUE) +
-  ggplot2::labs(title = "H&E") +
+  labs(title = "H&E") +
   # add styling to match other panels
-  ggplot2::theme(
-    plot.title = ggplot2::element_text(
+  theme(
+    plot.title = element_text(
       hjust = 0.5, 
-      margin = ggplot2::margin(0, 0, 0.1, 0)
+      margin = margin(0, 0, 0.1, 0)
     ),
-    panel.border = ggplot2::element_rect(color = "black", linewidth = 0.25)
+    panel.border = element_rect(color = "black", linewidth = 0.25)
   )
 
 qc_spots_sum <- ggspavis::plotCoords(filtered_spe, annotate="sum", point_size = 1) + 
   # use distinct palette
-  ggplot2::scale_color_distiller(palette = "Blues", direction = 1) +
-  ggplot2::labs(title = "Total unique UMIs")
+  scale_color_distiller(palette = "Blues", direction = 1) +
+  labs(title = "Total unique UMIs")
 
 qc_spots_detected <- ggspavis::plotCoords(filtered_spe, annotate="detected", point_size = 1) + 
   # use distinct palette
-  ggplot2::scale_color_distiller(palette = "YlOrRd", direction = 1) +
-  ggplot2::labs(title = "Total detected genes")
+  scale_color_distiller(palette = "YlOrRd", direction = 1) +
+  labs(title = "Total detected genes")
 
 qc_spots_mito <- ggspavis::plotCoords(filtered_spe, annotate="subsets_mito_percent", point_size = 1) + 
   # use distinct palette
-  ggplot2::scale_color_distiller(palette = "Greens", direction = 1) +
-  ggplot2::labs(title = "Mitochondrial %")
+  scale_color_distiller(palette = "Greens", direction = 1) +
+  labs(title = "Mitochondrial %")
 
 # wrap plots with patchwork into 2x2 grid
 patchwork::wrap_plots(
@@ -572,13 +573,13 @@ filtered_spe_coldata <- colData(filtered_spe) |>
   as.data.frame()
 
 # Plot sum_z across sum_log
-ggplot2::ggplot(filtered_spe_coldata) + 
-  ggplot2::aes(
+ggplot(filtered_spe_coldata) + 
+  aes(
     x = sum_log,
     y = sum_z,
     color = sum_outliers
   ) +
-  ggplot2::geom_point(alpha = 0.5)
+  geom_point(alpha = 0.5)
 ```
 
 We see here that most spots are not outliers for the `sum` metric.
@@ -608,10 +609,10 @@ sum_log_plot <- SpotSweeper::plotQCmetrics(
   stroke = 0.75 # size of outline
 ) +
   # customize the palette for filling spots
-  ggplot2::scale_fill_viridis_c(option = "magma") +
+  scale_fill_viridis_c(option = "magma") +
   # customize the outlier outline
-  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
-  ggplot2::labs(title = "Log of total UMI")
+  scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
+  labs(title = "Log of total UMI")
 
 
 sum_z_plot <- SpotSweeper::plotQCmetrics(
@@ -620,9 +621,9 @@ sum_z_plot <- SpotSweeper::plotQCmetrics(
   outliers = "sum_outliers", # which spots to *color* with an outline
   stroke = 0.75 # size of outline
 ) +
-  ggplot2::scale_fill_viridis_c() +
-  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
-  ggplot2::labs(title = "Local z-score for total UMI")
+  scale_fill_viridis_c() +
+  scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
+  labs(title = "Local z-score for total UMI")
 
 sum_log_plot + sum_z_plot
 ```
@@ -650,9 +651,9 @@ SpotSweeper::plotQCmetrics(
   outliers = "detected_outliers", 
   stroke = 0.75
 ) +
-  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
-  ggplot2::scale_fill_viridis_c() +
-  ggplot2::labs(title = "Log of total genes detected")
+  scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
+  scale_fill_viridis_c() +
+  labs(title = "Log of total genes detected")
 ```
 
 As with local `sum` outliers, we see that the `detected` outliers are spread out across the whole tissue and not concentrated in specific tissue regions.
@@ -679,9 +680,9 @@ SpotSweeper::plotQCmetrics(
   stroke = 0.75
 ) +
   # switch palette direction to make outliers are darker colors, matching other plots
-  ggplot2::scale_fill_viridis_c(direction = -1) +
-  ggplot2::scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
-  ggplot2::labs(title = "Mitochondrial percentage")
+  scale_fill_viridis_c(direction = -1) +
+  scale_color_manual(values = c(`TRUE` = "black", `FALSE` = "transparent")) +
+  labs(title = "Mitochondrial percentage")
 
 ```
 
@@ -844,8 +845,8 @@ wt1_plot <- ggspavis::plotCoords(
   assay = "logcounts", # counts are plotted by default, so we need to override this
   point_size = 1.25
 ) + 
-  ggplot2::scale_color_viridis_c() + # custom color scale
-  ggplot2::labs(title = "WT1")
+  scale_color_viridis_c() + # custom color scale
+  labs(title = "WT1")
 
 # plot h&e with WT1 plot
 he_plot + wt1_plot 
@@ -869,8 +870,8 @@ col1a1_plot <- ggspavis::plotCoords(
   assay = "logcounts",
   point_size = 1.25
 ) + 
-  ggplot2::scale_color_viridis_c() + 
-  ggplot2::labs(title = "COL1A1")
+  scale_color_viridis_c() + 
+  labs(title = "COL1A1")
 
 # plot H&E with COL1A1 plot
 he_plot + col1a1_plot 
