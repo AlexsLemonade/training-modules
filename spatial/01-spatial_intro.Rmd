@@ -68,7 +68,6 @@ ref_dir <- file.path("data/reference")
 mito_file <- file.path(ref_dir, "hs_mitochondrial_genes.tsv")
 ```
 
-
 And now, we'll define the output paths and files we'll use for exporting.
 
 ```{r outputs, live = TRUE}
@@ -100,7 +99,6 @@ Because the data we're working with comes from the [ScPCA Portal](https://scpca.
 Space Ranger also outputs both filtered and raw matrices; today we will start with the raw matrix and perform all of our own filtering.
 
 Before importing the data, let's go ahead and look what files we have:
-
 
 ```{r dir-data, live = TRUE}
 dir(spaceranger_dir)
@@ -439,11 +437,11 @@ For example, a natural threshold for this `subsets_mito_percent` distribution mi
 
 What's actually going on here, and what should we do about it?
 
-* First, because each sequenced spot is an aggregate of cells, quality issues in individual cells can end up being smoothed out by their neighbors, so we may not easily perceive those signatures in per-spot statistics.
-* Second, the technical factors that affect spatial transcriptomic data quality are fundamentally different from the factors that affect single-cell data quality.
+- First, because each sequenced spot is an aggregate of cells, quality issues in individual cells can end up being smoothed out by their neighbors, so we may not easily perceive those signatures in per-spot statistics.
+- Second, the technical factors that affect spatial transcriptomic data quality are fundamentally different from the factors that affect single-cell data quality.
 In single-cell data, differences in cell capture across droplets are a main source of quality issues that lead to cell damage or cells with very few UMIs or genes.
 Due to fundamental differences in library preparation, this is not a factor in spatial transcriptomic data; instead, problems with tissue preparation (e.g., tissue did not lay flat on the slide or was not permeabilized homogeneously) tend to be a more significant factor driving differences in QC statistics.
-* Third, the biological heterogeneity in the tissue means that using global thresholds to filter has substantial potential to _bias_ analysis.
+- Third, the biological heterogeneity in the tissue means that using global thresholds to filter has substantial potential to _bias_ analysis.
 For example, if a particular tissue compartment is dominated by cell types which naturally have lower expression, we might end up filtering out meaningful regions of the tissue.
 As such, the QC statistics themselves can be confounded with spatial biology.
 Filtering using global thresholds assumes that signal from low-quality cells (or spots) should trump signal from biological heterogeneity, but this assumption is not clearly met for spatial data.
@@ -454,6 +452,8 @@ We'll also include the H&E plot here to be able to quickly compare patterns seen
 ```{r global qc coords}
 #| fig.width: 10
 #| message: false
+
+# create the H&E plot
 he_plot <- ggspavis::plotVisium(filtered_spe, spots = FALSE, zoom = TRUE) +
   labs(title = "H&E") +
   # add styling to match other panels
@@ -465,6 +465,7 @@ he_plot <- ggspavis::plotVisium(filtered_spe, spots = FALSE, zoom = TRUE) +
     panel.border = element_rect(color = "black", linewidth = 0.25)
   )
 
+# plots for each QC measure
 qc_spots_sum <- ggspavis::plotCoords(
   filtered_spe,
   annotate = "sum",
@@ -509,6 +510,7 @@ As such, using global thresholds is not going to be suitable for spatial data, s
 (It's worth noting that this is not strictly a spatial transcriptomics issue; it's very possible for differences among cell types to confound QC statistics in single-cell data too.
 Always plot your data to make sure your filters make sense for your data!)
 
+
 ### Filtering with local QC thresholds
 
 Rather than finding outliers based on overall QC statistics derived across biologically distinct tissue regions, we can instead look for _local_ outliers to filter.
@@ -522,21 +524,19 @@ This approach reduces the chance that we'll bias filtering by tissue biology bec
 It's also worth noting that `SpotSweeper` also has the ability to detect so-called "hangnails," which are regional technical artifacts resulting from issues with tissue preparation.
 Their hangnail detection uses variance in mitochondrial percentages, and since our mitochondrial percentages are very low with minimal variance, hangnail detection won't be relevant for us here.
 
-
 `SpotSweeper::localOutliers()` returns an `SPE` object with added `colData` columns we can use to find all the local outliers and takes these arguments:
 
-* `metric`: Name of column in `colData` with QC stat of interest
-* `direction`: Either "lower" or "upper" depending on which direction should be filtered
-  * We'll want to use "lower" for `detected` and `sum` (we don't want overly-low values), and we'll want to use `higher` for `subsets_mito_percent` (we don't want overly-high values)
-* `n_neighbors`: Number of neighbors for building the `kNN` graph; Default is 36
-* `log`: Whether to consider the `log1p` of the metric; Default is `FALSE`
-  * Because the outlier detection method used assumes a normal distribution, we often need to take the log of our statistics to meet assumptions
-  * We'll want to set `log = TRUE` for `detected` and `sum` because these distributions are unbounded and can span orders of magnitude
-  * We'll want to set `log = FALSE` for `subsets_mito_percent` because it's bounded between 0-100 so logging would distort the distribution
+- `metric`: Name of column in `colData` with QC stat of interest
+- `direction`: Either "lower" or "upper" depending on which direction should be filtered
+  - We'll want to use "lower" for `detected` and `sum` (we don't want overly-low values), and we'll want to use `higher` for `subsets_mito_percent` (we don't want overly-high values)
+- `n_neighbors`: Number of neighbors for building the `kNN` graph; Default is 36
+- `log`: Whether to consider the `log1p` of the metric; Default is `FALSE`
+  - Because the outlier detection method used assumes a normal distribution, we often need to take the log of our statistics to meet assumptions
+  - We'll want to set `log = TRUE` for `detected` and `sum` because these distributions are unbounded and can span orders of magnitude
+  - We'll want to set `log = FALSE` for `subsets_mito_percent` because it's bounded between 0-100 so logging would distort the distribution
 - `cutoff`: Number of standard deviations for for identifying outliers; Default is 3
-  * Higher values mean filtering will be more permissive (more tolerant of outliers, so fewer spots will be removed)
-  * Lower values mean filtering will be more strict (less tolerant of outliers, so more spots will be removed)
-
+  - Higher values mean filtering will be more permissive (more tolerant of outliers, so fewer spots will be removed)
+   Lower values mean filtering will be more strict (less tolerant of outliers, so more spots will be removed)
 
 Let's start off by looking for outliers in the `sum` column, which represents library size (total UMIs).
 
@@ -559,13 +559,13 @@ colData(filtered_spe)
 
 `SpotSweeper` gave us a couple new columns:
 
-* `sum_log`: The `log1p()` (i.e., `log(x+1)`) of the `sum` column.
-* `sum_outliers`: Whether or not the spot is a _local_ outlier in its local neighborhood.
+- `sum_log`: The `log1p()` (i.e., `log(x+1)`) of the `sum` column
+- `sum_outliers`: Whether or not the spot is a _local_ outlier in its local neighborhood.
 Generally we'll want to filter out rows where this is `FALSE`
-* `sum_z`: The _local_ z-score for `sum_log` used for identifying outliers relative to the specified cutoff (here, -3)
-  * A value of 0 means the spot is, on average, the same as its neighbors
-  * A high positive value means the spot has a much higher `sum` than its local neighborhood
-  * A low negative value means the spot has a much lower `sum` than its local neighborhood.
+- `sum_z`: The _local_ z-score for `sum_log` used for identifying outliers relative to the specified cutoff (here, -3)
+  - A value of 0 means the spot is, on average, the same as its neighbors
+  - A high positive value means the spot has a much higher `sum` than its local neighborhood
+  - A low negative value means the spot has a much lower `sum` than its local neighborhood.
   These are the spots we'll want to filter out
 
 Let's look at some of these values directly by plotting `sum_z` against `sum_log`.
@@ -607,7 +607,7 @@ For this, we'll use the function `SpotSweeper::plotQCmetrics()` which lets you b
 
 Tip!
 When using this function, the point color is a "fill" `ggplot2` aesthetic, and the point outline is a "color" `ggplot2` aesthetic.
-This insight will help us to customize the plot colors.
+We can use this knowledge to help us to customize the plot colors.
 
 ```{r spotsweeper-plotqc-sum}
 #| fig.width: 10
@@ -647,6 +647,7 @@ We'll do this one at a time below.
 ```{r spotsweeper-detected, live = TRUE}
 #| fig.width: 7
 #| message: false
+
 # Calculate local outliers for the `detected` metric
 filtered_spe <- SpotSweeper::localOutliers(
   filtered_spe,
@@ -673,6 +674,7 @@ Next, when calculating outliers for `subsets_mito_percent`, we'll need to specif
 ```{r spotsweeper-mito, live = TRUE}
 #| fig.width: 7
 #| message: false
+
 # Calculate local outliers for the `subsets_mito_percent` metric
 filtered_spe <- SpotSweeper::localOutliers(
   filtered_spe,
@@ -870,6 +872,7 @@ Again, we'll plot this alongside the H&E.
 
 ```{r plot-col1a1}
 #| message: false
+
 # create COL1A1 plot and save to variable
 col1a1_plot <- ggspavis::plotCoords(
   norm_spe,
