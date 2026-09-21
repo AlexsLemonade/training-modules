@@ -65,7 +65,7 @@ Some genes sharing expression values or that are not detected will be randomly o
 Set up the directories to read in a Ewing sarcoma `SingleCellExperiment` and output pathway analysis results.
 
 ```{r set_up_directories, solution = TRUE}
-# Input data 
+# Input data
 
 # Directory for holding pathway analysis results
 
@@ -75,7 +75,7 @@ Set up the directories to read in a Ewing sarcoma `SingleCellExperiment` and out
 
 #### Files
 
-`readr::read_tsv()` can read files from the internet directly if you provide it with a URL. 
+`readr::read_tsv()` can read files from the internet directly if you provide it with a URL.
 This URL points to a table of marker genes in [the Open Single-cell Pediatric Cancer Atlas project](https://openscpca.readthedocs.io/en/latest/).
 You can view the current version of analysis module it comes from here: <https://github.com/AlexsLemonade/OpenScPCA-analysis/tree/main/analyses/cell-type-ewings>.
 This notebook is generally adapted from that material!
@@ -83,7 +83,7 @@ This notebook is generally adapted from that material!
 We are using what is called a permalink by including the commit information (`37423e7f42b597ae0402503e0c9ca464d8eb9ac1`), which guarantees we will always get the same version of the table.
 This can be a good practice for reproducibility.
 
-```{r marker_genes_url} 
+```{r marker_genes_url}
 marker_genes_url <- "https://raw.githubusercontent.com/AlexsLemonade/OpenScPCA-analysis/37423e7f42b597ae0402503e0c9ca464d8eb9ac1/analyses/cell-type-ewings/references/visser-all-marker-genes.tsv"
 ```
 
@@ -102,7 +102,7 @@ You may want to come back to this filename after you've chosen a collection from
 
 ## Part A: Read in and prepare data
 
-### Prepare the gene set 
+### Prepare the gene set
 
 Read in the marker genes table using the URL defined above to a variable called `marker_genes_df`.
 
@@ -132,8 +132,8 @@ Here are some things to keep in mind when preparing your gene set:
 
 ```
 
-Now, we'll store it in a list to pass into `AUCell`. 
-Be sure to provide a name for the gene list, which should be "tumor_marker_genes". 
+Now, we'll store it in a list to pass into `AUCell`.
+Be sure to provide a name for the gene list, which should be "tumor_marker_genes".
 Then assign the list to the variable named `ensg_tumor_markers`.
 
 ```{r format_marker_genes}
@@ -210,7 +210,7 @@ auc_df <- cell_auc@assays@data$AUC |> # start with the internal AUC table
   # Convert to data frame
   as.data.frame() |>
   # Make the barcodes a column
-  tibble::rownames_to_column("barcodes") |> 
+  tibble::rownames_to_column("barcodes") |>
   # If the barcode is in the list of assigned barcodes, set the value in the
   # column called tumor_cell to TRUE, and set it to FALSE otherwise
   dplyr::mutate(
@@ -271,9 +271,11 @@ You may need to change the names of the variables passed to the `exprMat` and `a
 
 ```{r collection_auc}
 # Change the variable names as needed
-collection_cell_auc <- AUCell_run(exprMat = counts_matrix,
-                                  geneSets = collection_list,
-                                  aucMaxRank = auc_max_rank)
+collection_cell_auc <- AUCell_run(
+  exprMat = counts_matrix,
+  geneSets = collection_list,
+  aucMaxRank = auc_max_rank
+)
 ```
 
 Create a data frame that contains the AUC values for all gene sets, where the first column is called `barcodes` and contains the cell barcodes.
@@ -339,7 +341,7 @@ Now, let's try plotting a UMAP with the cells colored by AUC value for a particu
 
 To figure out how to accomplish this, review the documentation for `plotReducedDim()`, which is the function underlying `plotUMAP()`.
 
-```{r plot_umap_help}
+```{r plot_umap_help, eval = FALSE}
 ?scater::plotReducedDim
 ```
 
@@ -360,11 +362,12 @@ Sometimes using shape alone can make it difficult to see, so we can also facet b
 
 ```{r shape_and_facet}
 scater::plotUMAP(sce,
-                 shape_by = "tumor_cell",
-                 colour_by = pathway_to_plot, 
-                 other_fields = "tumor_cell") + 
+  shape_by = "tumor_cell",
+  colour_by = pathway_to_plot,
+  other_fields = "tumor_cell"
+) +
   ggplot2::facet_wrap(ggplot2::vars(tumor_cell), ncol = 1) +
-  ggplot2::coord_fixed()  # Keep the plots square
+  ggplot2::coord_fixed() # Keep the plots square
 ```
 
 What is your interpretation of this plot?

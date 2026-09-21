@@ -1,0 +1,801 @@
+---
+title: "Identifying spatially variable genes"
+author: Data Lab for ALSF
+date: "2026"
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+In this exercise notebook, we will again be exploring spatially variable genes (SVGs), this time using the same [Wilms Tumor dataset from the Single-cell Pediatric Cancer Atlas](https://scpca.alexslemonade.org/projects/SCPCP000006) that we used at the beginning of the workshop.
+If you recall, this was a first-generation Visium dataset, and we could use the processed data from that earlier work directly if we wanted to, but here we will start by learning how to import and work with Space Ranger data using the `SpatialFeatureExperiment` package directly.
+`SpatialFeatureExperiment` is an extension of `SpatialExperiment`, so many analysis steps will be unchanged, but we will also have access to additional functionality specific to `SpatialFeatureExperiment`.
+
+We will use this dataset to explore spatially variable genes (SVGs) and how they can be analyzed using the `SpatialFeatureExperiment` framework, as well as how we might approach looking at smaller subsets of the data.
+
+---
+
+In this exercise notebook you will:
+
+- Part A: Import data and perform QC using `SpatialFeatureExperiment` objects
+- Part B: Perform spatially variable gene analysis using `Voyager` and `nnSVG`
+- Part C: Explore SVGs on a subsection of the slide
+
+---
+
+## Part A: Importing data and performing QC
+
+### Set up
+
+First we will load the `SpatialFeatureExperiment` package, which we will be using directly this time, as well as the `SpatialExperiment` package and `ggplot2` and `patchwork` for plotting.
+
+```{r libraries}
+# The main classes we use for spatial transcriptomic data
+suppressPackageStartupMessages({
+  library(SpatialExperiment)
+  library(SpatialFeatureExperiment)
+})
+
+# packages used for plotting
+library(ggplot2)
+library(patchwork)
+
+# Set default ggplot2 theme
+theme_set(theme_bw())
+```
+
+Don't forget to set a random number seed!
+
+```{r seed}
+set.seed(2026)
+```
+
+Next we need to define the paths for our input dataset and reference data (here, a table of mitochondrial genes that we have used before).
+
+```{r inputs}
+# define sample id we'll be analyzing
+sample_id <- "SCPCS000190"
+
+# data directory for this sample
+data_dir <- file.path("data/wilms-tumor", sample_id, "spaceranger")
+
+# reference data directory
+ref_dir <- file.path("data/reference")
+
+# Path to mitochondrial genes table
+mito_file <- file.path(ref_dir, "hs_mitochondrial_genes.tsv")
+```
+
+
+### Importing with `SpatialFeatureExperiment`
+
+We are going to import the data directly using the `SpatialFeatureExperiment` (SFE) package.
+
+This is an alternative to the previous approach we took with the `VisiumIO` package.
+The approaches and defaults for `SpatialFeatureExperiment` and `VisiumIO` are somewhat different, especially in how they handle images and coordinates.
+For example, the `SpatialFeatureExperiment` package will automatically read and store the images as part of the import process.
+But the biggest difference is that the [`SpatialFeatureExperiment` package](https://pachterlab.github.io/SpatialFeatureExperiment/) will build the graph that represents the spatial relationships among spots (the `colGraph`) as part of the import process.
+
+To import 10x Visium data, we will use the [`SpatialFeatureExperiment::read10xVisiumSFE()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/read10xVisiumSFE.html) function to read in the Space Ranger output to an SFE object.
+Note that for other types of spatial data, you would need a different function:
+For Visium HD you would use [`SpatialFeatureExperiment::readVisiumHD()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/readVisiumHD.html), and for Xenium data you would use [`SpatialFeatureExperiment::readXenium()`](https://pachterlab.github.io/SpatialFeatureExperiment/reference/readXenium.html).
+(Don't ask me why only one of those has `10x` and `SFE` in the name.)
+
+The `read10xVisiumSFE()`  function takes the following main arguments:
+
+- `dirs`: the directory where the Space Ranger output is located, which will include the `spatial` directory and `filtered_feature_bc_matrix` directory. 
+You could instead provide the path to the `raw_feature_bc_matrix`, but for this exercise, we want to read in filtered data.
+(Note that we could read in more than one sample by providing a vector of directories, but we will only read one here).
+- `sample_id`: the sample ID to use (or a vector of ids for multiple samples)
+- `data`: the filtering level of data to read in, either `filtered` or `raw`.
+We will be using the filtered data here, so we don't have to first remove spots that do not overlap the tissue
+- `type`: the file format of data to read in, either `sparse` or `HDF5`.
+For the data we have here, we will use `sparse` to read data from the `filtered_feature_bc_matrix` directory.
+If we had the `.h5` files from the Space Ranger output, we could use `HDF5` instead.
+- `images`: which resolution of images to load (optional)
+By default this would load both `lowres` and `highres` images, but to save memory we will only load the `lowres` images.
+- `zero.policy`: Whether to allow spots in the graph that are not connected to any other spots. 
+We will set this to `TRUE`, as this sample (after initial filtering) does have some disconnected spots.
+We will want to address those disconnected spots later, but for now we just want to get the data imported!
+
+```{r import-spaceranger}
+# read Visium (non-HD) data directly into a SpatialFeatureExperiment object
+filtered_sfe <- SpatialFeatureExperiment::read10xVisiumSFE(
+  dirs = data_dir,
+  sample_id = sample_id,
+  data = "filtered", # read the Space Ranger filtered data
+  type = "sparse", # read from the _matrix directories
+  images = "lowres", # load only the low resolution images
+  zero.policy = TRUE # allow for disconnected spots
+)
+```
+
+Have a look at the structure of the SFE object we just created:
+
+```{r view-sfe, solution = TRUE}
+# print the filtered_sfe
+
+```
+
+You should see all of the slots we have expected to see from `SpatialExperiment` objects such as `assays`, `rowData`, `colData` `spatialCoords` and `imgData` as well as the specialized slots for geometry (`Geometries`) and graph data (`Graphs`) that are added by `SpatialFeatureExperiment`.
+
+One other small difference, not immediately visible, is that the Ensembl IDs are used for the row names, as before, but they are not stored in the `rowData` itself.
+Let's fix that by adding a column called `ID` to the `rowData`.
+This is a bit redundant, but it will be useful when we extract the `rowData` in some later analyses. 
+
+```{r add-id}
+rowData(filtered_sfe)$ID <- rownames(filtered_sfe)
+```
+
+
+As mentioned, importing automatically created the the spatial graph for the spots (columns of the object) for us.
+This was created using the pre-computed graph for Visium spots, and you should see it labeled:
+
+```
+Graphs:
+SCPCS000190: col: visium
+```
+
+We will refer to this graph as the `colGraph`.
+
+
+The SFE object created directly from the raw data also has a small difference in how the spot geometries are stored compared to what we have previously seen:
+When we converted a `SpatialExperiment` to a `SpatialFeatureExperiment` object, the spot geometries were stored as `colGeometries: centroids (POINT)`, which is to say as points.
+When we read in the data directly, the spot geometries are instead stored as `colGeometries: spotPoly (POLYGON)`, a polygon of the spot boundaries.
+This is mostly cosmetic: you may notice the circles drawn in some plots that weren't there before, notably the next plot!
+
+Speaking of the next plot, use the next chunk to create a plot of the `colGraph` to visualize the spatial relationships between spots.
+You will want to use the `Voyager::plotColGraph()` function.
+
+```{r plot-colgraph, solution = TRUE}
+# create a plot of the colGraph
+
+```
+
+What do you notice about the spots in the plot? 
+Are they all connected?
+What do you think is the cause of the isolated spots?
+
+To evaluate this, you may want to also view the H&E image for this slide, using the `Voyager::plotImage()` function.
+
+```{r slide-image, solution = TRUE}
+# plot the H&E image
+
+```
+
+You may note these plots are mirrored as compared to the version in the `01-spatial_intro` notebook, but they should appear consistent between the two plots (the spot locations should correspond to tissue locations).
+
+If we want to make a cropped image, we can provide the `bbox` argument, which takes a vector of the bounding box coordinates for the image, listed as `xmin`, `xmax`, `ymin`, `ymax`.
+We can get the bounding box for our SFE object using the `SpatialFeatureExperiment::bbox()` function, which will return a named vector of the bounding box coordinates.
+Unfortunately, there seems to be a bug that means we can't use that directly without making sure the order of the coordinates is correct, so we will reorder them to be in the correct order before plotting.
+
+```{r slide-image-cropped}
+# get the bounding box and reorder it to account for a bug...
+bounds <- SpatialFeatureExperiment::bbox(filtered_sfe)[c("xmin", "xmax", "ymin", "ymax")]
+
+Voyager::plotImage(filtered_sfe, bbox = bounds)
+```
+
+This still isn't quite perfectly aligned with the `colGraph` plot, unfortunately, due to the margins added to the graph plot.  
+`Voyager` doesn't seem to provide a convenient way to plot them together, but we will move on.
+
+### QC and filtering
+
+Since we read the data straight from the Space Ranger output, we still need to do some QC and filtering.
+
+We'll perform the same steps we used in the `01-spatial_intro` notebook, but this time using the SFE object directly.
+Rather than making you type all of this yourself, we will provide most of the code here, as it should all be relatively familiar.
+
+First, we will calculate per-spot QC metrics, including the percentage of mitochondrial genes expressed in each spot.
+For that we need a list of mitochondrial genes, which we will read in from a file, filtering to only the genes present in our `filtered_sfe` object.
+
+```{r get-mito-genes}
+# read in a table of mitochondrial genes and extract ids
+mito_genes <- readr::read_tsv(mito_file) |>
+  # filter to only the genes that are found in our dataset
+  dplyr::filter(gene_id %in% rownames(filtered_sfe)) |>
+  # create a vector from the gene_id column
+  dplyr::pull(gene_id)
+```
+
+Then we need to calculate the spot QC stats, using the `scuttle::addPerCellQC()` function.
+
+```{r calculate qc}
+# calculate per-spot statistics
+filtered_sfe <- scuttle::addPerCellQC(
+  filtered_sfe,
+  subsets = list(mito = mito_genes)
+)
+```
+
+
+Next we will identify local QC outliers using the `SpotSweeper` package, for the following metrics:
+
+- `sum`: the total number of counts per spot
+- `detected`: the number of genes detected per spot
+- `subsets_mito_percent`: the percentage of mitochondrial genes expressed in each spot
+
+We'll do this all in sequence:
+
+```{r spotsweeper}
+# Identify local outliers for each metric
+# use defaults for most arguments
+filtered_sfe <- filtered_sfe |>
+  SpotSweeper::localOutliers(
+    metric = "sum"
+  ) |>
+  SpotSweeper::localOutliers(
+    metric = "detected"
+  ) |>
+  SpotSweeper::localOutliers(
+    metric = "subsets_mito_percent",
+    direction = "higher" # use higher for mito content only
+  )
+```
+
+This filtering should match the filtering that we did before, but it is still a good idea to visualize the spots that would be removed.
+First we will create a column in the `colData` table of the`filtered_sfe` object of the spots that will be removed for being outliers on any of the three measures using the convenient `$` shortcut to that table:
+
+```{r list-remove-spots}
+filtered_sfe$remove_spots <- filtered_sfe$sum_outliers |
+  filtered_sfe$detected_outliers |
+  filtered_sfe$subsets_mito_percent_outliers
+```
+
+We can plot the points that would be removed using the `Voyager::plotSpatialFeature()` function.
+We'll adjust the color scale to make these a bit easier to view, and plot over the H&E image.
+
+```{r plot-remove-spots}
+# plot the spots that would be removed
+Voyager::plotSpatialFeature(
+  filtered_sfe,
+  features = "remove_spots",
+  image_id = "lowres" # plot the H&E image as the background
+) + scale_fill_discrete("To remove", palette = c("grey", "darkred"))
+```
+
+If you are satisfied with the filtering, you can move on to remove the local outlier spots.
+You can do this by selecting spots (columns) from the object as a whole using bracket notation (recall that the second value is columns).
+Store the subset of the data into a variable named `qc_sfe`.
+
+```{r remove-outliers, solution = TRUE}
+# remove outlier spots
+
+```
+
+You will likely see some warnings about sub-graphs.
+This is because there are a number of isolated sections of tissue that are not connected to the main tissue section.
+We will address that next!
+
+### Removing debris spots
+
+Often a slide will have some isolated fragments of tissue or debris that are not part of the main tissue section.
+You may well have noted that with this slide!
+Since these are often damaged tissue and may not be correctly arranged with respect to the rest of the tissue, we will often want to remove those as well.
+
+The `SpatialFeatureExperiment::findDebrisCells()` function can be used to identify these spots, based on their distance from other spots and the number of neighboring spots.
+This step does often involve some trial and error to find the right parameters for your data, depending on how much debris you have and how it is arranged on the slide.
+
+The parameters to control what spots are marked as debris are:
+
+- `max_cells`: the maximum number of spots (cells) in a clump that could be considered debris 
+- `distance_cutoff`: the minimum distance a spot (cell) should be from the tissue before it is considered debris
+
+The `max_cells` value can usually be set by looking at the graph plot and doing a bit of counting.
+The `distance_cutoff` is a bit trickier, as it depends on the units of measurement in the object, which can vary.
+It is quite likely you will want to do some trial and error, looking at the spots/cells that will be excluded by a given set of parameters. 
+*Do not* just use the defaults!
+
+For this dataset, we found that `max_cells = 20` and `distance_cutoff = 300` worked pretty well.
+
+One other important note: for the version of the `SpatialFeatureExperiment` package we are using here, there is a bug that prevents the function from working directly on an SFE object unless that object is named `sfe`.
+[This bug is fixed](https://github.com/pachterlab/SpatialFeatureExperiment/commit/c4ec4f9910b206e13d1a3c9129bfccba5c214798) in later versions, but for now we will work around the bug by pulling out the coordinates using the `spatialCoords()` function and running the `findDebrisCells()` function on that instead.
+This will return a logical vector of spots that we will store in the `is_debris` column of the `colData()` of the SFE object.
+
+```{r find-debris}
+# get coordinates to work around bug in findDebrisCells()
+qc_sfe_coords <- spatialCoords(qc_sfe)
+
+# find debris, store back in qc_sfe
+qc_sfe$is_debris <- SpatialFeatureExperiment::findDebrisCells(
+  qc_sfe_coords,
+  max_cells = 20,
+  distance_cutoff = 300
+)
+
+# remove extra coords
+rm(qc_sfe_coords)
+```
+
+To confirm we have a reasonable set of points to remove, use `Voyager::plotSpatialFeature()` to plot the `is_debris` column that was added to the `colData()` of the SFE object by the `findDebrisCells()` function.
+You may want to plot this without the image as a background, as the purple image can sometimes make it hard to see the blue of the spots that will be removed.
+
+```{r plot-debris, solution = TRUE}
+# plot debris spots
+
+```
+
+Do those spots seem reasonable to remove, or are there some you might want to keep?
+If so, feel free to try again with different parameters to `findDebrisCells()`.
+
+If you are satisfied with the debris spots, go ahead and remove them from the SFE object.
+If not, try adjusting the  `max_cells` and `distance_cutoff` parameters and see how that affects the debris calls.
+
+When you are satisfied, select the non-debris cells from the `qc_sfe` object and store the result back into the `qc_sfe` variable.
+
+```{r remove-debris, solution = TRUE}
+# remove spots
+
+```
+
+### Rebuilding the `colGraph`
+
+You may still have a warning about sub-graphs, which is because there are a couple areas of tissue that are still not connected when we build a spatial graph using the pre-computed Visium coordinates.
+The default graph was built using the same `SpatialFeatureExperiment::findVisiumGraph()` function that we used when converting a `SpatialExperiment` object, but that is not the only option we have for building the spatial graph.
+
+When working with other kinds of data, and in particular image-based data, we may not have such a nice grid of spots to work with.
+In a case like that, we can use an alternative function to create the graph based on the spot coordinates directly.
+This will allow us to use spots or cells that are not so regularly arranged as Visium spots.
+We'll do that here to illustrate the difference (and to prevent future warnings about disconnected sub-graphs).
+
+The function we will use is `SpatialFeatureExperiment::findSpatialNeighbors()`.
+This function has many options for the exact method for constructing the graph, as well as for how we weight connections among spots.
+This was not relevant for the pre-computed Visium graph as all spots were the same distance apart, but here we probably want to downweight more distant connections among spots.
+Here we will use `dist_type = "idw"` to specify inverse distance weighting, but we could also use `exp` for exponential decay if we wanted.
+We will also set `style = "W"`, which scales the weights so that the weights of connections for each spot add up to a total of 1.
+
+When we create this new graph, we will store it back in the `colGraph` slot.
+(Note that the bare `colGraph()` function is available because we loaded `SpatialFeatureExperiment` at the top of the notebook)
+
+```{r spatial-neighbor-graph}
+colGraph(qc_sfe) <- SpatialFeatureExperiment::findSpatialNeighbors(
+  qc_sfe,
+  dist_type = "idw",
+  style = "W"
+)
+```
+
+Plot the updated `colGraph` using `Voyager::plotColGraph`, but for this run add a `weights = TRUE` argument to see the effects of the `dist_type` argument.
+
+```{r plot-weightedgraph, solution = TRUE}
+
+```
+
+If you want, you can compare this plot to the one you get from a different `dist_type` choice. 
+
+
+### Normalization
+
+As the last step of data preparation, we will do the same expression normalization that we have used before.
+We will use `scuttle` to compute library size factors and perform normalization, saving the result in a variable named `sfe`.
+
+```{r normalize-sfe}
+# calculate per-spot size factors
+qc_sfe <- scuttle::computeLibraryFactors(qc_sfe)
+
+# perform normalization and save as sfe
+sfe <- scuttle::logNormCounts(qc_sfe)
+```
+
+
+## Part B: Spatially variable gene analysis
+
+### Identifying highly variable genes
+
+As we did before, we are going to restrict our analysis to highly variable genes.
+For memory and speed reasons, the provided code here will use only the top 1000 genes, but you can adjust this as you like (for example, to 2000 HVGs).
+
+We will use the same `scran` functions as we would use in single-cell analysis to identify biologically variable genes: `scran::modelGeneVar()` and `scran::getTopHVGs()`.
+We will then use those results to filter our SFE object to just include those genes.
+
+```{r get-hvgs}
+# model gene variance
+gene_variance <- scran::modelGeneVar(sfe)
+
+# calculate the top 1000 HVGs
+hvg_vector <- scran::getTopHVGs(gene_variance, n = 1000)
+
+# filter the SFE to only include the highly variable genes
+sfe <- sfe[hvg_vector, ]
+```
+
+
+Take one more look at the contents of the SFE object in the chunk below.
+Are the dimensions and contents what you would expect to see?
+
+```{r SFE-contents}
+# print SFE
+sfe
+```
+
+
+Before moving on, we will get rid of some of the older SFE objects that we have hanging around.
+This will save us memory for future analysis.
+
+```{r clear-memory}
+# remove unused large objects
+rm(filtered_sfe)
+rm(qc_sfe)
+
+# run garbage collector (quietly)
+gc() |> invisible()
+```
+
+
+### Moran's I
+
+Finally, we are all ready to identify spatially variable genes. 
+To start, calculate Moran's *I* using the `Voyager::runMoransI()` function, storing the results in your `sfe` object.
+
+```{r moranI, solution = TRUE}
+# calculate Moran's I
+
+```
+
+Have a quick look at the results, just to confirm the Moran's *I* results columns were added to the `rowData`.
+How are they named?
+
+```{r moran-hist, solution = TRUE}
+# view rowData
+
+```
+
+As before, the results calculated with `Voyager::runMoransI()` do not include any significance calculation.
+Use the `Voyager::runUnivariate()` function with `type` set to either `moran.test` for a parametric test or `moran.mc` for the Monte Carlo-based method
+If you use `moran.mc`, you will want to use a large value for `nsim` (>= 10,000), which will take quite a long time to run!
+For either method, you can use `BPPARAM = BiocParallel::MulticoreParam(4)` to speed up the calculation through multiprocessing.
+
+```{r moran-test, solution = TRUE}
+
+```
+
+For easier processing, we'll extract the results into a separate data frame.
+Below is an example version of this code which assumes that `moran.test` was used.
+If you went with `moran.mc`, you will have to modify the code to use the `rowData` column names created by that function.
+
+```{r moran-significant}
+moran_df <- rowData(sfe) |>
+  as.data.frame() |>
+  dplyr::select(
+    ID,
+    moran_i = paste0("moran_", sample_id),
+    moran_test_p = paste0("moran.test_p.value_", sample_id)
+  ) |>
+  dplyr::mutate(
+    moran_test_padj = p.adjust(moran_test_p, method = "BH")
+  )
+```
+
+Using the `moran_df` data frame created above, create a histogram of the Moran's I values.
+Does it look like there is a lot or not much spatial variation in these genes? 
+
+```{r plot-moran, solution = TRUE }
+# plot the distribution of Moran's I values
+
+```
+
+Use the adjusted P values to calculate how many genes (of the ones tested) have significant Moran's I values.
+
+```{r count-moran-significance, solution = TRUE}
+# count the number of genes with significant Moran's I values.
+
+```
+
+
+We'd like to make spatial plots showing the expression of the genes with the greatest spatial variation.
+In the chunk below, create a vector of gene ids (from the `ID` column) and store it in a variable named `top_moran`.
+
+```{r get-top-moran, solution = TRUE}
+# extract a vector of the genes with the top 6 Moran's I values
+
+```
+
+Now use `Voyager::plotSpatialFeature()` to make a plot of gene expression for those features.
+To make this easier to interpret, you are probably going to want to use the `swap_rownames` argument, but note that in the `rowData` when read in by `SingleFeatureExperiment` the gene symbols are stored in a column named `symbol` (lower case), as opposed to the capital `Symbol` that `VisiumIO` created.
+
+```{r plot-top-moran, solution = TRUE}
+# create a plot of the top Moran's I values
+
+  # use gene symbols instead of Ensembl IDs for the plot
+
+```
+
+
+### `nnSVG`
+
+Now, for comparison, let's identify spatially variable genes using the [`nnSVG` package](https://bioconductor.org/packages/release/bioc/html/nnSVG.html).
+Use the `nnSVG::nnSVG()` function to calculate the statistics associated with that method, storing the results back in the `sfe` object.
+You can set `n_threads = 4` for multiprocessing to speed up the calculations a bit.
+
+```{r run-nnsvg, solution = TRUE}
+# apply nnSVG method
+
+```
+
+As before, we will collate the results from the `rowData` into a new data frame, renaming to keep things clear.
+We'll also join the `nnSVG` results with our previous results from Moran's I analysis.
+
+```{r collate-results}
+# extract nnSVG results
+svg_df <- rowData(sfe) |>
+  as.data.frame() |>
+  dplyr::select(
+    ID,
+    # rename nnSVG results for clarity
+    nnsvg_stat = LR_stat,
+    nnsvg_propsv = prop_sv,
+    nnsvg_p = pval,
+    nnsvg_padj = padj
+  ) |>
+  # join with previous results
+  dplyr::left_join(
+    moran_df,
+    by = "ID"
+  )
+```
+
+How many genes from this set are significant with `nnSVG`?
+Use the adjusted P value, stored as `nnsvg_padj`, value as your measure.
+
+```{r count-nnsvg-significance, solution = TRUE}
+# count significant nnSVG results
+
+```
+
+Just as you did with the top genes from the Moran's *I* calculation, use the `nnSVG` results to identify a set of top genes and plot their expression across the slide.
+How do the patterns you see from the top `nnSVG` genes compare to what you see from Moran's *I*?
+
+```{r top-nnsvg-plot, solution = TRUE}
+# extract a vector of top nnSVG genes
+
+# plot spatial expression of top nnSVG genes
+
+```
+
+
+Let's also make a scatter plot comparing Moran's *I* and the proportion of spatial variation calculated by `nnSVG`.
+Do these two measures look like they are capturing the same set of genes with the same weight?
+
+```{r plot-moran-nnsvg-stats, solution = TRUE}
+# plot moran's I v
+
+```
+
+## Part C: Explore SVGs on a subsection of the slide
+
+You may have noticed that there seems to be two main tissue regions of this slide: A large top region and a lower region.
+As discussed in the first instruction, these may be the blastemal and stromal regions of the tumor.
+Most likely you noted that much of the spatial variation you saw was for genes that were differentially expressed between these two regions.
+What we would like to do now is to see whether we can identify variation _within_ one of those regions.
+
+To start, we will need a way to separate the two regions so we can select all of the spots from one region but not the other. 
+To do this, we will perform spatially-aware clustering.
+As we have done previously, we will use the [`Banksy` package](https://prabhakarlab.github.io/Banksy/).
+For now, we aren't going to worry too much about getting the parameters "right"; we just want to start to explore this kind of analysis.
+
+Recall that we can use `Banksy::computeBanksy()` to create the `Banksy` matrix that includes spatial information, followed by `Banksy::runBanksyPCA()` to calculate a PCA matrix based on that matrix.
+In the chunk below, run those two steps.
+Make sure to specify the `assay_name` to use the normalized counts and `k_geom` for the number of neighbors to use. 
+
+```{r compute-banksy, solution = TRUE}
+# compute Banksy matrix
+
+# calculate PCA from Banksy matrix
+
+```
+
+
+At this point we could go to the `bluster` package for clustering, or we can use the `Banksy::clusterBanksy()` for a bit of a shortcut, at the cost of some flexibility.
+Since we are just trying to be quick here, we will take that shortcut and perform some simple clustering: K-means clustering with two centers to give us two groups.
+
+```{r cluster-banksy}
+# kmeans cluster with Banksy
+sfe <- Banksy::clusterBanksy(sfe, algo = "kmeans", kmeans.centers = 2)
+```
+
+
+Banksy creates a pretty ugly column name for the clustering results: `clust_M0_lam0.2_kmeans2`.
+Using that we can create a plot showing the clustering groups we have.
+
+```{r plot-banksy}
+# plot Banksy cluster
+Voyager::plotSpatialFeature(
+  sfe,
+  features = "clust_M0_lam0.2_kmeans2",
+  size = 1.5
+)
+```
+
+How does that clustering look to you?
+Does it seem to accurately separate the two regions that you saw?
+
+
+
+We can count how many spots are in each cluster: 
+
+```{r cluster-counts}
+# count cluster spots
+table(sfe$clust_M0_lam0.2_kmeans2)
+```
+
+
+The smaller of these two clusters seems like it corresponds (at least mostly) to the stromal tissue.
+We will take this group of spots and redo some of our spatial analysis within this subset.
+
+In the chunk below, we will create a vector of the spots from the smaller cluster.
+Since this could be cluster 1 or cluster 2 depending on random numbers, we have to do just a bit of wrangling to make sure we are always getting the cluster with fewer spots.
+
+```{r get-smaller-cluster}
+# figure out which is smaller, since the ordering is random
+smallclust <- names(which.min(table(sfe$clust_M0_lam0.2_kmeans2)))
+
+# get the list of spots in this cluster
+smallclust_spots <- colnames(sfe)[sfe$clust_M0_lam0.2_kmeans2 == smallclust]
+```
+
+Now that we have a vector of the spots that are in the smaller cluster, use the chunk below to select just those spots, saving the result in a new variable named `small_sfe`.
+
+```{r select-cluster-spots, solution = TRUE}
+# select smaller cluster spot
+
+```
+When you did that, you probably got some of those sub-graph warnings again.
+That is because we removed so many cells that we left groups of cells in disconnected groups.
+Let's have a quick look at the `colGraph` to see what we have. 
+
+Use the chunk below to create that plot.
+
+```{r plot-small-colgraph, solution = TRUE}
+# plot the weighted colGraph for the subset
+
+```
+
+There are definitely some groups of spots that are separate from the main group.
+This is not inherently a problem; if there were multiple large but separate regions that were from the same tissue type, we could leave the subset SFE as is, and just deal with the warnings.
+In this case, however, it looks like we have one main region and a few much smaller regions, so let's try to reduce down to just the main region.
+
+We'll perform this trimming again using `SpatialFeatureExperiment::findDebrisCells()`.
+The same `distance_cutoff` and `max_cells` values that we used before should work here again.
+Use the chunks below to identify "debris" cells and remove them.
+If you want to check your work before proceeding, you may want to plot the calls before performing the final filtering.
+
+```{r identify-small-debris, solution = TRUE}
+# identify debris cells (using spatialCoords matrix, to avoid bug)
+
+```
+
+
+```{r remove-small-debris, solution = TRUE}
+# filter small_sfe to just the non-debris spots
+
+```
+
+
+Now that the filtering is done, we should be able to see the results of our filtering in the `colGraph` plot:
+
+```{r}
+Voyager::plotColGraph(small_sfe, weights = TRUE)
+```
+
+
+### Run Moran's I on the subset
+
+Before running any more analysis, we will want to remove the previous results from the full slide.
+These were stored in the `rowData`, and some packages have a tendency to just add rows with the same name rather than overwriting existing rows. 
+It sounds bad, and it kind of is.
+
+In any case, it is a good practice to reset the `rowData` to remove (or rename) the previous results.
+We'll do that here by selecting only the basic information for each gene, discarding the rest, and using that to replace the `rowData` in the SFE object for our subset.
+
+```{r reset-rowdata}
+rowData(small_sfe) <- rowData(small_sfe)[c("symbol", "ID", "subsets_mito")]
+```
+
+Now we can calculate new values for Moran's *I*.
+Use the chunk below to calculate those results, using the same functions as before.
+If you want, you can also add in an `nnSVG` calculation, and compare those as well.
+
+```{r small-moran}
+# calculate Moran's I 
+small_sfe <- Voyager::runMoransI(small_sfe)
+small_sfe <- Voyager::runUnivariate(
+  small_sfe,
+  type = "moran.test"
+)
+```
+
+Now we will pull out the results of those calculations to a data frame and do the same renaming as before.
+
+```{r pull-small-moran}
+small_svg_df <- rowData(small_sfe) |>
+  as.data.frame() |>
+  dplyr::select(
+    ID,
+    moran_i = paste0("moran_", sample_id),
+    moran_test_p = paste0("moran.test_p.value_", sample_id),
+  ) |>
+  dplyr::mutate(
+    moran_test_p_adjust = p.adjust(moran_test_p, method = "BH")
+  )
+```
+
+How many genes are significant in this subset of the slide?
+Use the chunk below to count them.
+
+```{r count-subset-significant}
+small_svg_df |>
+  dplyr::count(moran_test_p_adjust < 0.05)
+```
+
+Most likely you will see that there are still a large number of genes that show significant spatial variation.
+Why do you think that is?
+
+Do the same genes vary within tissue and between tissues?
+Did the clustering we did remove all of the tissue-based spatial variation?
+How do you think the number of spots we are looking at affects our ability to detect spatial variation?
+
+To get a better look at this, use the chunk below to plot the genes with the largest values of Moran's *I* in this subset.
+(A tip: use `+ plot_layout(heights = unit(1.5, "in")` to prevent the `patchwork` plots created by `Voyager::plotSpatialFeature()` from overlapping. )
+
+```{r}
+# get top genes for Moran's I from the subset
+small_top_moran <- small_svg_df |>
+  dplyr::slice_max(moran_i, n = 6) |>
+  dplyr::pull(ID)
+
+# plot expression of those genes
+Voyager::plotSpatialFeature(
+  small_sfe,
+  features = small_top_moran,
+  ncol = 2,
+  swap_rownames = "symbol",
+) +
+  plot_layout(heights = unit(1.5, "in"))
+```
+
+
+### Comparing the subset to final results
+
+Those plots give a small view of the differences between the two analyses, but let's look a bit more broadly.
+We'll combine the original results data frame and the subset results data frame using a `dplyr::left_join()`.
+This will ensure that we are always comparing the same genes.
+The `suffix` argument will allow us to label each statistic based on what set of data it was created by (since the two data frames used the same column names).
+
+```{r join-results}
+combined_svg <- dplyr::left_join(
+  svg_df,
+  small_svg_df,
+  by = "ID",
+  suffix = c("_full", "_small")
+)
+```
+
+Using that data frame, create a scatter plot that compares the Moran's *I* values between the full and small subset. 
+What overall patterns do you see?
+
+```{r }
+# plot Moran's I values from the full and small datasets to compare them
+ggplot(combined_svg, aes(x = moran_i_full, y = moran_i_small)) +
+  geom_point(alpha = 0.4) +
+  coord_equal() +
+  labs(
+    title = "Moran's I",
+    x = "Full slide",
+    y = "Small subset"
+  )
+```
+
+How would you characterize the relationship between the Moran's I values for the full slide and just the small subset?
+
+If you have time, you can repeat a similar analysis with the larger cluster subset.
+What would you expect to see when comparing the small vs. large subset (note that they won't contain any of the same spots, as the two groups above do)?
+How else might you want to look at spatially variable genes within this slide?
+
+
+## Session info
+
+```{r}
+sessionInfo()
+```
+

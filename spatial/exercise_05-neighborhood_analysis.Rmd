@@ -122,7 +122,7 @@ Note that this reference has been downsampled to 1000 cells per cell type to kee
 
 ```{r explore-ref, solution=TRUE}
 # print the unique cell type labels in the Level1 column of ref_sce
-unique(ref_sce$Level1)
+
 ```
 
 Now let's go ahead and annotate.
@@ -177,7 +177,7 @@ You can do this by using the `table()` function on the `cell_annotation` column.
 
 ```{r count-celltypes, solution=TRUE}
 # count the number of cells assigned to each cell type
-table(spe$cell_annotation)
+
 ```
 
 Does this match your expectations for the most common cell types based on counts we observed?
@@ -204,8 +204,7 @@ Add `scale_color_manual()` to apply the `cell_type_palette` we just created; you
 #| message: FALSE 
 
 # plot cells on the tissue colored by cell type using our custom palette
-ggspavis::plotCoords(spe, annotate = "cell_annotation") +
-  scale_color_manual(values = cell_type_palette, na.value = "gray90")
+
 ```
 
 What cell types appear to be most dominant? 
@@ -221,7 +220,7 @@ Hint: remember that cells are columns of the SPE object, and you can use `!is.na
 
 ```{r remove-na, solution=TRUE}
 # remove cells that did not receive a cell type annotation
-spe <- spe[, !is.na(spe$cell_annotation)]
+
 ```
 
 Neighborhood analysis with `hoodscanR` happens in three steps, each with its own function:
@@ -237,18 +236,14 @@ Its default is `"cell_annotation"`, which is why we used that column name earlie
 
 ```{r nearest-neighbors, solution=TRUE}
 # for each cell, find its k nearest neighboring cells
-neighbors <- hoodscanR::findNearCells(
-  spe,
-  k = 100, # number of nearest neighbors to consider for each cell
-  anno_col = "cell_annotation" # default
-)
+
 ```
 
 Next, use `hoodscanR::scanHoods()` to convert the neighbor distances into probabilities, using `neighbors$distance` as the input, and save the output as `prob_mtx`.
 
 ```{r prob-mtx, solution=TRUE}
 # convert neighbor distances into probabilities
-prob_mtx <- hoodscanR::scanHoods(neighbors$distance)
+
 ```
 
 Finally, use `hoodscanR::mergeByGroup()` to collapse the per-neighbor probabilities into one probability per cell type, saving the output as `hoods`.
@@ -256,10 +251,7 @@ This function takes two arguments: the probability matrix `prob_mtx`, and the ce
 
 ```{r merge-probabilities, solution=TRUE}
 # collapse the per-neighbor probabilities into one probability per cell type
-hoods <- hoodscanR::mergeByGroup(
-  prob_mtx,
-  neighbors$cells
-)
+
 ```
 
 Let's visualize the neighborhood profiles we just created for a subset of cells using a heatmap.
@@ -308,10 +300,7 @@ Hint: the `pm_cols` argument tells the function which columns hold the probabili
 
 ```{r calc-metrics, solution=TRUE}
 # calculate entropy and perplexity from the neighborhood probability columns
-spe <- hoodscanR::calcMetrics(
-  spe,
-  pm_cols = colnames(hoods)
-)
+
 ```
 
 We can now plot either entropy or perplexity across the tissue.
@@ -325,15 +314,11 @@ Note that although we are only asking you to make one of the plots, the solution
 #| message: FALSE 
 
 # plot entropy across the tissue
-entropy_plot <- ggspavis::plotCoords(spe, annotate = "entropy") +
-  scale_color_viridis_c()
 
 # plot perplexity across the tissue
-perplexity_plot <- ggspavis::plotCoords(spe, annotate = "perplexity") +
-  scale_color_viridis_c()
 
 # combine the plots side by side with patchwork
-entropy_plot + perplexity_plot
+
 ```
 
 Where in the tissue do you see the most mixed neighborhoods?
@@ -349,12 +334,7 @@ We recommend using `hm_width = 8` and `hm_height = 8` to keep the heatmap a read
 #| fig.height: 5
 
 # correlate neighborhood profiles between cell types to find co-localized pairs
-hoodscanR::plotColocal(
-  spe,
-  pm_cols = colnames(hoods),
-  hm_width = 8,
-  hm_height = 8
-)
+
 ```
 
 Which cell types appear to be co-localized?
@@ -406,18 +386,14 @@ This will add a new `colData` column named `clusters` holding the domain assignm
 
 ```{r cluster-domains, solution=TRUE}
 # cluster cells into spatial domains based on their neighborhood profiles
-spe <- hoodscanR::clustByHood(
-  spe,
-  pm_cols = colnames(hoods),
-  k = 8 # number of domains, chosen from the elbow plot above
-)
+
 ```
 
 Use `table()` to see how many cells fall into each domain.
 
 ```{r domain-table, solution=TRUE}
 # count the number of cells assigned to each domain
-table(spe$clusters)
+
 ```
 
 Let's also see where the domains fall in the tissue.
@@ -426,10 +402,9 @@ Note that `clusters` is a column in the `colData` of `spe`, but `plotTissue()` l
 
 ```{r plot-domains, solution=TRUE}
 # plot the spatial domains on the tissue
-hoodscanR::plotTissue(spe, color = clusters, size = 0.1) +
-  scale_color_brewer(palette = "Paired") +
+
   # make the legend points larger and easier to see
-  guides(color = ggplot2::guide_legend(override.aes = list(size = 2)))
+
 ```
 
 For each domain, we can look at which cell types it is made of by plotting the distribution of neighborhood probabilities within each domain.
@@ -441,25 +416,15 @@ Be sure to provide the number of domains with the `show_clusters = seq(k)` optio
 #| fig.width: 12
 
 # for each domain, show the distribution of neighborhood probabilities per cell type
-hoodscanR::plotProbDist(
-  spe,
-  pm_cols = colnames(hoods),
-  by_cluster = TRUE,
-  plot_all = TRUE,
-  fill = hoods,
-  show_clusters = seq(8), # show all domains; change this if you chose a different k
-  outlier.size  = 0.1     # shrink the boxplot outlier points
-) +
+
   # default is 3 columns, but let's use 4
-  facet_wrap(vars(clusters),
-             ncol = 4,
-             scales = "free_x") +
+
   # and remove the strip background
-  theme(strip.background = element_rect(fill = "transparent")) +
+
   # add some colors to cell types
-  scale_fill_manual(values = cell_type_palette) +
+
   # change the default legend title
-  labs(fill = "Cell types")
+
 ```
 
 Which cell types define each domain?
@@ -500,7 +465,7 @@ We will store all of the global `tau` results in this copy while `spe` keeps the
 ```{r copy-spe, solution=TRUE}
 # make a copy of the SPE to hold the global tau results,
 # so we don't overwrite the local results stored in spe
-global_spe <- spe
+
 ```
 
 Next, calculate the global value of `tau` and save it as `global_tau`.
@@ -520,10 +485,7 @@ Save the output as `global_prob_mtx`.
 
 ```{r global-prob-mtx, solution=TRUE}
 # convert neighbor distances into probabilities using the global tau
-global_prob_mtx <- hoodscanR::scanHoods(
-  neighbors$distance,
-  tau = global_tau
-)
+
 ```
 
 Now use `hoodscanR::mergeByGroup()` with `global_prob_mtx` and `neighbors$cells` to collapse the probabilities to one per cell type.
@@ -531,10 +493,7 @@ Save the output as `global_hoods`.
 
 ```{r global-merge-probabilities, solution=TRUE}
 # collapse the per-neighbor probabilities into one probability per cell type
-global_hoods <- hoodscanR::mergeByGroup(
-  global_prob_mtx,
-  neighbors$cells
-)
+
 ```
 
 Just like in Part B, we now need to merge the new neighborhood probabilities into our SPE object.
@@ -558,11 +517,7 @@ Be sure to use `colnames(global_hoods)` for the `pm_cols` argument and the *same
 
 ```{r global-cluster-domains, solution=TRUE}
 # cluster cells into spatial domains using the global neighborhood profiles
-global_spe <- hoodscanR::clustByHood(
-  global_spe,
-  pm_cols = colnames(global_hoods),
-  k = 8 # use the same k you chose in Part C
-)
+
 ```
 
 Similar to when we compared clustering results in previous notebooks, we can make a heatmap comparing the cells assigned to each domain in the local run versus the global run.
@@ -598,11 +553,7 @@ Use `bluster::pairwiseRand()` to calculate the ARI between the local and global 
 
 ```{r calculate-ari, solution=TRUE}
 # calculate the ARI between local and global domain assignments
-bluster::pairwiseRand(
-  spe$clusters,
-  global_spe$clusters,
-  mode = "index"
-)
+
 ```
 
 Based on the heatmap and the ARI, how much does the choice of `tau` ultimately affect the resulting neighborhood profiles and domains?
@@ -631,7 +582,7 @@ Use `readr::write_rds()` to save `spe` to the `hood_spe_file` path we defined at
 
 ```{r save-results, solution=TRUE}
 # save the annotated SPE with neighborhood results
-readr::write_rds(spe, hood_spe_file)
+
 ```
 
 ## Session Info

@@ -1,5 +1,5 @@
 ---
-title: "Spatial Transcriptomics Exercise: Importing, processing, and exploring Visium CytAssist data"
+title: "Importing, processing, and exploring Visium CytAssist data"
 author: Data Lab for ALSF
 date: 2026
 output:
@@ -89,7 +89,7 @@ Note that we won't necessarily use all of these files when we read the data into
 
 Now that we are oriented to our input files, we can import data with `VisiumIO`. 
 In the chunk below use `VisiumIO::import()` to read in the data, saving it to a variable named `spe`. 
-You will use `VisiumIO::TENxVisium()` inside that call to specify, the filtered counts directory, the spatial directory, and which images to import.
+You will use `VisiumIO::TENxVisium()` inside that call to specify the filtered counts directory, the spatial directory, and which images to import.
 
 This time, we'll import multiple images, both the `tissue_hires_image.png` and `cytassist_image.tiff`, into the object by specifying several values to the `images` argument like this:
 
@@ -171,8 +171,8 @@ Briefly, we can see a couple different regions in this ovarian carcinoma tissue:
 * The pink right side is less cellular and likely represents stromal tissue
 * Blood vessels are visible embedded within the tissue
 
-Curiously, the CytAssist is mirrored relative to the `hires` image.
-This is not an error, but a known inconsistency can potentially arise when image orientation is not preserved consistently between processing stages such as imaging and sequencing. 
+Curiously, the CytAssist image is mirrored relative to the `hires` image.
+This is not an error, but a known inconsistency that can potentially arise when image orientation is not preserved consistently between processing stages such as imaging and sequencing. 
 Often this requires manual correction during processing, but that correction is not always performed.
 This conveys an important lesson about how to think about spatial data: Because the slide orientation itself is arbitrary, the absolute x/y coordinates should not be relied on or directly used for analysis. 
 Instead, what matters are the **relative spatial relationships** among spots.
@@ -181,7 +181,7 @@ Measures like the the distance between spots or which spots neighbor each other 
 
 ## Part B: Filter the dataset for low-quality spots
 
-In this section, we'll filter the SPE object for low-quality spots using `SpotSweeper` to flag local outliers for removal.
+In this section, we'll first calculate per-spot metrics and then filter out low-quality spots from the SPE object using `SpotSweeper`, which flags local outliers for removal.
 
 ### Calculate and explore global QC statistics
 
@@ -212,7 +212,7 @@ Confirm that you have calculated these metrics by looking at the updated `colDat
 ```
 
 To get a sense of the overall quality across spots, we'll plot these metrics as density plots.
-We'll quickly make all plots at once using [`purrr::map2()`](https://purrr.tidyverse.org/reference/map2.html), which we'll use  and for fun we'll also use some custom colors too using the variant function .
+We'll quickly make all plots at once using [`purrr::map2()`](https://purrr.tidyverse.org/reference/map2.html), and for fun we'll also use some custom colors using the variant function.
 
 ```{r global qc distributions}
 #| fig.width: 12
@@ -254,7 +254,7 @@ In the chunk below, we'll define two plots and show them side-by-side:
 
 # define H&E plot
 he_plot <- plotVisium(spe, spots = FALSE) +
-  ggtitle("H&E") +
+  labs(title = "H&E") +
   # add some plot styling to match other panels
   theme(
     plot.title = element_text(
@@ -268,7 +268,7 @@ he_plot <- plotVisium(spe, spots = FALSE) +
 qc_spots_sum <- plotCoords(spe, annotate = "sum", point_size = 1) + 
   # use distinct palette and set the legend title
   scale_color_distiller(palette = "Blues", direction = 1, name = "sum") +
-  ggtitle("Total unique UMIs")
+  labs(title = "Total unique UMIs")
 
 # Add plots together for display with patchwork
 he_plot + qc_spots_sum
@@ -376,11 +376,11 @@ plot_qc_coords <- function(
   # don't show the outlier legend
   guides(color = "none") + 
   # turn off the default title
-  ggtitle("")
+  labs(title = "")
 }
 ```
 
-Here's example of how to use this function to plot the `sum_log` metric with outliers highlighted:
+Here's an example of how to use this function to plot the `sum_log` metric with outliers highlighted:
 
 ```{r show plot_qc_coords}
 #| message: false
@@ -409,7 +409,7 @@ When plotting, feel free to take advantage of these arguments we've included in 
 
 ```
 
-Optionally, you can also use the chunk below to show all four plots together with `patchwork` in a 2x2 grid (the H&E plot which we previously defined, `sum_log`, `detected_log`, and `subsets_mito_percent` outlier plots).
+Optionally, you can also use the chunk below to show all four plots together with `patchwork::wrap_plots()` in a 2x2 grid (the H&E plot which we previously defined, `sum_log`, `detected_log`, and `subsets_mito_percent` outlier plots).
 
 ```{r plot all outliers, solution = TRUE}
 #| fig.width: 12
@@ -600,7 +600,7 @@ plot_list <- goi_vector |>
         pal = "viridis", 
         point_size = 0.75
       ) + 
-      ggtitle(gene_name)
+      labs(title = gene_name)
     }
 ) 
 
