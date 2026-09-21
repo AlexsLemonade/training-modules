@@ -229,14 +229,12 @@ counts(spe)[1:10, 1:10]
 
 ```{r spe-rowdata}
 # print the rowData
-rowData(spe) |>
-  head()
+rowData(spe) |> head()
 ```
 
 ```{r spe-coldata, live = TRUE}
 # print the colData
-colData(spe) |>
-  head()
+colData(spe) |> head()
 ```
 
 The `colData` shows us spot coordinate information on the Visium slide, as well as an `in_tissue` column which is an important one.
@@ -249,8 +247,7 @@ These are the coordinates that will be used when we plot this object.
 
 ```{r spe-spatialcoords, live = TRUE}
 # handy function from our code package SpatialExperiment
-spatialCoords(spe) |> 
-  head()
+spatialCoords(spe) |> head()
 ```
 
 There is also a slot called `imgData` with a `DataFrame` of the imported images themselves, although looking at it directly isn't very interesting (but it does allow us to make pretty pictures!).
@@ -468,33 +465,45 @@ he_plot <- ggspavis::plotVisium(filtered_spe, spots = FALSE, zoom = TRUE) +
   # add styling to match other panels
   theme(
     plot.title = element_text(
-      hjust = 0.5, 
+      hjust = 0.5,
       margin = margin(0, 0, 0.1, 0)
     ),
     panel.border = element_rect(color = "black", linewidth = 0.25)
   )
 
-qc_spots_sum <- ggspavis::plotCoords(filtered_spe, annotate="sum", point_size = 1) + 
+qc_spots_sum <- ggspavis::plotCoords(
+  filtered_spe,
+  annotate = "sum",
+  point_size = 1
+) +
   # use distinct palette
   scale_color_distiller(palette = "Blues", direction = 1) +
   labs(title = "Total unique UMIs")
 
-qc_spots_detected <- ggspavis::plotCoords(filtered_spe, annotate="detected", point_size = 1) + 
+qc_spots_detected <- ggspavis::plotCoords(
+  filtered_spe,
+  annotate = "detected",
+  point_size = 1
+) +
   # use distinct palette
   scale_color_distiller(palette = "YlOrRd", direction = 1) +
   labs(title = "Total detected genes")
 
-qc_spots_mito <- ggspavis::plotCoords(filtered_spe, annotate="subsets_mito_percent", point_size = 1) + 
+qc_spots_mito <- ggspavis::plotCoords(
+  filtered_spe,
+  annotate = "subsets_mito_percent",
+  point_size = 1
+) +
   # use distinct palette
   scale_color_distiller(palette = "Greens", direction = 1) +
   labs(title = "Mitochondrial %")
 
 # wrap plots with patchwork into 2x2 grid
 patchwork::wrap_plots(
-  he_plot, 
-  qc_spots_sum, 
-  qc_spots_detected, 
-  qc_spots_mito, 
+  he_plot,
+  qc_spots_sum,
+  qc_spots_detected,
+  qc_spots_mito,
   nrow = 2
 )
 ```
@@ -579,13 +588,21 @@ ggplot(filtered_spe_coldata) +
     y = sum_z,
     color = sum_outliers
   ) +
-  geom_point(alpha = 0.5)
+  geom_point(alpha = 0.5) + 
+  # add a line for the cutoff value
+  geom_hline(yintercept = -3) +
+  # and some labels
+  labs(
+    x = "log(sum + 1)",
+    y = "Local z-score of sum value",
+    color = "sum outlier"
+  )
 ```
 
 We see here that most spots are not outliers for the `sum` metric.
-Most of the spots classified as outliers are fairly close to the -3 cutoff, but several are more extreme outliers.
+Most of the spots classified as outliers are fairly close to the -3 z-score cutoff, but several are more extreme outliers.
 
-We also learn from this plot how performing filtering using global vs local outliers would play out.
+We also learn from this plot how performing filtering using global vs. local outliers would play out.
 Imagine if we had performed global filtering with a threshold of 500, which has a log of 6.21.
 At a cutoff of `sum_log = 6.21`, we would only have removed three spots.
 By using local outlier detection, we have identified several more spots to remove whose `sum` is much lower than their immediately surrounding spots, suggesting potential quality issues.
@@ -636,6 +653,7 @@ We'll do this one at a time below.
 
 ```{r spotsweeper-detected, live = TRUE}
 #| fig.width: 7
+#| message: false
 
 # Calculate local outliers for the `detected` metric
 filtered_spe <- SpotSweeper::localOutliers(
@@ -662,6 +680,7 @@ Next, when calculating outliers for `subsets_mito_percent`, we'll need to specif
 
 ```{r spotsweeper-mito, live = TRUE}
 #| fig.width: 7
+#| message: false
 
 # Calculate local outliers for the `subsets_mito_percent` metric
 filtered_spe <- SpotSweeper::localOutliers(
@@ -899,7 +918,6 @@ But for now, this is a limitation to be aware of.
 # export SPE with compression
 readr::write_rds(norm_spe, output_spe_file, compress = "gz")
 ```
-
 
 
 ## Session info
