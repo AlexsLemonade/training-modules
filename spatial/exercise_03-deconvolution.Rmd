@@ -1,0 +1,508 @@
+---
+title: "Spatial Transcriptomics Exercise: Deconvolution"
+author: Data Lab for ALSF
+date: 2026
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+In this exercise notebook, we'll perform deconvolution using `RCTD` on the same [high-grade serous ovarian carcinoma tissue](https://www.10xgenomics.com/datasets/human-ovarian-cancer-11-mm-capture-area-ffpe-2-standard) dataset we explored in the first exercise notebook (`exercise_01-spatial_intro.Rmd`).
+**In order to do this exercise, you therefore need to complete the exercise and export the filtered and normalized SPE object from that notebook.**
+
+We'll perform deconvolution by using data from [Wang et al. (2022)](https://doi.org/10.1158/0008-5472.CAN-21-3819), available on GEO: <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE189955>, as a reference. 
+This study on serous high-grade ovarian carcinoma used a modified version of a multiomics technique called `scCOOL-seq`, which includes single-cell transcriptomics among other assays.
+The single-cell data was used to perform cell type annotation using clustering and marker gene expression.
+
+---
+
+In this exercise notebook you will,
+
+- Part A: Perform deconvolution on a Visium dataset 
+- Part B: Analyze the dominant cell types across spots
+
+
+# Part A: Perform deconvolution
+
+
+## Setup
+
+Let's begin by loading libraries we'll need for this notebook.
+We'll use `::` syntax for functions from other libraries that we'll use, like `spacexr` for deconvolution.
+
+
+```{r load libraries}
+suppressPackageStartupMessages({
+  library(SpatialExperiment)
+  library(ggplot2)
+})
+
+# set theme for ggplot2 plots
+theme_set(theme_bw())
+```
+
+
+Next, we'll define the path to the input data we'll perform deconvolution on.
+_This file is the output RDS from the `exercise_01-spatial-intro.Rmd` notebook._
+
+```{r define input paths}
+data_dir <- file.path("data")
+processed_dir <- file.path(data_dir, "ovarian-carcinoma/processed")
+
+processed_rds <- file.path(processed_dir, "ovarian-normalized.rds")
+```
+
+Next, we'll define the path to the reference object we'll use for deconvolution from Wang et al., which is stored in the `data/reference` directory. 
+We obtained this data from GEO and prepared it as a `SingleCellExperiment` for use in this notebook, as you can see here: <https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/ovarian-carcinoma/prepare-ovarian-reference.R>.
+
+
+```{r define ref paths}
+ref_dir <- file.path(data_dir, "reference")
+ref_rds <- file.path(ref_dir, "GSE189955_ovarian_ref.rds")
+```
+
+We'll define one more path, an RDS file to export the deconvolution results to at the end of the notebook.
+
+```{r export path}
+rctd_file <- file.path(processed_dir, "ovarian-deconvolution.rds")
+```
+
+## Import the SPE object
+
+In the chunk below, import the normalized SPE object and save it to a variable called `spe`.
+
+```{r read spe, solution = TRUE}
+# read in the processed_rds file
+
+```
+
+Use the chunks below to re-familiarize yourself with this object, including looking at its contents and plotting the H&E image with `ggspavis::plotVisium()`.
+
+```{r explore spe}
+# print the SPE to see its contents, and perform any other explorations you want
+spe
+```
+
+```{r plot visium, solution = TRUE}
+# use ggspavis::plotVisium to see the H&E
+# hint: use the argument spots = FALSE to see just the image
+
+```
+
+
+## Import the reference SCE object
+
+In the chunk below, import the reference SCE object and save it to a variable called `ref_sce`.
+Then, print the object to see its contents.
+
+```{r read ref sce, solution = TRUE}
+# read in the ref_rds file
+
+# print the object
+
+```
+
+
+Note that when we prepared this reference from the original data on GEO, we retained only genes that are also included in our `SPE` object. 
+We also removed cells which did not have a corresponding cell type annotation, leaving a total of 5290 cells in the reference.
+
+Before we use this reference for deconvolution, we should know a little bit about its cell types.
+These are stored in the `Cell_Type` column in the `colData` slot. 
+In the chunk below, count the number of each kind of cell type in this data with `table()`.
+
+```{r table ref cell types, solution = TRUE}
+# count the number of each cell type in the reference
+
+```
+
+This reference is composed of primarily fibroblasts and epithelial cells, as well as immune and other rarer cell types.
+By default, `RCTD` requires at least 25 cells per cell type, so it looks like we have enough to proceed!
+
+## Perform deconvolution
+
+Now that our data is loaded and we understand its contents, we are ready to run deconvolution.
+
+First prepare the input data with `spacexr::createRctd()`.
+For this, you'll need to specify the query SPE object, the reference SCE object, and the column name where the cell types are stored in the reference object (hint: see the previous chunk for the name of this column). 
+Save the prepared input data to a variable `rctd_input`.
+
+```{r run createRctd, solution = TRUE}
+# create the input for RCTD
+
+```
+
+Now, run deconvolution with `spacexr::runRctd()`, specifying "full" mode to infer unconstrained weights and allow an arbitrary number of cell types per spot.
+Save the output to a variable `rctd_result`.
+Note that you can also specify `max_cores = 4` for parallel processing, which should result in about a 1-2 minute runtime. 
+
+```{r run rctd full, solution = TRUE}
+
+```
+
+The result contains an `SPE` object with the per-spot cell type weights stored in an assay `weights`.
+Have a look in the chunks below:
+
+```{r show result}
+# show the full result object
+rctd_result
+```
+
+```{r show weights}
+# show just the top corner of the weights assay
+assay(rctd_result, "weights")[1:6, 1:6]
+```
+
+
+Because we used the "full" mode with the unconstrained model, these values may not exactly sum to 1 per spot.
+Before we use the results, we'll normalize them so that each spot's weights sum to 1, and we can interpret them as proportions.
+We'll save the normalized weights to a new assay in the result object called `proportions`.
+
+```{r normalize weights}
+assay(rctd_result, "proportions") <- assay(rctd_result, "weights") |>
+  # convert to regular matrix for normalization
+  as.matrix() |>
+  # normalize columns (margin = 2)
+  proportions(margin = 2) |>
+  # convert back to sparse matrix
+  as("CsparseMatrix")
+```
+
+Now we will start to dig in by plotting the spatial coordinates, coloring spots by their proportion of each cell type.
+The chunk below makes this plot, using code similar to the `plot_all_results()` helper function we provided in the deconvolution instruction notebook.
+
+```{r plot rctd_result}
+#| fig.width: 8
+#| fig.height: 5
+#| message: false
+#| warning: false
+
+cell_types <- unique(rownames(rctd_result))
+  
+cell_types |>
+  purrr::map(
+    \(cell_type) {
+      spacexr::plotCellTypeWeight(
+        rctd_result, 
+        cell_type,
+        assay_name = "proportions",
+        size = 0.75, 
+        stroke = 0.05,
+        title = cell_type
+      ) + 
+      # add custom styling
+      scale_fill_viridis_c(
+        limits = c(0, 1), 
+        option = "magma", 
+        # begin the magma color at a less dark value
+        # this does not change the scale makes lower values more visible
+        begin = 0.15
+      ) +
+      # reverse y-axis orientation to match H&E orientation
+      scale_y_reverse() + 
+      theme(
+        plot.title = element_text(size = 16),
+        legend.title = element_text(size = 9),
+        legend.text = element_text(size = 9)
+      )
+  }) |>
+  # combine into a single grid of plots, but only include a single legend
+  patchwork::wrap_plots() + 
+  patchwork::plot_layout(guides = "collect")
+```
+
+What are your initial impressions of the cell type distribution in this data?
+Do you see any relationship between the physical layout of cell types on the slide and your visual impression of the H&E?
+Do you see evidence of immune infiltration, and if so does it appear to be spatially uniform or structured? (Note there are more statistically rigorous ways to answer this; here, we're just exploring patterns on a plot!) 
+
+Clearly, this tissue is dominated by fibroblast and epithelial cells (many of which are tumor cells), which makes it harder to see the proportions of rarer cell types on a shared color scale. 
+Let's dig in further to explore the actual per-spot proportion of each cell type.
+
+In the next chunk, we'll create a long-format data frame of cell type proportions across spots.
+
+```{r calculate prop_df}
+# create long data frame of per-spot cell type proportions
+prop_df <- assay(rctd_result, "proportions") |>
+  as.matrix() |>
+  as.data.frame() |> 
+  tibble::rownames_to_column("cell_type") |>
+  tidyr::pivot_longer(!cell_type, names_to = "barcode", values_to = "prop") 
+
+# show the data frame
+prop_df
+```
+
+Next, we'll plot these as density plots, with each cell type in its own facet, including a few visual guides:
+
+- Using `geom_rug()` we'll show locations of individual values in each density plot
+- Using `geom_vline()` we'll show a vertical line at `x = 0.1` as a rough guide to assess which proportions may be noise.
+Recall, as spots contain roughly 1-10 cells, very low proportions are likely to be noise rather than definitive indicators of that cell type
+
+```{r density prop_df}
+ggplot(prop_df) + 
+  aes(x = prop) + 
+  geom_density(bounds = c(0, 1)) +
+  geom_rug(length = unit(0.15, "cm"), color = "steelblue", alpha = 0.7) + 
+  geom_vline(xintercept = 0.1, color = "red") +
+  facet_wrap(vars(cell_type), scales = "free_y")
+```
+
+This plot suggests that we may not have robust signal of ciliated or secretory cells, but immune cell types (macrophages and T cells) are likely present to some degree and not just noise. 
+
+We'll go ahead and count how many spots each cell type appears in, considering only proportions that are greater than 0.1 to reduce the chances of noise.
+It's important to note that this may reduce the odds of capturing very rare cell types, so you may wish to use lower values (e.g., 0.05) if you expect very high cell-type counts per spot in your data. 
+
+First, in the chunk below, create a new data frame called `confident_df` that contains only cell types whose proportions are greater than 0.1.
+
+```{r create confident_df, solution = TRUE}
+
+```
+
+Next, count the number of each cell type in `confident_df`, using either `table()` or `dplyr::count()`.
+This will tell us how many spots each cell type likely appears in.
+
+```{r count cell types, solution = TRUE}
+
+```
+
+Based on our density plots and these counts, it seems there are some confidently-called immune cells, albeit fewer than epithelial or fibroblast, but ciliated and secretory cells are extremely rare.
+
+### Hone in on immune cell types
+
+From the coordinate plots we made above, we got a very good sense of the spatial distribution of epithelial cells and fibroblasts.
+But, it was more challenging to see the spatial layout of immune cells due to scale.
+
+To see these more clearly, we'll plot their proportions on a coordinate plot on a zoomed-in scale.
+
+First, let's plot macrophages.
+To see lower proportions, we'll use the `limits` argument with `scale_fill_gradient()` to limit the scale from 0 - 0.4.
+We'll also specify here `oob = scales::squish` to right-censor higher values; in other words, spots with a macrophage proportion greater than 0.4 will appear in the plot as 0.4.
+
+```{r plot macrophages zoomed}
+spacexr::plotCellTypeWeight(
+  rctd_result, 
+  cell_type = "Macrophages", 
+  assay = "proportions",
+  size = 1.25,
+  stroke = 0.1
+  ) + 
+  # specify a custom gradient
+  scale_fill_gradient(
+    low = "navy", 
+    high = "yellow", 
+    # proportions above 0.4 will be set at 0.4 in the plot
+    limits = c(0, 0.4), 
+    oob = scales::squish
+  ) +
+  # flip direction to match H&E
+  scale_y_reverse()
+```
+
+
+Now that we can see these cells more clearly, do they appear to be associated with certain regions in the tissue?
+For example, do you expect macrophages are more likely to be present amid fibroblast or epithelial cells, or spread equally?
+
+In the chunk below, make the same kind of zoomed in plot to show T cell (which are labeled as `T cells`) proportions instead. 
+You may wish to modify values for `limits` to see how that affects your ability to interpret the figure.
+
+```{r plot t cells zoomed, solution = TRUE}
+
+  # specify a custom gradient
+
+    # proportions above 0.4 will be set at 0.4 in the plot
+
+  # flip direction to match H&E
+
+```
+
+How does the spatial distribution of T cells compare to macrophages?
+Do T cells and macrophages tend to be present in similar or different regions?
+
+# Part B: Analyze the dominant cell types across spots
+
+A common approach when working with deconvolution data is to label spots as a single cell type, based on the most common cell type it contains.
+We'll call this the spot's "dominant cell type."
+As we have seen, spots are generally comprised of several different cell types, so this approach raises the question: Does labeling spots as a single cell type reasonably preserve signal, or is signal lost?
+We'll explore this question in this section.
+
+Let's begin by assigning the dominant cell type label to each spot, based on the cell type with the highest proportion.
+In the chunk below, we'll create a data frame with those assignments.
+
+```{r create dominant_df}
+dominant_df <- prop_df |>
+  # keep only the row with the highest prop, per barcode
+  dplyr::slice_max(prop, by = "barcode", with_ties = FALSE)
+
+# show data frame
+dominant_df
+```
+
+Now, count how many times each cell type now appears in the tissue:
+
+```{r count dominant_df, solution = TRUE}
+
+```
+
+Based on the diversity of cell types we observed in the deconvolution results, did you expect these counts?
+Considering just these dominant cell type labels, is there evidence for immune infiltration in this tissue's tumor microenvironment?
+
+For a deeper look, let's focus in on the spots characterized as epithelial cells, the most common dominant cell type.
+Let's investigate the cell type proportions in those spots.
+
+For this, we'll define a vector of colors that assigns one color to each cell type. 
+We'll use this color palette for the remaining plots in this the notebook. 
+We'll also use the order of this vector to order cell types in plot legends.
+
+```{r define cell_type_palette}
+cell_type_palette <- c(
+  "Epithelial cells" = "#E69F00",
+  "Fibroblasts"      = "#F0E442",
+  "Macrophages"      = "#0072B2", 
+  "T cells"          = "#56B4E9",
+  "Secretory cells"  = "#D55E00",
+  "Ciliated cells"   = "#009E73"
+)
+```
+
+
+We'll use the `forcats` package in our plotting code to set the order of a few items:
+
+- Along the x-axis, we'll order spots by their epithelial cell proportion.
+We'll do this with `forcats::fct_reorder()` which allows you to set the order of a variable by values of a different variable.
+Here, we'll use it to order the barcodes on the x-axis in order of proportion.
+- We'll set the order of cell types as they appear in the legend to the cell type order in `cell_type_palette`.
+We'll do this with `forcats::fct_relevel()` which allows you to set a specified factor order.
+
+
+```{r plot epithelial spots}
+#| fig.width: 10
+#| fig.height: 4
+
+# Extract barcodes for all spots dominated by Epithelial cells
+# We'll also order by proportion for use in the plot
+epi_barcodes <- dominant_df |>
+  dplyr::filter(cell_type == "Epithelial cells") |>
+  dplyr::arrange(prop) |>
+  dplyr::pull(barcode)
+
+# Create a subsetted data frame with only those spots
+epi_dominant_df <- prop_df |>
+  dplyr::filter(barcode %in% epi_barcodes)
+
+# Bar plot
+ggplot(epi_dominant_df) + 
+  aes(
+    # order spots by their epithelial cell proportions
+    x = forcats::fct_relevel(barcode, epi_barcodes), 
+    y = prop, 
+    # order cell types by the order they appear in cell_type_palette
+    fill = forcats::fct_relevel(cell_type, names(cell_type_palette))
+  ) + 
+  geom_col() + 
+  # specify custom palette
+  scale_fill_manual(values = cell_type_palette) + 
+  # trim edges around axis so it only shows 0-1
+  scale_y_continuous(expand = c(0,0)) +
+  labs(
+    x = "Epithelial cell-dominant spots",
+    y = "Proportion", 
+    fill = "Cell type"
+  ) +
+  theme(
+    axis.text.x = element_blank(), 
+    axis.ticks.x = element_blank()
+  ) 
+```
+
+This plot shows a fair amount of cell type diversity across epithelial cell-dominant spots (though remember, we are plotting the full `prop_df`, so some of the very low values may not be reliable).
+We can also see that not all the spots contain a true majority of epithelial cells: some contain a plurality of epithelial cells (i.e., <50% but still the most common).
+
+Across spots in this dataset, how common is it that the dominant cell type comprises less than 50% of all cell types in a spot?
+
+```{r count plurality}
+# Count number of spots where the dominant proportion is below 0.5
+plurality_df <- dominant_df |>
+  dplyr::filter(prop < 0.5)
+
+nrow(plurality_df)
+```
+
+In this particular dataset (as analyzed with this particular reference - remember, the reference matters!), this only occurs for a relatively small number of spots.
+But, you might imagine this occurring more frequently in highly heterogeneous tissue, or when using a reference with more fine-grained cell types.
+
+Let's visualize these particular spots with a barplot, faceted by dominant cell type.
+To use faceting, our data frame will need a stand-alone column indicating the per-spot dominant cell type.
+We'll go ahead and prepare that first as a modified version of `prop_df` with an additional column `dominant_cell_type` that we can use for faceting.
+
+```{r create plurality_plot_df}
+# Create data frame with each spot's dominant cell type, to support faceting
+dominant_cell_types_df <- dominant_df |>
+  dplyr::rename(dominant_cell_type = cell_type) |>
+  dplyr::select(dominant_cell_type, barcode)
+
+# Join dominant_cell_type_df with prop_df so the column
+# dominant_cell_type can be used for faceting
+plurality_plot_df <- prop_df |>
+  dplyr::filter(barcode %in% plurality_df$barcode) |>
+  dplyr::left_join(dominant_cell_types_df, by = "barcode")
+```
+
+We'll also order barcodes based on the T cell proportions, which may help to see trends more clearly.
+In the chunk below, use `plurality_plot_df` to create a vector of barcodes ordered by T cell proportions, and save it to `tcell_barcode_order`.
+This will be very similar to how we made `epi_barcodes` above, except now we're using T cells.
+
+```{r get t cell barcode order, solution = TRUE}
+# Define a vector of barcodes ordered by spot T-cell proportions
+
+```
+
+Now we can make our barplot, again ordering cell types in the legend by their order in `cell_type_palette`.
+
+```{r plot plurality_plot_df}
+#| fig.width: 10
+#| fig.height: 4
+
+# Bar plot
+ggplot(plurality_plot_df) + 
+  aes(
+    x = forcats::fct_relevel(barcode, tcell_barcode_order),
+    y = prop, 
+    fill = forcats::fct_relevel(cell_type, names(cell_type_palette))
+  ) + 
+  geom_col() + 
+  facet_wrap(vars(dominant_cell_type), scales = "free_x") +
+  scale_fill_manual(values = cell_type_palette) + 
+  # trim edges around axis so it only shows 0-1
+  scale_y_continuous(expand = c(0,0)) +
+  labs(
+    x = "Spots where proportion of dominant cell type < 0.5",
+    y = "Proportion", 
+    fill = "Cell type"
+  ) +
+  theme(
+    axis.text.x = element_blank(), 
+    axis.ticks.x = element_blank()
+  ) 
+```
+
+The facet label in this plot represents the dominant cell type, i.e. the single cell type label each spot would be assigned if using such an approach.
+(Note that the T cell panel looks a bit odd compared to the others because there's only one spot in the facet, and `ggplot2` wants facets to have equal widths.)
+Are you confident that the spots in different facets should be labeled those different cell types?
+If you were using a strategy like this to assign cell types to spots, would you be confident in these labels or not?
+
+
+## Export
+
+To conclude, export the RCTD result object.
+
+```{r export}
+readr::write_rds(rctd_result, rctd_file)
+```
+
+
+## Session Info
+
+```{r sessioninfo}
+sessionInfo()
+```
+

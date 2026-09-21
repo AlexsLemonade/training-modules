@@ -1,0 +1,712 @@
+---
+title: "Spatial Transcriptomics Exercise: Clustering spatial data"
+author: Data Lab for ALSF
+date: 2026
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+---
+
+In this exercise notebook, we'll perform spatial clustering with `Banksy` on a 10x Genomics [colorectal cancer dataset](https://www.10xgenomics.com/datasets/human-colorectal-cancer-whole-transcriptome-analysis-1-standard-1-2-0), obtained from fresh frozen invasive adenocarcinoma of the large intestine tissue.
+This dataset was processed with `Space Ranger 1.2.0` and used Visium v1 technology. 
+
+As is best practice when clustering, we also took some time to identify optimal clustering parameters (in expression-only space) for this dataset, as you can see [in this notebook](https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/crc-v1/evaluate-cluster-parameters.Rmd).
+Using the Leiden algorithm with Jaccard weighting, we explored performance of different values of the nearest neighbors and resolution parameters.
+We assessed performance using three metrics which you can read more about at the provided links:
+
+1. [Silhouette width](https://bioconductor.org/books/3.22/OSCA.advanced/clustering-redux.html#silhouette-width)
+2. [Neighborhood purity](https://bioconductor.org/books/3.22/OSCA.advanced/clustering-redux.html#cluster-purity)
+3. [Cluster stability](https://bioconductor.org/books/3.22/OSCA.advanced/clustering-redux.html#cluster-bootstrapping), using the [Adjusted Rand Index metric](https://bioconductor.org/books/3.22/OSCA.advanced/clustering-redux.html#adjusted-rand-index)
+
+Note that there is an exercise notebook `exercise_05-cluster_evaluation.Rmd` in the `scRNA-seq-advanced` module which you can use to explore calculating and using these metrics more in depth, although this notebook will also include some cluster stability calculations.
+
+In this exercise notebook, we use these previously identified parameters to perform non-spatial and `Banksy` clustering on this colorectal dataset and compare resulting clusters.
+We'll then explore how varying `Banksy`'s `lambda` parameter affects clustering results.
+As `lambda` increases, spatial information is increasingly weighted in cluster calculations.
+This means that clusters produced from lower `lambda` values tend to reflect cell-type--related heterogeneity, and clusters produced from higher `lambda` values will increasingly consider spatial information more strongly.
+Along the way, we'll learn methods for quantitatively comparing two sets of clusters and measuring cluster stability which helps to evaluate different clustering results.
+The purpose of these explorations is to help you choose a value for the `lambda` parameter for your own analyses that is grounded in your specific scientific goals.
+
+---
+
+In this exercise notebook you will,
+
+- Part A: Prepare data for clustering
+- Part B: Perform clustering
+- Part C: Compare clustering results
+- Part D: Explore how the `lambda` parameter affects clustering
+- Part E: Calculate cluster stability across `lambda` values
+
+---
+
+## Part A: Prepare data for clustering
+
+
+### Setup and import
+
+Let's begin by loading libraries we'll need for this notebook.
+
+
+```{r load libraries}
+suppressPackageStartupMessages({
+  library(SpatialExperiment)
+  library(ggplot2)
+  library(patchwork)
+})
+
+# set theme for ggplot2 plots
+theme_set(theme_bw())
+```
+
+We also need to set the random seed for reproducibility, since clustering includes the use of random numbers.
+
+```{r set seed}
+set.seed(2026)
+```
+
+
+Next, we'll define input paths for the data to read in. 
+We have prepared this dataset for use in this notebook by filtering and normalizing it.
+For details, see the [`prepare-crc-v1-data.Rmd` notebook](https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/crc-v1/prepare-crc-v1-data.Rmd).
+
+First, we need that prepared RDS file, which contains an SPE object.
+
+```{r data paths}
+data_dir <- file.path("data/crc-v1/normalized")
+crc_rds <- file.path(data_dir, "crc_normalized_spe.rds")
+```
+
+Next, we'll define a path for an output RDS file which will contain the SPE object along with the clusters we'll calculate here.
+
+```{r output paths}
+crc_output <- file.path(data_dir, "crc_clustered_spe.rds")
+```
+
+
+Read and print in the SPE object in the chunk below.
+Save the object to a variable named `spe`.
+
+```{r import spe, solution = TRUE}
+# read in the SPE
+
+# print the SPE
+
+```
+
+How many spots are present? 
+How many genes?
+
+Next, plot the H&E with `ggspavis::plotVisium()` to see the associated tissue image.
+You may wish to use the argument `spots = FALSE`.
+
+```{r plot he, solution = TRUE}
+# plot the H&E
+
+```
+The tissue shows classic characteristics of adenocarcinoma: disorganized glands of tumor epithelium surrounded by dense fibrous tissue known as desmoplastic stroma.
+
+### Prepare for clustering
+
+To begin, we'll perform expression-only (non-spatial) clustering as well as clustering with `Banksy`.
+For both, we'll use the clustering parameters [that we identified in this notebook](https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/crc-v1/evaluate-cluster-parameters.Rmd):
+
+* The Leiden algorithm, a newer algorithm that has emerged as a popular alternative to Louvain.
+It is a modified version of the Louvain algorithm and includes additional refinements to increase connectedness among cluster communities.
+The Leiden algorithm optimizes clusters using what `bluster` (which uses [`igraph`](https://igraph.org/) under the hood) refers to as an "objective function."
+We'll specify the "modularity" objective function, which tends to yield clusters somewhat more similar to Louvain compared to other objective functions.
+* Jaccard weighting 
+* Parameter values of 25 nearest neighbors, and a resolution of 0.75
+
+Let's define those parameters first using `bluster::NNGraphParam()`:
+
+```{r define cluster params}
+# define clustering parameters
+cluster_params <- bluster::NNGraphParam(
+   k = 25,
+   cluster.fun = "leiden",
+   type = "jaccard", 
+   cluster.args = list(
+     objective_function = "modularity", 
+     resolution = 0.75
+  )
+)
+```
+
+
+To ensure a fair comparison between non-spatial and `Banksy` clusters, we'll subset the SPE right off the bat to contain only highly variable genes. 
+We'll then proceed to use that subsetted SPE throughout the notebook.
+
+In the next chunk, create a vector of highly variable genes in two steps: first the gene variance with `scran::modelGeneVar()`, and then use `scran::getTopHVGs()` to get the top 2000 variable genes.
+Save the vector of genes to a variable called `hv_genes`.
+
+```{r get hvgs, solution = TRUE}
+# model gene variance
+
+# select the top 2000 HVGs
+
+```
+
+Next, create a new SPE object called `hvg_spe` which only contains these genes.
+
+```{r subset spe, solution = TRUE}
+# subset the SPE to contain only HVGs
+
+```
+
+## Part B: Perform clustering
+
+### Calculate non-spatial clusters
+
+Next, we'll perform non-spatial clustering, beginning by calculating the PCA matrix.
+Even though we have already subsetted the object to highly-variable genes, we should still provide the 
+`subset_row` argument when running `scater::runPCA()`.
+This will ensure this full set of genes is used in the same order that `scran::modelGeneVar()` determined.
+If we did not include this argument, `scater::runPCA()` would fall back to using the its default of the top 500 genes based on raw variance.  
+
+In the chunk below, calculate the PCA matrix.
+
+```{r calculate PCA, solution = TRUE}
+# run PCA
+
+```
+
+Now, calculate non-spatial clusters using `scran::clusterCells()`.
+You'll want to use the `cluster_params` object we defined earlier as part of your call.
+Save the resulting cluster assignments to a `colData` column called `nonspatial_cluster`.
+
+```{r calculate nonspatial clusters, solution = TRUE}
+# Calculate graph-based clusters without spatial information
+
+```
+
+### Calculate `Banksy` clusters
+
+Next, we'll calculate `Banksy` clusters.
+For this, specify to turn the Azimuthal Gabor Filter (`AGF`) on.
+Recall, the `AGF` matrix is the spatially-informed matrix which accounts for expression gradients over each neighborhood.
+As we have done previously, we'll use the vector `c(18, 30)` for the `k_geom`: 18 neighbors for the neighbor averaging matrix, and 30 neighbors for the `AGF` matrix.
+
+In the chunk below, calculate the `Banksy` matrix on `hvg_spe` using `Banksy::computeBanksy()` (be sure to use `compute_agf=TRUE`!).
+
+```{r banksy matrix, solution = TRUE}
+# define k_geom vector
+
+# run computeBanksy with compute_agf = TRUE
+
+```
+
+Next, calculate the PCA from this `Banksy` matrix using `Banksy::runBanksyPCA()`.
+Here, specify the arguments `use_agf = TRUE` to incorporate `AGF` and `lambda = 0.2`.
+
+```{r banksy pca, solution = TRUE}
+# calculate banksy PCA
+
+```
+
+You should now have a reduced dimension called `PCA_M1_lam0.2` present in the `hvg_spe` object, in addition to the previous one called `PCA` that doesn't consider spatial information.
+
+```{r reduceddims}
+reducedDimNames(hvg_spe)
+```
+
+
+
+Finally, calculate the `Banksy` clusters themselves using `scran::clusterCells()`, again using our existing `cluster_params` object.
+Be sure to specify the correct PCA name for this calculation!
+Save the resulting cluster assignments to a `colData` column called `banksy_cluster`.
+
+```{r calculate banksy clusters, solution = TRUE}
+# Calculate Banksy clusters
+
+```
+
+
+At this point, we should have both `nonspatial_cluster` and `banksy_cluster` columns in the `colData` slot. 
+Lets confirm these are both present by printing the `colData`:
+
+```{r show coldata}
+head(colData(hvg_spe))
+```
+
+Let's quickly count how many clusters are present in each result, and how many spots are in each.
+
+First, the non-spatial clusters:
+
+```{r table nonspatial clusters}
+# make a table of non-spatial cluster counts
+table(hvg_spe$nonspatial_cluster)
+```
+
+Now, do the same for the `Banksy` clusters:
+
+```{r table banksy clusters}
+# make a table of banksy cluster counts
+table(hvg_spe$banksy_cluster)
+```
+
+When we ran our version of this notebook, we got 9 non-spatial clusters and 12 `Banksy` clusters, but you may get different results depending on the exact sequences of code you ran.
+This should be just about as high as we can go with built-in color palettes, although they are not necessarily color-blind friendly.
+Along these lines, we should emphasize that it's quite challenging (if at all possible) to achieve a truly distinguishable and accessible color palette when there are this many colors.
+But, for the purposes of this exploratory exercise notebook, making these plots should be fine.
+
+In the chunk below, we'll plot the coordinates colored by each set of clusters, using different palettes for each.
+
+```{r make coords plots}
+#| fig.width: 8
+
+nonspatial_plot <- ggspavis::plotCoords(
+  hvg_spe, 
+  annotate = "nonspatial_cluster", 
+  point_size = 1
+) + 
+  labs(title = "Non-spatial clusters")  +
+  # specify the Set1 palette which allows up to 9 colors
+  scale_color_brewer(palette = "Set1") +
+  # wrap legend to be in two columns with larger points
+  guides(color = guide_legend(ncol = 2, override.aes = list(size = 2)))
+
+banksy_plot <- ggspavis::plotCoords(
+  hvg_spe, 
+  annotate = "banksy_cluster", 
+  point_size = 1
+) + 
+  labs(title = "Banksy clusters")  +
+  # specify the Paired palette which allows up to 12 colors
+  scale_color_brewer(palette = "Paired") +
+  # wrap legend to be in two columns with larger points
+  guides(color = guide_legend(ncol = 2, override.aes = list(size = 2)))
+
+# add together with patchwork
+nonspatial_plot + banksy_plot
+```
+
+## Part C: Compare clustering results
+
+There's a few ways we can more precisely pin down how these clustering results compare.
+First, we can make make a heatmap visualizing their overlap and how many spots clusters have in common between approaches.
+We'll begin this by making a contingency table of the clustering results.
+We'll set this up so non-spatial clusters appear in columns, and `Banksy` clusters appear in rows:
+
+```{r make clusters_table}
+# define contingency table for comparing clusters
+clusters_table <- table(
+  colData(hvg_spe)$banksy_cluster,
+  colData(hvg_spe)$nonspatial_cluster
+)
+
+clusters_table
+```
+
+For a heatmap visualization, we would ideally not like to plot these raw counts because the total number of spots differs across clusters.
+Therefore, we'll convert these counts into _proportions_, specifically so that proportion corresponds to the total number of spots in the given non-spatial cluster.
+After this, each column in our heatmap will end up summing to 1.
+
+```{r cluster proportions}
+# normalize by the number of cells in each nonspatial cluster, which appear in columns
+clusters_table <- prop.table(clusters_table, 2)
+```
+
+Now we can plot the heatmap:
+
+```{r cluster heatmap}
+# non-spatial clusters are columns, and Banksy clusters are rows
+pheatmap::pheatmap(
+  clusters_table,
+  # turn off heatmap hierarchical cluster for easier viewing
+  cluster_cols = FALSE,
+  cluster_rows = FALSE, 
+  # show cluster type with the labels
+  labels_row = glue::glue("{levels(hvg_spe$banksy_cluster)}_banksy"),
+  labels_col = glue::glue("{levels(hvg_spe$nonspatial_cluster)}_nonspatial")
+)
+```
+
+Which clusters, if any, seem to be consistent between the two approaches?
+Are there clusters that seem to be split into smaller "sub-clusters" in one approach versus the other?
+What other patterns do you see here, and can you also see these trends reflected in the coordinate plots we made above?
+
+
+In addition to visual comparisons, we can also compare results using a metric such as the [Adjusted Rand Index](https://bioconductor.org/books/3.22/OSCA.advanced/clustering-redux.html#adjusted-rand-index) (ARI).
+ARI measures the similarity of two data clusterings by asking whether spots grouped together in one clustering (here, non-spatial clusters) are still grouped together in a different clustering (here, `Banksy` clusters).
+ARI itself is the proportion of pairs of spots which have the same status (e.g., clustered together or separately) in both clusterings being compared.
+ARI ranges from -1 to 1, where:
+
+* A value of 1 indicates clusterings are completely overlapping
+* A value of -1 indicates clusterings are completely distinct
+* A value of 0 indicates a random relationship
+
+We can calculate this value using the function `bluster::pairwiseRand()`, specifying the argument `mode = "index"`.
+
+```{r compute pairwise ari}
+# calculate a single ARI value
+bluster::pairwiseRand(
+  hvg_spe$nonspatial_cluster, 
+  hvg_spe$banksy_cluster, 
+  mode = "index"
+)
+```
+
+When we ran this, we got a value of ~0.34, which represents weak-to-moderate agreement: There are definitely spots which are grouped together in both sets of clusters, but there are also a substantial number of differences.
+In addition, we cannot expect a perfect value here since the non-spatial and `Banksy` results each have a different number of clusters.
+
+A trend you may have noticed from visual inspection of the coordinate plots and the heatmap we made above is that `Banksy` seems to subdivide non-spatial clusters.
+We can quantify this more rigorously by running `bluster::pairwiseRand()` with the argument `mode = "ratio"`. 
+This will return a square matrix, with both rows and columns representing the non-spatial clusters (i.e., the first argument we provide to `bluster::pairwiseRand()`).
+
+The values in this matrix represent deviation from what you'd expect under random chance, where 0 matches the expectation under random cluster assignment. 
+We can think about random chance here like this: If we take all the spots and randomly shuffle which `Banksy` cluster they land in (preserving the same number of spots per cluster as the `Banksy` clusters actually have), how often would spots from each non-spatial cluster end up together just by luck?
+This is what we would expect if `Banksy` clusters were randomly splitting up spots that used to be grouped together. 
+
+This matrix can be quite complex to interpret, so we'll focus on one particular part of it: the diagonal.
+Entries along the diagonal help us see if spots in the same non-spatial cluster remain grouped together in `Banksy` clusters:
+
+* Large values indicate that spots in that non-spatial cluster tend to also be clustered together in the `Banksy` clusters
+* Values near 0 indicate that spots in that non-spatial cluster tend to fall into different `Banksy` clusters
+
+We therefore expect to see diagonal values near 0 if spots in non-spatial clusters are getting split up in `Banksy` clusters.
+
+In the chunk below, we'll run the `bluster::pairwiseRand()` again but this time specifying `mode = "ratio"`.
+Here, we intentionally specify the non-spatial clusters as the _first_ argument, and then the `Banksy` clusters.
+This will ensure the output matrix tells if each non-spatial cluster's spots stay grouped together or split apart in the `Banksy` clustering, rather than the other way around.
+
+To focus our interpretation on the diagonal, we'll also pipe the output into `diag()` which (you guessed it!) will just return the diagonal.
+To help you interpret this output, we have created a brief [set of Google Slides](https://docs.google.com/presentation/d/1tOput9njIlKwfoyDhZcmsrz4LHIL4xaNxuniDPYaVHs/edit?usp=sharing) that walk through the interpretation of a similar heatmap and ARI matrix diagonal.
+
+```{r compute ari ratio}
+# calculate the matrix, but only show the diagonal.
+bluster::pairwiseRand(
+  hvg_spe$nonspatial_cluster, 
+  hvg_spe$banksy_cluster, 
+  mode = "ratio"
+) |> diag()
+```
+
+
+From this output, identify a non-spatial cluster whose value is fairly close to 0, which implies that those spots are subdivided across `Banksy` clusters.
+Do you see this reflected in the heatmap?
+Next, consider a different cluster with a higher diagonal value, which suggests `Banksy` may not be splitting that cluster up as much.
+Do you see a higher 1:1 correspondence in the heatmap for that cluster as compared to `Banksy` clusters?
+
+Based on the diagonal values here overall, does `Banksy` tend to subdivide clusters?
+
+
+## Part D: Explore how the `lambda` parameter affects clustering
+
+So far for `Banksy` clustering, we've been using the parameter value of `lambda = 0.2`.
+Recall that `lambda` controls the relative weighting given to spatial information versus expression information when constructing the `Banksy` matrix and be any value in the range of 0-1:
+
+* A value of 0 means no spatial weighting is applied at all, so we end up with expression-only clusters
+* A value of 1 means spatial information is given its maximum possible weight
+
+Importantly, a `lambda` of 1 does not mean that expression information no longer contributes to clustering at all.
+The neighborhood-averaged and `AGF` matrices that `Banksy` creates are themselves calculated using both spatial information and expression values. 
+As such, expression always contributes to clustering, and the `lambda` parameter only controls how heavily `Banksy` weights its spatially-informed matrices.
+
+
+We have so far been using `lambda = 0.2` for our Visium data, which the `Banksy` developers recommend for detecting spatially-aware clusters driven by cell-type identity.
+However, choosing the right value for `lambda` should depend on your scientific goals; if, for example, you want your clusters to primarily reflect spatially-cohesive domains rather than cell types, using `lambda = 0.2` may not be suitable for your analysis.
+
+In this section, we'll calculate `Banksy` clusters across a range of `lambda` values to see how our results change: 0 (no spatial weighting), 0.2, 0.4, and 0.8.
+From this, we'll develop a sense of how `lambda` affects clustering results, which in turn may guide your choice of `lambda` value for your own analyses.
+
+Note that we'll recalculate `lambda = 0.2` here again since it's quick and keeps our code simple, but bear in mind the result may differ slightly from what we saw in Part B.
+This is not unexpected because clustering is stochastic and depends on the state of the random seed.
+
+### Cluster across a range of lambda values
+
+We'll begin by defining a named vector of `lambda` values to iterate over.
+We'll name each value with the `colData` column name we'll use to store its resulting clusters, which will make it easy to refer back to specific results later on.
+
+```{r lambdas}
+lambdas <- c(0, 0.2, 0.4, 0.8)
+names(lambdas) <- glue::glue("banksy_cluster_lam{lambdas}")
+```
+
+To calculate `Banksy` clusters for each `lambda` value, we need to first calculate a new `Banksy` PCA (since the PCA itself depends on `lambda`) and then cluster on that PCA, saving each result back to `hvg_spe` as we go.
+Normally, we'd use a function like `purrr::map()` to iterate over the `lambdas` vector and create different sets of clusters for each.
+However, this won't quite work for us here because we actually want to build up the `hvg_spe` object with both the PCA matrices (which we'll need for some calculations later in the notebook!) and cluster results in `colData` as we iterate. 
+With `purrr::map()`, we'd be able to get a list of clusters, but not the `hvg_spe` object updated with each `lambda`'s results.
+
+A different approach could be to use a `for` loop to iterate over `lambda` values and update `hvg_spe` as we go, but instead we're going to opt for something a little more fancy and use the [`purrr::reduce()` function](https://purrr.tidyverse.org/reference/reduce.html).
+
+This function works by collapsing, or _reducing_, a list of values down to a single value.
+To do this, `purrr::reduce()` starts with the first item in the provided list and updates it using the provided function. 
+It then continues marching down the list items and iteratively applies the provided function.  
+
+Here, we'll take advantage of a special usage of `purrr::reduce()`: rather than having it start with the first item we're iterating over, we can use the `.init` argument to specify a completely different starting object.
+By doing this, the object we provide to `.init` gets updated in place at each iteration.
+In our case, that starting object will be `hvg_spe` itself. 
+
+Below, we'll use `purrr::reduce()` to iterate over the `lambda` values we provide it and reduce the `hvg_spe` object.
+Upon each iteration, it will apply a custom function that we'll write to calculate `Banksy` clusters to the `hvg_spe` object itself.
+The SPE object will therefore get iteratively updated with a new `Banksy` PCA and a new set of clusters gets added for each `lambda` value.
+
+```{r cluster across lambda}
+hvg_spe <- lambdas |>
+  purrr::reduce(
+    # Provide two arguments:
+    # first, the item that should be reduced aka modified on each iteration - the SPE object itself
+    # second, the item we are iterating over - the lambda
+    \(spe, lam) {
+      spe <- Banksy::runBanksyPCA(
+        spe,
+        lambda = lam,
+        use_agf = TRUE
+      )
+      pc_name <- glue::glue("PCA_M1_lam{lam}")
+      col_name <- glue::glue("banksy_cluster_lam{lam}")
+
+      spe[[col_name]] <- scran::clusterCells(
+        spe,
+        use.dimred = pc_name,
+        BLUSPARAM = cluster_params
+      )
+
+      # return the object we are updating in place
+      spe
+    },
+    # initialize with this object so it gets updated on each iteration
+    .init = hvg_spe
+)
+```
+
+
+
+Let's use `purrr::map()` to see how many clusters we ended up with for each `lambda` value:
+
+```{r count clusters}
+names(lambdas) |>
+  purrr::map(
+    \(colname) levels(hvg_spe[[colname]])
+  )
+```
+
+What do you notice about how the number of clusters changes as `lambda` increases?
+
+Now, let's visualize these clusters directly on the tissue coordinates.
+Since we'll be plotting four sets of clustering results that each contain quite a few clusters, we'll use the `pals` package to build ourselves a color palette large enough to comfortably distinguish that many groups.
+
+Based on the cluster counts you just printed, define a variable `max_clusters` in the chunk below that stores the largest number of clusters observed across all four `lambda` values.
+(We got 16, so the solutions will use that value.)
+
+```{r max_clusters, solution = TRUE}
+# define max_clusters
+
+```
+
+Using this variable, we'll define a color palette that we'll share across all four sets of clusters.
+Note that reusing one palette across several plots conveying different values isn't generally something we'd recommend, but it's a reasonable tradeoff here given that this is an exploratory notebook and we have quite a few colors to keep track of!
+To be able to use these custom colors, we need to assign them names matching the cluster names. 
+In our case, that's just the numbers `1:max_clusters` itself. 
+Below, we'll define the palette and set its names for plotting.
+
+```{r define palette}
+cluster_pal <- pals::alphabet(max_clusters) |>
+  setNames(1:max_clusters)
+```
+
+
+Now we're ready to plot.
+Conveniently, the names we assigned to `lambdas` earlier match the `colData` column names we want to plot, so we can map directly over them to make all of our plots.
+
+```{r plot coords}
+#| fig.width: 10
+#| fig.height: 6
+
+names(lambdas) |>
+  purrr::map(
+    \(colname) {
+      ggspavis::plotCoords(
+        hvg_spe,
+        # color by the column name we're looping over
+        annotate = colname,
+        point_size = 1
+      ) +
+      scale_color_manual(values = cluster_pal) +
+      guides(color = guide_legend(nrow = 3, override.aes = list(size = 2)))
+  }
+) |>
+  patchwork::wrap_plots()
+```
+
+What observations can you make about the spatial cohesiveness of these clusters as `lambda` increases?
+Do they start to look more like contiguous spatial regions, or do they become more scattered across the tissue?
+What seems to be the overall effect of increasing `lambda` on the number of clusters and their layout?
+
+### Compare clustering results at lambda 0 and lambda 0.8
+
+Let's take a closer, more quantitative look at how `lambda` affects clustering by directly comparing two of these results, specifically clusters for `lambda = 0` and `lambda = 0.8`.
+As we did in Part C, we'll compare these two sets of clusters with a heatmap, the overall ARI index, and the diagonal of the ARI ratio matrix.
+
+In the chunk below, build a contingency table comparing these two sets of clusters, with `banksy_cluster_lam0.8` as the first argument (which will appear in rows) and `banksy_cluster_lam0` as the second argument (which will appear in columns).
+
+```{r make heatmap table, solution = TRUE}
+#| fig.width: 7
+#| fig.height: 5
+
+# Create a table comparing clusters
+
+```
+
+Next, normalize the table so that the columns (the `lambda = 0` clusters) sum to 1. 
+In other words, each value will represent the proportion of spots in a given `lambda = 0.8` cluster (the rows) that came from each `lambda = 0` cluster (the columns).
+
+```{r normalize heatmap table, solution = TRUE}
+# Normalize by the number of cells in each non-spatial cluster
+
+```
+
+Finally, make the heatmap:
+
+```{r}
+#| fig.width: 7
+#| fig.height: 5
+
+# Plot heatmap
+pheatmap::pheatmap(
+  clusters_table,
+  cluster_cols = FALSE,
+  cluster_rows = FALSE,
+  labels_col = glue::glue("{levels(hvg_spe$banksy_cluster_lam0)}_lam0"),
+  labels_row = glue::glue("{levels(hvg_spe$banksy_cluster_lam0.8)}_lam0.8")
+)
+```
+
+Can you find examples of clusters that have a close mapping between the two `lambda` values, i.e. are they mostly made up of spots from a single corresponding cluster?
+Do you see any clusters that instead look like a blend of multiple `lambda = 0` clusters?
+
+Next, calculate the overall ARI index comparing these two sets of clusters, just as we did in Part C.
+
+```{r compute ari index lambdas, solution = TRUE}
+# calculate the matrix, but only show the diagonal.
+
+```
+
+Where does this value fall within the -1 to 1 range?
+How does it compare to the ARI value of ~0.34 we calculated between the non-spatial and `Banksy` (`lambda = 0.2`) clusters back in Part C?
+
+Now, calculate the diagonal of the ARI ratio matrix below, specifying `hvg_spe$banksy_cluster_lam0` as the first argument.
+Recall from Part C that this ordering determines what the diagonal actually tells us: here, it will show us whether spots grouped together in each `lambda = 0` cluster remained grouped together when we increased `lambda` to 0.8, or whether they were split apart into multiple clusters.
+
+```{r compute ari ratio lambdas, solution = TRUE}
+# calculate the matrix, but only show the diagonal.
+
+```
+
+How does this compare to the heatmap above?
+Based on these diagonal values, is it more common for spots grouped together at `lambda = 0` to stay grouped together at `lambda = 0.8`, or to get split apart?
+
+
+In the chunk below, you can feel free to repeat this comparison between two other `lambda` values to see how the results differ.
+In the solution, we've compared `lambda = 0.4` and `lambda = 0.8`, which is a particularly interesting pair to look at because these two results actually contain the same number of clusters, but there may be some differences between them yet!
+
+```{r optional diy heatmap, solution = TRUE}
+#| fig.width: 7
+#| fig.height: 5
+
+# Create a table comparing clusters
+
+# Normalize
+
+# Plot heatmap
+
+```
+
+
+```{r optional diy ari index, solution = TRUE}
+# calculate the ARI using mode = "index"
+
+```
+
+
+```{r optional diy ari matrix, solution = TRUE}
+# now calculate the ARI using mode = "ratio"
+
+```
+
+## Part E: Calculate cluster stability across `lambda` values
+
+We've now seen how `lambda` affects which spots end up grouped together within clusters, but what about the reliability of the clusters themselves?
+Are the clusters we get with some `lambda` values more stable than others?
+
+One way to explore this is to measure cluster _stability_ using a bootstrap approach.
+For each set of clusters, we would:
+
+* Sample PCA rows (i.e., spots) with replacement to create a bootstrapped PCA matrix
+* Perform clustering on this bootstrapped PCA matrix
+* Compare the bootstrapped clusters to the original clusters, using a metric such as the pairwise ARI index 
+
+If clusters are stable, we expect spots that were clustered together in the original clustering to also end up clustered together across bootstrap replicates; in other words, we'd expect ARI values close to 1.
+Repeating this across each of our `lambda` values tells us something specific about the underlying PCA matrices themselves: given the same clustering parameters, how well does each matrix's cluster structure hold up under resampling?
+
+We'll use the function [`bluster::bootstrapStability()`](https://rdrr.io/github/LTLA/bluster/man/bootstrapStability.html) to calculate this for us.
+This function takes the following arguments:
+
+* The PCA matrix the clusters were built from
+* A vector of the corresponding cluster assignments, specified with the argument `clusters`
+* `BLUSPARAM`: A specification of clustering parameters to use for each bootstrap iteration.
+These should be the same parameters we used to calculate the original clusters - and conveniently, we've already defined these as `cluster_params`!
+* `mode`: Which ARI mode to calculate.
+Since we want a single overall stability value for each `lambda`, we'll use `mode = "index"`, which reports the mean ARI across all bootstrap replicates.
+* `iterations`: The number of bootstrap replicates to perform (by default, 20)
+
+In the chunk below, we'll calculate stability for each of our four `lambda` values, setting `mode = "index"` and `iterations = 100`.
+For these calculations, we need to provide both the PCA matrix and the corresponding clusters for each `lambda`.
+For this, we'll use a special variant of `purrr::map()` called [`purrr::imap()`](https://purrr.tidyverse.org/reference/imap.html).
+This function iterates simultaneously over both a vector/list and its names: here, we can iterate over the `lambda` vector and its column names, which match the `colData` column names that store those clusters.
+This may take a minute or two to run!
+
+```{r calculate stability}
+lambdas |>
+  purrr::imap(
+    # iterate jointly over the lambda value and its name in the lambda vector, 
+    # which conveniently matches the colData column name that stores those clusters
+    \(lam, colname) {
+      pc_name <- glue::glue("PCA_M1_lam{lam}")
+
+      bluster::bootstrapStability(
+        # specify the correct PCA matrix and clusters
+        reducedDim(hvg_spe, pc_name),
+        clusters = hvg_spe[[colname]],
+        BLUSPARAM = cluster_params,
+        # Perform 100 bootstrap iterations
+        iterations = 100,
+        # Calculate the mean ARI
+        mode = "index"
+      )
+    }
+  )
+```
+
+How does `lambda` affect cluster stability in this dataset?
+In other words, what is the effect of increasing the weight given to spatial information?
+
+## Conclusions
+
+In this notebook, we've developed a sense of how `lambda` influences `Banksy` clusters on Visium data - both in terms of how spots get grouped together, and how stable those groupings are.
+So, which `lambda` value is the "right" one?
+...Trick question! 
+Stability can help you decide which `lambda` values are more reproducible, but it isn't the only factor to consider. 
+A key consideration is your scientific question and what you want to learn from your clusters:
+
+* If you're more interested in comparing distinct spatial regions or domains within the tissue, you might lean toward a higher `lambda`.
+* If you're more interested in comparing cell types, even when they're spread across different regions, you might lean toward a lower `lambda`, closer to (or even at) expression-only clustering.
+
+Comparing results across a range of `lambda` values as we did here can also help you build intuition for how your clusters change as spatial information is incorporated in your own datasets.
+
+## Export
+
+To wrap up, we'll export the `hvg_spe` object, which now include all of the clusters we calculated here, to the `crc_output` path we defined back at the beginning.
+
+```{r export, solution = TRUE}
+
+```
+
+
+## Session Info
+
+```{r sessioninfo}
+sessionInfo()
+```
+
