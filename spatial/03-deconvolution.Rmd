@@ -14,6 +14,7 @@ output:
 - Visualize the spatial distribution of estimated cell type proportions across the osteosarcoma tissue
 - Explore patterns of cell type co-occurrence across spots
 
+
 ## Introduction
 
 In this notebook, we'll continue working with the mouse osteosarcoma lung metastases sample from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049) that we explored in the spatial clustering notebook.
@@ -120,7 +121,8 @@ colData(osteo_ref) |>
   as.data.frame() |>
   dplyr::count(Ann_Level1)
 ```
-RCTD expects (although this can be customized) a maximum of 10,000 cells per cell type in the reference, so we downsampled cells to match this expectation during our pre-processing step.
+
+RCTD expects a maximum of 10,000 cells per cell type in the reference (although this can be customized), so we downsampled cells to match this expectation during our pre-processing step.
 The original version of this OsteoCAR reference dataset has even more cells.
 
 ### Import the SPE object
@@ -134,7 +136,7 @@ spe <- readr::read_rds(normalized_rds)
 Before diving into deconvolution, let's plot the H&E image to reorient ourselves to the tissue.
 We'll refer back to this image throughout the notebook when interpreting the spatial cell type patterns we find.
 
-```{r plot-visium}
+```{r plot visium}
 #| fig.width: 5
 
 # define H&E plot for general use in notebook
@@ -152,10 +154,8 @@ he_plot <- ggspavis::plotVisium(spe, spots = FALSE, zoom = TRUE) +
 he_plot
 ```
 
-
 Let's also look at some marker gene expression to develop a sense of what cell types we might expect in this data given this reference.
 We'll show the expression of select marker genes, taken from the OsteoCAR paper, for cell types in the reference.
-
 
 ```{r plot mouse markers}
 #| fig.width: 11
@@ -206,6 +206,7 @@ Which are uncommon?
 Which cell types do you expect might co-occur?
 Does this plot give you any insights about the osteosarcoma tumor microenvironment and the level of immune infiltration?
 
+
 ## Perform deconvolution
 
 Next, we'll use this reference to attempt to determine which cell types are present in each spot and their relative abundances in the osteosarcoma sample.
@@ -231,9 +232,8 @@ Next, we'll prepare the data for deconvolution by running the function `spacexr:
 This function sets various values and parameters that will be used for the deconvolution procedure.
 This includes identifying differentially expressed genes across cell types in the reference, which will be used to:
 
-* Calculate a mean-normalized reference expression matrix that RCTD will use for the deconvolution process itself
-* Estimate gene-specific platform effects from pseudo-bulked expression profiles of these differentially expressed genes
-
+- Calculate a mean-normalized reference expression matrix that RCTD will use for the deconvolution process itself
+- Estimate gene-specific platform effects from pseudo-bulked expression profiles of these differentially expressed genes
 
 We'll leave parameters at their defaults and prepare the data for deconvolution using `Ann_Level1` labels.
 
@@ -269,6 +269,7 @@ rctd_data$cell_type_info$info[[1]] |>
   head()
 ```
 
+
 ### Perform deconvolution: doublet mode
 
 We're ready to run deconvolution with the `rctd_data` object as input.
@@ -296,10 +297,10 @@ rctd_doublet
 The resulting object is a new SPE object with only 5 features; these are not genes, but represent the cell type labels in the reference object.
 This object also has several assays with the main deconvolution results:
 
-* `weights`: Per-spot cell type proportions
-* `weights_full`: Weights from the initial RCTD model fit, before constraining to two cell types
-  * Note that these values are not precisely what we would get from running RCTD "full" mode, as the model parameters here were optimized for "doublet" mode
-* `weighted_unconfident`: The same as `weights_full`, but including weights that the model is less confident in
+- `weights`: Per-spot cell type proportions
+- `weights_full`: Weights from the initial RCTD model fit, before constraining to two cell types
+  - Note that these values are not precisely what we would get from running RCTD "full" mode, as the model parameters here were optimized for "doublet" mode
+- `weighted_unconfident`: The same as `weights_full`, but including weights that the model is less confident in
 
 The `weights` assay which contains the fitted proportions is of most interest to us:
 
@@ -318,11 +319,11 @@ colData(rctd_doublet)
 
 There are a few columns of particular interest here that we'll point out:
 
-* `spot_class`: Whether each spot is more likely a doublet or singlet (i.e., containing a single cell type)
+- `spot_class`: Whether each spot is more likely a doublet or singlet (i.e., containing a single cell type)
 _Importantly_, RCTD in doublet mode does not evaluate whether doublet is an accurate characterization in the first place.
 Doublet mode only assesses whether spots are more likely to be singlets or doublets but does not evaluate if enforcing a maximum of two cell types is a good fit to the data.
-* `first_type`: The cell type with the higher proportion in the spot
-* `second_type`: The cell type with the lower proportion in the spot
+- `first_type`: The cell type with the higher proportion in the spot
+- `second_type`: The cell type with the lower proportion in the spot
 
 Let's see how many doublets and singlets we have according to this model fit:
 
@@ -334,11 +335,11 @@ colData(rctd_doublet) |>
 
 We see the following labels in this column:
 
-* `reject`: Spots that were filtered out because of either low quality or the reference was a poor fit in the first place
-* `singlet`: Under the constrained doublet model, spots that are more likely to have a single cell type
-* `doublet_certain`: Under the constrained doublet model, spots that are more likely to have two cell types.
+- `reject`: Spots that were filtered out because of either low quality or the reference was a poor fit in the first place
+- `singlet`: Under the constrained doublet model, spots that are more likely to have a single cell type
+- `doublet_certain`: Under the constrained doublet model, spots that are more likely to have two cell types.
 Again, this does not mean that RCTD is entirely certain that the spot is a doublet, only that it is more certain to be a doublet than a singlet.
-* `doublet_uncertain`: Under the constrained doublet model, spots that are more likely to be doublets than singlets but with less confidence
+- `doublet_uncertain`: Under the constrained doublet model, spots that are more likely to be doublets than singlets but with less confidence
 
 
 We can also color the Visium coordinates by cell type proportions using the provided function `spacexr::plotCellTypeWeight()`.
@@ -415,7 +416,7 @@ What overall patterns do you see?
 Does the cell type distribution match your expectations from our earlier marker gene expression plots?
 
 One specific observation here is this model inferred very few, if any, immune lymphoid cells in the data.
-We did however observe limited expression of immune lymphoid cells, so it's possible that by using doublet mode, we have missed identifying rare cell type populations.
+We did, however, observe limited expression of immune lymphoid cells, so it's possible that by using doublet mode, we have missed identifying rare cell type populations.
 
 
 ### Perform deconvolution: full mode
@@ -631,7 +632,6 @@ observed_df
 
 Next, we'll count how many spots each individual cell type appears in, which will feed into our "expected" calculation:
 
-
 ```{r calculate observed independent}
 # count how many spots each individual cell type appears in
 n_spots_df <- present_df |>
@@ -641,7 +641,6 @@ n_spots_df
 ```
 
 Finally, we'll join these together to compute the expected co-occurrence count for each pair and then calculate the log ratio of observed to expected:
-
 
 ```{r calculate ratio}
 # Calculate ratios
