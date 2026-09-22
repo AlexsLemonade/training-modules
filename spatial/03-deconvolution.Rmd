@@ -361,7 +361,8 @@ How does this plot compare to the regions we suspect are likely tumor-rich accor
 
 We'll proceed to plot a grid of coordinate plots, each showing the proportion for a given cell type, and we'll also flip the plot orientation to match the H&E for easier comparison.
 
-To facilitate this, we've written a custom function; run this chunk to be able to use the function next.
+To facilitate this, we've written a custom function, `plot_all_props()`, which is defined below.
+Run this chunk to be able to use the function next.
 
 ```{r plot_all_props function}
 # Function to plot a grid of coordinate plots, each showing
@@ -402,10 +403,9 @@ plot_all_props <- function(rctd_result, assay = "weights") {
 }
 ```
 
-Now, we can use `plot_all_props()` to plot all the cell type proportions in `rctd_doublet`:
+Now, we can use the `plot_all_props()` function to plot all the cell type proportions in `rctd_doublet`:
 
 ```{r plot doublet proportions, live = TRUE}
-#| message: false
 #| fig.width: 8
 
 plot_all_props(rctd_doublet)
@@ -431,8 +431,9 @@ rctd_full <- spacexr::runRctd(
 )
 ```
 
-Because the full mode allows for more heterogeneity in cell types per spot, it does not attempt to classify spots as singlets or doublets, and instead estimates raw cell type weights for all cell types in all spots.
-The main piece of output from this model fit is just a `weights` assay, which contains the raw cell type weights estimated by the model for each spot.
+Because the full mode allows for more heterogeneity in the number of cell types per spot, it does not attempt to classify spots as singlets or doublets, and instead estimates raw cell type weights for all cell types in all spots.
+The main piece of output from this model fit is a `weights` assay, which contains the raw cell type weights estimated by the model for each spot.
+
 Since the model fit was unconstrained, the per-spot weights do not exactly sum to 1.
 We will therefore need to normalize them to sum to 1 to be able to interpret them as proportions.
 For this, we'll use a relatively new R function called `proportions()`, which can normalize matrices by row or column to sum to 1.
@@ -456,9 +457,7 @@ assay(rctd_full, "proportions")[, 1:5]
 
 Let's plot these proportions using our `plot_all_props()` function, specifying the `proportions` assay that we just created:
 
-
 ```{r plot full proportions}
-#| message: false
 #| fig.width: 8
 
 plot_all_props(rctd_full, assay = "proportions")
