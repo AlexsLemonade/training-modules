@@ -24,15 +24,16 @@ Instead, it measures a targeted panel of a few hundred genes directly inside int
 There are two big differences between Xenium and Visium data to be aware of:
 
 - Resolution is subcellular.
-Each detected transcript has an `(x, y, z)` location in the tissue, and transcripts are assigned to individual cells identified by image segmentation. 
+Each detected transcript has an `(x, y, z)` location in the tissue, and transcripts are assigned to individual cells identified by image segmentation.
 So the columns of our data are _cells_, not the multi-cell _spots_ you get with Visium.
 
 - The gene set is fixed and small.
-We only measure the genes on the panel (here, 313 genes), so we can't discover expression of genes that weren't targeted, but we get very high sensitivity and spatial precision for the ones we do measure.
+We only measure the genes on the panel (here, 313 genes), so we can't discover expression of genes that weren't targeted.
+As a tradeoff, we get very high sensitivity and spatial precision for the genes we do measure.
 
 In this notebook we will be working with a Xenium human breast cancer dataset.
 The data come from [Janesick _et al._ (2023)](https://doi.org/10.1038/s41467-023-43458-x), a widely used, publicly available benchmark study that profiled serial formalin-fixed paraffin-embedded (FFPE) human breast cancer sections with matched single-cell RNA-seq, Visium, and Xenium.
-The Xenium run used the 313-gene human breast panel, which encompasses a 280-gene pre-designed panel plus 33 custom add-on genes. 
+The Xenium run used the 313-gene human breast panel, which encompasses a 280-gene pre-designed panel plus 33 custom add-on genes.
 
 ## Set up
 
@@ -63,7 +64,7 @@ In [Janesick _et al._ (2023)](https://doi.org/10.1038/s41467-023-43458-x), cell 
 In particular, cells were clustered and clusters were annotated using canonical marker genes.
 The labels from the single-cell RNA-seq experiment were used as a reference for transferring annotations onto the Xenium cells, giving each segmented cell a cell type call.
 
-We'll define the path to both the Xenium output and the annotations file here.
+We'll define the path to both the Xenium output directory and the annotations file here.
 
 ```{r inputs}
 # main data directory for this sample
@@ -134,7 +135,7 @@ This is the entry-point file that most loaders read first.
 The cell-by-feature count matrix, analogous to the feature-barcode matrix from Cell Ranger/Space Ranger.
 Rows are features (panel genes plus control categories) and columns are segmented cells.
 It contains only transcripts that passed the default quality threshold (Q-Score ≥ 20).
-The same data are provided in HDF5 (`.h5`), a Matrix Market directory, and Zarr formats, but we will we use the `.h5` version.
+The same data are provided in HDF5 (`.h5`), a Matrix Market directory, and Zarr formats; we will we use the `.h5` version.
 
 ##### `cells.parquet` / `cells.csv.gz` (and `cells.zarr.zip`)
 
@@ -197,14 +198,14 @@ spe
 A few things to notice about this object:
 
 - The dimensions show only 313 genes and roughly 167,000 cells.
-  The gene count is small because Xenium measures a targeted panel, and because the control features have been split off into `altExps` (so the main matrix is genes only).
+The gene count is small because Xenium measures a targeted panel, and because the control features have been split off into `altExps` (so the main matrix is genes only).
 - Each column corresponds to one cell.
 There are no barcodes, or spot barcodes, just cell ids.
 - The `spatialCoords` hold the `x_centroid`/`y_centroid` values in microns, while gene-level counts live in the `counts` assay.
 
 Let's go ahead and plot the coordinates here.
 Unlike with Visium, Xenium does not natively have an H&E image.
-This is an image that can be grabbed separately and added to the object downstream, but we won't be working with one with this dataset.
+An H&E image can added to the object downstream, but we won't be working with one with this dataset.
 
 ```{r plot-coords, live = TRUE}
 #| fig.width: 7
@@ -214,6 +215,7 @@ spe$in_tissue <- TRUE
 # plot just the spots
 ggspavis::plotCoords(spe)
 ```
+
 
 ### A note on segmentation
 
@@ -230,6 +232,7 @@ The Xenium Onboard Analysis pipeline segments cells in two broad ways depending 
 In this scenario, nuclear expansion is used as a fallback.
 
 This particular dataset only included a DAPI stain so cell segmentation was done using nuclear expansion.
+
 
 ### A note on control features and `altExps`
 
@@ -266,6 +269,7 @@ altExpNames(spe) |>
   purrr::set_names() |>
   purrr::map(\(name) altExp(spe, name))
 ```
+
 
 ## Add in cell type annotations
 
@@ -352,16 +356,16 @@ Finally, we'll use factors to define the order of the cell types so that they ap
 
 ```{r set-celltype-levels}
 # re-order celltypes for plotting by setting them as a factor
+# and matching the order in the palette
 spe$cell_types_lumped <- as.factor(spe$cell_types_lumped) |>
   forcats::fct_relevel(names(cell_type_palette))
 ```
 
 Now that we have prepared our data, we can create our plot showing the lumped cell type annotations across the slide.
 
-
 ```{r plot-celltypes, live = TRUE}
 #| fig.width: 8
-#| message: FALSE
+#| message: false
 
 # plot all spots colored by cell type
 ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
@@ -389,7 +393,7 @@ Below we can color the cells by these QC metrics.
 
 ```{r plot-qc}
 #| fig.width: 8
-#| message: FALSE
+#| message: false
 
 p1 <- ggspavis::plotCoords(spe, annotate = "total_counts") +
   ggplot2::scale_color_distiller(palette = "Blues", direction = 1)
@@ -447,7 +451,6 @@ ggplot(mapping = aes(log(count_area_ratio))) +
 ```
 
 
-
 ## Filtering low quality spots
 
 Now we can filter by combining the counts-per-area QC metric with information from the control features as a secondary quality signal.
@@ -462,6 +465,7 @@ First, let's look at what cells get filtered by using just the counts-per-area Q
 sum(outliers)
 ```
 
+Where in the sample do the outliers appear?
 
 ```{r visualize-counts-outliers}
 # now visualize them using the spatial coordinates
@@ -506,7 +510,7 @@ Let's do that below and add a new column to the SPE object indicating which cell
 spe$exclude <- spe$counts_per_area_outliers | spe$control_exclude
 
 # fraction of cells flagged for removal
-sum(spe$exclude) / length(spe$exclude)
+mean(spe$exclude)
 ```
 
 We'll then filter our cells and remove them from the SPE object.
@@ -522,13 +526,13 @@ dim(filtered_spe)
 ## Normalization
 
 Following the recommendations in [OSTA](https://bioconductor.org/books/release/OSTA/pages/img-intermediate-processing.html#normalization) (Orchestrating Spatial Transcriptomics Analysis with Bioconductor), we'll use a simple library-size normalization.
-This is the same normalization we would use for Visium data and will ensure that the differences in total counts across cells don't dominate downstream analyses.
+This will ensure that the differences in total counts across cells don't dominate downstream analyses, and is the same normalization we used with Visium data.
 
 This includes:
 
-* Computing a per-cell size factor proportional to each cell's total counts
-* Dividing the expression counts by that size factor for each cell
-* Log-transforming the data
+- Computing a per-cell size factor proportional to each cell's total counts
+- Dividing the expression counts by that size factor for each cell
+- Log-transforming the data
 
 ```{r normalize, live = TRUE}
 # calculate per-spot size factors
@@ -541,11 +545,12 @@ normalized_spe <- scuttle::logNormCounts(normalized_spe)
 
 ## Export
 
-Finally, we save the filtered, normalized `SpatialExperiment` object as an `.rds` file so it can be loaded directly into later notebooks without repeating the steps above.
+Finally, we will save the filtered, normalized `SpatialExperiment` object as an `.rds` file so it can be loaded directly into later notebooks without repeating the steps above.
 
 ```{r export-spe}
 readr::write_rds(normalized_spe, output_spe_file)
 ```
+We will also save the color palette as a table.
 
 ```{r export-palette}
 cell_type_palette |>
@@ -556,7 +561,7 @@ cell_type_palette |>
 
 ## Session info
 
-To conclude, we'll run the `sessionInfo()` command to print out exactly what system setting and R package versions were used to run this code.
+To conclude, we'll run the `sessionInfo()` command to print out exactly what system settings and R package versions were used to run this code.
 
 ```{r}
 sessionInfo()
