@@ -80,7 +80,7 @@ annotations_file <- file.path(data_dir, "Janesick_annotations.tsv")
 
 And now, we'll define the output paths and files we'll use for exporting.
 
-```{r outputs, live = TRUE}
+```{r outputs}
 # Directory and file to save output
 normalized_dir <- file.path(data_dir, "normalized")
 
@@ -205,7 +205,7 @@ There are no barcodes, or spot barcodes, just cell ids.
 
 Let's go ahead and plot the coordinates here.
 Unlike with Visium, Xenium does not natively have an H&E image.
-An H&E image can added to the object downstream, but we won't be working with one with this dataset.
+An H&E image can be added to the object downstream, but we won't be working with one with this dataset.
 
 ```{r plot-coords, live = TRUE}
 #| fig.width: 7
@@ -281,7 +281,7 @@ cell_types_df <- readr::read_tsv(annotations_file)
 head(cell_types_df)
 ```
 
-```{r annotations-table}
+```{r annotations-table, live = TRUE}
 # how many cells of each annotated type?
 cell_types_df |>
   dplyr::count(cell_type_annotation) |>
@@ -320,10 +320,12 @@ Now we join the annotations onto the object's `colData` by `cell_id`.
 Cells that are not present in the annotation file will be assigned as `NA`.
 
 ```{r add-annotations}
+# join cell types with coldata
 coldata_df <- colData(spe) |>
   as.data.frame() |>
   dplyr::left_join(cell_types_df, by = "cell_id")
 
+# replace existing coldata with updated coldata
 colData(spe) <- DataFrame(coldata_df)
 
 head(colData(spe))
@@ -360,7 +362,7 @@ spe$cell_types_lumped <- as.factor(spe$cell_types_lumped) |>
   forcats::fct_relevel(names(cell_type_palette))
 ```
 
-Now that we have prepared our data, we can create our plot showing the lumped cell type annotations across the slide.
+Now that we have prepared our data, we can create our plot showing the lumped cell type annotations across the slide using `ggspavis::plotCoords()`.
 
 ```{r plot-celltypes, live = TRUE}
 #| fig.width: 8
