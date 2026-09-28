@@ -16,14 +16,14 @@ output:
 ## Introduction
 
 We have previously looked at genes that are highly variable among spots, without looking specifically at how that variation is spatially arranged across the sample.
-Genes where expression variation is spatially structured are more likely to be biologically meaningful in differentiating tissues or microenvironments, and we would like to be able to directly identify such spatially variable genes (SVGs).
+Genes where variation in expression is spatially structured are more likely to be biologically meaningful in differentiating tissues or microenvironments, and we would like to be able to directly identify such spatially variable genes (SVGs).
 There are a large and ever-expanding set of methods for identifying SVGs, many of which have been reviewed and compared by [Li et al. (2025)](https://doi.org/10.1186/s13059-025-03731-2) and [Yan, Hua and Li (2025)](https://doi.org/10.1038/s41467-025-56080-w).
 Here we will focus on two methods: Moran's *I* and `nnSVG`.
 
 Moran's *I* ([Moran, 1950](https://doi.org/10.2307/2332142)) is a quite old measure of spatial autocorrelation that has a long history in fields like geography and ecology.
 We will use an implementation of the Moran's *I* and related tests from the `Voyager` package ([Moses et al. 2023](https://doi.org/10.1101/2023.07.20.549945)), which works with an extension of the `SpatialExperiment` class we have been working with called `SpatialFeatureExperiment`.
 
-`nnSVG` ([Weber et al. 2023](https://doi.org/10.1038/s41467-023-39748-z))is a method specifically designed for spatial transcriptomic data that can allow for more flexible identification of spatially variable genes.
+`nnSVG` ([Weber et al. 2023](https://doi.org/10.1038/s41467-023-39748-z)) is a method specifically designed for spatial transcriptomic data that can allow for more flexible identification of spatially variable genes.
 
 
 ## Set up
@@ -84,7 +84,7 @@ spe <- readr::read_rds(normalized_rds)
 ## Identifying Highly Variable Genes
 
 In theory, we could proceed directly to identifying spatially variable genes, but in practice it is often useful to first filter the data to only include highly variable genes (HVGs).
-This is because many of the calculations we will be doing for spatial analysis are not particularly fast, so it will help to have a shorter gene lists to start with.
+This is because many of the calculations we will be doing for spatial analysis are not particularly fast, so it will help to have a shorter gene list to start with.
 We justify this in part by the fact that if a gene is not particularly variable overall, it is quite unlikely to be spatially variable, so we are not likely to miss many important genes.
 
 We will identify the HVGs using the `scran` package, which is designed for working with single-cell RNA-seq data, but also works well with the spot data.
@@ -121,7 +121,8 @@ For spatial analysis, it can be convenient to use a slightly different object ty
 For the rest of this notebook, we will be using `SpatialFeatureExperiment` (SFE) objects, which are an extension of the `SpatialExperiment` (SPE) objects that include additional slots for spatial features, most notably a way to represent a graph that defines how cells are connected to each other in space.
 
 Almost all functions that work with SPEs will also work with SFEs (though not the reverse).
-However, there are differences with respect to how images are stored and plotting defaults, so we will be using a different package for most of our spatial plots. Rather than `ggspavis`, we will be using the `Voyager` package, which is designed for working with SFE objects.
+However, there are differences with respect to how images are stored and plotting defaults, so we will be using a different package for most of our spatial plots. 
+Rather than `ggspavis`, we will be using the `Voyager` package, which is designed for working with SFE objects.
 The functions used in `Voyager` work a bit differently from the `ggspavis` equivalents, but still use `ggplot2` as the underlying plotting engine.
 
 
@@ -175,7 +176,8 @@ The first part looks pretty much the same as the SPE object that you should be f
 In addition to these, there are a few extra slots shown in the summary:
 
 - `unit` is where the unit we defined earlier is stored.
-- `Geometries` stores the shapes and locations of features. In our case, we have only the `colGeometries`, which stores the location of each spot.
+- `Geometries` stores the shapes and locations of features. 
+In our case, we have only the `colGeometries`, which stores the location of each spot.
 - `Graphs`: stores the graphs that define the relationships between spots or cells, though we do not have anything defined here yet.
 
 One thing you may notice here is that the `SpatialFeatureExperiment` package is built from the start to accommodate multiple samples, so the graphs will be divided up by sample.
@@ -185,7 +187,7 @@ One thing you may notice here is that the `SpatialFeatureExperiment` package is 
 The power of the `SpatialFeatureExperiment` package comes from the ability to define graphs that describe how cells are connected to each other.
 These spatial graphs are particularly useful because they define relationships between neighboring spots or cells that do not depend on the exact orientation of the slide; this makes them robust to variations in how the tissue is positioned or imaged.
 Many analyses methods use these graphs to calculate statistics on the spatial relationships between spots.
-We will see that many of analysis functions in the `Voyager` package for analysis of spatial expression are built around the older and more general `spdep` package, which implements many spatial statistics and methods for analyzing spatial data.
+We will see that many of the analysis functions in the `Voyager` package for analysis of spatial expression are built around the older and more general `spdep` package, which implements many spatial statistics and methods for analyzing spatial data.
 To take advantage of these spatial graphs and the analyses they enable, we will first need to define the graph for our data and store it in the SFE object.
 
 For Visium data, we can use `SpatialFeatureExperiment::findVisiumGraph()` which uses the known barcodes and their locations to define a pre-computed graph that connects nearby spots.
@@ -579,12 +581,16 @@ As a final comparison, we can also look at how the variation measurements we get
 We'll add the gene variance from our earlier `gene_variance` data frame onto our data frame of SVG results, adding just the biological variation portion.
 
 ```{r compare-svg-hvg, live = TRUE}
+# make a dataframe with just the hvgs and the variance
+hvg_df <- gene_variance |>
+  as.data.frame() |>
+  tibble::rownames_to_column("ID") |>
+  dplyr::select(ID, bio_variance = bio)
+
+# combine variance from svgs and hvgs
 svg_hvg_df <- svg_df |>
   dplyr::inner_join(
-    gene_variance |>
-      as.data.frame() |>
-      tibble::rownames_to_column("ID") |>
-      dplyr::select(ID, bio_variance = bio),
+    hvg_df,
     by = "ID"
   )
 ```
