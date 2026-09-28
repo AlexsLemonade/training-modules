@@ -23,6 +23,7 @@ import json
 import pathlib
 import shutil
 import subprocess
+import sys
 
 ALL_MODULES = {
     "intro-to-R-tidyverse",
@@ -128,27 +129,31 @@ def main() -> None:
     args = parser.parse_args()
 
     if not args.base_dir.is_dir():
-        exit(f"Base directory {args.base_dir} does not exist or is not a directory")
+        sys.exit(f"Base directory {args.base_dir} does not exist or is not a directory")
     if not args.module_file.is_file() and not args.module_file.suffix == ".json":
-        exit("A JSON module file must be provided.")
+        sys.exit("A JSON module file must be provided.")
 
     module_data = json.loads(args.module_file.read_text())
     modules = module_data.get("modules", [])
     reference_modules = module_data.get("reference-modules", [])
 
     if any(m not in ALL_MODULES for m in modules):
-        exit(f"Invalid module(s) specified. Available modules: {ALL_MODULES}")
+        sys.exit(f"Invalid module(s) specified. Available modules: {ALL_MODULES}")
     if any(m not in ALL_MODULES for m in reference_modules):
-        exit(f"Invalid reference module(s) specified. Available modules: {ALL_MODULES}")
+        sys.exit(
+            f"Invalid reference module(s) specified. Available modules: {ALL_MODULES}"
+        )
 
     # check that modules are in the base directory
     if any(not (args.base_dir / m).is_dir() for m in modules):
-        exit(f"One or more modules do not exist in the base directory {args.base_dir}")
+        sys.exit(
+            f"One or more modules do not exist in the base directory {args.base_dir}"
+        )
 
     # run the link-data.sh script in the base directory to create required symlinks
     link_script = args.base_dir / "scripts/link-data.sh"
     if not link_script.is_file():
-        exit(f"The required script {link_script} does not exist or is not a file")
+        sys.exit(f"The required script {link_script} does not exist or is not a file")
     subprocess.run(["bash", link_script], check=True)
 
     # create the target directory
