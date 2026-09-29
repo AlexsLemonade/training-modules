@@ -47,7 +47,7 @@ This merged SCE can then be used for integration to obtain a formally batch-corr
 
 ```{r setup}
 # Load libraries
-library(ggplot2)  # plotting tools
+library(ggplot2) # plotting tools
 library(SingleCellExperiment) # work with SCE objects
 
 # Set the seed for reproducibility
@@ -102,10 +102,12 @@ The general syntax for `purrr::map()` and friends is:
 
 ```
 # Syntax for using the map function:
-purrr::map(<input list or vector>,
-           <function to apply to each item in the input>,
-           <any additional arguments to the function can go here>,
-           <and also here if there are even more arguments, and so on>)
+purrr::map(
+  <input list or vector>,
+  <function to apply to each item in the input>,
+  <any additional arguments to the function can go here>,
+  <and also here if there are even more arguments, and so on>
+)
 ```
 
 
@@ -118,10 +120,10 @@ Let's see a very simple example of `purrr::map()` in action, inspired by cancer 
 ```{r map example}
 # Define a list of cancer histologies
 histologies <- list(
-  "low-grade gliomas"  = c("SEGA", "PA", "GNG", "PXA"),
+  "low-grade gliomas" = c("SEGA", "PA", "GNG", "PXA"),
   "high-grade gliomas" = c("DMG", "DIPG"),
-  "embryonal tumors"   = c("MB", "ATRT", "ETMR")
- )
+  "embryonal tumors" = c("MB", "ATRT", "ETMR")
+)
 
 # The overall length of the list is 3
 length(histologies)
@@ -140,18 +142,18 @@ This way (foreshadowing!) we also have a stand-alone vector of just sample names
 
 ```{r sample names}
 # Vector of all the samples to read in:
-sample_names <- c("SCPCL000479",
-                  "SCPCL000480",
-                  "SCPCL000481",
-                  "SCPCL000482")
+sample_names <- c(
+  "SCPCL000479",
+  "SCPCL000480",
+  "SCPCL000481",
+  "SCPCL000482"
+)
 ```
 
 
 ```{r define sce_paths, live = TRUE}
 # Now, convert these to file paths: <input_dir>/<sample_name>.rds
-sce_paths <- file.path(input_dir,
-                       glue::glue("{sample_names}.rds")
-)
+sce_paths <- file.path(input_dir, glue::glue("{sample_names}.rds"))
 # Print the sce_paths vector
 sce_paths
 ```
@@ -164,7 +166,7 @@ This will help us keep track of which objects are which after we read the SCE ob
 names(sce_paths) <- sample_names
 ```
 
-We can now read these files in and create a list of four SCE objects. 
+We can now read these files in and create a list of four SCE objects.
 Since `readr::read_rds()` can only operate on one input at a time, we'll need to use `purrr::map()` to run it on all input file paths in one command.
 Although `sce_paths` is a vector (not a list), it will still work as input to `purrr:map()`.
 The output from this code will still be a list, since that's what `purrr::map()` always returns, and it will retain the sample names as the list names for convenient bookkeeping:
@@ -188,10 +190,10 @@ If you look closely at the printed SCE objects, you may notice that they all con
 These columns (which we added to SCE objects during [pre-processing](https://github.com/AlexsLemonade/training-modules/tree/master/scRNA-seq-advanced/setup/rms)) contain putative cell type annotations as assigned by [Patel _et al._ (2022)](https://doi.org/10.1016/j.devcel.2022.04.003):
 
 
-> For each cell subset identified by clustering, we used a combination of `SingleR` version 1.0.1 ([Aran et al., 2019](https://www.nature.com/articles/s41590-018-0276-y)) and manual inspection of differentially expressed genes to annotate whether a cluster belongs to stromal, immune or malignant subpopulations. 
-Malignant cells were confirmed in patient tumor data by inference of copy-number variation using `inferCNV` version 1.1.3 of the TrinityCTAT Project (https://github.com/broadinstitute/infercnv). 
+> For each cell subset identified by clustering, we used a combination of `SingleR` version 1.0.1 ([Aran et al., 2019](https://www.nature.com/articles/s41590-018-0276-y)) and manual inspection of differentially expressed genes to annotate whether a cluster belongs to stromal, immune or malignant subpopulations.
+Malignant cells were confirmed in patient tumor data by inference of copy-number variation using `inferCNV` version 1.1.3 of the TrinityCTAT Project (https://github.com/broadinstitute/infercnv).
 
-We will end up leveraging these cell type annotations to explore the integration results; after integration, we expect cell types from different samples to group together, rather than being separated by batches. 
+We will end up leveraging these cell type annotations to explore the integration results; after integration, we expect cell types from different samples to group together, rather than being separated by batches.
 
 That said, the integration methods we will be applying _do not actually use_ any existing cell type annotations.
 If we have annotations, they are a helpful "bonus" for assessing the integration's performance, but they are not part of the integration itself.
@@ -226,7 +228,7 @@ We'll approach this merge in two parts:
 + First, we'll take some time to thoroughly explore the our SCE objects to determine what wrangling we need to do to make all the objects _compatible_ for merging
 + Then, we'll write (ok, we've written it for you) a _custom function_ to format each SCE object for merging, including:
     + Making any changes to ensure objects are compatible
-    + Adding in identifying information so we know which sample the cells and other metadata came from 
+    + Adding in identifying information so we know which sample the cells and other metadata came from
     + Removing the existing reduced dimension matrices (PCA and UMAP).
     This is because we'll want to recalculate these matrices on the merged objects, taking batch into account
 
@@ -294,8 +296,8 @@ Let's print out each object's `colData` column name to see where we stand:
 ```{r coldata colnames}
 sce_list |>
   purrr::map(
-    \(sce) colnames(colData(sce)) 
-  ) 
+    \(sce) colnames(colData(sce))
+  )
 ```
 We see the same columns all around in the same order, which is great!
 
@@ -332,7 +334,7 @@ The column `gene_symbol` is not sample-specific - it just provides the correspon
 The columns `mean` and `detected`, however, are sample-specific - they contain sample-specific statistics about gene expression.
 
 This means we definitely need to update the column names `mean` and `detected` to include the sample id.
-But, we don't need a separate `gene_symbol` column for each sample, so we can leave that one alone as just `gene_symbol`. 
+But, we don't need a separate `gene_symbol` column for each sample, so we can leave that one alone as just `gene_symbol`.
 Once we eventually merge, only one `gene_symbol` column will be left in the final object since it is the same across all the SCEs.
 
 We'll show one way to do this in our custom function, but it's worth noting there's nothing _wrong_ with also adding the sample id to the `gene_symbol` column; you'll just end up with a bunch of redundant gene symbol columns.
@@ -364,15 +366,14 @@ We also include roxygen-style comments for this function, which can be a helpful
 #'
 #' @returns An updated SCE object ready for merging
 format_sce <- function(
-  sce, 
-  sample_name, 
+  sce,
+  sample_name,
   shared_genes
 ) {
-  
-  ### Remove the single-sample reduced dimensions 
+  ### Remove the single-sample reduced dimensions
   # We do this first since it makes the object a lot smaller for the rest of this code!
   reducedDims(sce) <- NULL
-  
+
   ### Add dedicated sample indicator column to the colData slot
   # Recall, the `sce$` shortcut points to the colData
   sce$sample <- sample_name
@@ -381,12 +382,12 @@ format_sce <- function(
   # Use the shared_genes vector to index genes to the intersection
   # Doing this both subsets to just those genes, and reorders!
   sce <- sce[shared_genes, ]
-  
+
   ### There is no additional wrangling to do for the colData column names or assays.
   ### But if there were, you could add your custom code to do so here.
   ### Your custom function may need additional arguments for this, too.
 
-  ### Ensure cell ids are identifiable and fully unique 
+  ### Ensure cell ids are identifiable and fully unique
   # Update the SCE object column names (cell ids) by prepending the `sample_name`
   colnames(sce) <- glue::glue("{sample_name}-{colnames(sce)}")
 
@@ -400,14 +401,13 @@ format_sce <- function(
     glue::glue("{sample_name}-{rowdata_names}")
   )
   colnames(rowData(sce)) <- new_rowdata_names
-  
+
   ### Ensure metadata slot fields can be identified
   # We'll simply prepend the `sample_name` to all fields for this slot
   names(metadata(sce)) <- glue::glue("{sample_name}-{names(metadata(sce))}")
-  
-  
+
   ### Finally, we can return the formatted SCE object
-  return(sce)  
+  return(sce)
 }
 ```
 
@@ -421,7 +421,7 @@ sce_list_formatted <- purrr::map2(
   #  arguments `sce_list` and `names(sce_list)` in order
   sce_list,
   names(sce_list),
-  \(sce, sample_name) format_sce(sce, sample_name, shared_genes) 
+  \(sce, sample_name) format_sce(sce, sample_name, shared_genes)
 )
 
 # Print formatted SCE list
@@ -481,7 +481,7 @@ This is because part of their calculation involves scaling the raw data to cente
 When samples are separately centered, _all_ of them will be centered at zero, making it look like the datasets are already pretty overlapping when you plot their UMAPs together.
 But, this is just a mathematical artifact of how dimension reduction is performed.
 
-So, we'll begin by re-calculating PCA and UMAP on the merged object in a way that takes batches into consideration. 
+So, we'll begin by re-calculating PCA and UMAP on the merged object in a way that takes batches into consideration.
 For input to integration, we'll want the reduced dimension calculations to consider normalized gene expression values from all samples simultaneously.
 So we'll need to recalculate PCA (and UMAP for visualization) on the merged object.
 
@@ -494,13 +494,14 @@ For this, we'll need to provide the argument `block = merged_sce$sample` when mo
 num_genes <- 2000
 
 # Calculate variation for each gene
-gene_variance <- scran::modelGeneVar(merged_sce,
-                                     # specify the grouping column:
-                                     block = merged_sce$sample)
+gene_variance <- scran::modelGeneVar(
+  merged_sce,
+  # specify the grouping column:
+  block = merged_sce$sample
+)
 
 # Get the top `num_genes` high-variance genes to use for dimension reduction
-hv_genes <- scran::getTopHVGs(gene_variance,
-                              n = num_genes)
+hv_genes <- scran::getTopHVGs(gene_variance, n = num_genes)
 ```
 
 To calculate the PCA matrix itself, we'll use an approach from the `batchelor` package, which is the R package that contains the `fastMNN` method.
@@ -512,10 +513,12 @@ This weighting ensures that all batches, which may have very different numbers o
 #  the high-variance genes
 # We'll need to include the argument `preserve.single = TRUE` to get
 #  a single matrix with all samples and not separate matrices for each sample
-merged_pca <- batchelor::multiBatchPCA(merged_sce,
-                                       subset.row = hv_genes,
-                                       batch = merged_sce$sample,
-                                       preserve.single = TRUE)
+merged_pca <- batchelor::multiBatchPCA(
+  merged_sce,
+  subset.row = hv_genes,
+  batch = merged_sce$sample,
+  preserve.single = TRUE
+)
 ```
 
 Let's have a look at the output:
@@ -527,7 +530,7 @@ merged_pca
 We can use indexing `[[1]]` to see the PCA matrix calculated, looking at a small subset for convenience:
 
 ```{r print merged_pca indexed, live = TRUE}
-merged_pca[[1]][1:5,1:5]
+merged_pca[[1]][1:5, 1:5]
 ```
 
 We can now include this PCA matrix in our `merged_sce` object:
@@ -626,14 +629,16 @@ A well-integrated dataset will show batch mixing, but a poorly-integrated datase
 Note that this is a more qualitative way to assess the success of integration, but there are formal metrics one can use to assess batch mixing, which you can read more about in [this chapter of OSCA](http://bioconductor.org/books/3.22/OSCA.multisample/correction-diagnostics.html).
 
 ```{r plot fastmnn umap batches}
-scater::plotReducedDim(merged_sce,
-                       # plot the fastMNN coordinates
-                       dimred = "fastmnn_UMAP",
-                       # color by sample
-                       color_by = "sample",
-                       # Some styling to help us see the points:
-                       point_size = 0.5,
-                       point_alpha = 0.2) +
+scater::plotReducedDim(
+  merged_sce,
+  # plot the fastMNN coordinates
+  dimred = "fastmnn_UMAP",
+  # color by sample
+  color_by = "sample",
+  # Some styling to help us see the points:
+  point_size = 0.5,
+  point_alpha = 0.2
+) +
   scale_color_brewer(palette = "Dark2", name = "sample") +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with fastMNN")
@@ -653,9 +658,7 @@ Let's take a quick detour to see what kinds of cell types are in this data by ma
 merged_sce_df <- as.data.frame(colData(merged_sce))
 
 # Use ggplot2 to make a barplot the cell types across samples
-ggplot(merged_sce_df,
-       aes(x = sample,
-           fill = celltype_broad)) +
+ggplot(merged_sce_df, aes(x = sample, fill = celltype_broad)) +
   # Barplot of celltype proportions
   geom_bar(position = "fill") +
   # Use a CVD-friendly color scheme
@@ -674,14 +677,20 @@ Let's re-plot this UMAP to highlight cell types:
 
 
 ```{r plot fastmnn umap celltypes}
-scater::plotReducedDim(merged_sce,
-                       dimred = "fastmnn_UMAP",
-                       # color by broad celltypes
-                       color_by = "celltype_broad",
-                       point_size = 0.5,
-                       point_alpha = 0.2) +
+scater::plotReducedDim(
+  merged_sce,
+  dimred = "fastmnn_UMAP",
+  # color by broad celltypes
+  color_by = "celltype_broad",
+  point_size = 0.5,
+  point_alpha = 0.2
+) +
   # include argument to specify color of NA values
-  scale_color_brewer(palette = "Dark2", name = "Broad celltype", na.value = "grey80") +
+  scale_color_brewer(
+    palette = "Dark2",
+    name = "Broad celltype",
+    na.value = "grey80"
+  ) +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with fastMNN")
 ```
@@ -693,14 +702,20 @@ However, it's a bit challenging to see all the points given the amount of overla
 One way we can see all the points a bit better is to facet the plot by sample, using `facet_wrap()` from the `ggplot2` package (which we can do because `scater::plotReducedDim()` returns a `ggplot2` object):
 
 ```{r plot fastmnn umap celltypes faceted}
-scater::plotReducedDim(merged_sce,
-                       dimred = "fastmnn_UMAP",
-                       color_by = "celltype_broad",
-                       point_size = 0.5,
-                       point_alpha = 0.2,
-                       # Allow for faceting by a variable using `other_fields`:
-                       other_fields = "sample") +
-  scale_color_brewer(palette = "Dark2", name = "Broad celltype", na.value = "grey80") +
+scater::plotReducedDim(
+  merged_sce,
+  dimred = "fastmnn_UMAP",
+  color_by = "celltype_broad",
+  point_size = 0.5,
+  point_alpha = 0.2,
+  # Allow for faceting by a variable using `other_fields`:
+  other_fields = "sample"
+) +
+  scale_color_brewer(
+    palette = "Dark2",
+    name = "Broad celltype",
+    na.value = "grey80"
+  ) +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with fastMNN") +
   # Facet by sample
@@ -778,20 +793,24 @@ We'll also calculate UMAP from it.
 reducedDim(merged_sce, "harmony_PCA") <- harmony_pca
 
 # As before, calculate UMAP on this PCA matrix with appropriate names
-merged_sce <- scater::runUMAP(merged_sce,
-                              dimred = "harmony_PCA",
-                              name   = "harmony_UMAP")
+merged_sce <- scater::runUMAP(
+  merged_sce,
+  dimred = "harmony_PCA",
+  name = "harmony_UMAP"
+)
 ```
 
 
 Let's see how the `harmony` UMAP, colored by sample, looks compared to the `fastMNN` UMAP:
 
 ```{r plot harmony umap batches}
-scater::plotReducedDim(merged_sce,
-                       dimred = "harmony_UMAP",
-                       color_by = "sample",
-                       point_size = 0.5,
-                       point_alpha = 0.2) +
+scater::plotReducedDim(
+  merged_sce,
+  dimred = "harmony_UMAP",
+  color_by = "sample",
+  point_size = 0.5,
+  point_alpha = 0.2
+) +
   scale_color_brewer(palette = "Dark2", name = "sample") +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with harmony")
@@ -802,14 +821,20 @@ How do you think this `harmony` UMAP compares to that from `fastMNN` integration
 Let's see how this UMAP looks colored by cell type, and faceted for visibility:
 
 ```{r plot harmony umap celltypes}
-scater::plotReducedDim(merged_sce,
-                       dimred = "harmony_UMAP",
-                       color_by = "celltype_broad",
-                       point_size = 0.5,
-                       point_alpha = 0.2,
-                       # Specify variable for faceting
-                       other_fields = "sample") +
-  scale_color_brewer(palette = "Dark2", name = "Broad celltype", na.value = "grey80") +
+scater::plotReducedDim(
+  merged_sce,
+  dimred = "harmony_UMAP",
+  color_by = "celltype_broad",
+  point_size = 0.5,
+  point_alpha = 0.2,
+  # Specify variable for faceting
+  other_fields = "sample"
+) +
+  scale_color_brewer(
+    palette = "Dark2",
+    name = "Broad celltype",
+    na.value = "grey80"
+  ) +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
   ggtitle("UMAP after integration with harmony") +
   facet_wrap(vars(sample))
