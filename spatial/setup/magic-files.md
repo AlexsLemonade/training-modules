@@ -10,3 +10,6 @@ Some of these files may also be copied to S3 by the `sync-s3.sh` script for use 
 
 Files are listed below by the notebook that produces them:
 
+- 05-xenium_processing.Rmd
+  - data/brca-xenium/normalized/brca_xenium_normalized.rds
+  - data/brca-xenium/brca_xenium_cell_type_palette.tsv
