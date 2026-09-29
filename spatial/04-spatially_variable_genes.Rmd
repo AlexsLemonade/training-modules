@@ -76,7 +76,7 @@ moran_mc100k_tsv <- file.path(analysis_dir, "moran_mc100k.tsv")
 
 With all of those paths defined, we will load in our normalized data, which is already formatted as a `SpatialExperiment` object.
 
-```{r import-rds}
+```{r import rds}
 spe <- readr::read_rds(normalized_rds)
 ```
 
@@ -90,7 +90,7 @@ We justify this in part by the fact that if a gene is not particularly variable 
 We will identify the HVGs using the `scran` package, which is designed for working with single-cell RNA-seq data, but also works well with the spot data.
 We'll first model the gene variance to separate the biological component of the variance from the technical component, and then select the top 2000 HVGs by their biological variation.
 
-```{r find-hvg}
+```{r find hvg}
 # model gene variance
 gene_variance <- scran::modelGeneVar(spe)
 
@@ -101,14 +101,14 @@ hvg_vector <- scran::getTopHVGs(gene_variance, n = 2000)
 After selecting the HVGs, we can now filter the SPE object to include only those genes.
 We'll store that in a new variable called `hvg_spe`.
 
-```{r filter-spe, live = TRUE}
+```{r filter spe, live = TRUE}
 # filter the SPE to only include the highly variable genes
 hvg_spe <- spe[hvg_vector, ]
 ```
 
 We can verify that the gene filtering happened by looking at the number of rows in the SPE before and after filtering:
 
-```{r check-rows}
+```{r check rows}
 glue::glue("Before filtering: {nrow(spe)} rows.")
 glue::glue("After filtering: {nrow(hvg_spe)} rows.")
 ```
@@ -121,7 +121,7 @@ For spatial analysis, it can be convenient to use a slightly different object ty
 For the rest of this notebook, we will be using `SpatialFeatureExperiment` (SFE) objects, which are an extension of the `SpatialExperiment` (SPE) objects that include additional slots for spatial features, most notably a way to represent a graph that defines how cells are connected to each other in space.
 
 Almost all functions that work with SPEs will also work with SFEs (though not the reverse).
-However, there are differences with respect to how images are stored and plotting defaults, so we will be using a different package for most of our spatial plots. 
+However, there are differences with respect to how images are stored and plotting defaults, so we will be using a different package for most of our spatial plots.
 Rather than `ggspavis`, we will be using the `Voyager` package, which is designed for working with SFE objects.
 The functions used in `Voyager` work a bit differently from the `ggspavis` equivalents, but still use `ggplot2` as the underlying plotting engine.
 
@@ -148,7 +148,7 @@ We use `SpatialFeatureExperiment::mirror()` to flip the Y axis coordinates and t
 Both of these will change only the Y axis orientation, which is the one we are most concerned about.
 Just note that the exact series of flips you need are going to depend on how the data was read in the first time.
 
-```{r sfe-conversion, live = TRUE}
+```{r sfe conversion, live = TRUE}
 sfe <- SpatialFeatureExperiment::toSpatialFeatureExperiment(
   hvg_spe,
   unit = "full_res_image_pixel"
@@ -161,7 +161,7 @@ sfe <- SpatialFeatureExperiment::toSpatialFeatureExperiment(
 
 Now we have an SFE object, and we can look at the contents by printing the object summary:
 
-```{r SFE-contents, live = TRUE}
+```{r sfe contents, live = TRUE}
 sfe
 ```
 
@@ -176,7 +176,7 @@ The first part looks pretty much the same as the SPE object that you should be f
 In addition to these, there are a few extra slots shown in the summary:
 
 - `unit` is where the unit we defined earlier is stored.
-- `Geometries` stores the shapes and locations of features. 
+- `Geometries` stores the shapes and locations of features.
 In our case, we have only the `colGeometries`, which stores the location of each spot.
 - `Graphs`: stores the graphs that define the relationships between spots or cells, though we do not have anything defined here yet.
 
@@ -198,7 +198,7 @@ The `SpatialFeatureExperiment` package also allows the definition of row graphs,
 We will not be using those here, but they may apply for other types of spatial data or other types of questions.
 
 
-```{r define-graph, live = TRUE}
+```{r define graph, live = TRUE}
 # use the Visium barcodes to define the graph
 SpatialFeatureExperiment::colGraph(
   sfe
@@ -211,7 +211,7 @@ sfe
 Now we can make our first plot using the `Voyager` package, which is designed for working with SFE objects.
 We'll plot the graph that we just made using the `Voyager::plotColGraph()` function, which will show the spots and the connections between them as defined in the graph.
 
-```{r plot-graph, live = TRUE}
+```{r plot graph, live = TRUE}
 Voyager::plotColGraph(sfe) +
   # the units are arbitrary, so let's leave them and the grid lines off
   theme(
@@ -253,7 +253,7 @@ You'll notice that the new column names include the `sample_id` value, which is 
 
 Let's first look at the distribution of Moran's *I* values across all (highly variable) genes:
 
-```{r moran-hist}
+```{r moran histogram}
 rowData(sfe) |>
   as.data.frame() |>
   ggplot(aes(x = .data[[paste0("moran_", sample_id)]])) +
@@ -281,7 +281,7 @@ For the parametric test, we will use `type = "moran.test"` to call the `spdep::m
 
 `moran.test` is relatively fast (though far from instantaneous), so we will do that first, and look at the results.
 
-```{r moran-test, live = TRUE}
+```{r moran test, live = TRUE}
 sfe <- Voyager::runUnivariate(
   sfe,
   type = "moran.test"
@@ -292,7 +292,7 @@ And let's look at the results in the `rowData()` of the SFE object:
 The main thing we will want to look at is the P value, which is stored in the `moran.test_p.value_GSM8478586` column, but the other columns are also potentially useful for understanding the results.
 (You may note that this method calculates the Moran's I value again, storing it in `moran.test_Moran.I.statistic_GSM8478586`.)
 
-```{r moran-test-view, live = TRUE}
+```{r view moran test, live = TRUE}
 rowData(sfe)
 ```
 
@@ -301,7 +301,7 @@ rowData(sfe)
 The Monte Carlo simulation will be much slower, as we will we have to resample and recalculate the statistics for each replicate, and we will want a lot of replicates for accurate statistics.
 We'll start with 1000 replicates for time, and we will also use the `BiocParallel` package to run the replicates in parallel for a bit more of a speedup.
 
-```{r moran-mc, live = TRUE}
+```{r moran mc, live = TRUE}
 reps <- 1000
 sfe <- Voyager::runUnivariate(
   sfe,
@@ -314,7 +314,7 @@ sfe <- Voyager::runUnivariate(
 Now we can view theses results as well.
 Here we will want to look for the P value in the `moran.mc_p.value_GSM8478586` column.
 
-```{r view-mc-result}
+```{r view mc result}
 rowData(sfe)
 ```
 
@@ -322,7 +322,7 @@ rowData(sfe)
 We can make a quick plot to see how the P values from each method compare to one another.
 To start, we will pull out the relevant columns to a new data frame, and calculate the -log10(P value) for each method so that we can compare the small values more easily.
 
-```{r moran-dataframe}
+```{r moran dataframe}
 # define the sample_id so we can use it as needed
 sample_id <- "GSM8478586"
 
@@ -343,7 +343,7 @@ moran_df <- rowData(sfe) |>
 Now we can make a plot comparing the -log10(P value) from each method.
 We'll include a y=x line for comparison, and restrict the x axis to a maximum of 7 so that we can see the majority of the points more clearly.
 
-```{r plot-p}
+```{r plot p}
 ggplot(moran_df, aes(x = moran_test_neglogp, y = moran_mc_neglogp)) +
   geom_point(alpha = 0.4) +
   labs(
@@ -364,7 +364,7 @@ You can also see that the P values from the permutations are discrete: you can't
 We could do better with more replicates, but that takes a very long time to run... so we pre-calculated a set with 100,000 replicates.
 Let's load those analysis results in now and add them to the data frame for plotting.
 
-```{r read-moran_mc100k}
+```{r read moran_mc100k}
 moran_mc100k_df <- readr::read_tsv(moran_mc100k_tsv) |>
   dplyr::select(ID, moran_mc100k_p = moran.mc_p.value_GSM8478586)
 
@@ -377,7 +377,7 @@ moran_df <- moran_df |>
 
 And make a new plot...
 
-```{r plot-moran-mc-100k}
+```{r plot moran_mc_100k}
 ggplot(moran_df, aes(x = moran_test_neglogp, y = moran_mc100k_neglogp)) +
   geom_point(alpha = 0.4) +
   labs(
@@ -398,7 +398,7 @@ That isn't really our goal here, but we did want to have a little look at how th
 For now, let's try to get a general sense of how many genes show "significant" spatial variation.
 We'll apply a multiple testing correction to the P values, and assign significance for each at an FDR of 0.05.
 
-```{r moran-significant}
+```{r moran significant}
 moran_df <- moran_df |>
   dplyr::mutate(
     moran_test_p_adjust = p.adjust(moran_test_p, method = "BH"),
@@ -408,7 +408,7 @@ moran_df <- moran_df |>
   )
 ```
 
-```{r count-moran-significance, live = TRUE}
+```{r count moran significance, live = TRUE}
 moran_df |>
   dplyr::count(moran_test_sig, moran_mc_sig)
 ```
@@ -421,7 +421,7 @@ Using significance as a *filter* here is not likely to be very useful, but we ca
 
 Let's look at the top six genes by Moran's *I* value, and see what their spatial expression patterns look like.
 
-```{r get-top-moran, live = TRUE}
+```{r get top moran, live = TRUE}
 top_moran <- moran_df |>
   dplyr::slice_max(moran_i, n = 6) |>
   dplyr::pull(ID)
@@ -432,7 +432,7 @@ We'll use the `Voyager::plotSpatialFeature()` function to make this plot.
 This directly supports plotting multiple features at once, and will make a nice grid of plots for us, internally using the `patchwork` package.
 While we will select the features to plot by their Ensembl IDs, we will use the `swap_rownames` argument to so that we can use the gene symbols in the `rowData()` for the plot labels for better readability.
 
-```{r plot-top-moran, live = TRUE}
+```{r plot top moran, live = TRUE}
 Voyager::plotSpatialFeature(
   sfe,
   features = top_moran,
@@ -441,7 +441,6 @@ Voyager::plotSpatialFeature(
   swap_rownames = "Symbol"
 )
 ```
-
 
 
 ### `nnSVG`
@@ -455,7 +454,7 @@ The tradeoff is that this analysis is much slower than the Moran's *I* calculati
 The main function for running the analysis is `nnSVG::nnSVG()`, which takes an SPE or SFE object and calculates the statistics for each gene.
 We will stick with the SFE object we have been working with so far.
 
-```{r run-nnsvg, live = TRUE}
+```{r run nnsvg, live = TRUE}
 sfe <- nnSVG::nnSVG(sfe, n_threads = 4)
 ```
 
@@ -464,7 +463,7 @@ Once we start this analysis, it is a good time for a break, as it can take a lon
 Once that finishes, we can look at the results, which are stored in the `rowData` of the SFE object.
 
 
-```{r view-nnsvg}
+```{r view nnsvg}
 # view names
 names(rowData(sfe))
 ```
@@ -481,7 +480,7 @@ The main statistics we might be interested in are:
 
 First, let's count the number of genes that are significant at an FDR of 0.05:
 
-```{r count-nnsvg-significance, live = TRUE}
+```{r count nnsvg significance, live = TRUE}
 rowData(sfe) |>
   as.data.frame() |>
   dplyr::filter(padj < 0.05) |>
@@ -492,7 +491,7 @@ Again, most of them!
 Let's pull out the stats we specifically care about and combine that with our previous data frame of Moran's *I* results.
 We'll adjust the names to make them a bit more identifiable along the way.
 
-```{r collate-results}
+```{r collate results}
 svg_df <- rowData(sfe) |>
   as.data.frame() |>
   dplyr::select(
@@ -516,7 +515,7 @@ svg_df <- rowData(sfe) |>
 Now we can compare the P values from the Moran's *I* test and the `nnSVG` test.
 We'll use the parametric method for the Moran's I statistic, but we could use the Monte Carlo method if we wanted to.
 
-```{r plot-moran-nnsvg-p}
+```{r plot moran nnsvg p}
 ggplot(svg_df, aes(x = moran_test_neglogp, y = nnsvg_neglogp)) +
   geom_point(alpha = 0.4) +
   labs(
@@ -536,7 +535,7 @@ Deviations will be most apparent when the scale component of `nnSVG` is playing 
 We'll include the correlation between the two measures as a label on the plot.
 
 
-```{r plot-moran-nnsvg-stats}
+```{r plot moran nnsvg stats}
 ggplot(svg_df, aes(x = moran_i, y = nnsvg_propsv)) +
   geom_point(alpha = 0.4) +
   labs(
@@ -560,7 +559,7 @@ This is presumably because of the flexibility of the `nnSVG` model to different 
 As we did with the Moran's *I* top genes, let's also look at the top six genes by `nnSVG`'s `prop_sv` statistic, and see what their spatial expression patterns look like.
 We'll again use `Voyager::plotSpatialFeature()` for these plots.
 
-```{r plot-nnsvg-features, live = TRUE}
+```{r plot nnsvg features, live = TRUE}
 top_nnsvg <- svg_df |>
   dplyr::slice_max(nnsvg_propsv, n = 6) |>
   dplyr::pull(ID)
@@ -575,12 +574,13 @@ Voyager::plotSpatialFeature(
 
 Indeed, this does seem to capture some genes that are being expressed in smaller regions of the tissue, but still with apparent spatial structure.
 
+
 ### Comparing SVGs and HVGs
 
 As a final comparison, we can also look at how the variation measurements we get from the SVGs compares to the biological component of the variation in the HVGs from earlier.
 We'll add the gene variance from our earlier `gene_variance` data frame onto our data frame of SVG results, adding just the biological variation portion.
 
-```{r compare-svg-hvg, live = TRUE}
+```{r compare svg hvg, live = TRUE}
 # make a dataframe with just the hvgs and the variance
 hvg_df <- gene_variance |>
   as.data.frame() |>
@@ -597,7 +597,7 @@ svg_hvg_df <- svg_df |>
 
 Finally, we can make a plot that compares the `nnSVG` proportion of spatial variation to the biological variation.
 
-```{r plot-svg-hvg}
+```{r plot svg hvg}
 ggplot(svg_hvg_df, aes(x = bio_variance, y = nnsvg_propsv)) +
   geom_point(alpha = 0.4) +
   labs(
@@ -610,7 +610,14 @@ ggplot(svg_hvg_df, aes(x = bio_variance, y = nnsvg_propsv)) +
     y = 0,
     label = paste0(
       "Spearman correlation: ",
-      round(cor(svg_hvg_df$bio_variance, svg_hvg_df$nnsvg_propsv, method = "spearman"), 2)
+      round(
+        cor(
+          svg_hvg_df$bio_variance,
+          svg_hvg_df$nnsvg_propsv,
+          method = "spearman"
+        ),
+        2
+      )
     )
   )
 ```
@@ -624,7 +631,7 @@ This makes sense if we assume that most of the biological variation in a sample 
 
 ## Session info
 
-```{r}
+```{r session info}
 sessionInfo()
 ```
 
