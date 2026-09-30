@@ -96,7 +96,7 @@ output_spe_file <- file.path(
 # output cell type color palette
 output_color_palette_file <- file.path(
   data_dir,
-  "brca_xenium_cell_type_palette.tsv"
+  "brca-xenium-cell-type-palette.tsv"
 )
 ```
 
@@ -118,7 +118,7 @@ Let's look at what's in the bundle:
 
 
 ```{r dir-data, live = TRUE}
-dir(xenium_outs_dir)
+
 ```
 
 Below are brief descriptions of the core files in a Xenium output bundle.
@@ -180,19 +180,14 @@ In the code below, we set a few arguments explicitly, like the count matrix and 
 By default, the function also moves the Xenium control features (negative control probes, negative control codewords, unassigned codewords, etc.) out of the main gene matrix and into `altExps`, and adds the `experiment.xenium` metadata and the transcript/boundary parquet paths to `metadata()`.
 
 ```{r import-xenium, live = TRUE}
-spe <- SpatialExperimentIO::readXeniumSXE(
-  xenium_outs_dir, # path to the Xenium bundle (required)
-  countMatPattern = "cell_feature_matrix.h5", # default
-  metaDataPattern = "cells.parquet", # default
-  coordNames = c("x_centroid", "y_centroid") # default; columns used as spatialCoords
-)
+
 ```
 
 Let's have a look:
 
 ```{r print-spe, live = TRUE}
 # print the spe
-spe
+
 ```
 
 A few things to notice about this object:
@@ -210,10 +205,9 @@ An H&E image can be added to the object downstream, but we won't be working with
 ```{r plot-coords, live = TRUE}
 #| fig.width: 7
 # needed to be able to plot the coordinates with ggspavis
-spe$in_tissue <- TRUE
 
 # plot just the spots
-ggspavis::plotCoords(spe)
+
 ```
 
 
@@ -276,16 +270,12 @@ For this dataset, we have published cell type annotations, which we can join ont
 
 ```{r read-annotations, live = TRUE}
 # read the cell type annotations
-cell_types_df <- readr::read_tsv(annotations_file)
 
-head(cell_types_df)
 ```
 
 ```{r annotations-table, live = TRUE}
 # how many cells of each annotated type?
-cell_types_df |>
-  dplyr::count(cell_type_annotation) |>
-  dplyr::arrange(desc(n))
+
 ```
 
 The original annotations are fairly fine-grained.
@@ -369,8 +359,7 @@ Now that we have prepared our data, we can create our plot showing the lumped ce
 #| message: false
 
 # plot all spots colored by cell type
-ggspavis::plotCoords(spe, annotate = "cell_types_lumped") +
-  scale_color_manual(values = cell_type_palette)
+
 ```
 
 
@@ -435,7 +424,7 @@ Now we can pull out the specific threshold corresponding to 3 MADs below the med
 
 ```{r define-threshold, live=TRUE}
 # pull out the numeric threshold for plotting
-threshold <- attr(outliers, "threshold")[1]
+
 ```
 
 We'll also plot the distribution of the ratio and the chosen cutoff.
@@ -463,7 +452,7 @@ First, let's look at what cells get filtered by using just the counts-per-area Q
 
 ```{r count-outliers, live=TRUE}
 # how many cells would get filtered?
-sum(outliers)
+
 ```
 
 Where in the sample do the outliers appear?
@@ -508,19 +497,16 @@ Let's do that below and add a new column to the SPE object indicating which cell
 
 ```{r flag-exclude, live = TRUE}
 # a cell is excluded if it is a counts-per-area outlier OR has any control counts
-spe$exclude <- spe$counts_per_area_outliers | spe$control_exclude
 
 # fraction of cells flagged for removal
-mean(spe$exclude)
+
 ```
 
 We'll then filter our cells and remove them from the SPE object.
 
 ```{r filter-cells, live = TRUE}
 # keep only the cells not flagged for removal
-filtered_spe <- spe[, !spe$exclude]
 
-dim(filtered_spe)
 ```
 
 
@@ -537,10 +523,9 @@ This includes:
 
 ```{r normalize, live = TRUE}
 # calculate per-spot size factors
-normalized_spe <- scuttle::computeLibraryFactors(filtered_spe)
 
 # perform normalization
-normalized_spe <- scuttle::logNormCounts(normalized_spe)
+
 ```
 
 

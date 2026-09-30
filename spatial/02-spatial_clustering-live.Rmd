@@ -1,5 +1,5 @@
 ---
-title: "Spatially-aware clustering"
+title: "Clustering spatial transcriptomics data"
 author: Data Lab for ALSF
 date: 2026
 output:
@@ -10,19 +10,30 @@ output:
 
 ## Objectives
 
-- Perform PCA, clustering, UMAP sans spatial information
-- Use BANKSY to perform spatially-aware PCA and clustering
+- Perform dimensionality reduction (PCA and UMAP) and graph-based clustering on Visium data
+- Use the `Banksy` package to perform spatially-aware dimensionality reduction and clustering
 - Compare clusters calculated with and without spatial information
 
 ## Introduction
 
-We will be using a sample from a mouse with osteosarcoma lung metastases from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049).
-This sample was processed using second-generation Visium technology, and it was quantified with `Space Ranger 2.1.1`.
+In this notebook, we'll cluster expression data from a mouse sample with osteosarcoma lung metastases from [Reinecke et al. (2025)](https://doi.org/10.1158/1078-0432.CCR-24-0049).
+This sample was processed using second-generation Visium technology and quantified with `Space Ranger 2.1.1`.
+We have already processed this dataset for you, including filtering out low quality spots (`SpotSweeper` removed 20 low-quality spots) and normalization, which you can see in this notebook: <https://github.com/AlexsLemonade/training-modules/blob/master/spatial/setup/osteo/prepare-osteo-data.Rmd>.
 
-We have already processed this dataset for you: filtered (note that `SpotSweeper` removed 20 low-quality spots during this step) and normalized it. 
+As we have discussed, Visium spatial transcriptomics data does not quantify expression at the single-cell level, but rather each Visium spot captures the combined expression of 1-10 cells.
+This means that when we perform clustering on Visium data, we are actually clustering spots with similar transcriptional profiles, not individual cells.
+
+Also unlike single-cell data, we now have an additional consideration of spatial information.
+In many cases (but not all!), it's reasonable to assume that nearby spots will tend to have more similar expression to one another than to distant spots.
+We can therefore incorporate each spot's physical position in the tissue alongside its expression profile during clustering, which may help to approximate spatial domains.
+
+
+In this notebook, we'll explore complementary approaches: first running expression-based dimensionality reduction and clustering just as we would for single-cell data, and then performing the same analyses using the [`Banksy` package](https://bioconductor.org/packages/release/bioc/html/Banksy.html).
+`Banksy` (sometimes also stylized as `BANKSY`) offers a spatially-aware dimensionality reduction and clustering approach that augments each spot's expression with information from its spatial neighborhood.
 
 ## Set up
 
+To begin, we'll load the packages we'll use throughout this notebook.
 
 ```{r libraries}
 # The main class we use for spatial transcriptomic data
@@ -32,7 +43,6 @@ suppressPackageStartupMessages({
 
 
 # To support plotting
-library(ggspavis)
 library(ggplot2)
 library(patchwork)
 
@@ -40,18 +50,19 @@ library(patchwork)
 theme_set(theme_bw())
 ```
 
+We'll set a seed for reproducibility, since we'll be running UMAP and clustering.
 
-Set a seed for reproducibility:
-
-```{r}
+```{r seed}
 set.seed(2026)
 ```
 
 
 ### Directories and files
 
+The pre-processed SPE object for this sample is stored in a sample-specific subdirectory of `data/osteo`, organized by GEO sample ID.
+
 ```{r inputs}
-# define sample id we'll be analyzing 
+# define sample id we'll be analyzing
 sample_id <- "GSM8478586"
 
 # data directory for this sample
@@ -60,291 +71,403 @@ data_dir <- file.path("data/osteo", sample_id, "normalized")
 normalized_rds <- file.path(data_dir, "osteo_normalized_spe.rds")
 ```
 
-And the output file:
+We'll also define the path for outputting clusters.
+To save space, we'll conclude by exporting a TSV with the clusters we calculate in this notebook (along with other per-spot metadata).
 
-```{r}
-clustered_rds <- file.path(data_dir, "osteo_clustered_spe.rds")
+```{r outputs}
+cluster_tsv <- file.path(data_dir, "osteo_clusters.tsv")
 ```
 
 
 ## Import
 
-```{r import-rds, live = TRUE}
+Let's start by reading in the pre-processed SPE object:
+
+```{r import rds, live = TRUE}
 
 ```
 
-Look at it first:
+Before working with this SPE, let's get familiar with it.
+We'll first print the SPE to review its contents, including the number of spots and genes and what assays are available.
 
 ```{r print-spe, live = TRUE}
 # print the spe
 
 ```
 
+We'll also create a plot of the H&E image to orient ourselves to the tissue before diving into clustering, adjusting the styling of the plot to our preferences.
+We'll refer back to it throughout the notebook to help interpret the spatial patterns we find.
 
-```{r plot-visium}
-#| fig.width: 5
+```{r plot visium}
+#| fig.width: 3
 
 # define H&E plot for general use in notebook
-he_plot <- plotVisium(spe, spots = FALSE, zoom = TRUE) +
-  ggtitle("H&E") +
+he_plot <- ggspavis::plotVisium(spe, spots = FALSE, zoom = TRUE) +
   # add styling to match other panels
   theme(
     plot.title = ggplot2::element_text(
       hjust = 0.5,
       margin = ggplot2::margin(0, 0, 0.1, 0)
     ),
-    panel.border = ggplot2::element_rect(color = "black", linewidth = 0.25)
+    panel.border = ggplot2::element_rect(color = "black", linewidth = 0.3)
   )
 
 he_plot
 ```
 
-We can clearly see tumor cells amid the lung parenchyma, which itself is more sparse because of the alveolar spaces which is just how lungs work.
-Let's get a sense of the RNA counts here by plotting some of the QC stats we calculated for you.
-Note that these plots use right-censoring and set an upper limit on the color scale to be able to see lower value spots more clearly.
+This image clearly shows regions of tumor cells amid the lung parenchyma, which appears less dense because of the lung's alveolar spaces.
+
+Let's also get a sense of the RNA counts here by plotting some of the QC statistics that were calculated for you, including the total UMIs (`sum`) and number of unique detected genes (`detected`).
+Note that these plots use an upper limit on the color scale to be able to see lower value spots more clearly.
 
 ```{r show qc}
 #| warning: false
 #| message: false
+#| fig.height: 3
 
-total_plot <- plotCoords(spe, annotate = "sum", point_size = 1) + 
+total_plot <- ggspavis::plotCoords(spe, annotate = "sum", point_size = 1) +
   scale_color_viridis_c(
     # cap scale at 20,000; all value above this will be shown as 20,000
-    limits = c(0, 20000), 
-    oob = scales::oob_squish, 
+    limits = c(0, 20000),
+    # tell the scales to "squish" to the limit specified above, where
+    # oob stands for "out of bounds" handling
+    oob = scales::oob_squish,
     # fun with color scales!
     option = "plasma"
   )
-detected_plot <- plotCoords(spe, annotate = "detected",  point_size = 1) + 
+detected_plot <- ggspavis::plotCoords(
+  spe,
+  annotate = "detected",
+  point_size = 1
+) +
   scale_color_viridis_c(
     # cap scale at 10,000
-    limits = c(0, 10000), 
-    oob = scales::oob_squish, 
+    limits = c(0, 10000),
+    oob = scales::oob_squish,
     option = "plasma"
   )
 total_plot + detected_plot
 ```
 
-Takeaways:
+There is clearly more RNA expression in the tumor regions than in the parenchyma, which makes sense biologically.
+Tumor cells are highly proliferative and transcriptionally active.
+In addition, the lower density of parenchymal tissue makes for fewer cells per spot, and less overall expression.
 
-- Clearly, more expression in the tumors in general vs parenchyma, which makes sense biologically!
-- Because we have really different tissue compartments here, if we had used global thresholds we would have just ended up retaining almost exclusively tumor cells and removing their spatial context due to lower expression, but we would like to retain this spatial context because otherwise we've just wasted a ton of money on Visium
+This plot also illustrates why local QC filtering thresholds are preferable to global ones for heterogeneous tissue samples like this.
+Specifically, the parenchymal spots have lower UMI and gene counts not because they are low quality, but because of the alveolar architecture of lung tissue itself.
+A global threshold would not distinguish between a genuinely low-quality spot and a spot that overlies sparse tissue, and would have ended up preferentially removing parenchymal spots.
+For a Visium experiment, we want to retain much of the spatial context, including the contrast between tumor and parenchymal regions, and using local QC thresholds allows us to do so.
 
 
-## Calculate clusters
+## Dimension reduction and clustering
 
-We're going to see how standard single-cell post-processing would look and then compare to one approach for injecting spatial information into the clustering procedure.
+The first clustering analysis we'll perform will look analogous to single-cell post-processing.
+After that, we'll compare to clustering with the `Banksy` approach to see how including spatial information influences cluster detection.
 
-### Spatial-free, aka expression only
 
-First, we'll run PCA, clustering, UMAP as we might do for single-cell.
-Therefore, in this section, clusters will be driven by expression only but keep in mind that we're working at the spot level with Visium data, not the cell level, and each spot contains 5-20 cells.
-This means that we're clustering heterogeneous groups of cells as single unit regions of expression as each spot may not represent a single cell (if you'd like to know many & what cells each spot might have, please keep attending the workshop!). 
+### Expression-only analysis
 
-First, PCA:
+In this section, we'll apply the same dimensionality reduction and clustering workflow we would use for single-cell data, treating each spot's expression profile as the unit of analysis without any spatial information.
+This serves as a useful baseline for comparison when we later apply a spatially-aware approach.
 
-- Model gene variance and pull out the 2000 HVGs for use in PCA
-  - Note that this is not spatially aware and there is a distinct problem "spatially variable genes"
-- Then we'll use these genes to run the PCA
+Again, remember that we are working at the spot level.
+This means clusters will represent groups of similar spots, each of which may include multiple nearby cells.
+
+When calculating PCA, we often prefer to reduce the number of genes to only the most highly variable ones, which will both speed up calculations and ensure stronger signal.
+To do this, we'll start by modeling per-gene expression variance with `scran::modelGeneVar()`, which separates each gene's variation into biological and technical components, using the observed relationship between mean expression and technical variation.
+We'll then use these modeling results to select the 2000 genes with the highest biological variation (these are our high-variance genes, aka HVGs).
+Finally, we'll perform PCA that considers just these genes with `scater::runPCA()`.
 
 ```{r nonspatial pca, live = TRUE}
+# model gene variance
+
+# calculate the top 2000 HVGs
+
+# calculate PCE using the top HVGs, saving back to the SPE object
 
 ```
 
-Now, we can cluster.
-For this notebook, we'll generally use 20 nearest neighbors with the Louvain algorithm for graph-based clustering.
-Worth noting that it's best practice to exploring parameter space though, see [the clustering exercise](../scRNA-seq-advanced/exercise_05-cluster_evaluation.Rmd) to learn more about this.
+Next, we will perform graph-based clustering using `scran::clusterCells()`, which calculates clusters using the `bluster` package under the hood.
+
+We'll use Jaccard weighting and the Louvain algorithm, specifying `k = 20` nearest neighbors.
+We'll also save these clustering parameters as `cluster_params` so we can reuse the same settings when running spatially-aware clustering later.
+
+But first, one caveat: it's worth noting that the choice of `k` and clustering algorithm are important analytical decisions (as well as other parameters like `resolution`, which we are leaving at its default value of 1 here).
+In your own research, we do recommend taking some time to explore parameter space when clustering, which you can learn more about in the [the `scRNA-seq-advanced` training module's clustering evaluation exercise](../scRNA-seq-advanced/exercise_05-cluster_evaluation.Rmd).
 
 ```{r nonspatial cluster, live = TRUE}
-# define clustering params, and we can re-use this later too
+# define clustering parameters
 
-# perform clustering
+# perform clustering and save to SPE colData
 
 ```
 
+We'll also calculate a UMAP for visualization using `scater::runUMAP()`.
 
-We'll also calculate the UMAP for viz.
+```{r nonspatial umap, live = TRUE}
 
-```{r nonspatial umap}
-spe <- scater::runUMAP(spe)
 ```
 
-  
-Let's have a look, both at the UMAP and at the coordinates colored by cluster.
-We'll use the same palette to assist in interpretation, and show the H&E here as well.
-
+Let's visualize our results so far by plotting the UMAP and spatial coordinate plots, each colored by cluster with the same color palette.
+We'll also include the H&E image for reference.
 
 ```{r plot nonspatial}
 #| message: false
 #| fig.width: 10
+#| fig.height: 3
 
+# define UMAP plot
 umap_nonspatial <- scater::plotUMAP(
-  spe, 
+  spe,
   color_by = "cluster_nonspatial",
   point_size = 0.5
-) + 
-scale_color_brewer(palette = "Dark2")
+) +
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "Non-spatial cluster",
+    palette = "Dark2"
+  ) +
+  # ensure more visible points in legend
+  guides(
+    color = guide_legend(override.aes = list(alpha = 1, size = 1.5))
+  ) +
+  # remove axis scales from umap plot
+  theme(
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
 
-coords_nonspatial <- plotCoords(
-  spe, 
-  annotate = "cluster_nonspatial", 
-  point_size = 1.25
-) + 
-  scale_color_brewer(palette = "Dark2")
+# define coordinates plot
+coords_nonspatial <- ggspavis::plotCoords(
+  spe,
+  annotate = "cluster_nonspatial",
+  point_size = 1
+) +
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "Non-spatial cluster",
+    palette = "Dark2"
+  )
 
+# combine plots with patchwork
 umap_nonspatial + coords_nonspatial + he_plot
 ```
 
-We see four clusters which have some correspondence to patterns in the H&E for tumor vs parenchymal regions, and clusters seem to be based on expression patterns along a "gradient" from tumor -> parenchymal.
-Interestingly we see in the UMAP that spatial regions tend to be adjacent; whether this is meaningful isn't clear but it's neat nonetheless.
+This has resulted in five clusters.
+How do you think these compare to regions in the H&E?
+What patterns do you see, for example between tumor and parenchymal regions?
 
 
-### Spatially-aware clustering with BANKSY
+### Spatially-aware clustering with Banksy
 
-The field is popping for approaches to incorporate spatial information, and we're going to go through one popular method used for clustering and/or domain identification in spatial data.
+[`Banksy`](https://prabhakarlab.github.io/Banksy/) ([Singhal _et al._ 2024](https://doi.org/10.1038/s41588-024-01664-3)) is a package for spatially-aware dimensionality reduction and clustering.
+These spatially-aware clusters can also serve as a first step towards tissue domain identification.
 
-Text placeholder for BANKSY methods, briefly...
-- calculates a matrix ("BANKSY matrix") that considers both expression and spatial information
-  - there are two frameworks that BANKSY uses to consider spatial information: graph-based neighbor averaging, and optionally, AGF on top of that, where the neighborhood sizes are controlled by a `k_geom` parameter
-  - Incorporating AGF may help to detect boundaries between domains and can resolve some finer structure
-  - At some point we have to note a fun naming convention: H0 and M0 refer to matrices calculated sans AGF, and H1 and M1 with AGF. The H/M distinction is a bit of mathematics pedantry but just remember 0 --> no AGF and 1 --> with AGF.
-- Then we can perform PCA on this matrix, using a parameter called `lambda` to tune how much the spatial information contributes
-- Finally we can cluster/run UMAP on this PCA
+This method rests on the assumption that spots in the same tissue domain tend not only to share similar expression profiles, but also tend to be surrounded by spots with similar expression.
+In other words, nearby spots are likely to be transcriptionally similar.
+`Banksy` leverages this insight by incorporating neighborhood information into the PCA itself.
+Performing clustering on this spatially-aware PCA allows `Banksy` to identify clusters with both distinct expression and tissue domain structure.
 
-See more details about parameters [from these docs](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
+The `Banksy` algorithm works in three steps:
 
-We're going to run this without and with AGF and then compare all around.
+1. **Compute the `Banksy` matrix** with `Banksy::computeBanksy()`.
 
-#### Without AGF
+For each spot, `Banksy::computeBanksy()` averages expression across its `k_geom` nearest spatial neighbors to create a neighborhood expression profile, stored as the `H0` assay.
+Optionally, `Banksy::computeBanksy()` can also compute an Azimuthal Gabor Filter (AGF), which captures directional expression gradients that can help resolve finer structure at domain boundaries.
+When AGF is turned on, a second `Banksy` matrix is stored as the `H1` assay (the `0` and `1` in these assay names indicate if AGF is off or on, respectively).
+
+
+2. **Run `Banksy` PCA** with `Banksy::runBanksyPCA()`.
+
+`Banksy::runBanksyPCA()` first creates a single matrix that is a weighted combination of the normalized expression in `logcounts` and the `Banksy` neighborhood matrix (`H0` or `H0` and `H1` if AGF is on).
+To combine these matrices, `Banksy` introduces the `lambda` parameter.
+`lambda` ranges from 0 -- 1 and controls how much weight is given to the `Banksy` neighborhood information matrix relative to `logcounts` expression, where a value of 0 considers only `logcounts` expression.
+The `Banksy` authors recommend a value of `lambda = 0.2` for Visium spot data, as described in [this `Banksy` vignette on parameter selection](https://prabhakarlab.github.io/Banksy/articles/parameter-selection.html#parameters).
+
+`Banksy` then performs PCA using this combined matrix as the input.
+
+
+3. **Perform graph-based clustering**.
+
+Once the PCA is calculated, it can be used for a variety of downstream tasks, including clustering and UMAP calculation.
+In this notebook, we'll use `scran` and `scater` tools for these steps, but we will also point out that `Banksy` includes wrapper functions for these calculations, which can be useful if you are evaluating multiple `Banksy` parameters at once.
+
+
+In this notebook, we'll run `Banksy` in two configurations — without AGF and with AGF — and compare the results.
+
+Before we get started, we have to modify our SPE object.
+When calculating the spatially-aware matrix and the PCA, `Banksy` uses all genes present in the SPE; it does not subset to only the most variable genes.
+To ensure a fair comparison between clustering approaches, we will subset the SPE to the HVGs that we identified before running `Banksy` and save it to a new variable `hvg_spe`.
+We'll use this SPE object for the rest of the notebook.
+
+```{r subset spe, live = TRUE}
+# subset the SPE to contain only HVGs
+
+```
+
+#### Running Banksy without AGF
+
+We'll start by computing the `Banksy` matrix without AGF.
+As noted above, `lambda = 0.2` is a commonly used starting point for Visium spot data; this value means roughly 80% of the signal in the combined matrix comes from each spot's own expression and 20% comes from its neighborhood.
+We'll use `k_geom = 18` spatial neighbors for the neighborhood averaging, which is also the recommended starting point for Visium spot data.
 
 ```{r banksy matrix agf off, live = TRUE}
 # define parameters recommended for Visium
 
-# calculate the BANKSY matrix without AGF
-
-# show the spe
-
-```
-
-Show and explain the H0 matrix (spatially-smoothed neighbor-averaged expression).
-
-```{r show ho}
-assay(spe, "H0")[1:5, 1:5]
-```
-
-Also note that parameters were added to the `metadata` slot:
-
-```{r banksy nonagf metadata}
-# show spe metadata
-metadata(spe)$BANKSY_params
-```
-
-
-Now we can calculate PCA, specifying `lambda` for how to weight the original expression (`logcounts`) and the BANKSY matrix (here, H0, 
-
-```{r banksy pca, live = TRUE}
-# calculate PCA within BANKSY
-
-# show SPE
-
-```
-
-We have a new PCA called `PCA_M0_lam0.2`.
-BANKSY named this for us: `M0` implies that AGF is off, and `lam0.2` is our lambda parameter.
-
-We can proceed to calculate UMAP and clusters now, and we'll use `scran`/`scater` functions for that.
-But, it's worth pointing out that BANKSY does allow you to specify multiple `lambda` parameters at once and then offers wrapper functions to cluster/UMAP across those parameters in one function call.
-
-```{r cluster banksy nonagf}
-pca_name <- "PCA_M0_lam0.2"
-umap_name <- "UMAP_banksy_nonagf"
-
-spe <- scater::runUMAP(
-  spe,
-  dimred = pca_name,
-  name = umap_name
-)
-
-# perform clustering
-colData(spe)$cluster_banksy_nonagf <- scran::clusterCells(
-  spe, 
-  use.dimred = pca_name,
-  # previously defined as 20 nearest neighbors using the Louvain algorithm and default resolution 1 
-  BLUSPARAM = cluster_params 
-)
-```
-
-And plot:
-
-```{r plot banksy nonagf}
-#| message: false
-#| fig.width: 10
-
-umap_banksky_nonagf <- scater::plotReducedDim(
-  spe, 
-  dimred = umap_name,
-  color_by = "cluster_banksy_nonagf", 
-  point_size = 0.5
-) + 
-scale_color_brewer(palette = "Set1")
-
-
-coords_banksky_nonagf <- plotCoords(
-  spe, 
-  annotate = "cluster_banksy_nonagf", 
-  point_size = 1.25
-) + 
-scale_color_brewer(palette = "Set1")
-
-umap_banksky_nonagf + coords_banksky_nonagf + he_plot
-```
-
-How does this compare to non-spatial?
-Kind of neat to see that there is still spatial arrangement in the UMAP, although it's not clear what it means if anything!
-
-
-
-#### With AGF
-
-Let's do this again, but with AGF turned on. 
-We'll change up the `k_geom` parameter for this to use two values, more explanation coming later.
-
-
-```{r banksy matrix agf on, live = TRUE}
-# 18 will be used for neighbor averaging, and 30 will be used for broader spatial effects with AGF
-
-# turn on compute_agf
-
-# show spe
-
-```
-
-There's a new assay now, H1, which is the result of the AGF calculation.
-BANKSY can only make assays named H0 and H1, so if you re-run in same mode but with a different `k_geom` your assays will get overridden.
-
-
-```{r}
-assay(spe, "H1")[1:5, 1:5]
-```
-
-Worth noting that BANKSY will overwrite metadata parameters.
-
-```{r banksy agf metadata}
-metadata(spe)$BANKSY_params
-```
-
-
-Now, we can calculate the PCA for this matrix.
-
-```{r agf pca, live = TRUE}
-# use_agf tells BANKSY to use the H1 asssay
+# calculate the Banksy matrix without AGF
 
 # show the SPE
 
 ```
 
-This gave us a new PCA matrix, `PCA_M1_lam0.2` - where the `M1` signifies that AGF was used and `0.2` is the lambda parameter.
-As before we'll do clustering and UMAP.
+Notice we now have only 2000 genes, which is because we are using the HVG subset for the `Banksy` calculations.
+
+We also see that a new `H0` assay has been added to the SPE, representing the neighborhood-averaged spot expression.
+Each entry represents the average expression of a given gene across the spatial neighbors of a given spot, rather than the spot's own expression.
+
+```{r show H0}
+assay(hvg_spe, "H0")[1:5, 1:5]
+```
+
+`Banksy::computeBanksy()` also stores the parameters it used in the SPE's `metadata` slot, which is useful for keeping track of settings across runs:
+
+```{r banksy nonagf metadata}
+# show the SPE metadata
+metadata(hvg_spe)$BANKSY_params
+```
+
+Now, we can use `Banksy::runBanksyPCA()`, which combines `logcounts` and `H0` into a single matrix weighted by `lambda` and then runs PCA on it.
+
+```{r banksy pca, live = TRUE}
+# calculate PCA within Banksy
+
+# show the SPE
+
+```
+
+The new PCA that `Banksy` has calculated is named `PCA_M0_lam0.2`: `M0` indicates that AGF was not used, and `lam0.2` records the `lambda` value.
+`Banksy` generates these names automatically, making it easy to track different reduced dimension calculations when comparing multiple runs.
+
+To keep the workflow consistent with what we did above, we'll use `scater` and `scran` directly for calculating UMAPs, plotting, and clustering.
+We'll also reuse the same `cluster_params` object defined earlier when we performed non-spatial clustering to ensure a direct comparison.
+
+```{r cluster banksy nonagf}
+# define PCA and UMAP names for bookkeeping
+pca_name <- "PCA_M0_lam0.2"
+umap_name <- "UMAP_banksy_nonagf"
+
+# calculate UMAP
+hvg_spe <- scater::runUMAP(
+  hvg_spe,
+  dimred = pca_name,
+  name = umap_name
+)
+
+# perform clustering
+colData(hvg_spe)$cluster_banksy_nonagf <- scran::clusterCells(
+  hvg_spe,
+  use.dimred = pca_name,
+  BLUSPARAM = cluster_params
+)
+```
+
+Let's visualize this initial set of `Banksy` clusters alongside the H&E, just as we did for the expression-only results.
+
+```{r plot banksy nonagf}
+#| message: false
+#| fig.width: 10
+#| fig.height: 3
+
+# define UMAP plot
+umap_banksky_nonagf <- scater::plotReducedDim(
+  hvg_spe,
+  dimred = umap_name,
+  color_by = "cluster_banksy_nonagf",
+  point_size = 0.5
+) +
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "Banksy cluster",
+    palette = "Set1"
+  ) +
+  # ensure more visible points in legend
+  guides(
+    color = guide_legend(override.aes = list(alpha = 1, size = 1.5))
+  ) +
+  # remove axis scales from umap plot
+  theme(
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+
+# define coordinates plot
+coords_banksky_nonagf <- ggspavis::plotCoords(
+  hvg_spe,
+  annotate = "cluster_banksy_nonagf",
+  point_size = 1
+) +
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "Banksy cluster",
+    palette = "Set1"
+  )
+
+# combine plots using patchwork
+umap_banksky_nonagf + coords_banksky_nonagf + he_plot
+```
+
+How do these clusters compare to the expression-only results?
+What differences do you see between these results, both in terms of the UMAP and the coordinates plot?
+
+
+#### Running Banksy with AGF
+
+Now we'll re-run `Banksy::computeBanksy()` with AGF enabled (`compute_agf = TRUE`).
+As introduced above, AGF captures directional expression gradients and can help `Banksy` detect finer spatial structure at the boundaries between tissue domains.
+
+When AGF is enabled, `k_geom` takes a vector of two values rather than a single one.
+The first value is used for the neighborhood averaging step, as before.
+The second value, which is usually larger, provides the broader spatial context needed for the AGF gradient calculation.
+
+As suggested in the `Banksy` documentation, we'll use `k_geom = c(18, 30)` for Visium spot data: 18 spots will be used for the neighborhood averaging and 30 spots will be used for the AGF calculation.
+
+```{r banksy matrix agf on, live = TRUE}
+# specify 18 neighbors for neighbor averaging, and 30 neighbors for AGF
+
+# turn on compute_agf
+
+# show the SPE
+
+```
+
+The SPE now contains an additional assay, `H1`, which stores the AGF-based neighborhood expression profile.
+Note that if you re-run `Banksy::computeBanksy()` with different parameters, the new object will only include the new `H0` and `H1`, as well the `BANKSY_params` entry from that run.
+We are saving back to the existing variable, so we are losing our previous results.
+
+If you want to preserve results from multiple runs, you will need to keep this in mind and store each set of results separately.
+
+```{r show H1}
+assay(hvg_spe, "H1")[1:5, 1:5]
+```
+
+As with the non-AGF run, `Banksy::computeBanksy()` updated the `BANKSY_params` entry in the SPE's `metadata` slot to reflect the new settings:
+
+```{r banksy agf metadata}
+metadata(hvg_spe)$BANKSY_params
+```
+
+Now we can run `Banksy::runBanksyPCA()` with `use_agf = TRUE`.
+With this argument, the function concatenates `H0` and `H1` when constructing the combined expression-plus-neighborhood matrix that will be input to PCA.
+
+```{r agf pca, live = TRUE}
+# use_agf tells Banksy to incorporate both the H0 and H1 assays, as well as logcounts expression
+
+# show the SPE
+
+```
+
+The new PCA is named `PCA_M1_lam0.2`, where `M1` indicates that AGF was used (compared to `M0` from the without-AGF run), and `lam0.2` records the `lambda` value.
+We'll now proceed to calculate the UMAP embeddings and clusters using the same `cluster_params` that we have been using previously.
 
 ```{r agf umap}
 # define reducedDim names
@@ -352,22 +475,21 @@ pca_name <- "PCA_M1_lam0.2"
 umap_name <- "UMAP_banksy_agf"
 
 # Calculate UMAP
-spe <- scater::runUMAP(
-  spe,
+hvg_spe <- scater::runUMAP(
+  hvg_spe,
   dimred = pca_name,
   name = umap_name
 )
 
 # Perform clustering
-colData(spe)$cluster_banksy_agf <- scran::clusterCells(
-  spe, 
+colData(hvg_spe)$cluster_banksy_agf <- scran::clusterCells(
+  hvg_spe,
   use.dimred = pca_name,
   BLUSPARAM = cluster_params
 )
 ```
 
-And plot, this time showing a few plots for comparison!
-We'll make use of patchwork for lots of colors.
+Now let's visualize all three sets of results side-by-side: expression-only, Banksy without AGF, and Banksy with AGF.
 
 ```{r plot banksy agf}
 #| message: false
@@ -375,119 +497,152 @@ We'll make use of patchwork for lots of colors.
 #| fig.width: 14
 
 umap_banksky_agf <- scater::plotReducedDim(
-  spe, 
+  hvg_spe,
   dimred = umap_name,
-  color_by = "cluster_banksy_agf", 
+  color_by = "cluster_banksy_agf",
   point_size = 0.5
-) + 
-scale_color_brewer(palette = "Paired")
+) +
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "Banksy AGF cluster",
+    palette = "Paired"
+  ) +
+  # ensure more visible points in legend
+  guides(
+    color = guide_legend(override.aes = list(alpha = 1, size = 1.5))
+  ) +
+  # remove axis scales from umap plot
+  theme(
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
 
-coords_banksky_agf <- plotCoords(
-  spe, 
-  annotate = "cluster_banksy_agf", 
+coords_banksky_agf <- ggspavis::plotCoords(
+  hvg_spe,
+  annotate = "cluster_banksy_agf",
   point_size = 1.25
-) + 
-scale_color_brewer(palette = "Paired")
+) +
+  # set custom palette and legend title
+  scale_color_brewer(
+    name = "Banksy AGF cluster",
+    palette = "Paired"
+  )
 
-
-# Compile plots for patchwork
-# the legends will be a bit loud, but wrangling it is a pain!
+# Compile plots for display with patchwork
 plot_list <- list(
   umap_nonspatial,
   umap_banksky_nonagf,
   umap_banksky_agf,
   coords_nonspatial,
-  coords_banksky_nonagf, 
+  coords_banksky_nonagf,
   coords_banksky_agf
 )
-
 
 wrap_plots(plot_list, nrow = 2)
 ```
 
-What differences do you see with and without AGF?
-Did AGF capture boundaries more cleanly as advertised?
-How do these clusters overall compare to non-spatial?
+What differences do you see between `Banksy` clusters with and without AGF?
+Do you think AGF captured boundaries more cleanly as advertised?
+Next, how do the spatially-informed clusters overall compare to non-spatial clusters?
 
-We can see how clusters compare a bit more precisely/plainly with a heatmap.
-For this, we'll make one comparing non-spatial to AGF clusters.
+We can get a more quantitative view of how the clustering approaches relate to one another with a heatmap comparing `Banksy` clusters (rows) to non-spatial clusters (columns).
+For this heatmap, we'll specifically use the `Banksy` AGF clusters.
+We'll also normalize each column by the total number of spots in the given non-spatial cluster; each tile will be colored by the proportion of spots in the non-spatial cluster.
 
 ```{r cluster banksy heatmap}
+# table of cells in each cluster
 clusters_tab <- table(
-  colData(spe)$cluster_banksy_agf, 
-  colData(spe)$cluster_nonspatial
+  colData(hvg_spe)$cluster_nonspatial,
+  colData(hvg_spe)$cluster_banksy_agf
 )
 
-# normalize by the number of cells in each non-spatial cluster
-clusters_tab <- apply(
+# Use proportions() to normalize rows (margin = 1) to sum to 1
+clusters_tab <- proportions(clusters_tab, margin = 1)
+
+# plot heatmap:
+# non-spatial clusters are columns, and Banksy with AGF clusters are rows
+pheatmap::pheatmap(
   clusters_tab,
-  2, # apply function to columns (cluster_nonspatial)
-  \(x) x/sum(x)
+  # turn off heatmap hierarchical cluster for easier viewing
+  cluster_cols = FALSE,
+  cluster_rows = FALSE,
+  # show cluster type with the labels
+  labels_row = paste0("Non", levels(hvg_spe$cluster_nonspatial)),
+  labels_col = paste0("AGF", levels(hvg_spe$cluster_banksy_agf))
 )
-
-pheatmap::pheatmap(clusters_tab)
 ```
 
-For example, we can see from the coordinate plots that non-spatial cluster 3 is tumor cells, which has been split into three BANKSY clusters: 10, 6, & 8.
-Notably, BANKSY cluster 6 also has spots in non-spatial cluster 1, which we can see from the coordinate plots too.
+The heatmap shows non-spatial clusters labeled with "Non" and `Banksy` AGF clusters labeled with "AGF" and how they relate to one another.
+For example, non-spatial clusters labeled above as `Non3` and `Non5` contain tumor-rich spots, and each each appear to be split across several Banksy AGF clusters.
+On the other hand, cluster `AGF1` does not correspond strongly to any single non-spatial cluster, and appears spatially concentrated in the top-right region of the tissue.
 
-Let's color by gene expression for a gene we expect to be highly expressed in the tumor, collagen (`Col1a1`).
-Let's get the Ensembl id to plot it:
+How do you interpret these observations?
+Do you think `Banksy` is providing reliable clusters?
 
-```{r find ensembl id}
-ensembl_id <- rowData(spe) |>
-  as.data.frame() |>
-  dplyr::filter(Symbol == "Col1a1")|>
-  rownames()
+We can also see the relationship between clustering approaches reflected in gene expression patterns across clusters.
+Below, we'll examine the expression of `Col1a1`, a gene we expect to be enriched in tumor-rich spots.
 
-ensembl_id
+We'll look up its Ensembl ID to pass to `scater::plotExpression()`:
+
+```{r find ensembl id, live = TRUE}
+
 ```
+
+Now we'll use `scater::plotExpression()` to plot `Col1a1` expression across non-spatial clusters and `Banksy` AGF clusters.
+We'll also include the coordinate plots again, to assist with interpretation.
 
 ```{r plot col1a1 expression}
 #| message: false
-#| fig.width: 12
-#| fig.height: 4
+#| fig.width: 9
+#| fig.height: 5.5
 
-
-banksy_expr_plot <- scater::plotExpression(
-  spe,
-  features = ensembl_id,
-  x = "cluster_banksy_agf",
-  color_by = "cluster_banksy_agf"
-) + 
-  scale_color_brewer(palette = "Paired")
-  
+# expression across non-spatial clusters
 nonspatial_expr_plot <- scater::plotExpression(
-  spe,
+  hvg_spe,
   features = ensembl_id,
   x = "cluster_nonspatial",
-  color_by = "cluster_nonspatial"
-) + 
-  scale_color_brewer(palette = "Dark2")
+  color_by = "cluster_nonspatial",
+  point_size = 0.5
+) +
+  scale_color_brewer(name = "Non-spatial cluster", palette = "Dark2")
 
-banksy_expr_plot + nonspatial_expr_plot
+# expression across AGF clusters
+agf_expr_plot <- scater::plotExpression(
+  hvg_spe,
+  features = ensembl_id,
+  x = "cluster_banksy_agf",
+  color_by = "cluster_banksy_agf",
+  point_size = 0.5
+) +
+  scale_color_brewer(name = "Banksy AGF cluster", palette = "Paired")
+
+
+# Compile for plotting with patchwork
+plot_list <- list(
+  nonspatial_expr_plot,
+  agf_expr_plot,
+  coords_nonspatial,
+  coords_banksky_agf
+)
+patchwork::wrap_plots(plot_list, nrow = 2)
 ```
 
-
-We indeed see distinctions among BANKSY clusters 6, 8, & 10 - per the H&E, spots in 10 are most isolated from environment, then 8, and then 6 is bordering the parenchyma. 
-6 being lowest expression makes sense given that it also corresponds, although less so, to non-spatial cluster 1.
-We have therefore refined our non-spatial clusters with spatial information to give us clusters that consider spatial relationships as well.
-
-Anything else you see to point out here?
+Let's begin interpreting this by focusing on the tumor rich-clusters (3/5 non-spatial and 4, 5 and 7 `Banksy` AGF).
+Do these clusters show comparable expression of `Cola1a`, or do you see distinctions in `Cola1a` levels?
+Do you think that the associated `Banksy` clusters may represent distinct biological regions?
 
 
 ## Export
 
-We'll conclude by exporting our object with clusters, with compression.
+We'll conclude by exporting the `colData` slot of the `hvg_spe` as a TSV, which will include the clusters we have calculated.
 
 ```{r export, live = TRUE}
+# convert colData to data frame and export as a TSV
 
 ```
 
 
 ## Session info
-
-To conclude, we'll run the `sessionInfo()` command to print out exactly what system setting and R package versions were used to run this code.
 
 ```{r}
 sessionInfo()
