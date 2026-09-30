@@ -123,6 +123,7 @@ link_locs=(
   spatial/data/wilms-tumor/SCPCS000190/spaceranger
   spatial/data/osteo/GSM8478586/normalized
   spatial/data/reference
+  spatial/data/brca-xenium/Janesick_annotations.tsv
   spatial/data/brca-xenium/xenium
   spatial/data/crc-hd/visium_hd
   spatial/data/crc-hd/single_cell
