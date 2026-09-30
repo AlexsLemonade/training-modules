@@ -55,6 +55,7 @@ mkdir -p spatial/data/osteo/GSM8478586
 mkdir -p spatial/data/crc-v1
 mkdir -p spatial/data/brca-xenium
 mkdir -p spatial/data/crc-hd
+mkdir -p spatial/analysis/osteo/GSM8478586
 
 # Machine learning module directory
 mkdir -p machine-learning/data
@@ -117,6 +118,7 @@ link_locs=(
   scRNA-seq-advanced/data/pancreas/processed
   scRNA-seq-advanced/gene-sets
   scRNA-seq-advanced/data/wilms-tumor/processed
+  spatial/analysis/osteo/GSM8478586/moran_mc100k.tsv
   spatial/data/ovarian-carcinoma/spaceranger
   spatial/data/wilms-tumor/SCPCS000190/spaceranger
   spatial/data/osteo/GSM8478586/normalized
