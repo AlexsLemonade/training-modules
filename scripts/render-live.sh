@@ -42,7 +42,7 @@ files=(
   spatial/03-deconvolution.Rmd
   spatial/04-spatially_variable_genes.Rmd
   spatial/05-xenium_processing.Rmd
-  spatial/06-neighborhood-analysis.Rmd
+  spatial/06-neighborhood_analysis.Rmd
   # machine-learning/01-openpbta_heatmap.Rmd
   # machine-learning/02-openpbta_consensus_clustering.Rmd
   # machine-learning/03-openpbta_PLIER.Rmd
