@@ -130,7 +130,7 @@ def main() -> None:
 
     if not args.base_dir.is_dir():
         sys.exit(f"Base directory {args.base_dir} does not exist or is not a directory")
-    if not args.module_file.is_file() and not args.module_file.suffix == ".json":
+    if not args.module_file.is_file() and args.module_file.suffix != ".json":
         sys.exit("A JSON module file must be provided.")
 
     module_data = json.loads(args.module_file.read_text())
@@ -187,6 +187,9 @@ def main() -> None:
 
     # remove miscellaneous files and directories
     remove_items(target_base, REMOVE_MISC)
+
+    # create directories for Bioconductor cache
+    (args.skel_dir / ".cache/R/BiocFileCache").mkdir(parents=True, exist_ok=True)
 
 
 if __name__ == "__main__":
