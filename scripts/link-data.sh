@@ -119,16 +119,17 @@ link_locs=(
   scRNA-seq-advanced/gene-sets
   scRNA-seq-advanced/data/wilms-tumor/processed
   spatial/analysis/osteo/GSM8478586/moran_mc100k.tsv
-  spatial/data/ovarian-carcinoma/spaceranger
-  spatial/data/wilms-tumor/SCPCS000190/spaceranger
-  spatial/data/osteo/GSM8478586/normalized/osteo_normalized_spe.rds
-  spatial/data/reference
   spatial/data/brca-xenium/Janesick_annotations.tsv
   spatial/data/brca-xenium/xenium
-  spatial/data/crc-hd/visium_hd
-  spatial/data/crc-hd/single_cell
   spatial/data/crc-hd/crc_hd_normalized_spe.rds
   spatial/data/crc-hd/crc_single_cell_normalized_sce.rds
+  spatial/data/crc-hd/single_cell
+  spatial/data/crc-hd/visium_hd
+  spatial/data/crc-v1/crc_normalized_spe.rds
+  spatial/data/osteo/GSM8478586/normalized/osteo_normalized_spe.rds
+  spatial/data/ovarian-carcinoma/spaceranger
+  spatial/data/reference
+  spatial/data/wilms-tumor/SCPCS000190/spaceranger
   machine-learning/data/open-pbta
   pathway-analysis/data/leukemia
   pathway-analysis/data/medulloblastoma
