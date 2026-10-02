@@ -77,7 +77,7 @@ link_locs=(
   spatial/data/crc-hd/single_cell
   spatial/data/crc-hd/visium_hd
   spatial/data/crc-v1/crc_normalized_spe.rds
-  spatial/data/osteo/GSM8478586/normalized/osteo_spe.rds
+  spatial/data/osteo/GSM8478586/normalized/osteo_normalized_spe.rds
   spatial/data/ovarian-carcinoma/spaceranger
   spatial/data/reference
   spatial/data/wilms-tumor/SCPCS000190/spaceranger
