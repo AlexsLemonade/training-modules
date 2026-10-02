@@ -121,7 +121,7 @@ link_locs=(
   spatial/analysis/osteo/GSM8478586/moran_mc100k.tsv
   spatial/data/ovarian-carcinoma/spaceranger
   spatial/data/wilms-tumor/SCPCS000190/spaceranger
-  spatial/data/osteo/GSM8478586/normalized
+  spatial/data/osteo/GSM8478586/normalized/osteo_normalized_spe.rds
   spatial/data/reference
   spatial/data/brca-xenium/Janesick_annotations.tsv
   spatial/data/brca-xenium/xenium
