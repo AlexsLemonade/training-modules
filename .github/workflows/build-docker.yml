@@ -19,6 +19,8 @@ on:
       - renv.lock
       - requirements.txt
       - current-modules.json
+      - scripts/setup-skel.py
+      - scripts/render-live.sh
       - .github/workflows/build-docker.yml
 
 env:
@@ -40,8 +42,9 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
       - name: Check out the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Check that current-modules release-tag matches git tag
         if: startsWith(github.ref, 'refs/tags/')
@@ -55,7 +58,7 @@ jobs:
           fi
 
       - name: Load 1Password secrets
-        uses: 1password/load-secrets-action@v3
+        uses: 1password/load-secrets-action@v5
         with:
           export-env: true
         env:
@@ -64,26 +67,26 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.OP_DOCKER_PASSWORD }}
 
       - name: Login to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ env.DOCKER_USER }}
           password: ${{ env.DOCKER_PASSWORD }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY_IMAGE }}
 
       # Build Docker image, push only on push events
       - name: Build Docker image
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: ${{ github.event_name == 'push' }}
           secrets: |
@@ -104,7 +107,7 @@ jobs:
 
       - name: Upload digest
         if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
           path: ${{ runner.temp }}/digests/*
@@ -119,7 +122,7 @@ jobs:
     if: github.event_name == 'push'
     steps:
       - name: Load 1Password secrets
-        uses: 1password/load-secrets-action@v3
+        uses: 1password/load-secrets-action@v5
         with:
           export-env: true
         env:
@@ -129,23 +132,23 @@ jobs:
           ACTION_MONITORING_SLACK: ${{ secrets.OP_ACTION_MONITORING_SLACK }}
 
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: ${{ runner.temp }}/digests
           pattern: digests-*
           merge-multiple: true
       - name: Login to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ env.DOCKER_USER }}
           password: ${{ env.DOCKER_PASSWORD }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           # each github tag will create a matching tag on dockerhub,

@@ -14,56 +14,7 @@ cd ..
 share_base=/shared/data
 modules_base=${share_base}/training-modules
 
-#### Step 1: Create parent directories for symlinks and writable output directories ####
-# Create the parent directory of each symlink defined in link_locs below, as well as parent directories needed for outputs
-# Do not create the symlink target directory itself — ln will do that.
-
-# RNA-seq module directories
-mkdir -p RNA-seq/data/gastric-cancer
-mkdir -p RNA-seq/data/gastric-cancer/salmon_quant
-mkdir -p RNA-seq/data/NB-cell
-mkdir -p RNA-seq/data/leukemia
-mkdir -p RNA-seq/data/medulloblastoma
-mkdir -p RNA-seq/data/zebrafish-cortisol
-mkdir -p RNA-seq/QC/gastric-cancer/fastp
-mkdir -p RNA-seq/QC/gastric-cancer/fastqc
-mkdir -p RNA-seq/data/open-pbta
-
-# scRNA-seq module directories
-mkdir -p scRNA-seq/data/glioblastoma-10x
-mkdir -p scRNA-seq/data/tabula-muris/alevin-quant
-mkdir -p scRNA-seq/data/tabula-muris/normalized
-mkdir -p scRNA-seq/data/hodgkins
-mkdir -p scRNA-seq/data/mouse-liver
-mkdir -p scRNA-seq/data/PBMC-TotalSeqB/normalized/
-
-# scRNA-seq-advanced module directories
-mkdir -p scRNA-seq-advanced/analysis/mouse-liver
-mkdir -p scRNA-seq-advanced/data/PBMC-TotalSeqB/normalized
-mkdir -p scRNA-seq-advanced/data/ewing-sarcoma/annotations
-mkdir -p scRNA-seq-advanced/data/glioblastoma-10x
-mkdir -p scRNA-seq-advanced/data/rms/integrated
-mkdir -p scRNA-seq-advanced/data/rms/annotations
-mkdir -p scRNA-seq-advanced/data/pancreas
-mkdir -p scRNA-seq-advanced/data/hodgkins
-mkdir -p scRNA-seq-advanced/data/wilms-tumor
-
-# spatial module directories
-mkdir -p spatial/data/ovarian-carcinoma
-mkdir -p spatial/data/wilms-tumor/SCPCS000190
-mkdir -p spatial/data/osteo/GSM8478586
-mkdir -p spatial/data/crc-v1
-mkdir -p spatial/data/brca-xenium
-mkdir -p spatial/data/crc-hd
-mkdir -p spatial/analysis/osteo/GSM8478586
-
-# Machine learning module directory
-mkdir -p machine-learning/data
-
-# Pathway analysis module directory
-mkdir -p pathway-analysis/data
-
-# Step 2: Create Symlink targets pointing to shared read-only data in ${modules_base}.
+# Create Symlink targets pointing to shared read-only data in ${modules_base}.
 # For this, we generally want to link directories that contain input data, but NOT necessarily the
 # parent directory where processed data are output.
 # Instead, the parent directory for outputs should have been created above with `mkdir -p` as a real (non-symlink) directory
@@ -140,6 +91,8 @@ do
   # only make the links if replacing an old link or the file doesn't exist
   if [[ -L ${loc} || ! -e ${loc} ]]
   then
+    # create parent dirs if they don't exist
+    mkdir -p $(dirname ${loc})
     ln -nsf ${modules_base}/${loc} ${loc}
   else
     echo "${loc} already exists and is not a link, delete or move it to create a link."
