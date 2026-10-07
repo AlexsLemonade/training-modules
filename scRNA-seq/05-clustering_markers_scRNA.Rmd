@@ -36,7 +36,11 @@ set.seed(12345)
 data_dir <- file.path("data", "hodgkins")
 
 # normalized data file
-normalized_rds <- file.path(data_dir, "normalized", "normalized_hodgkins_sce.rds")
+normalized_rds <- file.path(
+  data_dir,
+  "normalized",
+  "normalized_hodgkins_sce.rds"
+)
 
 # Output directory for markers
 marker_dir <- file.path("analysis", "hodgkins", "markers")
@@ -170,10 +174,12 @@ Now we can plot the results of our graph-based clustering.
 This time we will also use the `text_by` argument to include the cluster ids directly on the plot.
 
 ```{r plot_nnclust, live = TRUE}
-plotReducedDim(hodgkins_sce,
-               "UMAP",
-               color_by = "nncluster",
-               text_by = "nncluster")
+plotReducedDim(
+  hodgkins_sce,
+  "UMAP",
+  color_by = "nncluster",
+  text_by = "nncluster"
+)
 ```
 
 - How do these results compare to the k-means clustering result?
@@ -212,9 +218,11 @@ For now, we will use the `findMarkers()` function to rank the genes in each clus
 ```{r find_markers, live = TRUE}
 # use `findMarkers()` to calculate how well each gene
 #  differentiates each cluster from *all* other clusters
-markers <- scran::findMarkers(hodgkins_sce,
-                              groups = hodgkins_sce$nncluster,
-                              pval.type = "all")
+markers <- scran::findMarkers(
+  hodgkins_sce,
+  groups = hodgkins_sce$nncluster,
+  pval.type = "all"
+)
 ```
 
 Next we can look at one of those tables.
@@ -242,14 +250,14 @@ The results are returned as a new list.
 purrr::map(
   as.list(markers[1:3]), # select the first 3 clusters and convert to a 'regular' list for purrr
   head # the function to apply (note no parenthesis)
-  )
+)
 ```
 
 This returns a list of data frames, which isn't quite what we want.
 
 There is no built-in function that will give us just the first few _row names_, so we will have to define one.
-As of version 4.1, R introduced a new approach to defining _anonymous functions_ - that is, functions you can quickly define "on-the-fly" without formally assigning them to a function name.
-They are handy when you need to do a very short task that requires a function, but it isn't really a function you need beyond this context.
+We'll do this with an "anonymous" function (sometimes called a lambda expression).
+Anonymous functions are handy when you need to do a very short task that requires a function, but it isn't really a function you need beyond this context.
 This new anonymous syntax looks like this: `\(x)...` (or for slightly longer code, use curly braces as in `\(x) {...}`).
 This defines a function that takes one argument, `x`, with `...` indicating where you would put the expression to calculate.
 
@@ -261,7 +269,7 @@ purrr::map(
   # convert markers to a 'regular' list for purrr
   as.list(markers),
   # our custom function:
-  \(x) head( rownames(x) )
+  \(x) head(rownames(x))
 )
 ```
 
@@ -288,12 +296,13 @@ In addition to writing the tables out, we are saving the data frames we created 
 ```{r write_tables}
 marker_df_list <- purrr::imap(
   as.list(markers), # convert markers to a 'regular' list for purrr
-  # purrr function: x is the list element, y is the element name (number here)
+  # anonymous function: x is the list element, y is the element name (number here)
   \(table, id) {
     as.data.frame(table) |> # first convert to a data frame
       tibble::rownames_to_column("gene") |> # make genes a column
       dplyr::arrange(FDR) |> # sort to be sure small FDR genes are first
-      readr::write_tsv( # write each data frame to a file
+      # write each data frame to a file
+      readr::write_tsv(
         file.path(
           marker_dir, # construct the output path
           sprintf("cluster%02d_markers.tsv", as.integer(id)) # format cluster numbers in file names with leading zeros
@@ -332,8 +341,7 @@ gene_id <- gene_info$ID[rank]
 symbol <- gene_info$Symbol[rank]
 
 # Plot UMAP results colored by expression
-plotReducedDim(hodgkins_sce, "UMAP",
-               color_by = gene_id) +
+plotReducedDim(hodgkins_sce, "UMAP", color_by = gene_id) +
   # label the guide with the gene symbol
   guides(color = guide_colorbar(title = symbol))
 ```

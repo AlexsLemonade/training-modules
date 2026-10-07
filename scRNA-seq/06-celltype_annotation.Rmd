@@ -152,7 +152,7 @@ While we have the ADT data, it is _not_ being used for this stage of the analysi
 ```{r cluster cells, live=TRUE}
 # perform clustering
 nn_clusters <- scran::clusterCells(
-  sce, 
+  sce,
   use.dimred = "PCA", # PCA input
   BLUSPARAM = bluster::NNGraphParam() # graph clustering & parameters
 )
@@ -470,9 +470,11 @@ Still annoyingly, however, when we change the palette, the legend title defaults
 
 ```{r plot celltype umap palette}
 scater::plotUMAP(sce, color_by = "celltype_main") +
-  scale_color_brewer(name = "Cell type", # legend title
-                     palette = "Dark2",      # color palette
-                     na.value = "gray80")    # use light gray for NA values
+  scale_color_brewer(
+    name = "Cell type", # legend title
+    palette = "Dark2", # color palette
+    na.value = "gray80"
+  ) # use light gray for NA values
 ```
 
 We seem to have a pretty good set of cell type assignments, with most falling into groupings consistent with what we see in the UMAP plot.
@@ -519,7 +521,7 @@ singler_finemodel <- SingleR::trainSingleR(
   monaco_ref, # reference dataset
   labels = monaco_ref$label.fine, # labels for training dataset
   # consider only genes in the sce object
-  test.genes = rownames(sce), 
+  test.genes = rownames(sce),
   # use DE to select genes (default)
   genes = "de",
   # parallel processing
@@ -569,28 +571,32 @@ After that, we will use `fct_relevel` to put the remaining factor levels in the 
 collapsed_labels <- singler_result_fine$pruned.labels |>
   forcats::fct_collapse(
     "Monocytes" = c(
-        "Classical monocytes",
-        "Intermediate monocytes",
-        "Non classical monocytes"),
+      "Classical monocytes",
+      "Intermediate monocytes",
+      "Non classical monocytes"
+    ),
     "Dendritic cells" = c(
-        "Myeloid dendritic cells",
-        "Plasmacytoid dendritic cells"),
+      "Myeloid dendritic cells",
+      "Plasmacytoid dendritic cells"
+    ),
     "T cells" = c(
-        "MAIT cells",
-        "Non-Vd2 gd T cells",
-        "Vd2 gd T cells"),
+      "MAIT cells",
+      "Non-Vd2 gd T cells",
+      "Vd2 gd T cells"
+    ),
     "Helper T cells" = c(
-        "Th1 cells",
-        "Th1/Th17 cells",
-        "Th17 cells",
-        "Th2 cells",
-        "Follicular helper T cells"),
+      "Th1 cells",
+      "Th1/Th17 cells",
+      "Th17 cells",
+      "Th2 cells",
+      "Follicular helper T cells"
+    ),
     "B cells" = c(
-        "Naive B cells",
-        "Switched memory B cells",
-        "Non-switched memory B cells",
-        "Exhausted B cells",
-        "Plasmablasts"
+      "Naive B cells",
+      "Switched memory B cells",
+      "Non-switched memory B cells",
+      "Exhausted B cells",
+      "Plasmablasts"
     )
   ) |>
   # order for plotting
@@ -646,7 +652,7 @@ Since the total number of cells differs across clusters, we'd like to convert th
 We'll do this by going through the table column by column and dividing each value by the sum for that cluster.
 This will give us normalized values where the values in each column now sum to 1.
 To do that, we will use the `apply` function, which allows us to operate on a matrix row by row or column by column, applying a function to each "slice".
-Since the function we want to apply is very short, we will use R's new (as of  version 4.1) anonymous function shorthand:
+Since the function we want to apply is very short, we will use R's anonymous function shorthand:
 `\(x) ...` can be used to define a function that that takes as input values `x` (where the `...` is where you would put the expression to calculate).
 Here we will apply the expression `x/sum(x)`, which will divide each element of a vector `x` by the sum of its values.
 
@@ -655,7 +661,7 @@ Here we will apply the expression `x/sum(x)`, which will divide each element of 
 type_cluster_tab <- apply(
   type_cluster_tab,
   2, # apply function to columns
-  \(x) x/sum(x) # function to apply
+  \(x) x / sum(x) # function to apply
 )
 # print the normalized values
 type_cluster_tab[1:5, 1:5]
