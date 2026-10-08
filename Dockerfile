@@ -95,19 +95,16 @@ RUN curl -L https://rclone.org/install.sh | bash
 
 # Python packages in a venv that is set as default for users
 COPY requirements.txt /tmp/requirements.txt
-
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt \
     && rm /tmp/requirements.txt \
     && chgrp -R staff /opt/venv && chmod -R g+ws /opt/venv \
     && echo '[ "$(id -u)" -ne 0 ] && export PATH=/opt/venv/bin:$PATH' > /etc/profile.d/venv.sh \
     && cat >> "$(R RHOME)/etc/Rprofile.site" <<'EOF'
-if (Sys.info()[["effective_user"]] != "root") {
-  Sys.setenv(
-    PATH = paste("/opt/venv/bin", Sys.getenv("PATH"), sep = ":"),
-    RETICULATE_PYTHON = "/opt/venv/bin/python"
+Sys.setenv(
+    RETICULATE_PYTHON = "/opt/venv/bin/python",
+    VIRTUAL_ENV_DISABLE_PROMPT = "1"
   )
-}
 EOF
 
 # Use renv for R packages
