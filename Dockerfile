@@ -67,6 +67,22 @@ RUN apt-get update -qq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Update RStudio if needed
+ARG RSTUDIO_MIN=2026.09.0+174
+
+RUN set -eux; \
+    ARCH=$(dpkg --print-architecture); \
+    CUR_VER=$(dpkg-query -W -f='${Version}' rstudio-server 2>/dev/null || echo 0); \
+    if dpkg --compare-versions "$CUR_VER" lt "$RSTUDIO_MIN"; then \
+      curl -fsSL "https://dl.dailies.rstudio.com/server/jammy/${ARCH}/rstudio-server-$(echo "$RSTUDIO_MIN" | tr + -)-${ARCH}.deb" \
+        -o /tmp/rstudio-server.deb; \
+      gdebi --non-interactive /tmp/rstudio-server.deb; \
+      rm /tmp/rstudio-server.deb; \
+      ln -fs /usr/lib/rstudio-server/bin/rstudio-server /usr/local/bin; \
+      ln -fs /usr/lib/rstudio-server/bin/rserver /usr/local/bin; \
+    fi; \
+    rm -rf /var/lib/apt/lists/*
+
 # FastQC
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
