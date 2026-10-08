@@ -67,6 +67,22 @@ RUN apt-get update -qq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Update RStudio if needed
+ARG RSTUDIO_MIN=2026.09.0+174
+
+RUN set -eux; \
+    ARCH=$(dpkg --print-architecture); \
+    CUR_VER=$(dpkg-query -W -f='${Version}' rstudio-server 2>/dev/null || echo 0); \
+    if dpkg --compare-versions "$CUR_VER" lt "$RSTUDIO_MIN"; then \
+      curl -fsSL "https://dl.dailies.rstudio.com/server/jammy/${ARCH}/rstudio-server-$(echo "$RSTUDIO_MIN" | tr + -)-${ARCH}.deb" \
+        -o /tmp/rstudio-server.deb; \
+      gdebi --non-interactive /tmp/rstudio-server.deb; \
+      rm /tmp/rstudio-server.deb; \
+      ln -fs /usr/lib/rstudio-server/bin/rstudio-server /usr/local/bin; \
+      ln -fs /usr/lib/rstudio-server/bin/rserver /usr/local/bin; \
+    fi; \
+    rm -rf /var/lib/apt/lists/*
+
 # FastQC
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -77,16 +93,26 @@ RUN apt-get update -qq \
 # Get rclone
 RUN curl -L https://rclone.org/install.sh | bash
 
-# Python packages
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt --break-system-packages
+# Python packages in a venv that is set as default for users
+COPY requirements.txt /tmp/requirements.txt
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt \
+    && chgrp -R staff /opt/venv && chmod -R g+ws /opt/venv \
+    && echo '[ "$(id -u)" -ne 0 ] && export PATH=/opt/venv/bin:$PATH' > /etc/profile.d/venv.sh \
+    && cat >> "$(R RHOME)/etc/Rprofile.site" <<'EOF'
+Sys.setenv(
+    RETICULATE_PYTHON = "/opt/venv/bin/python",
+    VIRTUAL_ENV_DISABLE_PROMPT = "1"
+  )
+EOF
 
 # Use renv for R packages
 WORKDIR /usr/local/renv
 COPY renv.lock renv.lock
 ENV RENV_CONFIG_CACHE_ENABLED=FALSE
 ENV RENV_CONFIG_INSTALL_STAGED=FALSE
-RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_PAT,required=false \
+RUN --mount=type=secret,id=GITHUB_PAT,env=GITHUB_PAT,required=false \
     Rscript - <<'RSCRIPT_EOF'
 # Some challenges with multi-arch builds and Bioconductor binaries mean we
 # want to be sure to set up repos manually here, lest the ones recorded in the
@@ -127,6 +153,9 @@ RUN python3 ${template_dir}/scripts/setup-skel.py \
     --base-dir ${template_dir} \
     --skel-dir /etc/skel \
     --module-file ${template_dir}/current-modules.json
+
+# Disable Posit Assistant
+RUN echo "posit-assistant-enabled=0" >> /etc/rstudio/rsession.conf
 
 WORKDIR /home/rstudio
 
