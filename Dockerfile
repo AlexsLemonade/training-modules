@@ -157,5 +157,8 @@ RUN python3 ${template_dir}/scripts/setup-skel.py \
     --skel-dir /etc/skel \
     --module-file ${template_dir}/current-modules.json
 
+# Disable Posit Assistant
+RUN echo "posit-assistant-enabled=0" >> /etc/rstudio/rsession.conf
+
 WORKDIR /home/rstudio
 
