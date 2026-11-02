@@ -4,7 +4,8 @@ FROM docker.io/library/ubuntu:noble AS build
 
 # Build dependencies
 RUN apt-get update -qq \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    && DEBIAN_FRONTEND=noninteractive \
+    apt-get install -y --no-install-recommends \
     ca-certificates \
     cmake \
     curl \
@@ -55,7 +56,9 @@ WORKDIR /rocker-build/
 
 # Additional dependencies for AWS runtime and handy tools
 RUN apt-get update -qq \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    && DEBIAN_FRONTEND=noninteractive \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
     emacs \
     glibc-source \
     groff \
